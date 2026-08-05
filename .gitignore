@@ -1,0 +1,167 @@
+# ---------------------------------------------------------------------------
+# Entorno / secretos
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtualenvs
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# Test / coverage
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.cover
+.hypothesis/
+
+# Type checkers / linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+.pyre/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ---------------------------------------------------------------------------
+# Node / frontend
+# ---------------------------------------------------------------------------
+node_modules/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Builds
+frontend/dist/
+frontend/dist-ssr/
+frontend/build/
+.vite/
+*.local
+
+# Vitest / coverage
+frontend/coverage/
+
+# ---------------------------------------------------------------------------
+# IDEs / editores
+# ---------------------------------------------------------------------------
+# VS Code (se versionan solo settings compartidos explícitos)
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+*.code-workspace
+
+# JetBrains (PyCharm / WebStorm)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Claude Code: la configuración `local` es por máquina, no del proyecto.
+.claude/settings.local.json
+
+# Otros editores
+*.swp
+*.swo
+*~
+.\#*
+\#*\#
+.project
+.classpath
+.settings/
+
+# ---------------------------------------------------------------------------
+# Sistemas operativos
+# ---------------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ---------------------------------------------------------------------------
+# Docker / infraestructura local
+# ---------------------------------------------------------------------------
+docker-compose.override.yml
+.docker/
+pgdata/
+postgres-data/
+
+# ---------------------------------------------------------------------------
+# Datos y artefactos del proyecto (no versionar datos de Gutis)
+# ---------------------------------------------------------------------------
+data/
+*.xlsx
+*.xls
+*.csv
+!docs/**/*.csv
+logs/
+*.log
+tmp/
+.cache/

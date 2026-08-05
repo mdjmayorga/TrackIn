@@ -1,0 +1,20 @@
+# Evita mandar basura al contexto de build (y que el .venv de Windows
+# termine dentro de una imagen Linux, que rompería los binarios nativos).
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.env
+.env.*
+!.env.example
+*.log
+.git/
+.gitignore
+README.md

@@ -1,0 +1,29 @@
+# Normaliza los finales de línea: LF en el repositorio y en el working copy,
+# en cualquier sistema operativo. Sin esto, Git en Windows convierte a CRLF al
+# hacer checkout y contradice el `end_of_line = lf` del .editorconfig, lo que
+# produce diffs de archivos enteros al cambiar de máquina.
+* text=auto eol=lf
+
+# Scripts que Windows exige con CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Scripts que deben quedar ejecutables en Linux (dentro de los contenedores).
+*.sh text eol=lf
+
+# Binarios: que Git no intente normalizarlos.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.xlsx binary
+*.xls binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+
+# El lockfile se genera solo: colapsarlo en los diffs de los PR.
+frontend/package-lock.json linguist-generated=true -diff

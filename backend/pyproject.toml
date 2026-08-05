@@ -1,0 +1,130 @@
+[project]
+name = "trackin-backend"
+version = "0.1.0"
+description = "API de TrackIn — tracking logístico de compras internacionales, Laboratorios Gutis"
+authors = [{ name = "Mariano Mayorga Halabi" }]
+requires-python = ">=3.12"
+readme = "README.md"
+
+# Las dependencias se gestionan con requirements.txt / requirements-dev.txt.
+# Este pyproject.toml existe para centralizar la configuración de herramientas.
+
+# ---------------------------------------------------------------------------
+# Ruff — linter (reemplaza flake8/isort/pyupgrade)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["app", "tests"]
+extend-exclude = ["alembic/versions", ".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "ARG",  # argumentos sin usar
+    "SIM",  # simplificaciones
+    "ASYNC",# antipatrones async
+    "RUF",  # reglas propias de ruff
+]
+# TCH (flake8-type-checking) queda FUERA a propósito: movería imports como
+# AsyncSession o AsyncGenerator a bloques `if TYPE_CHECKING`, y FastAPI
+# resuelve las anotaciones en runtime para armar la inyección de dependencias.
+# Con TCH aplicado, `Depends(get_db)` deja de resolver y la app revienta.
+ignore = [
+    "E501",  # el largo de línea lo maneja black
+    "B008",  # Depends() en defaults es el idioma de FastAPI
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ARG001", "S101"]
+# E402: los imports de `app` van después de ajustar sys.path, no hay alternativa.
+# F401: `import app.models` existe por su efecto de registrar el metadata.
+# ARG001: la firma de los callbacks (include_object) la impone Alembic.
+"alembic/env.py" = ["ARG001", "E402", "ERA001", "F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+# ---------------------------------------------------------------------------
+# Black — formateador
+# ---------------------------------------------------------------------------
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = '''
+/(
+  | \.venv
+  | alembic/versions
+)/
+'''
+
+# ---------------------------------------------------------------------------
+# Mypy — chequeo de tipos
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+exclude = ["alembic/versions", "\\.venv"]
+
+[[tool.mypy.overrides]]
+# Estas librerías no traen stubs completos.
+module = ["geoalchemy2.*", "pandas.*", "openpyxl.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["alembic.*"]
+ignore_errors = true
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+# `app` no se instala como paquete (las deps vienen de requirements.txt), y
+# pytest solo agrega al sys.path el directorio del conftest (tests/). Sin esto
+# la colección falla con "No module named 'app'".
+pythonpath = ["."]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+]
+# Permite usar `async def test_...` sin decorar cada test.
+asyncio_mode = "auto"
+# Cada test corre en su propio event loop. Sin fijarlo, pytest-asyncio avisa
+# que el default va a cambiar en versiones futuras.
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "integration: requiere PostgreSQL corriendo",
+    "external: golpea APIs externas reales (AISStream/OpenSky)",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/__init__.py", "*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

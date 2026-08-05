@@ -1,0 +1,13 @@
+# node_modules del host (Windows) NUNCA debe entrar a una imagen Linux:
+# los binarios nativos de esbuild/rollup son específicos de la plataforma.
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.git/
+.gitignore
+README.md

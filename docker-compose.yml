@@ -1,0 +1,88 @@
+# ===========================================================================
+# TrackIn — stack base.
+#
+# Este archivo define los servicios de forma "cerrada": sin bind mounts y sin
+# publicar puertos innecesarios al host. Para desarrollo, componer con el
+# override:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ===========================================================================
+
+name: trackin
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: trackin-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-trackin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatorio}
+      POSTGRES_DB: ${POSTGRES_DB:-trackin_dev}
+      # Evita que el locale del host afecte el ordenamiento de índices.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Montaje de ARCHIVO, no de directorio: montar el directorio completo
+      # ocultaría los scripts propios de la imagen postgis (10_postgis.sh),
+      # que son los que habilitan la extensión al inicializar el cluster.
+      - ./scripts/init-db/01-extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trackin} -d ${POSTGRES_DB:-trackin_dev}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - trackin-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: trackin-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Dentro de la red de compose la base se resuelve por nombre de servicio,
+      # no por localhost. Esto pisa el valor del .env a propósito.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-trackin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatorio}
+      POSTGRES_DB: ${POSTGRES_DB:-trackin_dev}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DEBUG: ${DEBUG:-false}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:5173}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY es obligatorio}
+      AISSTREAM_API_KEY: ${AISSTREAM_API_KEY:-}
+      OPENSKY_USERNAME: ${OPENSKY_USERNAME:-}
+      OPENSKY_PASSWORD: ${OPENSKY_PASSWORD:-}
+    networks:
+      - trackin-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: trackin-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    networks:
+      - trackin-net
+
+volumes:
+  postgres_data:
+    name: trackin_postgres_data
+
+networks:
+  trackin-net:
+    name: trackin-net
+    driver: bridge

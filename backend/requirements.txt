@@ -1,0 +1,26 @@
+# TrackIn — dependencias de ejecución.
+# Versiones fijadas a minor con comodín de patch para recibir arreglos de
+# seguridad sin cambios de comportamiento.
+
+# --- Web framework ---------------------------------------------------------
+fastapi[standard]==0.115.*
+uvicorn[standard]==0.32.*
+
+# --- Base de datos ---------------------------------------------------------
+sqlalchemy[asyncio]==2.0.*
+asyncpg==0.30.*
+alembic==1.14.*
+geoalchemy2==0.15.*
+
+# --- Configuración y validación -------------------------------------------
+pydantic==2.9.*
+pydantic-settings==2.6.*
+python-dotenv==1.0.*
+
+# --- Clientes de APIs externas (AISStream, OpenSky) ------------------------
+httpx==0.28.*
+websockets==13.*
+
+# --- Procesamiento de los Excel de compras --------------------------------
+pandas==2.2.*
+openpyxl==3.1.*

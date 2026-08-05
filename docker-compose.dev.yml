@@ -1,0 +1,86 @@
+# ===========================================================================
+# TrackIn — override de desarrollo.
+#
+# Publica puertos al host, monta el código fuente para hot reload y agrega
+# pgAdmin. Siempre se usa ENCIMA del archivo base:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Atajo: `Set-Item env:COMPOSE_FILE "docker-compose.yml;docker-compose.dev.yml"`
+# (en bash: export COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml)
+# ===========================================================================
+
+services:
+  postgres:
+    ports:
+      # Expuesto al host para poder correr uvicorn/psql/DBeaver fuera de Docker.
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4:8.12
+    container_name: trackin-pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@trackin.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?PGADMIN_DEFAULT_PASSWORD es obligatorio}
+      # Sin esto pgAdmin pide la master password en cada arranque.
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - trackin-net
+
+  backend:
+    build:
+      # En dev paramos en la etapa `builder`, que trae las herramientas de
+      # desarrollo (pytest, ruff, mypy) y corre como root para poder escribir
+      # sobre el código montado.
+      target: builder
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir /app/app
+    environment:
+      ENVIRONMENT: development
+      DEBUG: "true"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      # Código montado para hot reload. El .venv del host NO se monta:
+      # las dependencias viven dentro de la imagen.
+      - ./backend/app:/app/app
+      - ./backend/tests:/app/tests
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+
+  frontend:
+    build:
+      target: builder
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      # Los eventos de filesystem de Windows no siempre llegan al contenedor;
+      # el polling asegura que el hot reload funcione.
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      # Volumen anónimo: evita que el node_modules del host (Windows) pise el
+      # del contenedor (Linux), que tiene binarios nativos distintos.
+      - /app/node_modules
+
+volumes:
+  pgadmin_data:
+    name: trackin_pgadmin_data

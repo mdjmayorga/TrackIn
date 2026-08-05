@@ -1,0 +1,39 @@
+# EditorConfig — https://editorconfig.org
+# Configuración compartida de estilo para TrackIn.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# Python
+[*.py]
+indent_size = 4
+max_line_length = 100
+
+# JavaScript / TypeScript / JSON / estilos
+[*.{js,jsx,ts,tsx,mjs,cjs,json,jsonc,css,scss,html,yml,yaml}]
+indent_size = 2
+
+# Markdown: los dos espacios finales son salto de línea significativo
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+max_line_length = off
+
+# Makefiles requieren tabs reales
+[Makefile]
+indent_style = tab
+
+# Scripts de shell
+[*.{sh,bash}]
+indent_size = 2
+
+# Batch/PowerShell en Windows necesitan CRLF
+[*.{bat,cmd,ps1}]
+end_of_line = crlf

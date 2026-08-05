@@ -1,0 +1,14 @@
+# TrackIn — dependencias de desarrollo (incluye las de ejecución).
+#   pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+# --- Testing ---------------------------------------------------------------
+pytest==8.3.*
+pytest-asyncio==0.24.*
+pytest-cov==6.0.*
+
+# --- Calidad de código -----------------------------------------------------
+ruff==0.7.*
+black==24.10.*
+mypy==1.13.*

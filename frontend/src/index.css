@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    /* Evita el salto horizontal cuando aparece la barra de scroll. */
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+}
+
+@layer components {
+  /* Leaflet inyecta su propio CSS, pero el contenedor necesita altura
+     explícita o el mapa se renderiza con 0px de alto. */
+  .mapa-contenedor {
+    @apply h-full min-h-[24rem] w-full overflow-hidden rounded-lg border border-slate-200;
+  }
+}

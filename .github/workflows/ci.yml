@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela corridas viejas de la misma rama: no tiene sentido esperar por un
+# commit que ya fue reemplazado.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: trackin
+          POSTGRES_PASSWORD: trackin_ci
+          POSTGRES_DB: trackin_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trackin -d trackin_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_USER: trackin
+      POSTGRES_PASSWORD: trackin_ci
+      POSTGRES_DB: trackin_test
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      ENVIRONMENT: development
+      SECRET_KEY: ci-only-not-a-real-secret
+      BACKEND_CORS_ORIGINS: http://localhost:5173
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          # Los dos archivos: requirements-dev.txt solo hace `-r requirements.txt`,
+          # así que por sí solo no cambia de hash al tocar una dependencia de
+          # ejecución y la caché quedaría desactualizada.
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check app tests alembic/env.py
+
+      - name: Formato (black)
+        run: black --check app tests alembic/env.py
+
+      - name: Tipos (mypy)
+        run: mypy app
+        continue-on-error: true # se vuelve bloqueante cuando existan modelos
+
+      - name: Tests
+        run: pytest
+
+  frontend:
+    name: Frontend (lint + tests + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint (eslint)
+        run: npm run lint
+
+      - name: Tipos (tsc)
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
