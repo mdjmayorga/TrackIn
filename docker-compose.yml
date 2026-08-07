@@ -12,7 +12,9 @@ name: trackin
 
 services:
   postgres:
-    image: postgis/postgis:16-3.4
+    # 3.6 y no 3.4: es la versión de PostGIS que corre en el entorno de
+    # desarrollo nativo (ver docs/deployment.md), y ambos deben coincidir.
+    image: postgis/postgis:16-3.6
     container_name: trackin-postgres
     restart: unless-stopped
     environment:
