@@ -1,0 +1,7 @@
+﻿{
+  "name": "srs-trackin-generador",
+  "private": true,
+  "description": "Genera el SRS de TrackIn en formato .docx",
+  "scripts": { "build": "node srs.js ../SRS_TrackIn_v0.1.docx" },
+  "dependencies": { "docx": "^9.0.0" }
+}
