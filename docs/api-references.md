@@ -32,7 +32,8 @@ Implicaciones de diseño:
 
 ### Puntos a resolver en implementación
 
-- [ ] Confirmar límites del plan gratuito (conexiones y mensajes)
+- [ ] Confirmar límites del plan gratuito (conexiones y mensajes) — **hay
+      indicios de haber topado uno**, ver «Réplica desde red Gutis»
 - [ ] Definir qué mensajes AIS interesan (`PositionReport`, `ShipStaticData`)
 - [x] Política de reconexión → **no depender de `close()` limpio** (ver spike)
 - [ ] Estrategia de submuestreo antes de persistir (no guardar cada mensaje)
@@ -44,8 +45,10 @@ Implicaciones de diseño:
 > **Estado: fases técnicas completadas** el **18/08/2026** desde **red
 > personal** (fases 0 y 2–6; la Fase 1 se absorbió en la Fase 0).
 >
-> Falta **replicar desde la red corporativa de Gutis** — esa comparación
-> responde la pregunta 1 del spike.
+> **Fase 0 replicada desde red Gutis el 19/08/2026.** La red corporativa
+> queda **descartada** como causa del bloqueo original, pero la réplica
+> destapó un problema distinto, del lado de la cuenta: ver «Réplica desde
+> red Gutis» más abajo.
 >
 > **Conclusión: viable con una limitación grave** (detalle al final).
 >
@@ -76,6 +79,66 @@ La capa 3 es la decisiva para el diagnóstico corporativo: si desde Gutis el
 emisor del certificado **no** es una CA pública, hay un proxy terminando y
 reescribiendo el TLS, lo que explicaría un handshake exitoso con frames
 descartados.
+
+### Réplica desde red Gutis (19/08/2026)
+
+> Corrida desde `gcorp.gutis.com` (Wi-Fi con dominio autenticado, DNS
+> corporativo `10.0.10.12` / `10.0.10.11`). Evidencia en
+> `01_connectivity_gutis.json`.
+
+| Capa | Red personal (18/08) | **Red Gutis (19/08)** |
+|---|---|---|
+| 1. DNS | ✅ `136.243.173.177` | ✅ **misma IP** `136.243.173.177` |
+| 2. TCP:443 | ✅ 201 ms | ✅ **21 ms** |
+| 3. TLS | ✅ TLSv1.3, Let's Encrypt | ✅ TLSv1.3, **Let's Encrypt** |
+| 4. HTTPS | ✅ HTTP 200 | ✅ HTTP 200 |
+| 5. Handshake WebSocket | ✅ 1096 ms | ✅ **601 ms** |
+| 6. Suscripción y datos | ✅ 25 msg en 0.6 s | ❌ **0 msg en 30 s** |
+
+**No hay inspección TLS en la red Gutis.** El certificado lo firma Let's
+Encrypt, igual que desde la red personal, y el host resuelve a la misma IP: no
+hay proxy terminando el TLS ni DNS corporativo redirigiendo. Las capas 1–5 son
+iguales o **más rápidas** que desde la red personal.
+
+Pero la capa 6 da cero. El veredicto automático del script deja dos causas
+abiertas —API key rechazada en silencio, o proxy que descarta los frames—, así
+que se corrieron tres pruebas para separarlas:
+
+| Prueba | Resultado | Qué descarta |
+|---|---|---|
+| Echo WebSocket público (`ws.postman-echo.com`) | ✅ eco recibido | Los frames **servidor → cliente** sí atraviesan la red Gutis |
+| AISStream con key **inválida** | Servidor **cierra** a los 747 ms | La suscripción **llega** al servidor y el servidor **reacciona** |
+| AISStream con la key **real** | Conexión **viva y muda**: 0 msg en 120 s, sin cierre | La key **no** está siendo rechazada |
+
+La discriminación es limpia. Con una key inválida el servidor cierra la
+conexión (el comportamiento documentado en la Fase 5); con la key real **no
+cierra**, la mantiene abierta respondiendo ping/pong durante 120 s, y no manda
+un solo frame de datos con bounding box **global**.
+
+#### ⚠️ No es la red: es la cuenta
+
+El argumento decisivo es la capa 3. **Sin inspección TLS, ningún intermediario
+puede descartar selectivamente los frames de datos**: para un middlebox el
+tráfico son bytes cifrados hacia `136.243.173.177:443`. Podría cortar la
+conexión entera, pero no suprimir el payload dejando viva la conexión y
+pasando los pings. Sumado a que el echo WebSocket sí funciona, la red queda
+descartada.
+
+Queda entonces el lado de AISStream: **la key es válida pero la cuenta no está
+entregando datos.** La hipótesis más plausible es haber topado un **límite del
+plan gratuito**, que es justamente el punto que seguía abierto en este
+documento. La corrida del 18/08 fue intensiva: captura larga de 45 min, ocho
+minutos de test controlado, tres minutos de Caribe y varias reconexiones.
+
+**Pendiente de confirmar** — dos verificaciones baratas:
+
+1. Revisar el estado de la cuenta y el consumo en <https://aisstream.io>.
+2. Repetir la Fase 0 desde el hotspot del celular. Si desde otra red también
+   da cero, la causa es la cuenta y queda cerrado.
+
+**Esto no cambia la conclusión del spike**: la limitación grave sigue siendo la
+falta de cobertura AIS en la costa caribe de Costa Rica, que se estableció con
+datos capturados el 18/08 y no depende de este hallazgo.
 
 ### El cierre del WebSocket se cuelga con volumen alto
 
@@ -350,8 +413,12 @@ fuente alternativa (ver «Otras fuentes evaluadas» al final del documento).
 
 ### Pendientes
 
-- [ ] **Replicar la Fase 0 desde red Gutis** (`--network gutis`) — cierra la
-      pregunta 1 del spike
+- [x] ~~**Replicar la Fase 0 desde red Gutis**~~ — hecho el 19/08: sin
+      inspección TLS, la red queda descartada como causa
+- [ ] 🔴 **Confirmar el límite del plan gratuito.** La key es válida (el
+      servidor no la rechaza) pero no entrega datos desde el 19/08. Revisar la
+      cuenta en <https://aisstream.io> y repetir la Fase 0 desde el hotspot del
+      celular. **Bloquea cualquier captura nueva de AIS**
 - [x] ~~Confirmar si la ausencia en CR es falta de cobertura o bajo tráfico~~ —
       resuelto por la Fase 6: falta de cobertura
 - [ ] **Plantear a Compras** si un seguimiento sin el tramo final hasta Moín
@@ -398,10 +465,12 @@ Implicaciones de diseño:
 
 ## OpenSky Network — Spike técnico (TG-11)
 
-> **Estado: fases técnicas completadas** el **18/08/2026**, todas desde **red
-> personal**. Falta replicar desde la red corporativa de Gutis para el
-> contraste A/B y una segunda corrida vespertina para MRLB. La Fase 5 (rate
-> limits) se absorbió en las fases 1, 3, 4 y 6.
+> **Estado: fases técnicas completadas** el **18/08/2026** desde **red
+> personal** y **replicadas íntegras (fases 1–6) desde red Gutis el
+> 19/08/2026**. La Fase 5 (rate limits) se absorbió en las fases 1, 3, 4 y 6.
+>
+> **El contraste A/B no encontró ninguna diferencia atribuible a la red
+> corporativa**: ver «Réplica desde red Gutis» al final de esta sección.
 >
 > **Conclusión: viable con ajustes** (detalle al final de esta sección).
 >
@@ -689,11 +758,71 @@ OpenSky Network sirve como fuente aérea de TrackIn. Condiciones:
 - **`icao24` como vínculo temporal**, nunca como atributo fijo del embarque.
 - Manejo explícito de `states: null` y de señal perdida.
 
+### Réplica desde red Gutis (19/08/2026)
+
+Fases 1–6 corridas íntegras desde `gcorp.gutis.com`. Evidencia en los archivos
+`*_gutis.json`. **Ningún hallazgo del spike cambió**: la red corporativa no
+degrada ni bloquea nada de OpenSky.
+
+| Medición | Red personal (18/08) | **Red Gutis (19/08)** |
+|---|---|---|
+| Token OAuth2 | HTTP 200, ~1000 ms | HTTP 200, **1085 ms** |
+| TTL del token | 1800 s | **1800 s** |
+| Latencia `/states/all` | 780–850 ms | **915 ms** |
+| Cuota autenticada | 4000 | **4000** |
+| Cuota anónima (por IP) | 400 | **400** |
+| Delta entre posiciones | mediana 7 s | **mediana 7 s** |
+| Retraso de `/flights/arrival` | ~16.5 h | **17.0 h** |
+| Señal perdida en 60 s | 7.7% | **9.1%** |
+
+Las diferencias de latencia (~100 ms) están dentro del ruido de dos corridas en
+momentos distintos, y no siguen un patrón de degradación: el handshake TLS a
+OpenSky desde Gutis fue incluso más rápido. **Sin inspección TLS** en ninguno de
+los dos hosts de OpenSky (`opensky-network.org` y `auth.opensky-network.org`,
+ambos con certificado de Let's Encrypt).
+
+**Cobertura (Fase 2), tercera muestra independiente:** 8 aeronaves únicas, 1 en
+el radio de MROC (12.5%), frescura mediana de 2 s. Ninguna en tierra en esta
+franja, a diferencia de las corridas del 18/08.
+
+**MRLB (Liberia) volvió a dar cero.** Van **tres muestras** en tres franjas
+horarias distintas con el mismo resultado. La recomendación de diseñar Sprint 3
+sin depender de Liberia se sostiene.
+
+**Tarifa por área (Fase 5): confirmada exactamente.** Los cinco tramos medidos
+reprodujeron la tabla de umbrales 25 / 100 / 400:
+
+| Zona | Área | Costo medido |
+|---|---|---|
+| Costa Rica | 12 deg² | **1** |
+| Centroamérica | 176 deg² | **3** |
+| Caribe amplio | 1000 deg² | **4** |
+| Américas | 6375 deg² | **4** |
+| Global | 64800 deg² | **4** |
+
+> El script marca «NO coincide» en dos tramos, pero eso es un defecto de su
+> tabla interna de valores esperados, no de la medición: los costos reales
+> coinciden con los umbrales documentados. **Conviene corregir el modelo
+> esperado dentro de `05_rate_limits.py`** para que el veredicto automático no
+> confunda en futuras corridas.
+
+**Cuotas separadas por endpoint: reconfirmado.** Durante la corrida los tres
+contadores avanzaron de forma independiente — `/flights/*` bajó 3970 → 3940 →
+3910 → 3880 (30 por consulta), `/states/*` iba por 3933, y `/tracks/*` marcaba
+3996 tras su única llamada de 4 créditos.
+
+**Contrato de errores (Fase 6): idéntico.** `states: null` en vez de lista
+vacía, `401` y `400` sin consumir cuota, y el `404` por aeropuerto inexistente
+cobrando igual sus 30 créditos.
+
 #### Pendientes antes de cerrar TG-11 en Jira
 
 - [x] ~~Segunda corrida vespertina de la Fase 2~~ — hecha, internacionales
       confirmados, MRLB sigue sin cobertura
-- [ ] Replicar las fases 1–6 desde la **red corporativa de Gutis** (contraste A/B)
+- [x] ~~Replicar las fases 1–6 desde la **red corporativa de Gutis**~~ — hecho
+      el 19/08: sin diferencias atribuibles a la red
+- [ ] Corregir la tabla de costos esperados de `05_rate_limits.py`, que marca
+      «NO coincide» dos tramos que en realidad sí cumplen los umbrales
 
 **No medido a propósito:** el comportamiento exacto ante `429`. Provocarlo
 exige agotar 4000 créditos deliberadamente; el costo no justifica el dato. Se

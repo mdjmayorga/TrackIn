@@ -1,0 +1,66 @@
+{
+  "spike_phase": "0-check-env",
+  "timestamp_utc": "2026-08-19T16:36:30+00:00",
+  "network_profile": "gutis",
+  "python_version": "3.12.10",
+  "env_file": "C:\\Users\\m.mayorga\\Documents\\GitHub\\TrackIn\\backend\\.env",
+  "env_vars_parsed": 3,
+  "aisstream": {
+    "present": true,
+    "length": 40,
+    "masked": "539e...dd63",
+    "issues": []
+  },
+  "opensky_scheme": "oauth2",
+  "opensky_oauth": {
+    "OPENSKY_CLIENT_ID": {
+      "present": true,
+      "length": 21,
+      "masked": "mdjm...ient",
+      "issues": []
+    },
+    "OPENSKY_CLIENT_SECRET": {
+      "present": true,
+      "length": 32,
+      "masked": "XOOI...M9gx",
+      "issues": []
+    }
+  },
+  "opensky_basic": {
+    "OPENSKY_USERNAME": {
+      "present": false,
+      "length": 0,
+      "masked": null,
+      "issues": []
+    },
+    "OPENSKY_PASSWORD": {
+      "present": false,
+      "length": 0,
+      "masked": null,
+      "issues": []
+    }
+  },
+  "packages": [
+    {
+      "module": "httpx",
+      "importable": true,
+      "version": "0.28.1",
+      "error": null
+    },
+    {
+      "module": "websockets",
+      "importable": true,
+      "version": "17.0.1",
+      "error": null
+    },
+    {
+      "module": "dotenv",
+      "importable": true,
+      "version": "1.2.3",
+      "error": null
+    }
+  ],
+  "warnings": [],
+  "blocking": [],
+  "passed": true
+}

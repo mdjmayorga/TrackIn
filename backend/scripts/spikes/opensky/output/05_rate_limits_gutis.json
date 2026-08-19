@@ -1,0 +1,104 @@
+{
+  "spike": "TG-11",
+  "phase": "5-rate-limits",
+  "timestamp_utc": "2026-08-19T16:47:49+00:00",
+  "finished_utc": "2026-08-19T16:47:59+00:00",
+  "network_profile": "gutis",
+  "note": "Completa los huecos que dejaron las fases 1, 3, 4 y 6. NO se prueba el comportamiento ante 429: exigiria agotar 4000 creditos a proposito.",
+  "area_tariff": [
+    {
+      "zone": "costa_rica",
+      "bbox": {
+        "lamin": 8.0,
+        "lomin": -86.0,
+        "lamax": 11.3,
+        "lomax": -82.5
+      },
+      "ok": true,
+      "area_deg2": 11.6,
+      "aircraft": 11,
+      "measured_cost": 1,
+      "expected_cost": 1,
+      "matches_hypothesis": true,
+      "credits_remaining": 3952,
+      "response_bytes": 1450,
+      "elapsed_ms": 826.5
+    },
+    {
+      "zone": "centroamerica",
+      "bbox": {
+        "lamin": 7.0,
+        "lomin": -93.0,
+        "lamax": 18.0,
+        "lomax": -77.0
+      },
+      "ok": true,
+      "area_deg2": 176.0,
+      "aircraft": 37,
+      "measured_cost": 3,
+      "expected_cost": 2,
+      "matches_hypothesis": false,
+      "credits_remaining": 3949,
+      "response_bytes": 4846,
+      "elapsed_ms": 844.8
+    },
+    {
+      "zone": "caribe_amplio",
+      "bbox": {
+        "lamin": 5.0,
+        "lomin": -100.0,
+        "lamax": 30.0,
+        "lomax": -60.0
+      },
+      "ok": true,
+      "area_deg2": 1000.0,
+      "aircraft": 920,
+      "measured_cost": 4,
+      "expected_cost": 3,
+      "matches_hypothesis": false,
+      "credits_remaining": 3945,
+      "response_bytes": 121862,
+      "elapsed_ms": 1288.8
+    },
+    {
+      "zone": "americas",
+      "bbox": {
+        "lamin": -30.0,
+        "lomin": -120.0,
+        "lamax": 45.0,
+        "lomax": -35.0
+      },
+      "ok": true,
+      "area_deg2": 6375.0,
+      "aircraft": 7149,
+      "measured_cost": 4,
+      "expected_cost": 4,
+      "matches_hypothesis": true,
+      "credits_remaining": 3941,
+      "response_bytes": 953187,
+      "elapsed_ms": 1814.7
+    },
+    {
+      "zone": "global",
+      "bbox": {
+        "lamin": -90.0,
+        "lomin": -180.0,
+        "lamax": 90.0,
+        "lomax": 180.0
+      },
+      "ok": true,
+      "area_deg2": 64800.0,
+      "aircraft": 13097,
+      "measured_cost": 4,
+      "expected_cost": 4,
+      "matches_hypothesis": true,
+      "credits_remaining": 3937,
+      "response_bytes": 1726400,
+      "elapsed_ms": 1760.5
+    }
+  ],
+  "hypothesis_matches": 3,
+  "hypothesis_total": 5,
+  "tracks_all_cost_credits": null,
+  "passed": true
+}

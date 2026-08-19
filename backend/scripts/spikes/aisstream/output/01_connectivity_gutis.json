@@ -1,0 +1,71 @@
+{
+  "spike": "TG-10",
+  "phase": "0-connectivity-diagnostic",
+  "timestamp_utc": "2026-08-19T16:36:42+00:00",
+  "finished_utc": "2026-08-19T16:37:14+00:00",
+  "network_profile": "gutis",
+  "target": {
+    "ws_url": "wss://stream.aisstream.io/v0/stream",
+    "https_url": "https://aisstream.io",
+    "bbox": "global"
+  },
+  "layers": {
+    "1_dns": {
+      "ok": true,
+      "elapsed_ms": 101.6,
+      "addresses": [
+        "136.243.173.177"
+      ]
+    },
+    "2_tcp": {
+      "ok": true,
+      "elapsed_ms": 21.5
+    },
+    "3_tls": {
+      "ok": true,
+      "elapsed_ms": 410.2,
+      "tls_version": "TLSv1.3",
+      "cipher": "TLS_AES_256_GCM_SHA384",
+      "issuer": "Let's Encrypt / YR1",
+      "subject_cn": "stream.aisstream.io",
+      "valid_until": "Sep 18 08:02:51 2026 GMT",
+      "issuer_is_public_ca": true,
+      "diagnosis": "Certificado de CA publica: NO hay inspeccion TLS en el camino."
+    },
+    "4_https": {
+      "ok": true,
+      "status_code": 200,
+      "elapsed_ms": 1148.7,
+      "server": "cloudflare"
+    },
+    "5_websocket": {
+      "ok": true,
+      "elapsed_ms": 601.2,
+      "diagnosis": "El Upgrade a WebSocket se completo."
+    },
+    "6_data": {
+      "messages": [],
+      "message_count": 0,
+      "subscription_sent": {
+        "BoundingBoxes": [
+          [
+            [
+              -90.0,
+              -180.0
+            ],
+            [
+              90.0,
+              180.0
+            ]
+          ]
+        ],
+        "APIKey": "(enmascarada)"
+      },
+      "ok": false,
+      "waited_s": 30.0,
+      "closed_by": "transport.abort()"
+    }
+  },
+  "verdict": "conecta_sin_datos",
+  "passed": false
+}

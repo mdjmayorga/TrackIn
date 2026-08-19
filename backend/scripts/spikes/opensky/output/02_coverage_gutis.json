@@ -1,0 +1,246 @@
+{
+  "spike": "TG-11",
+  "phase": "2-coverage-cr",
+  "timestamp_utc": "2026-08-19T16:41:52+00:00",
+  "finished_utc": "2026-08-19T16:44:03+00:00",
+  "network_profile": "gutis",
+  "bbox": {
+    "lamin": 8.0,
+    "lomin": -86.0,
+    "lamax": 11.3,
+    "lomax": -82.5
+  },
+  "airports": {
+    "MROC": {
+      "name": "Juan Santamaria (SJO)",
+      "lat": 9.9939,
+      "lon": -84.2088,
+      "radius_deg": 0.25
+    },
+    "MRLB": {
+      "name": "Daniel Oduber, Liberia (LIR)",
+      "lat": 10.5933,
+      "lon": -85.5444,
+      "radius_deg": 0.25
+    }
+  },
+  "config": {
+    "samples": 5,
+    "interval_s": 30,
+    "approach_ceiling_m": 3000.0
+  },
+  "samples": [
+    {
+      "index": 1,
+      "requested_utc": "2026-08-19T16:41:54+00:00",
+      "status_code": 200,
+      "credits_remaining": 3998,
+      "ok": true,
+      "server_time": 1787157712,
+      "aircraft_count": 8
+    },
+    {
+      "index": 2,
+      "requested_utc": "2026-08-19T16:42:24+00:00",
+      "status_code": 200,
+      "credits_remaining": 3997,
+      "ok": true,
+      "server_time": 1787157737,
+      "aircraft_count": 8
+    },
+    {
+      "index": 3,
+      "requested_utc": "2026-08-19T16:42:55+00:00",
+      "status_code": 200,
+      "credits_remaining": 3996,
+      "ok": true,
+      "server_time": 1787157772,
+      "aircraft_count": 8
+    },
+    {
+      "index": 4,
+      "requested_utc": "2026-08-19T16:43:26+00:00",
+      "status_code": 200,
+      "credits_remaining": 3995,
+      "ok": true,
+      "server_time": 1787157806,
+      "aircraft_count": 8
+    },
+    {
+      "index": 5,
+      "requested_utc": "2026-08-19T16:44:02+00:00",
+      "status_code": 200,
+      "credits_remaining": 3994,
+      "ok": true,
+      "server_time": 1787157840,
+      "aircraft_count": 8
+    }
+  ],
+  "aircraft_per_sample": [
+    8,
+    8,
+    8,
+    8,
+    8
+  ],
+  "unique_aircraft_count": 8,
+  "zone_totals": {
+    "en_ruta": 7,
+    "MROC": 1
+  },
+  "regime_totals": {
+    "crucero": 3,
+    "aproximacion_o_salida": 5
+  },
+  "null_fields": {
+    "sin_callsign": 0,
+    "sin_posicion": 0,
+    "sin_altitud": 0,
+    "sin_velocidad": 0
+  },
+  "staleness_s": {
+    "min": 0,
+    "median": 1.5,
+    "max": 3
+  },
+  "unique_aircraft": [
+    {
+      "icao24": "ab00c4",
+      "callsign": "SBE808",
+      "origin_country": "United States",
+      "latitude": 10.1358,
+      "longitude": -84.7546,
+      "altitude_m": 4396.74,
+      "on_ground": false,
+      "velocity_ms": 175.43,
+      "vertical_rate_ms": -13.66,
+      "squawk": null,
+      "position_source": 0,
+      "last_contact": 1787157710,
+      "staleness_s": 2,
+      "zone": "en_ruta",
+      "regime": "crucero"
+    },
+    {
+      "icao24": "a6ce39",
+      "callsign": "GUG743",
+      "origin_country": "United States",
+      "latitude": 10.2502,
+      "longitude": -83.3556,
+      "altitude_m": 11879.58,
+      "on_ground": false,
+      "velocity_ms": 225.35,
+      "vertical_rate_ms": 0,
+      "squawk": null,
+      "position_source": 0,
+      "last_contact": 1787157712,
+      "staleness_s": 0,
+      "zone": "en_ruta",
+      "regime": "crucero"
+    },
+    {
+      "icao24": "0ae0a8",
+      "callsign": "TIBBS",
+      "origin_country": "Costa Rica",
+      "latitude": 9.9101,
+      "longitude": -84.6759,
+      "altitude_m": 1821.18,
+      "on_ground": false,
+      "velocity_ms": 57.16,
+      "vertical_rate_ms": -0.98,
+      "squawk": null,
+      "position_source": 0,
+      "last_contact": 1787157711,
+      "staleness_s": 1,
+      "zone": "en_ruta",
+      "regime": "aproximacion_o_salida"
+    },
+    {
+      "icao24": "0ae0e1",
+      "callsign": "TIBLK",
+      "origin_country": "Costa Rica",
+      "latitude": 9.7868,
+      "longitude": -84.0528,
+      "altitude_m": 2400.3,
+      "on_ground": false,
+      "velocity_ms": 87.53,
+      "vertical_rate_ms": -3.25,
+      "squawk": null,
+      "position_source": 0,
+      "last_contact": 1787157710,
+      "staleness_s": 2,
+      "zone": "en_ruta",
+      "regime": "aproximacion_o_salida"
+    },
+    {
+      "icao24": "0ae0c6",
+      "callsign": "TITVC",
+      "origin_country": "Costa Rica",
+      "latitude": 9.9565,
+      "longitude": -84.149,
+      "altitude_m": 1089.66,
+      "on_ground": false,
+      "velocity_ms": 29.43,
+      "vertical_rate_ms": 2.93,
+      "squawk": null,
+      "position_source": 0,
+      "last_contact": 1787157709,
+      "staleness_s": 3,
+      "zone": "MROC",
+      "regime": "aproximacion_o_salida"
+    },
+    {
+      "icao24": "0ae0bb",
+      "callsign": "TIBEZ",
+      "origin_country": "Costa Rica",
+      "latitude": 9.8068,
+      "longitude": -84.6679,
+      "altitude_m": 678.18,
+      "on_ground": false,
+      "velocity_ms": 53.04,
+      "vertical_rate_ms": 0,
+      "squawk": null,
+      "position_source": 0,
+      "last_contact": 1787157711,
+      "staleness_s": 1,
+      "zone": "en_ruta",
+      "regime": "aproximacion_o_salida"
+    },
+    {
+      "icao24": "0c2065",
+      "callsign": "CMP192",
+      "origin_country": "Panama",
+      "latitude": 9.7245,
+      "longitude": -83.9004,
+      "altitude_m": 5448.3,
+      "on_ground": false,
+      "velocity_ms": 161.58,
+      "vertical_rate_ms": -6.18,
+      "squawk": null,
+      "position_source": 0,
+      "last_contact": 1787157710,
+      "staleness_s": 2,
+      "zone": "en_ruta",
+      "regime": "crucero"
+    },
+    {
+      "icao24": "0ae013",
+      "callsign": "LRS5803",
+      "origin_country": "Costa Rica",
+      "latitude": 10.1559,
+      "longitude": -84.4431,
+      "altitude_m": 2263.14,
+      "on_ground": false,
+      "velocity_ms": 75.5,
+      "vertical_rate_ms": 0,
+      "squawk": null,
+      "position_source": 0,
+      "last_contact": 1787157711,
+      "staleness_s": 1,
+      "zone": "en_ruta",
+      "regime": "aproximacion_o_salida"
+    }
+  ],
+  "verdict": "cobertura_util",
+  "passed": true
+}
