@@ -1,0 +1,66 @@
+{
+  "spike_phase": "0-check-env",
+  "timestamp_utc": "2026-08-18T15:24:17+00:00",
+  "network_profile": "personal",
+  "python_version": "3.13.2",
+  "env_file": "C:\\Users\\Mayorga\\OneDrive\\Documents\\TEC\\IIS2026\\Práctica\\TrackIn\\backend\\.env",
+  "env_vars_parsed": 18,
+  "aisstream": {
+    "present": true,
+    "length": 40,
+    "masked": "539e...dd63",
+    "issues": []
+  },
+  "opensky_scheme": "oauth2",
+  "opensky_oauth": {
+    "OPENSKY_CLIENT_ID": {
+      "present": true,
+      "length": 21,
+      "masked": "mdjm...ient",
+      "issues": []
+    },
+    "OPENSKY_CLIENT_SECRET": {
+      "present": true,
+      "length": 32,
+      "masked": "qqOg...LOD7",
+      "issues": []
+    }
+  },
+  "opensky_basic": {
+    "OPENSKY_USERNAME": {
+      "present": false,
+      "length": 0,
+      "masked": null,
+      "issues": []
+    },
+    "OPENSKY_PASSWORD": {
+      "present": false,
+      "length": 0,
+      "masked": null,
+      "issues": []
+    }
+  },
+  "packages": [
+    {
+      "module": "httpx",
+      "importable": true,
+      "version": "0.28.1",
+      "error": null
+    },
+    {
+      "module": "websockets",
+      "importable": true,
+      "version": "13.1",
+      "error": null
+    },
+    {
+      "module": "dotenv",
+      "importable": true,
+      "version": "1.0.1",
+      "error": null
+    }
+  ],
+  "warnings": [],
+  "blocking": [],
+  "passed": true
+}

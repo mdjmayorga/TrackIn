@@ -1,0 +1,59 @@
+{
+  "spike": "TG-10",
+  "phase": "2-coverage-caribbean",
+  "timestamp_utc": "2026-08-18T20:18:17+00:00",
+  "finished_utc": "2026-08-18T20:21:18+00:00",
+  "network_profile": "personal",
+  "bbox": [
+    [
+      [
+        7.0,
+        -90.0
+      ],
+      [
+        25.0,
+        -59.0
+      ]
+    ]
+  ],
+  "zones": {
+    "moin": {
+      "lat": 10.0,
+      "lon": -83.08,
+      "radius_deg": 0.45
+    },
+    "aproximacion_limon": {
+      "lat": 10.0,
+      "lon": -83.0,
+      "radius_deg": 1.5
+    }
+  },
+  "capture_seconds": 180,
+  "elapsed_s": 180.9,
+  "messages": 161,
+  "bytes": 94043,
+  "messages_per_second": 0.89,
+  "unique_mmsi": 133,
+  "message_types": {
+    "StandardClassBPositionReport": 39,
+    "PositionReport": 76,
+    "StaticDataReport": 20,
+    "ShipStaticData": 19,
+    "BaseStationReport": 4,
+    "AidsToNavigationReport": 2,
+    "UnknownMessage": 1
+  },
+  "zone_message_counts": {
+    "caribe": 159,
+    "aproximacion_limon": 2
+  },
+  "zone_ship_counts": {
+    "caribe": 131,
+    "aproximacion_limon": 2
+  },
+  "parse_errors": 0,
+  "server_errors": [],
+  "raw_dataset": "02_caribbean_raw_personal.jsonl",
+  "verdict": "cobertura_aproximacion",
+  "passed": true
+}

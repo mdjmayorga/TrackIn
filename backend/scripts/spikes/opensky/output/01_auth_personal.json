@@ -1,0 +1,74 @@
+{
+  "spike": "TG-11",
+  "phase": "1-auth-connectivity",
+  "timestamp_utc": "2026-08-18T15:24:26+00:00",
+  "finished_utc": "2026-08-18T15:24:29+00:00",
+  "network_profile": "personal",
+  "token_request": {
+    "url": "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token",
+    "grant_type": "client_credentials",
+    "status_code": 200,
+    "elapsed_ms": 1006.5,
+    "ok": true,
+    "token_type": "Bearer",
+    "expires_in_s": 1800,
+    "scope": "profile email",
+    "token_masked": "eyJh...aG5w",
+    "token_length": 1451
+  },
+  "jwt_claims": {
+    "exp": 1787068465,
+    "iat": 1787066665,
+    "typ": "Bearer",
+    "azp": "mdjmayorga-api-client",
+    "scope": "profile email",
+    "clientId": "mdjmayorga-api-client"
+  },
+  "token_ttl": {
+    "iat_utc": "2026-08-18T15:24:25+00:00",
+    "exp_utc": "2026-08-18T15:54:25+00:00",
+    "ttl_seconds": 1800,
+    "ttl_minutes": 30.0
+  },
+  "authenticated_call": {
+    "label": "autenticada",
+    "authenticated": true,
+    "bbox": {
+      "lamin": 8.0,
+      "lomin": -86.0,
+      "lamax": 11.3,
+      "lomax": -82.5
+    },
+    "status_code": 200,
+    "elapsed_ms": 850.5,
+    "quota_headers": {
+      "x-rate-limit-remaining": "3999"
+    },
+    "ok": true,
+    "aircraft_count": 12,
+    "server_time": 1787066657,
+    "server_time_utc": "2026-08-18T15:24:17+00:00",
+    "response_bytes": 1572
+  },
+  "anonymous_call": {
+    "label": "anonima",
+    "authenticated": false,
+    "bbox": {
+      "lamin": 8.0,
+      "lomin": -86.0,
+      "lamax": 11.3,
+      "lomax": -82.5
+    },
+    "status_code": 200,
+    "elapsed_ms": 776.0,
+    "quota_headers": {
+      "x-rate-limit-remaining": "399"
+    },
+    "ok": true,
+    "aircraft_count": 12,
+    "server_time": 1787066655,
+    "server_time_utc": "2026-08-18T15:24:15+00:00",
+    "response_bytes": 1573
+  },
+  "passed": true
+}

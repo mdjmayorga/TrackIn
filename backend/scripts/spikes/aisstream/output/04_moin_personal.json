@@ -1,0 +1,129 @@
+{
+  "spike": "TG-10",
+  "phase": "4-moin-focus",
+  "timestamp_utc": "2026-08-18T20:24:21+00:00",
+  "finished_utc": "2026-08-18T20:32:22+00:00",
+  "network_profile": "personal",
+  "design": "test controlado con zona de interes y zona de control simultaneas",
+  "zone_target": {
+    "name": "Costa Rica / Panama caribe",
+    "bbox": [
+      [
+        8.0,
+        -84.5
+      ],
+      [
+        12.0,
+        -80.0
+      ]
+    ]
+  },
+  "zone_control": {
+    "name": "Cartagena / Santa Marta (control)",
+    "bbox": [
+      [
+        9.0,
+        -78.0
+      ],
+      [
+        12.5,
+        -73.0
+      ]
+    ]
+  },
+  "capture_seconds": 480,
+  "elapsed_s": 481.2,
+  "total_messages": 127,
+  "total_bytes": 72801,
+  "target_messages": 11,
+  "target_ships": 7,
+  "target_message_types": {
+    "StandardClassBPositionReport": 8,
+    "StaticDataReport": 3
+  },
+  "target_samples": [
+    {
+      "mmsi": 368041340,
+      "name": "DELPHINUS",
+      "lat": 9.33599,
+      "lon": -82.24621,
+      "type": "StandardClassBPositionReport"
+    },
+    {
+      "mmsi": 367345260,
+      "name": "ALEGRIA",
+      "lat": 9.33601,
+      "lon": -82.17715,
+      "type": "StaticDataReport"
+    },
+    {
+      "mmsi": 368359720,
+      "name": null,
+      "lat": 9.32921,
+      "lon": -82.24039,
+      "type": "StandardClassBPositionReport"
+    },
+    {
+      "mmsi": 368287760,
+      "name": "LOCA LOLA 2",
+      "lat": 9.19815,
+      "lon": -82.24027,
+      "type": "StandardClassBPositionReport"
+    },
+    {
+      "mmsi": 367763630,
+      "name": "PERSPECTIVE",
+      "lat": 8.34178,
+      "lon": -80.16309,
+      "type": "StandardClassBPositionReport"
+    },
+    {
+      "mmsi": 368438460,
+      "name": "ETERNAL SUNSHINE",
+      "lat": 9.33598,
+      "lon": -82.24663,
+      "type": "StandardClassBPositionReport"
+    },
+    {
+      "mmsi": 368041340,
+      "name": "DELPHINUS",
+      "lat": 9.33599,
+      "lon": -82.24621,
+      "type": "StandardClassBPositionReport"
+    },
+    {
+      "mmsi": 367763630,
+      "name": "PERSPECTIVE",
+      "lat": 8.34178,
+      "lon": -80.16307,
+      "type": "StandardClassBPositionReport"
+    },
+    {
+      "mmsi": 368041340,
+      "name": "DELPHINUS",
+      "lat": 9.33599,
+      "lon": -82.24621,
+      "type": "StaticDataReport"
+    },
+    {
+      "mmsi": 316050304,
+      "name": "PRESTO K",
+      "lat": 9.33583,
+      "lon": -82.24717,
+      "type": "StandardClassBPositionReport"
+    },
+    {
+      "mmsi": 368287760,
+      "name": "LOCA LOLA II",
+      "lat": 9.2021,
+      "lon": -82.23878,
+      "type": "StaticDataReport"
+    }
+  ],
+  "control_messages": 116,
+  "control_ships": 55,
+  "other_messages": 0,
+  "server_errors": [],
+  "verdict": "cobertura_confirmada",
+  "passed": true
+}

@@ -1,0 +1,113 @@
+{
+  "spike": "TG-10",
+  "phase": "0-connectivity-diagnostic",
+  "timestamp_utc": "2026-08-18T20:15:18+00:00",
+  "finished_utc": "2026-08-18T20:15:22+00:00",
+  "network_profile": "personal",
+  "target": {
+    "ws_url": "wss://stream.aisstream.io/v0/stream",
+    "https_url": "https://aisstream.io",
+    "bbox": "global"
+  },
+  "layers": {
+    "1_dns": {
+      "ok": true,
+      "elapsed_ms": 63.9,
+      "addresses": [
+        "136.243.173.177"
+      ]
+    },
+    "2_tcp": {
+      "ok": true,
+      "elapsed_ms": 200.9
+    },
+    "3_tls": {
+      "ok": true,
+      "elapsed_ms": 421.3,
+      "tls_version": "TLSv1.3",
+      "cipher": "TLS_AES_256_GCM_SHA384",
+      "issuer": "Let's Encrypt / YR1",
+      "subject_cn": "stream.aisstream.io",
+      "valid_until": "Sep 18 08:02:51 2026 GMT",
+      "issuer_is_public_ca": true,
+      "diagnosis": "Certificado de CA publica: NO hay inspeccion TLS en el camino."
+    },
+    "4_https": {
+      "ok": true,
+      "status_code": 200,
+      "elapsed_ms": 944.0,
+      "server": "cloudflare"
+    },
+    "5_websocket": {
+      "ok": true,
+      "elapsed_ms": 1096.3,
+      "diagnosis": "El Upgrade a WebSocket se completo."
+    },
+    "6_data": {
+      "messages": [
+        {
+          "MessageType": "StandardClassBPositionReport",
+          "keys": [
+            "Message",
+            "MessageType",
+            "MetaData"
+          ]
+        },
+        {
+          "MessageType": "PositionReport",
+          "keys": [
+            "Message",
+            "MessageType",
+            "MetaData"
+          ]
+        },
+        {
+          "MessageType": "StandardClassBPositionReport",
+          "keys": [
+            "Message",
+            "MessageType",
+            "MetaData"
+          ]
+        },
+        {
+          "MessageType": "PositionReport",
+          "keys": [
+            "Message",
+            "MessageType",
+            "MetaData"
+          ]
+        },
+        {
+          "MessageType": "PositionReport",
+          "keys": [
+            "Message",
+            "MessageType",
+            "MetaData"
+          ]
+        }
+      ],
+      "message_count": 25,
+      "subscription_sent": {
+        "BoundingBoxes": [
+          [
+            [
+              -90.0,
+              -180.0
+            ],
+            [
+              90.0,
+              180.0
+            ]
+          ]
+        ],
+        "APIKey": "(enmascarada)"
+      },
+      "first_message_latency_ms": 314.3,
+      "ok": true,
+      "waited_s": 0.6,
+      "closed_by": "transport.abort()"
+    }
+  },
+  "verdict": "operativo",
+  "passed": true
+}

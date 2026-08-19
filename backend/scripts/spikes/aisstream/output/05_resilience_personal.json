@@ -1,0 +1,75 @@
+{
+  "spike": "TG-10",
+  "phase": "5-resilience",
+  "timestamp_utc": "2026-08-18T20:33:46+00:00",
+  "finished_utc": "2026-08-18T20:36:42+00:00",
+  "network_profile": "personal",
+  "active_bbox": [
+    [
+      [
+        9.0,
+        -78.0
+      ],
+      [
+        12.5,
+        -73.0
+      ]
+    ]
+  ],
+  "results": {
+    "a_invalid_key": {
+      "label": "api_key_invalida",
+      "messages": 0,
+      "server_error": null,
+      "closed_by_server": true,
+      "waited_s": 25,
+      "close_reason": "ConnectionClosedError: no close frame received or sent",
+      "outcome": "cierre_del_servidor"
+    },
+    "b_malformed": {
+      "label": "suscripcion_malformada",
+      "messages": 0,
+      "server_error": null,
+      "closed_by_server": true,
+      "waited_s": 25,
+      "close_reason": "ConnectionClosedError: no close frame received or sent",
+      "outcome": "cierre_del_servidor"
+    },
+    "c_concurrent": {
+      "both_opened": true,
+      "messages_conn_1": 10,
+      "messages_conn_2": 10,
+      "both_received": true
+    },
+    "d_reconnect": {
+      "attempts": [
+        {
+          "cycle": 1,
+          "connect_ms": 959.6,
+          "first_message_ms": 1107.5,
+          "ok": true
+        },
+        {
+          "cycle": 2,
+          "connect_ms": 1014.9,
+          "first_message_ms": 4940.3,
+          "ok": true
+        },
+        {
+          "cycle": 3,
+          "connect_ms": 987.4,
+          "first_message_ms": 14686.9,
+          "ok": true
+        }
+      ]
+    },
+    "e_watchdog": {
+      "messages": 33,
+      "window_s": 120,
+      "median_gap_s": 1.47,
+      "p95_gap_s": 12.85,
+      "max_gap_s": 15.28
+    }
+  },
+  "passed": true
+}

@@ -1,0 +1,457 @@
+{
+  "spike": "TG-11",
+  "phase": "4-flight-identification",
+  "timestamp_utc": "2026-08-18T15:46:52+00:00",
+  "finished_utc": "2026-08-18T15:47:03+00:00",
+  "network_profile": "personal",
+  "airport": "MROC",
+  "candidates": [
+    {
+      "icao24": "0ac9e1",
+      "callsign": "AVA072",
+      "origin_country": "Colombia",
+      "regime": "crucero"
+    },
+    {
+      "icao24": "0c21fb",
+      "callsign": "CMP884",
+      "origin_country": "Panama",
+      "regime": "crucero"
+    },
+    {
+      "icao24": "0c2012",
+      "callsign": "RPB7469",
+      "origin_country": "Panama",
+      "regime": "crucero"
+    },
+    {
+      "icao24": "0ae0f4",
+      "callsign": "TIANI",
+      "origin_country": "Costa Rica",
+      "regime": "aproximacion_o_salida"
+    },
+    {
+      "icao24": "0ae0df",
+      "callsign": "TIAWU",
+      "origin_country": "Costa Rica",
+      "regime": "aproximacion_o_salida"
+    }
+  ],
+  "primary_candidate": {
+    "icao24": "0ac9e1",
+    "callsign": "AVA072",
+    "origin_country": "Colombia",
+    "regime": "crucero"
+  },
+  "measured_costs_states_all": {
+    "bbox_cr_credits": 1,
+    "un_icao24_credits": 4,
+    "varios_icao24_credits": 4,
+    "icao24_count_in_multi": 5
+  },
+  "credits_header_caveat": "x-rate-limit-remaining no es monotono entre endpoints distintos (serie observada: 3960, 3956, 3970, 3940, 3996). Probablemente hay cuotas separadas por endpoint. Los costos solo son validos entre llamadas consecutivas al mismo endpoint. Costo de /flights/* y /tracks/*: PREGUNTA ABIERTA.",
+  "results": {
+    "via_a_baseline_bbox": {
+      "label": "states_bbox_baseline",
+      "endpoint": "/states/all",
+      "params": {
+        "lamin": 8.0,
+        "lomin": -86.0,
+        "lamax": 11.3,
+        "lomax": -82.5
+      },
+      "status_code": 200,
+      "elapsed_ms": 742.4,
+      "credits_remaining": 3955,
+      "ok": true,
+      "response_bytes": 1556,
+      "aircraft_returned": 12,
+      "measured_cost_credits": null
+    },
+    "via_a_bbox_cr": {
+      "label": "states_bbox_cr",
+      "endpoint": "/states/all",
+      "params": {
+        "lamin": 8.0,
+        "lomin": -86.0,
+        "lamax": 11.3,
+        "lomax": -82.5
+      },
+      "status_code": 200,
+      "elapsed_ms": 725.2,
+      "credits_remaining": 3954,
+      "ok": true,
+      "response_bytes": 1556,
+      "aircraft_returned": 12,
+      "measured_cost_credits": 1
+    },
+    "via_a_un_icao24": {
+      "label": "states_un_icao24",
+      "endpoint": "/states/all",
+      "params": {
+        "icao24": "0ac9e1"
+      },
+      "status_code": 200,
+      "elapsed_ms": 1169.5,
+      "credits_remaining": 3950,
+      "ok": true,
+      "response_bytes": 33,
+      "aircraft_returned": 0,
+      "measured_cost_credits": 4
+    },
+    "via_a_varios_icao24": {
+      "label": "states_varios_icao24",
+      "endpoint": "/states/all",
+      "params": {
+        "icao24": [
+          "0ac9e1",
+          "0c21fb",
+          "0c2012",
+          "0ae0f4",
+          "0ae0df"
+        ]
+      },
+      "status_code": 200,
+      "elapsed_ms": 737.5,
+      "credits_remaining": 3946,
+      "ok": true,
+      "response_bytes": 523,
+      "aircraft_returned": 4,
+      "measured_cost_credits": 4
+    },
+    "via_b_ultimas_24h": {
+      "label": "arrival_ultimas_24h",
+      "endpoint": "/flights/arrival",
+      "params": {
+        "airport": "MROC",
+        "begin": 1786981613,
+        "end": 1787068013
+      },
+      "status_code": 200,
+      "elapsed_ms": 2898.3,
+      "credits_remaining": 3910,
+      "ok": true,
+      "response_bytes": 25039,
+      "flight_count": 69,
+      "sample_flights": [
+        {
+          "icao24": "0ae013",
+          "firstSeen": 1787007081,
+          "estDepartureAirport": "MRTR",
+          "lastSeen": 1787008600,
+          "estArrivalAirport": "MROC",
+          "callsign": "LRS1111 ",
+          "estDepartureAirportHorizDistance": 8527,
+          "estDepartureAirportVertDistance": 264,
+          "estArrivalAirportHorizDistance": 515,
+          "estArrivalAirportVertDistance": 44,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0c200b",
+          "firstSeen": 1787006443,
+          "estDepartureAirport": null,
+          "lastSeen": 1787007899,
+          "estArrivalAirport": "MROC",
+          "callsign": "CMP116  ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 1388,
+          "estArrivalAirportVertDistance": 52,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "a01b80",
+          "firstSeen": 1787005440,
+          "estDepartureAirport": null,
+          "lastSeen": 1787007609,
+          "estArrivalAirport": "MROC",
+          "callsign": "FDX56   ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 9545,
+          "estArrivalAirportVertDistance": 374,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "3949f9",
+          "firstSeen": 1786968157,
+          "estDepartureAirport": "LFPG",
+          "lastSeen": 1787006975,
+          "estArrivalAirport": "MROC",
+          "callsign": "AFR430  ",
+          "estDepartureAirportHorizDistance": 2000,
+          "estDepartureAirportVertDistance": 63,
+          "estArrivalAirportHorizDistance": 1681,
+          "estArrivalAirportVertDistance": 29,
+          "departureAirportCandidatesCount": 2,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0ae04f",
+          "firstSeen": 1787004780,
+          "estDepartureAirport": null,
+          "lastSeen": 1787006915,
+          "estArrivalAirport": "MROC",
+          "callsign": "LRS1109 ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 458,
+          "estArrivalAirportVertDistance": 44,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0ae07f",
+          "firstSeen": 1787005427,
+          "estDepartureAirport": null,
+          "lastSeen": 1787006863,
+          "estArrivalAirport": "MROC",
+          "callsign": "TIBJJ   ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 1028,
+          "estArrivalAirportVertDistance": 44,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0c208c",
+          "firstSeen": 1787004348,
+          "estDepartureAirport": null,
+          "lastSeen": 1787006744,
+          "estArrivalAirport": "MROC",
+          "callsign": "CMP839  ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 1726,
+          "estArrivalAirportVertDistance": 36,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "e8041f",
+          "firstSeen": 1786967850,
+          "estDepartureAirport": "SBGR",
+          "lastSeen": 1787006582,
+          "estArrivalAirport": "MROC",
+          "callsign": "LPE2408 ",
+          "estDepartureAirportHorizDistance": 7161,
+          "estDepartureAirportVertDistance": 347,
+          "estArrivalAirportHorizDistance": 4419,
+          "estArrivalAirportVertDistance": 115,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        }
+      ],
+      "latest_arrival_epoch": 1787008600,
+      "publication_lag_hours": 16.5
+    },
+    "via_b_hace_3_dias": {
+      "label": "arrival_hace_3_dias",
+      "endpoint": "/flights/arrival",
+      "params": {
+        "airport": "MROC",
+        "begin": 1786808813,
+        "end": 1786895213
+      },
+      "status_code": 200,
+      "elapsed_ms": 2084.1,
+      "credits_remaining": 3880,
+      "ok": true,
+      "response_bytes": 37392,
+      "flight_count": 103,
+      "sample_flights": [
+        {
+          "icao24": "0ae02a",
+          "firstSeen": 1786892845,
+          "estDepartureAirport": null,
+          "lastSeen": 1786894624,
+          "estArrivalAirport": "MROC",
+          "callsign": "LRS1067 ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 418,
+          "estArrivalAirportVertDistance": 44,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0ae09e",
+          "firstSeen": 1786892437,
+          "estDepartureAirport": "MRTR",
+          "lastSeen": 1786893896,
+          "estArrivalAirport": "MROC",
+          "callsign": "GRA323A ",
+          "estDepartureAirportHorizDistance": 8372,
+          "estDepartureAirportVertDistance": 241,
+          "estArrivalAirportHorizDistance": 423,
+          "estArrivalAirportVertDistance": 36,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0ae0bb",
+          "firstSeen": 1786886536,
+          "estDepartureAirport": "MRPV",
+          "lastSeen": 1786892785,
+          "estArrivalAirport": "MROC",
+          "callsign": "TIBEZ   ",
+          "estDepartureAirportHorizDistance": 1770,
+          "estDepartureAirportVertDistance": 179,
+          "estArrivalAirportHorizDistance": 6745,
+          "estArrivalAirportVertDistance": 298,
+          "departureAirportCandidatesCount": 1,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0c203a",
+          "firstSeen": 1786861874,
+          "estDepartureAirport": "KJFK",
+          "lastSeen": 1786891822,
+          "estArrivalAirport": "MROC",
+          "callsign": "CMP807  ",
+          "estDepartureAirportHorizDistance": 538,
+          "estDepartureAirportVertDistance": 57,
+          "estArrivalAirportHorizDistance": 6997,
+          "estArrivalAirportVertDistance": 237,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "adab38",
+          "firstSeen": 1786889273,
+          "estDepartureAirport": null,
+          "lastSeen": 1786890985,
+          "estArrivalAirport": "MROC",
+          "callsign": "TAI319  ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 7173,
+          "estArrivalAirportVertDistance": 252,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0c2168",
+          "firstSeen": 1786888611,
+          "estDepartureAirport": null,
+          "lastSeen": 1786890113,
+          "estArrivalAirport": "MROC",
+          "callsign": "CMP818  ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 6847,
+          "estArrivalAirportVertDistance": 229,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0ae10d",
+          "firstSeen": 1786888140,
+          "estDepartureAirport": null,
+          "lastSeen": 1786890012,
+          "estArrivalAirport": "MROC",
+          "callsign": "LRS1101 ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 417,
+          "estArrivalAirportVertDistance": 36,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        },
+        {
+          "icao24": "0ae013",
+          "firstSeen": 1786888151,
+          "estDepartureAirport": null,
+          "lastSeen": 1786889884,
+          "estArrivalAirport": "MROC",
+          "callsign": "LRS1065 ",
+          "estDepartureAirportHorizDistance": null,
+          "estDepartureAirportVertDistance": null,
+          "estArrivalAirportHorizDistance": 373,
+          "estArrivalAirportVertDistance": 29,
+          "departureAirportCandidatesCount": 0,
+          "arrivalAirportCandidatesCount": 2
+        }
+      ],
+      "latest_arrival_epoch": 1786894624,
+      "publication_lag_hours": 48.2
+    },
+    "via_c_historial": {
+      "label": "flights_aircraft",
+      "endpoint": "/flights/aircraft",
+      "params": {
+        "icao24": "0ac9e1",
+        "begin": 1786898813,
+        "end": 1787068013
+      },
+      "status_code": 400,
+      "elapsed_ms": 702.8,
+      "credits_remaining": null,
+      "ok": false,
+      "error_category": "http_400",
+      "error_detail": "You can only query across 2 partitions (days). Your query will naturally spill into the 3rd day."
+    },
+    "via_d_tracks": {
+      "label": "tracks_all",
+      "endpoint": "/tracks/all",
+      "params": {
+        "icao24": "0ac9e1",
+        "time": 0
+      },
+      "status_code": 200,
+      "elapsed_ms": 712.1,
+      "credits_remaining": 3992,
+      "ok": true,
+      "response_bytes": 2927,
+      "path_points": 64,
+      "sample_path": [
+        [
+          1787060546,
+          4.69,
+          -74.1417,
+          2438,
+          126,
+          false
+        ],
+        [
+          1787060546,
+          4.69,
+          -74.1417,
+          2438,
+          126,
+          false
+        ],
+        [
+          1787060564,
+          4.6799,
+          -74.1303,
+          2743,
+          140,
+          false
+        ],
+        [
+          1787060573,
+          4.673,
+          -74.1274,
+          2743,
+          165,
+          false
+        ],
+        [
+          1787060582,
+          4.6656,
+          -74.1275,
+          2743,
+          187,
+          false
+        ]
+      ]
+    }
+  },
+  "passed": true
+}

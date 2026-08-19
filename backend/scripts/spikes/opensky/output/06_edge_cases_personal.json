@@ -1,0 +1,122 @@
+{
+  "spike": "TG-11",
+  "phase": "6-edge-cases",
+  "timestamp_utc": "2026-08-18T15:50:52+00:00",
+  "finished_utc": "2026-08-18T15:52:02+00:00",
+  "network_profile": "personal",
+  "error_contract": [
+    {
+      "case": "icao24 inexistente",
+      "endpoint": "/states/all",
+      "params": {
+        "icao24": "ffffff"
+      },
+      "expectation": "lista vacia o null",
+      "status_code": 200,
+      "elapsed_ms": 1443.0,
+      "credits_remaining": 3942,
+      "body_preview": "{\"time\":1787068251,\"states\":null}",
+      "body_is_empty": false,
+      "outcome": "200_states_null"
+    },
+    {
+      "case": "bbox sin trafico (Pacifico sur)",
+      "endpoint": "/states/all",
+      "params": {
+        "lamin": -55.0,
+        "lomin": -140.0,
+        "lamax": -50.0,
+        "lomax": -135.0
+      },
+      "expectation": "lista vacia o null",
+      "status_code": 200,
+      "elapsed_ms": 739.7,
+      "credits_remaining": 3941,
+      "body_preview": "{\"time\":1787068250,\"states\":null}",
+      "body_is_empty": false,
+      "outcome": "200_states_null"
+    },
+    {
+      "case": "token invalido",
+      "endpoint": "/states/all",
+      "params": {
+        "lamin": 8.0,
+        "lomin": -86.0,
+        "lamax": 11.3,
+        "lomax": -82.5
+      },
+      "expectation": "401 con cuerpo distinguible",
+      "status_code": 401,
+      "elapsed_ms": 716.1,
+      "credits_remaining": null,
+      "body_preview": "",
+      "body_is_empty": true,
+      "outcome": "http_401"
+    },
+    {
+      "case": "ventana de 3 particiones",
+      "endpoint": "/flights/aircraft",
+      "params": {
+        "icao24": "0ac9e1",
+        "begin": 1786899053,
+        "end": 1787068253
+      },
+      "expectation": "400 con mensaje explicativo",
+      "status_code": 400,
+      "elapsed_ms": 699.0,
+      "credits_remaining": null,
+      "body_preview": "You can only query across 2 partitions (days). Your query will naturally spill into the 3rd day.",
+      "body_is_empty": false,
+      "outcome": "http_400"
+    },
+    {
+      "case": "aeropuerto inexistente",
+      "endpoint": "/flights/arrival",
+      "params": {
+        "airport": "XXXX",
+        "begin": 1786981853,
+        "end": 1787068253
+      },
+      "expectation": "404 o 200 vacio",
+      "status_code": 404,
+      "elapsed_ms": 3286.9,
+      "credits_remaining": 3760,
+      "body_preview": "[]",
+      "body_is_empty": true,
+      "outcome": "http_404"
+    },
+    {
+      "case": "falta parametro begin/end",
+      "endpoint": "/flights/arrival",
+      "params": {
+        "airport": "MROC"
+      },
+      "expectation": "400",
+      "status_code": 400,
+      "elapsed_ms": 712.7,
+      "credits_remaining": null,
+      "body_preview": "{\"timestamp\":\"2026-08-18T15:50:59.191+00:00\",\"status\":400,\"error\":\"Bad Request\",\"path\":\"/flights/arrival\"}",
+      "body_is_empty": false,
+      "outcome": "http_400"
+    }
+  ],
+  "continuity": {
+    "gap_seconds": 60,
+    "first_count": 13,
+    "second_count": 12,
+    "persisted": 12,
+    "disappeared": 1,
+    "appeared": 0,
+    "churn_pct": 7.7,
+    "disappeared_detail": [
+      {
+        "icao24": "0c21fb",
+        "callsign": "CMP884",
+        "was_on_ground": false,
+        "altitude_m": 10668,
+        "staleness_at_disappearance_s": 257
+      }
+    ]
+  },
+  "passed": true
+}

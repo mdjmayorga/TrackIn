@@ -1,0 +1,49 @@
+{
+  "spike": "TG-10",
+  "phase": "6-coverage-longrun",
+  "timestamp_utc": "2026-08-18T20:43:57+00:00",
+  "finished_utc": "2026-08-18T21:28:57+00:00",
+  "network_profile": "personal",
+  "purpose": "Decidir si la ausencia de datos en CR se debe a falta de receptores o a bajo trafico. Las fases 2 y 4 solo observaron ~11 minutos.",
+  "zone_target": {
+    "name": "Caribe de Costa Rica y Nicaragua (sin Panama)",
+    "bbox": [
+      [
+        9.5,
+        -84.5
+      ],
+      [
+        15.0,
+        -82.6
+      ]
+    ]
+  },
+  "zone_control": {
+    "name": "Cartagena / Santa Marta (control)",
+    "bbox": [
+      [
+        9.0,
+        -78.0
+      ],
+      [
+        12.5,
+        -73.0
+      ]
+    ]
+  },
+  "capture_seconds": 2700,
+  "elapsed_s": 2700.0,
+  "target_messages": 0,
+  "target_ships": 0,
+  "target_types": {},
+  "target_detail": [],
+  "control_messages": 641,
+  "control_ships": 76,
+  "other_messages": 0,
+  "nearest_km_to_moin": null,
+  "reconnects": 0,
+  "expected_static_emissions_in_window": 15,
+  "server_errors": [],
+  "verdict": "sin_cobertura_confirmado",
+  "passed": true
+}

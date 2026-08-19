@@ -1,0 +1,314 @@
+{
+  "spike": "TG-10",
+  "phase": "3-message-analysis",
+  "timestamp_utc": "2026-08-18T20:22:54+00:00",
+  "finished_utc": "2026-08-18T20:22:54+00:00",
+  "network_profile": "personal",
+  "dataset": "02_caribbean_raw_personal.jsonl",
+  "total_messages": 161,
+  "total_bytes": 94043,
+  "unique_ships": 133,
+  "message_types": {
+    "StandardClassBPositionReport": 39,
+    "PositionReport": 76,
+    "StaticDataReport": 20,
+    "ShipStaticData": 19,
+    "BaseStationReport": 4,
+    "AidsToNavigationReport": 2,
+    "UnknownMessage": 1
+  },
+  "static_field_frequency": {
+    "MessageID": 39,
+    "RepeatIndicator": 39,
+    "UserID": 39,
+    "Valid": 39,
+    "PartNumber": 20,
+    "ReportA": 20,
+    "ReportB": 20,
+    "Reserved": 20,
+    "AisVersion": 19,
+    "CallSign": 19,
+    "Destination": 19,
+    "Dimension": 19,
+    "Dte": 19,
+    "Eta": 19,
+    "FixType": 19,
+    "ImoNumber": 19,
+    "MaximumStaticDraught": 19,
+    "Name": 19,
+    "Spare": 19,
+    "Type": 19
+  },
+  "identification": {
+    "with_name": 124,
+    "with_imo": 18,
+    "with_destination": 16,
+    "with_eta": 18
+  },
+  "frequency": {
+    "ships_with_single_message": 111,
+    "ships_with_multiple": 22,
+    "median_interval_s": 62.238361999999995,
+    "min_interval_s": 6.725762,
+    "max_interval_s": 167.296731
+  },
+  "geography": {
+    "occupied_cells": 13,
+    "top_cells_concentration_pct": 95.0,
+    "top_cells": [
+      {
+        "lat": 10.0,
+        "lon": -62.0,
+        "messages": 63,
+        "ships": 50
+      },
+      {
+        "lat": 10.0,
+        "lon": -76.0,
+        "messages": 41,
+        "ships": 33
+      },
+      {
+        "lat": 12.0,
+        "lon": -62.0,
+        "messages": 16,
+        "ships": 16
+      },
+      {
+        "lat": 18.0,
+        "lon": -72.0,
+        "messages": 15,
+        "ships": 14
+      },
+      {
+        "lat": 18.0,
+        "lon": -70.0,
+        "messages": 5,
+        "ships": 3
+      },
+      {
+        "lat": 24.0,
+        "lon": -82.0,
+        "messages": 5,
+        "ships": 2
+      },
+      {
+        "lat": 22.0,
+        "lon": -84.0,
+        "messages": 4,
+        "ships": 3
+      },
+      {
+        "lat": 20.0,
+        "lon": -88.0,
+        "messages": 4,
+        "ships": 4
+      }
+    ]
+  },
+  "anomaly_diagnosis": "cobertura_costera",
+  "extrapolated_daily_messages": 77280,
+  "extrapolated_daily_mb": 43.0,
+  "ships_sample": [
+    {
+      "mmsi": 368470750,
+      "name": "OKALOOSA"
+    },
+    {
+      "mmsi": 311001711,
+      "name": "CSL KULEANA",
+      "imo": 9999711,
+      "destination": "COSMR",
+      "callsign": "C6IM9",
+      "ship_type": 70,
+      "eta": {
+        "Day": 0,
+        "Hour": 0,
+        "Minute": 0,
+        "Month": 0
+      }
+    },
+    {
+      "mmsi": 338402158,
+      "name": "CASA DE KEE"
+    },
+    {
+      "mmsi": 212215000,
+      "name": "RUDDY",
+      "imo": 9459981,
+      "destination": "CO SMR",
+      "callsign": "5BRB2",
+      "ship_type": 70,
+      "eta": {
+        "Day": 0,
+        "Hour": 0,
+        "Minute": 0,
+        "Month": 0
+      }
+    },
+    {
+      "mmsi": 368416730,
+      "name": "DAYS BETWEEN"
+    },
+    {
+      "mmsi": 668116277,
+      "name": "CONSORT"
+    },
+    {
+      "mmsi": 244003001,
+      "name": "SY-KOLIBRI"
+    },
+    {
+      "mmsi": 362477000,
+      "name": "N.E. VANGUARD"
+    },
+    {
+      "mmsi": 352003703,
+      "name": "NORD VULCAN"
+    },
+    {
+      "mmsi": 538004903,
+      "name": "ATHINOULA"
+    },
+    {
+      "mmsi": 636023779,
+      "name": "GREEN DAWN"
+    },
+    {
+      "mmsi": 362028000,
+      "name": "MARINER"
+    },
+    {
+      "mmsi": 265659910,
+      "name": "IMAGINE"
+    },
+    {
+      "mmsi": 378113332,
+      "name": "TOCAMI"
+    },
+    {
+      "mmsi": 311001223,
+      "name": "CARNIVAL CELEBRATION"
+    },
+    {
+      "mmsi": 311001622,
+      "name": "SAGA MONAL"
+    },
+    {
+      "mmsi": 341578002,
+      "name": "HIMALAYA"
+    },
+    {
+      "mmsi": 538007746,
+      "name": "WHITE HORSE"
+    },
+    {
+      "mmsi": 265068120,
+      "name": "SUN RISE"
+    },
+    {
+      "mmsi": 244000523,
+      "name": "JULIA"
+    },
+    {
+      "mmsi": 366642000,
+      "name": "ALLEGRA"
+    },
+    {
+      "mmsi": 563317200,
+      "name": "BAKUNAWA"
+    },
+    {
+      "mmsi": 775993206,
+      "name": "MARISOL"
+    },
+    {
+      "mmsi": 362470000,
+      "name": "ENDEAVOR",
+      "imo": 9582348,
+      "destination": "CHAGUARAMAS TRINIDAD",
+      "callsign": "9YSQ000",
+      "ship_type": 60,
+      "eta": {
+        "Day": 18,
+        "Hour": 14,
+        "Minute": 20,
+        "Month": 8
+      }
+    },
+    {
+      "mmsi": 636015658,
+      "name": "AFRICAN JUNIPER"
+    },
+    {
+      "mmsi": 305028400,
+      "name": "KAMDHENU"
+    },
+    {
+      "mmsi": 249742000,
+      "name": "OBORISHTE"
+    },
+    {
+      "mmsi": 244155000,
+      "name": "DELTAGRACHT"
+    },
+    {
+      "mmsi": 563162500,
+      "name": "BW ENN SNOW LOTUS"
+    },
+    {
+      "mmsi": 3660634
+    },
+    {
+      "mmsi": 248314000,
+      "name": "BLUE MARLIN",
+      "imo": 9186338,
+      "destination": "TTCHA",
+      "callsign": "9HA4605",
+      "ship_type": 70,
+      "eta": {
+        "Day": 21,
+        "Hour": 22,
+        "Minute": 15,
+        "Month": 7
+      }
+    },
+    {
+      "mmsi": 249198000,
+      "name": "CANMER"
+    },
+    {
+      "mmsi": 232011987,
+      "name": "AWEH"
+    },
+    {
+      "mmsi": 352901000,
+      "name": "NAVE AQUILA"
+    },
+    {
+      "mmsi": 538012947,
+      "name": "GRAND VEGA"
+    },
+    {
+      "mmsi": 368341220,
+      "name": "NAUTI DREAM"
+    },
+    {
+      "mmsi": 227026580,
+      "name": "CAIPERINHA"
+    },
+    {
+      "mmsi": 211103610,
+      "name": "MULAN"
+    },
+    {
+      "mmsi": 311000966,
+      "name": "KYDON"
+    },
+    {
+      "mmsi": 232056670,
+      "name": "RUM TRUFFLE"
+    }
+  ],
+  "passed": true
+}
