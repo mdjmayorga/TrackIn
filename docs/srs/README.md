@@ -5,14 +5,20 @@ Especificación de Requerimientos de Software del proyecto TrackIn, entregable d
 
 | | |
 |---|---|
-| Archivo | [`SRS_TrackIn_v0.1.docx`](SRS_TrackIn_v0.1.docx) |
-| Versión | v0.1 — 10 de agosto de 2026 |
+| Archivo | [`SRS_TrackIn_v0.3.docx`](SRS_TrackIn_v0.3.docx) |
+| Versión | v0.3 — 20 de agosto de 2026 |
 | Estándar | IEEE 830-1998, adaptado |
-| Extensión | 41 páginas, ~10.800 palabras, 63 tablas |
-| Fuentes | Anteproyecto aprobado + Documento Técnico-Funcional v1.0 (18/06/2026) |
+| Fuentes | Anteproyecto aprobado + Documento Técnico-Funcional v1.0 (18/06/2026) + spikes técnicos TG-10 y TG-11 |
+| Versiones anteriores | `SRS_TrackIn_v0.2.docx` (14/08), `SRS_TrackIn_v0.1.docx` (10/08) — se conservan sin modificar |
 
-Contenido normativo: **24** requerimientos funcionales, **23** no funcionales,
-**9** casos de uso y **14** reglas de negocio, numerados sin huecos.
+Contenido normativo: **27** requerimientos funcionales, **23** no funcionales,
+**10** casos de uso y **16** reglas de negocio, numerados sin huecos.
+
+> **Aviso sobre el generador.** `generador/srs.js` quedó desfasado: refleja el
+> estado de v0.1 en su primer commit. De v0.1 en adelante el documento se editó
+> directamente, así que **regenerar sobrescribiría y perdería todo lo posterior**.
+> No usar `npm run build` sin antes reconstruir el generador desde el `.docx`
+> vigente.
 
 > La tabla de contenidos ya trae los números de página resueltos. Si editás el
 > documento y cambia la paginación, seleccionala y presioná **F9** para actualizarla.
@@ -54,7 +60,7 @@ todavía no existe.
 | 10. Criterios de aceptación | **Parcial** | Confirmar si la Escuela exige criterios académicos adicionales |
 | Anexo A. Glosario extendido | Completa | — |
 | Anexo B. Formato del Excel | **Pendiente** | Bloqueado: no existe hasta recibir la muestra real |
-| Anexo C. Referencias de APIs | **Parcial** | Falta cuantificar el % de pedidos con identificador de nave |
+| Anexo C. Referencias de APIs | Completa | v0.2 cerró la cuantificación (C.2: ningún pedido tiene nave antes del BL); v0.3 añadió C.4 con los resultados de los spikes |
 
 ---
 

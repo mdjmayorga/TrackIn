@@ -190,8 +190,17 @@ transmite cada 2–10 s.
 > descartar bajo tráfico momentáneo. La **Fase 6 lo resolvió** con una captura
 > de 45 minutos: ver más abajo.
 
-La causa de la anomalía apunta a **cobertura de receptores, no a limitación del
-plan**. El 95% de los mensajes se concentra en 8 celdas, todas costeras:
+> ⚠️ **Corregido el 20/08/2026.** Este párrafo afirmaba que la causa era
+> «cobertura de receptores, **no** limitación del plan». **Esa inferencia quedó
+> desmentida**: se verificó que VesselFinder y MyShipTracking publican escalas
+> de Moín en vivo, con nombres y horas —`CHARLOTTE`, `GUADALUPE`,
+> `ATLANTIC SUNFLOWER`, remolcadores maniobrando—. Si dos proveedores
+> comerciales ven ese tráfico, **los receptores existen**. La medición de cero
+> mensajes sigue siendo válida; lo que falla es la explicación causal. La
+> carencia es **del plan gratuito de AISStream**, no del lugar.
+
+La distribución geográfica de lo que sí llegó concentra el 95% de los mensajes
+en 8 celdas, todas costeras:
 
 | Celda (lat, lon) | Mensajes | Zona |
 |---|---|---|
@@ -289,8 +298,37 @@ VHF.
 **Impacto en TrackIn:** no se puede confirmar la llegada de un buque a Moín con
 esta fuente. Sí se le puede seguir en los tramos con cobertura — salida del
 puerto de origen, Cartagena, aproximación al Canal de Panamá — perdiendo la
-traza en el último tramo. **Es una decisión de negocio, no técnica**, si eso
-alcanza: hay que plantearlo con Compras.
+traza en el último tramo.
+
+### Verificación cruzada contra proveedores comerciales (20/08/2026)
+
+Antes de asumir que el tramo final es irrecuperable, se comprobó si el hueco es
+del lugar o de la fuente. **Es de la fuente.**
+
+| Proveedor | Qué muestra para Moín |
+|---|---|
+| **VesselFinder** (`CRMOB001`) | 25 arribos en 24 h · 10 buques en puerto · declara que los detecta «processing of AIS data» |
+| **MyShipTracking** | Nombres y horas: `CHARLOTTE` 20/08 11:46 · `GUADALUPE` 19/08 18:03 → 20/08 11:18 · `ATLANTIC SUNFLOWER` (183 m) · remolcador `SVITZER HANNE` · esperados `DEL MONTE SPIRIT` y `DOLE INCA` |
+
+Los nombres son consistentes con la operación real de Limón —reefers bananeros
+y un remolcador de Svitzer—, así que no es data reciclada.
+
+**Consecuencia para la decisión de negocio:** deja de ser «¿pueden vivir sin
+confirmación de arribo?» y pasa a ser **«confirmar el arribo cuesta del orden de
+€330 al año»**. VesselFinder mantiene créditos prepago (10 000 créditos por
+€330, 2 créditos por registro de escala, vigencia 12 meses) y su Port Calls API
+entrega **ATA y ATD reales por puerto**, además de ETA reportada y predicha —lo
+que ataca de paso el problema de que la ETA cruda del AIS sólo viaje en el 12%
+de los mensajes.
+
+> **Pendiente antes de comprar:** esta verificación se hizo contra las webs
+> públicas, no contra la Port Calls API. Confirmar con el paquete mínimo de
+> créditos, y medir la latencia del evento de arribo: un ATA con horas de
+> retraso sirve para conciliar, no para el dashboard en vivo.
+
+**Nota sobre MarineTraffic:** ya no es comparable en precio. Kpler lo adquirió
+junto con Spire Maritime y FleetMon, y **descontinuó el modelo de créditos**:
+hoy es sólo suscripción empresarial.
 
 ### Tipos de mensaje y relación nave ↔ carga (Fase 3)
 
