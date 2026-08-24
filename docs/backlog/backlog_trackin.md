@@ -19,10 +19,10 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 
 | ID | Titulo | Tipo | OE | MoSCoW | Sprint | Horas | Origen |
 |---|---|---|---|---|---|---|---|
-| `TASK-12` | Modelar la entidad pedidos_transito en el diagrama ER | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / modelo de datos |
-| `TASK-13` | Modelar la entidad maestro_destinos | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / modelo de datos |
+| `TASK-12` | Modelar la entidad pedidos_transito en el diagrama ER ✅ | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / modelo de datos |
+| `TASK-13` | Modelar la entidad maestro_destinos ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / modelo de datos |
 | `TASK-14` | Modelar la entidad historial_tracking (geoespacial) | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / modelo de datos |
-| `TASK-15` | Modelar usuarios, elementos_rastreados, proveedores y materiales, y consolidar el ER | Task | OE1 | **Must** | Sprint 2 | 10h | Diseño OE1 / modelo de datos (SRS v0.3 §8.1) |
+| `TASK-15` | Modelar usuarios, elementos_rastreados, proveedores y materiales, y consolidar el ER ✅ | Task | OE1 | **Must** | Sprint 2 | 10h | Diseño OE1 / modelo de datos (SRS v0.3 §8.1) |
 | `TASK-16` | Diccionario de datos: pedidos_transito | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-17` | Diccionario de datos: maestro_destinos | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-18` | Diccionario de datos: historial_tracking | Task | OE1 | **Must** | Sprint 2 | 3h | Diseño OE1 / diccionario de datos |
@@ -95,7 +95,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 
 > Revisado el 24/08 — ver «Revision del 24/08» al final de esta seccion y el [plan de la semana 1](plan_semanal_s2_sem1.md).
 
-#### TASK-12 — Modelar la entidad pedidos_transito en el diagrama ER
+#### TASK-12 — Modelar la entidad pedidos_transito en el diagrama ER ✅ HECHA
 
 Como desarrollador, quiero modelar la entidad pedidos_transito con sus atributos, clave e indices, para dar base a la persistencia de los pedidos en transito.
 
@@ -114,7 +114,11 @@ Como desarrollador, quiero modelar la entidad pedidos_transito con sus atributos
 | Origen | Diseño OE1 / modelo de datos |
 | Etiquetas | `diseno,bd,modelo` |
 
-#### TASK-13 — Modelar la entidad maestro_destinos
+> **Completada el 24/08** en `docs/data-model.md` §1 (rama `Modelos_Datos`). Los tres criterios de aceptacion se satisfacen: atributos y PK en §1.2-§1.3, relacion con `maestro_destinos` con cardinalidad 1:N y FK `NOT NULL` en §1.7, e indices propuestos en §1.8.
+>
+> Pendiente de la DoD: la revision con Greivin, agendada para el viernes 28 junto al ER consolidado de TASK-15. §1.9 lista los cinco puntos abiertos que hay que llevar a esa revision, entre ellos la propuesta de separar el estado en dos dimensiones (§1.4), que si se aprueba afecta a US-10 y US-24.
+
+#### TASK-13 — Modelar la entidad maestro_destinos ✅ HECHA
 
 Como desarrollador, quiero modelar maestro_destinos con lead time y coordenadas, para soportar el calculo de disponibilidad y la geocerca de arribo.
 
@@ -133,7 +137,11 @@ Como desarrollador, quiero modelar maestro_destinos con lead time y coordenadas,
 | Origen | Diseño OE1 / modelo de datos |
 | Etiquetas | `diseno,bd,modelo` |
 
-#### TASK-14 — Modelar la entidad historial_tracking (geoespacial)
+> **Completada el 25/08** en `docs/data-model.md` §2. Los tres criterios se satisfacen: puerto/aeropuerto, pais, coordenadas, via y lead time con PK en §2.2-§2.3; `lead_time_dias INTEGER NOT NULL` con `CHECK >= 0` en §2.4; coordenadas en `GEOGRAPHY(Point,4326)` disponibles para la geocerca en §2.5.
+>
+> Dos propuestas que van a la revision del viernes: el **FK compuesto** `(id_destino, via_transporte)` que impide que un pedido maritimo apunte a un aeropuerto (§2.7, enmienda §1.7 de TASK-12), y el **radio de geocerca por destino** (§2.5). §2.9 deja los valores de referencia para los datos semilla de TASK-03, con los lead times pendientes de Logistica.
+
+#### TASK-14 — Modelar la entidad historial_tracking (geoespacial) ✅ HECHA
 
 Como desarrollador, quiero modelar historial_tracking con posicion geoespacial y payload, para poder auditar y reconstruir el trayecto de cada pedido.
 
@@ -153,9 +161,15 @@ Como desarrollador, quiero modelar historial_tracking con posicion geoespacial y
 | Origen | Diseño OE1 / modelo de datos |
 | Etiquetas | `diseno,bd,postgis,geoespacial` |
 
+> **Completada el 25/08** en `docs/data-model.md` §3. Los criterios se satisfacen: `GEOGRAPHY(Point,4326)` y payload `JSONB` en §3.2, relacion 1:N con `elementos_rastreados` en §3.5.
+>
+> Destapa un problema que necesita decision: **el transbordo rompe el trayecto** (§3.8). RF-26 exige conservar el historial de la nave anterior y RF-22 consultar el trayecto del pedido, pero el FK unico del pedido apunta solo a la nave vigente. A lo largo del tiempo la relacion pedido-elemento es N:M, no N:1. La recomendacion es una entidad asociativa, lo que llevaria el ER a **ocho** entidades y cambiaria el criterio de TASK-01.
+>
+> Dimensionamiento de §3.6 con datos de los spikes: ~25 millones de filas y ~20 GB al año. Sostiene que **TASK-10 (submuestreo) deberia dejar de ser `Could`**.
+
 > **Correccion (24/08):** el criterio original relacionaba el historial con `pedidos_transito` y pedia `geometry`. Prevalecen el SRS v0.3 §8.1 (historial por elemento rastreado) y la convencion ya implementada en `backend/app/db/base.py` (`GEOGRAPHY`, SRID 4326).
 
-#### TASK-15 — Modelar usuarios, elementos_rastreados, proveedores y materiales, y consolidar el ER
+#### TASK-15 — Modelar usuarios, elementos_rastreados, proveedores y materiales, y consolidar el ER ✅ HECHA
 
 Como desarrollador, quiero modelar las cuatro entidades restantes del SRS v0.3 §8.1 y consolidar el ER completo, para que el modelo cubra las siete entidades que TASK-01 debe crear en el Sprint 3.
 
@@ -178,6 +192,14 @@ Como desarrollador, quiero modelar las cuatro entidades restantes del SRS v0.3 �
 | Etiquetas | `diseno,bd,modelo,transbordo` |
 
 > **Ampliacion (24/08):** la version original modelaba solo `usuarios` en 4 h. El SRS v0.3 §8.1 identifica **siete** entidades y ninguna tarea del Sprint 2 nombraba `elementos_rastreados`, `proveedores` ni `materiales`. Sin ellas, TASK-01 falla su propio criterio de aceptacion.
+
+> **Completada el 25/08** en `docs/data-model.md` §4 a §9, con el **ER consolidado** al inicio del archivo. Las siete entidades del SRS v0.3 §8.1 quedan modeladas con relaciones y cardinalidades.
+>
+> **Aparecen tres entidades mas.** Dos las exige el articulado del SRS aunque §8.1 no las enumere: `auditoria_intervenciones` (RF-14 pide usuario, fecha, valor anterior, valor nuevo y motivo) y `parametros_sistema` (RN-05 y RN-11 citan textualmente «la tabla de mantenimiento de parametros»). La tercera es `pedido_elemento_rastreado`, la asociativa de §3.8. **El esquema real tiene diez tablas, no siete.**
+>
+> Consecuencia directa: el criterio de aceptacion de **TASK-01 debe pasar de siete a diez entidades** y reestimarse (hoy 10 h; se sugieren ~4 h mas). Ver §8.4.
+>
+> Ademas **RNF-04 declara la autenticacion dentro del alcance** con mecanismo propio, y ninguna historia del backlog la construye. Ver §7.2: la pregunta para Greivin no es si se hace, sino de donde salen las 20-25 h o si se modifica el SRS.
 
 #### TASK-16 — Diccionario de datos: pedidos_transito
 
