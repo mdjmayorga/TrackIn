@@ -1,8 +1,8 @@
 # Product Backlog - TrackIn (TG-18)
 
-Derivado del SRS v0.2 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSky). Priorizado con MoSCoW.
+Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSky). Priorizado con MoSCoW.
 
-**Generado:** 20 de agosto de 2026 · **Ejecutor:** 1 persona a tiempo completo
+**Generado:** 20 de agosto de 2026 · **Revisado:** 24 de agosto de 2026 (arranque del Sprint 2) · **Ejecutor:** 1 persona a tiempo completo
 
 > Este archivo se genera desde un script. La justificacion de la priorizacion vive en `backlog_priorization_rationale.md`.
 
@@ -22,21 +22,19 @@ Derivado del SRS v0.2 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-12` | Modelar la entidad pedidos_transito en el diagrama ER | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / modelo de datos |
 | `TASK-13` | Modelar la entidad maestro_destinos | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / modelo de datos |
 | `TASK-14` | Modelar la entidad historial_tracking (geoespacial) | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / modelo de datos |
-| `TASK-15` | Modelar usuarios/roles y consolidar el diagrama ER | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / modelo de datos |
+| `TASK-15` | Modelar usuarios, elementos_rastreados, proveedores y materiales, y consolidar el ER | Task | OE1 | **Must** | Sprint 2 | 10h | Diseño OE1 / modelo de datos (SRS v0.3 §8.1) |
 | `TASK-16` | Diccionario de datos: pedidos_transito | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-17` | Diccionario de datos: maestro_destinos | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-18` | Diccionario de datos: historial_tracking | Task | OE1 | **Must** | Sprint 2 | 3h | Diseño OE1 / diccionario de datos |
-| `TASK-19` | Diccionario de datos: usuarios | Task | OE1 | **Should** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
+| `TASK-24` | Diccionario de datos: elementos_rastreados, proveedores y materiales | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / diccionario de datos (SRS v0.3 §8.1) |
 | `TASK-20` | Arquitectura: vista de componentes | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / arquitectura |
-| `TASK-21` | Arquitectura: vista de despliegue (instalacion nativa) | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / arquitectura (decision: sin Docker) |
+| `TASK-21` | Arquitectura: vista de despliegue (instalacion nativa) | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / arquitectura (decision: sin Docker) |
 | `TASK-22` | Arquitectura: vista de secuencia (flujo de tracking) | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / arquitectura |
 | `US-34` | Wireframe del dashboard principal (grilla, filtros y KPIs) | Story | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / prototipo |
 | `US-35` | Wireframe del mapa marítimo | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-36` | Wireframe del mapa aéreo | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
-| `US-37` | Wireframe del detalle de pedido | Story | OE1 | **Should** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-38` | Prototipo interactivo navegable en Figma | Story | OE1 | **Must** | Sprint 2 | 8h | Diseño OE1 / prototipo |
 | `US-39` | Validación de prototipos con usuarios clave | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / criterio de aceptación de OE1 |
-| `TASK-23` | Consolidar el material de OE1 para el Informe 1 | Task | OE1 | **Must** | Sprint 2 | 8h | Hito Informe 1 (25/09/2026) |
 | `TASK-01` | Esquema de base de datos y migraciones Alembic | Task | OE4 | **Must** | Sprint 3 | 10h | SRS 8.1-8.5 |
 | `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
 | `TASK-03` | Adaptador de ingesta de pedidos con datos semilla | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
@@ -44,6 +42,8 @@ Derivado del SRS v0.2 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-02` | Consumir posiciones AIS desde AISStream por WebSocket | Story | OE2 | **Must** | Sprint 3 | 16h | RF-06 |
 | `US-03` | Tolerar la caida de una API externa sin degradar el dashboard | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 |
 | `US-04` | Registrar el historial de posiciones con el payload original | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
+| `TASK-19` | Diccionario de datos: usuarios | Task | OE1 | **Should** | Sprint 3 | 2h | Diseño OE1 / diccionario de datos |
+| `TASK-23` | Consolidar el material de OE1 para el Informe 1 | Task | OE1 | **Must** | Sprint 3 | 8h | Hito Informe 1 (25/09/2026) |
 | `US-05` | Consumir posiciones ADS-B desde OpenSky con OAuth2 | Story | OE2 | **Must** | Sprint 4 | 10h | RF-07 |
 | `US-06` | Resolver el icao24 de un vuelo como vinculo temporal del tramo | Story | OE2 | **Must** | Sprint 4 | 8h | RF-07 / spike TG-11 |
 | `US-07` | Planificar las consultas periodicas con frecuencia parametrizable | Story | OE2 | **Must** | Sprint 4 | 8h | RF-08 (reformulado) |
@@ -66,6 +66,7 @@ Derivado del SRS v0.2 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-22` | Mostrar la cinta de indicadores KPI | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 |
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
 | `US-24` | Aplicar el semaforo de estados de forma consistente | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 |
+| `US-37` | Wireframe del detalle de pedido | Story | OE1 | **Should** | Sprint 6 | 4h | Diseño OE1 / prototipo |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
@@ -80,7 +81,7 @@ Derivado del SRS v0.2 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-32` | Validar los datos recibidos de SAP antes de persistirlos 🔒 | Story | OE2 | **Should** | Sin asignar | 10h | RF-02 / CU-01 |
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande 🔒 | Story | OE3 | **Could** | Sin asignar | 6h | RNF-11 |
 | `TASK-10` | Politica de retencion y submuestreo del historial de posiciones | Task | OE4 | **Could** | Sprint 7 | 8h | RNF-22 / spike TG-10 |
-| `TASK-11` | Actualizar el SRS con los hallazgos de los spikes tecnicos | Task | OE1 | **Must** | Sprint 3 | 6h | Fase 6 de TG-18 |
+| `TASK-11` | Actualizar el SRS con los hallazgos de los spikes tecnicos ✅ | Task | OE1 | **Must** | Sprint 3 | ~~6h~~ 0h | Fase 6 de TG-18 (cumplida por el SRS v0.3) |
 
 🔒 = bloqueada por insumo externo
 
@@ -90,7 +91,9 @@ Derivado del SRS v0.2 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 
 ### Sprint 2 (24 ago - 4 sep 2026)
 
-**18 items · 81 h estimadas · capacidad 65 h — SOBRECARGADO** (12 Task, 6 Story). Corresponde a OE1 (analisis y diseño); produce el modelo de datos, el diccionario, la arquitectura y los prototipos sobre los que se construyen los Sprints 3-7.
+**16 items · 75 h estimadas · capacidad 65 h — SOBRECARGADO en 10 h** (11 Task, 5 Story). Corresponde a OE1 (analisis y diseño); produce el modelo de datos de las **siete** entidades del SRS v0.3 §8.1, el diccionario, la arquitectura y los prototipos sobre los que se construyen los Sprints 3-7.
+
+> Revisado el 24/08 — ver «Revision del 24/08» al final de esta seccion y el [plan de la semana 1](plan_semanal_s2_sem1.md).
 
 #### TASK-12 — Modelar la entidad pedidos_transito en el diagrama ER
 
@@ -136,9 +139,10 @@ Como desarrollador, quiero modelar historial_tracking con posicion geoespacial y
 
 **Criterios de aceptación**
 
-- Dado el ER, cuando modelo historial_tracking, entonces la posicion usa un tipo geoespacial (geometry Point) y almacena fecha, estado y payload
-- Dada la relacion con pedidos_transito, cuando la defino, entonces es 1:N
-- Dado el requisito de auditoria, cuando modelo el payload, entonces se preve almacenar la respuesta completa de la API
+- Dado el ER, cuando modelo historial_tracking, entonces la posicion usa `GEOGRAPHY(Point,4326)` —no `geometry`— para que ST_Distance devuelva metros y no grados
+- Dada la relacion con elementos_rastreados, cuando la defino, entonces es 1:N: el historial cuelga del elemento rastreado y no del pedido, conforme al SRS v0.3 §8.1
+- Dadas varias lineas de OC que viajan en un mismo buque, cuando reviso el modelo, entonces cada posicion recibida se persiste una sola vez y un transbordo no parte el trayecto
+- Dado el requisito de auditoria, cuando modelo el payload, entonces almacena la respuesta completa de la API en JSONB
 
 | | |
 |---|---|
@@ -149,24 +153,31 @@ Como desarrollador, quiero modelar historial_tracking con posicion geoespacial y
 | Origen | Diseño OE1 / modelo de datos |
 | Etiquetas | `diseno,bd,postgis,geoespacial` |
 
-#### TASK-15 — Modelar usuarios/roles y consolidar el diagrama ER
+> **Correccion (24/08):** el criterio original relacionaba el historial con `pedidos_transito` y pedia `geometry`. Prevalecen el SRS v0.3 §8.1 (historial por elemento rastreado) y la convencion ya implementada en `backend/app/db/base.py` (`GEOGRAPHY`, SRID 4326).
 
-Como desarrollador, quiero modelar usuarios/roles y consolidar el ER completo, para cubrir las vistas por perfil sin integrar Active Directory (fuera de alcance).
+#### TASK-15 — Modelar usuarios, elementos_rastreados, proveedores y materiales, y consolidar el ER
+
+Como desarrollador, quiero modelar las cuatro entidades restantes del SRS v0.3 §8.1 y consolidar el ER completo, para que el modelo cubra las siete entidades que TASK-01 debe crear en el Sprint 3.
 
 **Criterios de aceptación**
 
-- Dado el ER, cuando modelo usuarios, entonces incluye rol (Compras, Logística, Planificacion) sin depender de SSO/AD
-- Dado el conjunto de entidades, cuando consolido el ER, entonces quedan todas con sus relaciones y cardinalidades
-- Dado el SRS, cuando reviso el ER consolidado, entonces es consistente con los requerimientos aprobados
+- Dado el ER, cuando modelo elementos_rastreados, entonces desacopla el identificador de rastreo del pedido, admite N lineas de OC sobre una misma nave y soporta el cambio de nave por transbordo (US-30)
+- Dado elementos_rastreados, cuando modelo posicion_actual, entonces su tipo es `GEOGRAPHY(Point,4326)`, consistente con el criterio de aceptacion de TASK-02
+- Dado el ER, cuando modelo proveedores y materiales, entonces normalizan los campos hoy embebidos como texto libre en el pedido y habilitan el filtrado de US-21
+- Dado el ER, cuando modelo usuarios, entonces incluye rol (Compras, Logística, Planificacion) sin depender de SSO/AD, y soporta la auditoria de RF-14
+- Dado el conjunto de entidades, cuando consolido el ER, entonces las **siete** entidades del SRS v0.3 §8.1 quedan con sus relaciones y cardinalidades
+- Dado el SRS v0.3, cuando reviso el ER consolidado, entonces es consistente con los requerimientos aprobados
 
 | | |
 |---|---|
 | Tipo | Task |
 | Objetivo específico | OE1 |
 | MoSCoW | **Must** |
-| Estimacion | 4 h |
-| Origen | Diseño OE1 / modelo de datos |
-| Etiquetas | `diseno,bd,modelo` |
+| Estimacion | 10 h |
+| Origen | Diseño OE1 / modelo de datos (SRS v0.3 §8.1) |
+| Etiquetas | `diseno,bd,modelo,transbordo` |
+
+> **Ampliacion (24/08):** la version original modelaba solo `usuarios` en 4 h. El SRS v0.3 §8.1 identifica **siete** entidades y ninguna tarea del Sprint 2 nombraba `elementos_rastreados`, `proveedores` ni `materiales`. Sin ellas, TASK-01 falla su propio criterio de aceptacion.
 
 #### TASK-16 — Diccionario de datos: pedidos_transito
 
@@ -222,22 +233,23 @@ Como desarrollador, quiero documentar el diccionario de datos de historial_track
 | Origen | Diseño OE1 / diccionario de datos |
 | Etiquetas | `diseno,diccionario,geoespacial` |
 
-#### TASK-19 — Diccionario de datos: usuarios
+#### TASK-24 — Diccionario de datos: elementos_rastreados, proveedores y materiales
 
-Como desarrollador, quiero documentar el diccionario de datos de usuarios/roles, para garantizar consistencia en la implementacion de la tabla.
+Como desarrollador, quiero documentar el diccionario de datos de las tres entidades incorporadas, para que TASK-01 pueda implementarlas sin ambiguedad.
 
 **Criterios de aceptación**
 
-- Dada la tabla usuarios, cuando documento el diccionario, entonces cada campo tiene tipo, restricciones y descripcion
-- Dado el dominio de roles, cuando lo documento, entonces queda enumerado de forma explicita
+- Dada la tabla elementos_rastreados, cuando documento el diccionario, entonces incluye el identificador externo (MMSI para buques, icao24 para aeronaves), la via, la posicion actual con su SRID y la fecha de ultima lectura
+- Dadas las tablas proveedores y materiales, cuando documento el diccionario, entonces cada campo tiene nombre, tipo, nulabilidad, PK/FK y descripcion
+- Dado el diagrama ER consolidado en TASK-15, cuando comparo, entonces el diccionario es consistente con el modelo
 
 | | |
 |---|---|
 | Tipo | Task |
 | Objetivo específico | OE1 |
-| MoSCoW | **Should** |
-| Estimacion | 2 h |
-| Origen | Diseño OE1 / diccionario de datos |
+| MoSCoW | **Must** |
+| Estimacion | 4 h |
+| Origen | Diseño OE1 / diccionario de datos (SRS v0.3 §8.1) |
 | Etiquetas | `diseno,diccionario` |
 
 #### TASK-20 — Arquitectura: vista de componentes
@@ -268,13 +280,14 @@ Como desarrollador, quiero elaborar el diagrama de despliegue con los componente
 - Dado el entorno de desarrollo, cuando elaboro el despliegue, entonces muestra API FastAPI, PostgreSQL con PostGIS y frontend instalados de forma nativa, sin contenedores
 - Dados los servicios locales, cuando los documento, entonces indico puertos y dependencias del equipo
 - Dado el alcance, cuando lo reviso, entonces queda limitado a desarrollo (produccion fuera de alcance)
+- Dado `docs/deployment.md`, cuando elaboro la vista, entonces reutilizo la seccion «Entorno de desarrollo sin Docker» ya redactada en lugar de rehacerla
 
 | | |
 |---|---|
 | Tipo | Task |
 | Objetivo específico | OE1 |
 | MoSCoW | **Must** |
-| Estimacion | 4 h |
+| Estimacion | 2 h |
 | Origen | Diseño OE1 / arquitectura (decision: sin Docker) |
 | Etiquetas | `arquitectura,diseno,nativo` |
 
@@ -350,24 +363,6 @@ Como usuario de Logística, quiero revisar un wireframe del mapa aéreo con ruta
 | Origen | Diseño OE1 / prototipo |
 | Etiquetas | `frontend,ux,wireframe` |
 
-#### US-37 — Wireframe del detalle de pedido
-
-Como usuario de Compras, quiero revisar un wireframe de la vista de detalle de un pedido, para validar que muestre toda la informacion e historial necesarios.
-
-**Criterios de aceptación**
-
-- Dado un pedido seleccionado, cuando reviso el wireframe de detalle, entonces contempla datos maestros, estado, ETA proyectada y trazabilidad
-- Dado el historial, cuando lo reviso, entonces contempla una linea de tiempo de posiciones y estados
-
-| | |
-|---|---|
-| Tipo | Story |
-| Objetivo específico | OE1 |
-| MoSCoW | **Should** |
-| Estimacion | 4 h |
-| Origen | Diseño OE1 / prototipo |
-| Etiquetas | `frontend,ux,wireframe` |
-
 #### US-38 — Prototipo interactivo navegable en Figma
 
 Como usuario clave, quiero navegar un prototipo interactivo del dashboard en Figma, para experimentar el flujo de la aplicacion antes de construirla.
@@ -404,29 +399,39 @@ Como usuario clave de Compras/Logística, quiero revisar y aprobar los prototipo
 | Origen | Diseño OE1 / criterio de aceptación de OE1 |
 | Etiquetas | `ux,validación` |
 
-#### TASK-23 — Consolidar el material de OE1 para el Informe 1
+#### Revision del 24/08 — que cambio en este sprint y por que
 
-Como estudiante practicante, quiero consolidar los entregables de OE1 (SRS, modelo, diccionario, arquitectura y prototipos), para integrarlos al Primer Informe de Avance.
+Al arrancar el Sprint 2 se contrasto el backlog contra el **SRS v0.3** (el backlog original se derivo de v0.2) y contra el codigo ya existente. Resultado:
 
-**Criterios de aceptación**
+| Cambio | Efecto | Motivo |
+|---|---|---|
+| `TASK-15` ampliada de 4 h a **10 h** | +6 h | El SRS v0.3 §8.1 identifica **siete** entidades. Ninguna tarea del sprint nombraba `elementos_rastreados`, `proveedores` ni `materiales`. `elementos_rastreados` sostiene US-30 y ya aparece nombrada en el criterio de aceptacion de TASK-02. |
+| `TASK-24` incorporada | +4 h | Diccionario de esas tres entidades, que tampoco existia. |
+| `TASK-14` corregida | 0 h | El historial cuelga de `elementos_rastreados`, no de `pedidos_transito` (SRS v0.3 §8.1), y el tipo es `GEOGRAPHY(Point,4326)`, no `geometry`. |
+| `TASK-21` reducida de 4 h a **2 h** | −2 h | `docs/deployment.md` §«Entorno de desarrollo sin Docker» ya documenta el grueso de la vista de despliegue. |
+| `TASK-23` movida al **Sprint 3** | −8 h | Su propio criterio dice que el Informe 1 abarca los Sprints 1, 2 y 3 y se presenta el 25/09. El Sprint 3 cierra el 18/09. |
+| `US-37` movida al **Sprint 6** | −4 h | Es `Should`. La validacion de US-39 corre sobre dashboard y mapas; el wireframe del detalle se hace junto a US-20, que construye esa misma vista. |
+| `TASK-19` movida al **Sprint 3** | −2 h | Es `Should` y es la tabla de menor riesgo de implementacion. Va junto a TASK-01. |
 
-- Dados los entregables de OE1 (Sprints 1-2), cuando los consolido, entonces quedan con evidencias e integrados al borrador del Informe 1
-- Dado el calendario academico, cuando lo reviso, entonces el Informe 1 se presenta el 25/09/2026 y abarca los Sprints 1, 2 y 3
+**Neto: 81 h → 75 h.** El sprint sigue 10 h por encima de la capacidad de 65 h.
 
-| | |
-|---|---|
-| Tipo | Task |
-| Objetivo específico | OE1 |
-| MoSCoW | **Must** |
-| Estimacion | 8 h |
-| Origen | Hito Informe 1 (25/09/2026) |
-| Etiquetas | `documentacion,informe1,hito` |
+##### Lo que queda por decidir
+
+Para cerrar las 10 h restantes hay una sola palanca que no degrada un entregable `Must`: **el nivel de fidelidad del prototipo de `US-38`**. Un prototipo navegable completo en Figma son 8 h; wireframes estaticos con navegacion minima entre las tres vistas son ~4 h, y `US-39` se puede validar igual. **Es decision de Greivin**, y conviene tomarla en la revision del viernes 28, no el 4 de septiembre.
+
+##### Efecto sobre el Sprint 3
+
+Las 10 h movidas caen sobre un sprint que ya estaba en 66 h. Lo compensa parcialmente que **`TASK-11` se verifico cumplida**: el SRS v0.3 ya en el repositorio satisface sus dos criterios de aceptacion. Sprint 3 queda en **70 h** contra 65 h de capacidad.
+
+##### Desincronizacion pendiente
+
+`backlog_trackin.csv` tiene 44 filas y **no contiene ningun item del Sprint 2** (se genero antes del commit `60d4184`). Los cambios de esta revision no lo afectan, pero el CSV no sirve hoy para importar el Sprint 2 a Jira.
 
 ---
 
 ### Sprint 3 (7-18 sep 2026)
 
-**8 items · 66 h estimadas · capacidad 65 h — SOBRECARGADO**
+**10 items · 70 h estimadas · capacidad 65 h — SOBRECARGADO en 5 h.** TASK-19 y TASK-23 llegan desde el Sprint 2 (+10 h); TASK-11 se verifico cumplida y sus 6 h no se cuentan.
 
 #### TASK-01 — Esquema de base de datos y migraciones Alembic
 
@@ -563,7 +568,7 @@ Como usuario de Logística, quiero que cada lectura de API quede registrada con 
 | Origen en el SRS | RF-21 / RNF-13 |
 | Etiquetas | `backend,persistencia,auditoria` |
 
-#### TASK-11 — Actualizar el SRS con los hallazgos de los spikes tecnicos
+#### TASK-11 — Actualizar el SRS con los hallazgos de los spikes tecnicos ✅ HECHA
 
 Como estudiante practicante, quiero el SRS actualizado con lo aprendido en los spikes, para que la especificacion refleje la realidad tecnica verificada.
 
@@ -577,9 +582,47 @@ Como estudiante practicante, quiero el SRS actualizado con lo aprendido en los s
 | Tipo | Task |
 | Objetivo específico | OE1 |
 | MoSCoW | **Must** |
-| Estimacion | 6 h |
+| Estimacion | 6 h — **0 h pendientes** |
 | Origen en el SRS | Fase 6 de TG-18 |
 | Etiquetas | `documentacion,srs` |
+
+> **Verificada como cumplida (24/08).** `docs/srs/SRS_TrackIn_v0.3.docx` (commit `11e9edd`) ya define RN-16, incorpora RN-05 revisada y registra la entrada v0.3 en el historial de revisiones con la limitacion de cobertura AIS. Ambos criterios de aceptacion se satisfacen; sus 6 h no se cuentan contra el Sprint 3.
+
+#### TASK-19 — Diccionario de datos: usuarios
+
+Como desarrollador, quiero documentar el diccionario de datos de usuarios/roles, para garantizar consistencia en la implementacion de la tabla.
+
+**Criterios de aceptación**
+
+- Dada la tabla usuarios, cuando documento el diccionario, entonces cada campo tiene tipo, restricciones y descripcion
+- Dado el dominio de roles, cuando lo documento, entonces queda enumerado de forma explicita
+
+| | |
+|---|---|
+| Tipo | Task |
+| Objetivo específico | OE1 |
+| MoSCoW | **Should** |
+| Estimacion | 2 h |
+| Origen | Diseño OE1 / diccionario de datos (movida desde Sprint 2) |
+| Etiquetas | `diseno,diccionario` |
+
+#### TASK-23 — Consolidar el material de OE1 para el Informe 1
+
+Como estudiante practicante, quiero consolidar los entregables de OE1 (SRS, modelo, diccionario, arquitectura y prototipos), para integrarlos al Primer Informe de Avance.
+
+**Criterios de aceptación**
+
+- Dados los entregables de OE1 (Sprints 1-2), cuando los consolido, entonces quedan con evidencias e integrados al borrador del Informe 1
+- Dado el calendario academico, cuando lo reviso, entonces el Informe 1 se presenta el 25/09/2026 y abarca los Sprints 1, 2 y 3
+
+| | |
+|---|---|
+| Tipo | Task |
+| Objetivo específico | OE1 |
+| MoSCoW | **Must** |
+| Estimacion | 8 h |
+| Origen | Hito Informe 1 (25/09/2026) — movida desde Sprint 2 |
+| Etiquetas | `documentacion,informe1,hito` |
 
 ---
 
@@ -890,7 +933,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 
 ### Sprint 6 (19-30 oct 2026)
 
-**7 items · 56 h estimadas · capacidad 65 h — dentro de capacidad**
+**8 items · 60 h estimadas · capacidad 65 h — dentro de capacidad.** US-37 llega desde el Sprint 2, junto a US-20 que construye esa misma vista.
 
 #### TASK-05 — Andamiaje del frontend React con TypeScript, Vite y Tailwind
 
@@ -1023,6 +1066,24 @@ Como usuario sin formación técnica, quiero que el color signifique lo mismo en
 | Estimacion | 4 h |
 | Origen en el SRS | RNF-08 / RN-02 a RN-15 |
 | Etiquetas | `frontend,ux` |
+
+#### US-37 — Wireframe del detalle de pedido
+
+Como usuario de Compras, quiero revisar un wireframe de la vista de detalle de un pedido, para validar que muestre toda la informacion e historial necesarios.
+
+**Criterios de aceptación**
+
+- Dado un pedido seleccionado, cuando reviso el wireframe de detalle, entonces contempla datos maestros, estado, ETA proyectada y trazabilidad
+- Dado el historial, cuando lo reviso, entonces contempla una linea de tiempo de posiciones y estados
+
+| | |
+|---|---|
+| Tipo | Story |
+| Objetivo específico | OE1 |
+| MoSCoW | **Should** |
+| Estimacion | 4 h |
+| Origen | Diseño OE1 / prototipo (movida desde Sprint 2, junto a US-20) |
+| Etiquetas | `frontend,ux,wireframe` |
 
 ---
 
