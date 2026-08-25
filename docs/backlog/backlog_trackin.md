@@ -27,14 +27,15 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-17` | Diccionario de datos: maestro_destinos ✅ | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-18` | Diccionario de datos: historial_tracking ✅ | Task | OE1 | **Must** | Sprint 2 | 3h | Diseño OE1 / diccionario de datos |
 | `TASK-24` | Diccionario de datos: elementos_rastreados, proveedores y materiales ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / diccionario de datos (SRS v0.3 §8.1) |
-| `TASK-26` | Diccionario de datos: auditoria_intervenciones, parametros_sistema y pedido_elemento_rastreado | Task | OE1 | **Must** | Sprint 2 | 3h | Revision con el supervisor, 25/08/2026 |
+| `TASK-26` | Diccionario de datos: auditoria_intervenciones, parametros_sistema y pedido_elemento_rastreado ✅ | Task | OE1 | **Must** | Sprint 2 | 3h | Revision con el supervisor, 25/08/2026 |
 | `TASK-25` | Emitir el SRS v0.4 con las decisiones de la revision del 25/08 | Task | OE1 | **Must** | Sprint 2 | 8h | Revision con el supervisor, 25/08/2026 |
-| `TASK-20` | Arquitectura: vista de componentes | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / arquitectura |
-| `TASK-21` | Arquitectura: vista de despliegue (instalacion nativa) | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / arquitectura (decision: sin Docker) |
-| `TASK-22` | Arquitectura: vista de secuencia (flujo de tracking) | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / arquitectura |
+| `TASK-20` | Arquitectura: vista de componentes ✅ | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / arquitectura |
+| `TASK-21` | Arquitectura: vista de despliegue (instalacion nativa) ✅ | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / arquitectura (decision: sin Docker) |
+| `TASK-22` | Arquitectura: vista de secuencia (flujo de tracking) ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / arquitectura |
 | `US-34` | Wireframe del dashboard principal (grilla, filtros y KPIs) | Story | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / prototipo |
 | `US-35` | Wireframe del mapa marítimo | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-36` | Wireframe del mapa aéreo | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
+| `US-37` | Wireframe del detalle de pedido | Story | OE1 | **Should** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-38` | Prototipo interactivo navegable en Figma | Story | OE1 | **Must** | Sprint 2 | 8h | Diseño OE1 / prototipo |
 | `US-39` | Validación de prototipos con usuarios clave | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / criterio de aceptación de OE1 |
 | `TASK-01` | Esquema de base de datos y migraciones Alembic | Task | OE4 | **Must** | Sprint 3 | 14h | SRS 8.1-8.5 |
@@ -68,11 +69,10 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-22` | Mostrar la cinta de indicadores KPI | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 |
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
 | `US-24` | Aplicar el semaforo de estados de forma consistente | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 |
-| `US-37` | Wireframe del detalle de pedido | Story | OE1 | **Should** | Sprint 6 | 4h | Diseño OE1 / prototipo |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
-| `US-28` | Presentar la vista de proximos arribos | Story | OE3 | **Should** | Sprint 7 | 8h | RF-27 |
+| `US-28` | Presentar los proximos arribos dentro del dashboard | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 |
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | 10h | RF-22 (Media en SRS) / CU-09 |
 | `US-30` | Actualizar la nave asignada ante un transbordo | Story | OE2 | **Should** | Sprint 7 | 10h | RF-26 / CU-10 |
 | `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
@@ -93,7 +93,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 
 ### Sprint 2 (24 ago - 4 sep 2026)
 
-**18 items · 86 h estimadas · capacidad 65 h nominal** (13 Task, 5 Story). Corresponde a OE1 (analisis y diseño); produce el modelo de datos de las **siete** entidades del SRS v0.3 §8.1, el diccionario, la arquitectura y los prototipos sobre los que se construyen los Sprints 3-7.
+**19 items · 90 h estimadas · capacidad 65 h nominal** (13 Task, 6 Story). Corresponde a OE1 (analisis y diseño); produce el modelo de datos de las **siete** entidades del SRS v0.3 §8.1, el diccionario, la arquitectura y los prototipos sobre los que se construyen los Sprints 3-7.
 
 > Revisado el 24/08 — ver «Revision del 24/08» al final de esta seccion y el [plan de la semana 1](plan_semanal_s2_sem1.md).
 
@@ -286,7 +286,7 @@ Como desarrollador, quiero documentar el diccionario de datos de las tres entida
 
 > **Completada el 25/08** en `docs/data-dictionary.md` §4 a §6. `elementos_rastreados` incluye identificador externo (MMSI e icao24), via, `posicion_actual` con SRID y `ultima_actualizacion_api`; §4.3 explica por que el unico es parcial y §4.4 por que `tramo` no esta.
 
-#### TASK-20 — Arquitectura: vista de componentes
+#### TASK-20 — Arquitectura: vista de componentes ✅ HECHA
 
 Como desarrollador, quiero elaborar el diagrama de arquitectura de componentes, para guiar la construccion del backend, el frontend y las integraciones.
 
@@ -305,7 +305,13 @@ Como desarrollador, quiero elaborar el diagrama de arquitectura de componentes, 
 | Origen | Diseño OE1 / arquitectura |
 | Etiquetas | `arquitectura,diseno` |
 
-#### TASK-21 — Arquitectura: vista de despliegue (instalacion nativa)
+> **Completada el 25/08** en `docs/architecture.md` §1. Los tres criterios se satisfacen: el diagrama representa FastAPI, React, PostgreSQL/PostGIS, ambas integraciones y los procesos de ingesta y calculo (§1.1); cada componente tiene su responsabilidad y lo que **no** hace (§1.2); y §1.6 registra las decisiones clave —geocerca mas confirmacion manual, `on_ground` para lo aereo, carga por semilla, sin autenticacion en la practica y parametros fuera del codigo—.
+>
+> **Resuelve la pregunta abierta del anteproyecto:** el rastreo corre en un **worker aparte**, no dentro del proceso de la API (§1.4). El argumento decisivo es local: el entorno arranca con `uvicorn --reload`, asi que cada guardado reiniciaria el proceso y tumbaria la suscripcion WebSocket de AIS —justo lo que no conviene con el riesgo R1 sospechando un tope del plan gratuito—. Sin broker de mensajes: la base es el unico estado compartido.
+>
+> **RNF-21 obligo a una abstraccion que el stub no contemplaba** (§1.3): AIS es *push* y OpenSky es *pull*, asi que no se pueden unificar por la entrada. Se unifican por la salida, con ambos adaptadores produciendo el mismo tipo `LecturaPosicion`.
+
+#### TASK-21 — Arquitectura: vista de despliegue (instalacion nativa) ✅ HECHA
 
 Como desarrollador, quiero elaborar el diagrama de despliegue con los componentes instalados de forma nativa (sin Docker), para reflejar que el equipo de trabajo no ejecuta contenedores y usa PostGIS nativo.
 
@@ -325,7 +331,13 @@ Como desarrollador, quiero elaborar el diagrama de despliegue con los componente
 | Origen | Diseño OE1 / arquitectura (decision: sin Docker) |
 | Etiquetas | `arquitectura,diseno,nativo` |
 
-#### TASK-22 — Arquitectura: vista de secuencia (flujo de tracking)
+> **Completada el 25/08** en `docs/architecture.md` §2. Muestra API, worker, PostgreSQL con PostGIS y frontend nativos, sin contenedores; §2.2 lista puertos (5432, 8000, 5173, 5050) y §2.4 las dependencias del equipo; el alcance queda acotado a desarrollo.
+>
+> **Detecto una contradiccion y la corrigio.** `deployment.md` describia tres procesos; con la decision de TASK-20 son **cuatro**. Se agrego el worker a esa tabla para que los dos documentos no digan cosas distintas.
+
+
+
+#### TASK-22 — Arquitectura: vista de secuencia (flujo de tracking) ✅ HECHA
 
 Como desarrollador, quiero elaborar el diagrama de secuencia del flujo principal de tracking, para clarificar la interaccion entre los componentes del sistema.
 
@@ -343,6 +355,10 @@ Como desarrollador, quiero elaborar el diagrama de secuencia del flujo principal
 | Origen | Diseño OE1 / arquitectura |
 | Etiquetas | `arquitectura,diseno` |
 
+> **Completada el 25/08** en `docs/architecture.md` §3. El diagrama recorre ingesta AIS/ADS-B, normalizacion, persistencia idempotente, calculo de estado, API REST y pintado del dashboard, y es consistente con la vista de componentes (§3.3).
+>
+> **Lo que el diagrama hace visible:** las dos mitades no se tocan. El worker corre sin usuario presente y la API responde sin esperar a nadie; lo unico que comparten es la base. Ahi se ve por que RNF-03 y RNF-12 se pueden cumplir. Tambien se ve donde la secuencia deja de ser simetrica entre vias: geometria para lo maritimo, `on_ground` para lo aereo.
+
 #### US-34 — Wireframe del dashboard principal (grilla, filtros y KPIs)
 
 Como usuario de Compras, quiero revisar un wireframe del dashboard con grilla, filtros y KPIs, para validar la vista principal antes de que se construya.
@@ -351,6 +367,7 @@ Como usuario de Compras, quiero revisar un wireframe del dashboard con grilla, f
 
 - Dado el wireframe del dashboard, cuando lo reviso, entonces muestra la grilla con OC, proveedor, material, via, estado, destino y ETA
 - Dado el wireframe, cuando reviso los filtros, entonces incluye OC, proveedor, material, via, estado y destino, mas la cinta de KPIs y el semaforo
+- Dado el wireframe, cuando reviso su composicion, entonces incluye el bloque de proximos arribos entre los KPIs y la grilla, conforme a RNF-01 y a US-28 (decision del 25/08)
 
 | | |
 |---|---|
@@ -396,6 +413,26 @@ Como usuario de Logística, quiero revisar un wireframe del mapa aéreo con ruta
 | Estimacion | 4 h |
 | Origen | Diseño OE1 / prototipo |
 | Etiquetas | `frontend,ux,wireframe` |
+
+#### US-37 — Wireframe del detalle de pedido
+
+Como usuario de Compras, quiero revisar un wireframe de la vista de detalle de un pedido, para validar que muestre toda la informacion e historial necesarios.
+
+**Criterios de aceptación**
+
+- Dado un pedido seleccionado, cuando reviso el wireframe de detalle, entonces contempla datos maestros, estado, ETA proyectada y trazabilidad
+- Dado el historial, cuando lo reviso, entonces contempla una linea de tiempo de posiciones y estados
+
+| | |
+|---|---|
+| Tipo | Story |
+| Objetivo específico | OE1 |
+| MoSCoW | **Should** |
+| Estimacion | 4 h |
+| Origen | Diseño OE1 / prototipo |
+| Etiquetas | `frontend,ux,wireframe` |
+
+> **Devuelta al Sprint 2 el 25/08.** Se había movido al Sprint 6 el 24/08 para aliviar carga, pero `US-38` exige navegar «entre dashboard, mapas **y detalle de pedido**»: sin este wireframe, el prototipo no puede cumplir su criterio y la sesion de validacion del 4 de septiembre se quedaria sin la vista donde vive el desglose del calculo de la ETA (RF-05), que es lo mas novedoso del producto.
 
 #### US-38 — Prototipo interactivo navegable en Figma
 
@@ -463,7 +500,7 @@ Las 10 h movidas caen sobre un sprint que ya estaba en 66 h. Lo compensa parcial
 
 `backlog_trackin.csv` tiene 44 filas y **no contiene ningun item del Sprint 2** (se genero antes del commit `60d4184`). Los cambios de esta revision no lo afectan, pero el CSV no sirve hoy para importar el Sprint 2 a Jira.
 
-#### TASK-26 — Diccionario de datos: auditoria_intervenciones, parametros_sistema y pedido_elemento_rastreado
+#### TASK-26 — Diccionario de datos: auditoria_intervenciones, parametros_sistema y pedido_elemento_rastreado ✅ HECHA
 
 Como desarrollador, quiero documentar el diccionario de las tres tablas aprobadas en la revision del 25/08, para que TASK-01 pueda implementarlas sin ambiguedad y su criterio de las diez entidades sea alcanzable.
 
@@ -484,6 +521,10 @@ Como desarrollador, quiero documentar el diccionario de las tres tablas aprobada
 | Etiquetas | `diseno,diccionario` |
 
 > **Por que existe esta tarea.** Las tres tablas se aprobaron el 25/08 pero ninguna tarea de diccionario las cubria: `TASK-16` a `TASK-19` y `TASK-24` se escribieron cuando el modelo tenia siete entidades. Sin ellas documentadas, `TASK-01` no puede cumplir su criterio nuevo de crear las diez.
+
+> **Completada el 25/08** en `docs/data-dictionary.md` §7 a §9. Los cuatro criterios se satisfacen; `scripts/check_docs_model.py` confirma que las tres tablas concuerdan con el ER.
+>
+> **Afinada la asociativa al documentarla.** RF-26 pide «el puerto en que se produjo y la fecha de la notificacion», y el modelo aprobado los guardaba como texto libre dentro de `motivo`. Se separaron en `puerto_transbordo` y `fecha_notificacion`. Se agrego ademas un unico parcial `UNIQUE (id_pedido) WHERE fecha_hasta IS NULL`, que impide que un pedido tenga dos tramos vigentes a la vez.
 
 #### TASK-25 — Emitir el SRS v0.4 con las decisiones de la revision del 25/08
 
@@ -1052,7 +1093,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 
 ### Sprint 6 (19-30 oct 2026)
 
-**8 items · 60 h estimadas · capacidad 65 h — dentro de capacidad.** US-37 llega desde el Sprint 2, junto a US-20 que construye esa misma vista.
+**8 items · 64 h estimadas · capacidad 65 h — dentro de capacidad.** US-37 volvio al Sprint 2 el 25/08 (US-38 la necesita) y US-28 llego desde el Sprint 7, al integrarse al dashboard en vez de ser una vista aparte.
 
 #### TASK-05 — Andamiaje del frontend React con TypeScript, Vite y Tailwind
 
@@ -1186,29 +1227,36 @@ Como usuario sin formación técnica, quiero que el color signifique lo mismo en
 | Origen en el SRS | RNF-08 / RN-02 a RN-15 |
 | Etiquetas | `frontend,ux` |
 
-#### US-37 — Wireframe del detalle de pedido
+#### US-28 — Presentar los proximos arribos dentro del dashboard
 
-Como usuario de Compras, quiero revisar un wireframe de la vista de detalle de un pedido, para validar que muestre toda la informacion e historial necesarios.
+Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el propio dashboard**, para anticipar que llega esta semana sin cambiar de vista.
 
 **Criterios de aceptación**
 
-- Dado un pedido seleccionado, cuando reviso el wireframe de detalle, entonces contempla datos maestros, estado, ETA proyectada y trazabilidad
-- Dado el historial, cuando lo reviso, entonces contempla una linea de tiempo de posiciones y estados
+- Dado el dashboard, cuando lo abro, entonces el bloque de proximos arribos aparece entre la cinta de KPIs y la grilla, conforme al orden que enumera RNF-01
+- Dados pedidos con fecha proyectada, cuando se arma el bloque, entonces muestra los cinco mas proximos dentro de los siguientes 7 dias
+- Dado que hay menos de cinco en ese horizonte, cuando se completa el bloque, entonces se rellena con los de peor cumplimiento dentro de 30 dias
+- Dado un pedido que entra por relleno y no por proximidad, cuando lo muestro, entonces queda distinguible del que si arriba dentro de los 7 dias, para no sugerir que llega pronto
+- Dado un filtro activo, cuando cambia, entonces el bloque responde al subconjunto filtrado igual que los KPIs y la grilla
 
 | | |
 |---|---|
 | Tipo | Story |
-| Objetivo específico | OE1 |
+| Objetivo específico | OE3 |
 | MoSCoW | **Should** |
-| Estimacion | 4 h |
-| Origen | Diseño OE1 / prototipo (movida desde Sprint 2, junto a US-20) |
-| Etiquetas | `frontend,ux,wireframe` |
+| Estimacion | 8 h |
+| Origen en el SRS | RF-27 / RNF-01 |
+| Etiquetas | `frontend,dashboard` |
+
+> **Reformulada y movida al Sprint 6 el 25/08.** Era una vista aparte en el Sprint 7. RNF-01 enumera la vista inicial como «cinta de KPIs, **vista de proximos arribos**, grilla y ambos mapas», de modo que el requisito no funcional ya la situaba dentro del dashboard. Se integra ahi y se agrupa con las demas historias del dashboard, que viven en el Sprint 6.
+
+> **Ojo con la regla de dos niveles de RF-27.** El bloque mezcla dos poblaciones: los que arriban dentro de 7 dias y, si no llegan a cinco, los de peor cumplimiento dentro de 30. Sin distinguirlos visualmente el bloque miente, porque sugiere que los cinco llegan pronto.
 
 ---
 
 ### Sprint 7 (2-13 nov 2026)
 
-**7 items · 62 h estimadas · capacidad 65 h — dentro de capacidad**
+**6 items · 54 h estimadas · capacidad 65 h — dentro de capacidad.** US-28 paso al Sprint 6 el 25/08, integrada al dashboard.
 
 #### US-25 — Presentar el mapa interactivo marítimo con posiciones actuales
 
@@ -1266,25 +1314,6 @@ Como usuario, quiero ver los datos del pedido al posarme sobre su marcador, para
 | Estimacion | 6 h |
 | Origen en el SRS | RF-18 (Media en SRS) |
 | Etiquetas | `frontend,mapas` |
-
-#### US-28 — Presentar la vista de próximos arribos
-
-Como usuario de Planificación, quiero ver los cinco arribos mas cercanos, para anticipar que llega esta semana.
-
-**Criterios de aceptación**
-
-- Dados pedidos con fecha proyectada, cuando abro la vista, entonces veo los cinco mas proximos dentro de los siguientes 7 dias
-- Dado que hay menos de cinco en ese horizonte, cuando se completa la vista, entonces se rellena con los de peor cumplimiento dentro de 30 dias
-- Dado un filtro activo, cuando cambia, entonces la vista responde al subconjunto filtrado
-
-| | |
-|---|---|
-| Tipo | Story |
-| Objetivo específico | OE3 |
-| MoSCoW | **Should** |
-| Estimacion | 8 h |
-| Origen en el SRS | RF-27 |
-| Etiquetas | `frontend,dashboard` |
 
 #### US-29 — Consultar el historial de tracking y dibujar el trayecto
 

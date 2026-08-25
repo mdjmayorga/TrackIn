@@ -14,7 +14,7 @@ modelo y este archivo se corrige.
 | `historial_tracking` | `TASK-18` | ✅ 25/08/2026 |
 | `elementos_rastreados`, `proveedores`, `materiales` | `TASK-24` | ✅ 25/08/2026 |
 | `usuarios` | `TASK-19` | ⏳ Pendiente (Sprint 3) |
-| `auditoria_intervenciones`, `parametros_sistema`, `pedido_elemento_rastreado` | `TASK-26` | ⏳ Pendiente (Sprint 2) |
+| `auditoria_intervenciones`, `parametros_sistema`, `pedido_elemento_rastreado` | `TASK-26` | ✅ 25/08/2026 |
 
 ## Convenciones de lectura
 
@@ -296,3 +296,124 @@ Normalización del material, hoy código y descripción concatenados. Modelo:
 | 5 | `activo` | `BOOLEAN` | no, *default* `true` | | `true` · `false` | Baja lógica. |
 | 6 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. |
 | 7 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación. |
+
+---
+
+## 7. `auditoria_intervenciones`
+
+Bitácora de toda intervención manual sobre un pedido. La exige RF-14 y la
+reitera RNF-06. Modelo: [`data-model.md` §8.2](data-model.md).
+
+### 7.1 Campos
+
+| # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
+|---|---|---|---|---|---|---|
+| 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador del asiento de auditoría. |
+| 2 | `id_pedido` | `BIGINT` | no | `FK` → `pedidos_transito(id)` | Existente | Pedido intervenido. RF-14 define la auditoría *«por cada intervención manual sobre un pedido»*, de modo que no hay asientos sin pedido. |
+| 3 | `id_usuario` | `BIGINT` | no | `FK` → `usuarios(id)` | Existente | Quién ejecutó la intervención. Es el motivo por el que la entidad `usuarios` existe en el modelo aunque la autenticación quedara fuera del alcance de la práctica. |
+| 4 | `fecha_hora` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Cuándo se ejecutó. |
+| 5 | `tipo_intervencion` | `VARCHAR(30)` | no | | `CONFIRMACION_DESEMBARCO` · `RECEPCION_PLANTA` · `TRANSBORDO` · `AJUSTE_MANUAL` · `CIERRE_FORZADO` (`ck_auditoria_intervenciones_tipo`) | Qué clase de intervención fue. Los cinco valores corresponden a las cinco acciones manuales que el backlog contempla: `US-14` (RF-13), `US-18` (RF-25), `US-30` (RF-26), el `ajuste_manual_dias` de RN-01 y el cierre forzado de RN-10. |
+| 6 | `campo_afectado` | `VARCHAR(50)` | sí | | Nombre de columna de `pedidos_transito` | Campo modificado, cuando la intervención afecta a uno solo. Es `NULL` en las intervenciones que cambian varios a la vez —un transbordo reasigna la nave y abre un tramo—, y en ese caso el detalle vive en los dos campos siguientes. |
+| 7 | `valor_anterior` | `TEXT` | sí | | Representación textual | Valor previo. `TEXT` y no un tipo concreto porque la tabla registra cambios sobre columnas heterogéneas —fechas, cantidades, identificadores—; la aplicación serializa. Es `NULL` cuando el valor previo no existía. |
+| 8 | `valor_nuevo` | `TEXT` | sí | | Representación textual | Valor resultante. `NULL` cuando la intervención borra el dato. |
+| 9 | `motivo` | `VARCHAR(300)` | **no** | | Texto libre | Justificación declarada por el usuario. **Obligatorio a propósito**: RF-14 exige *«el motivo declarado»*, y permitir nulos convertiría el campo en opcional en la práctica, que es justamente el riesgo de trazabilidad que la regla quiere cerrar. |
+
+### 7.2 Restricciones de tabla
+
+| Restricción | Definición | Qué garantiza |
+|---|---|---|
+| `pk_auditoria_intervenciones` | `PRIMARY KEY (id)` | |
+| `fk_auditoria_intervenciones_id_pedido_pedidos_transito` | `ON DELETE RESTRICT` | Que un pedido con auditoría no se pueda borrar |
+| `fk_auditoria_intervenciones_id_usuario_usuarios` | `ON DELETE RESTRICT` | Que el usuario que intervino siga existiendo. Es la razón por la que `usuarios.activo` es baja lógica y no hay borrado |
+| `ix_auditoria_intervenciones_id_pedido` | `(id_pedido, fecha_hora DESC)` | La consulta real: la bitácora de un pedido en orden cronológico inverso |
+
+### 7.3 Append-only
+
+Como `historial_tracking`, la tabla no se modifica ni se borra: una auditoría
+editable no es una auditoría. No lleva `actualizado_en`, y el rol de aplicación
+no debería recibir `UPDATE` ni `DELETE` sobre ella.
+
+---
+
+## 8. `parametros_sistema`
+
+Catálogo de configuración de negocio fuera del código. La citan textualmente
+RN-05 y RN-11, y la exigen RNF-07 y RNF-15. Modelo:
+[`data-model.md` §8.3](data-model.md).
+
+### 8.1 Campos
+
+| # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
+|---|---|---|---|---|---|---|
+| 1 | `clave` | `VARCHAR(60)` | no | `PK` | Identificador en minúsculas con guión bajo | Nombre del parámetro. **Es la única clave primaria natural del modelo**: es estable, legible y aparece literalmente en el código que la consulta. Una clave sustituta aquí solo agregaría un join. |
+| 2 | `valor` | `TEXT` | no | | Representación textual | Valor vigente, serializado como texto. |
+| 3 | `tipo_dato` | `VARCHAR(15)` | no | | `ENTERO` · `DECIMAL` · `BOOLEANO` · `TEXTO` (`ck_parametros_sistema_tipo_dato`) | Tipo al que la aplicación debe convertir `valor`. |
+| 4 | `descripcion` | `VARCHAR(200)` | no | | Texto libre | Para qué sirve el parámetro y qué regla lo consume. Obligatorio: quien edite el valor desde `US-17` necesita saber qué está cambiando. |
+| 5 | `id_usuario_modificacion` | `BIGINT` | sí | `FK` → `usuarios(id)` | Existente, o `NULL` | Quién lo cambió por última vez. `NULL` en las filas creadas por la migración inicial, que no tienen autor humano. |
+| 6 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación del valor. |
+
+### 8.2 Parámetros que el SRS ya obliga a tener
+
+`TASK-01` debe sembrarlos en la migración inicial; sin ellos las reglas no
+tienen de dónde leer sus umbrales:
+
+| `clave` | `tipo_dato` | Valor inicial | Regla que lo consume |
+|---|---|---|---|
+| `radio_geocerca_km` | `ENTERO` | `50` | RN-05 — radio por defecto, sobreescribible por destino |
+| `umbral_velocidad_arribo` | `DECIMAL` | **a definir** | RN-05 — velocidad bajo la cual se da por arribado |
+| `umbral_riesgo_horas` | `ENTERO` | `48` | RN-11 — separa `A_TIEMPO` de `EN_RIESGO` |
+| `velocidad_minima_eta` | `DECIMAL` | **a definir** | RN-16 — bajo ella, la ETA no es estimable |
+| `tolerancia_recepcion_pct` | `DECIMAL` | `10` | RN-10 — margen para cerrar por recepción |
+| `intervalo_consulta_adsb_s` | `ENTERO` | `31` | Spike TG-11 — cadencia sostenible de OpenSky |
+| `intervalo_minimo_persistencia_s` | `ENTERO` | **a definir** | Decisión del 25/08 — frena el crecimiento del historial |
+
+**Los tres «a definir» son datos de Logística**, no decisiones técnicas, y
+bloquean el Sprint 4.
+
+### 8.3 Por qué clave-valor y no columnas tipadas
+
+Una tabla con una columna por parámetro daría verificación de tipos en la base,
+pero cada parámetro nuevo exigiría una migración. Con clave-valor, agregar uno
+es un `INSERT`. El precio es que la conversión de tipo ocurre en la aplicación
+y `tipo_dato` es una convención, no una garantía: `US-17` debe validar al
+escribir, porque la base no lo hará.
+
+---
+
+## 9. `pedido_elemento_rastreado`
+
+Asociativa que registra por qué naves pasó un pedido y en qué tramo. Hace
+cumplibles a la vez RF-26 y RF-22. Modelo:
+[`data-model.md` §8.1](data-model.md).
+
+### 9.1 Campos
+
+| # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
+|---|---|---|---|---|---|---|
+| 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador del tramo. |
+| 2 | `id_pedido` | `BIGINT` | no | `FK` → `pedidos_transito(id)`, `UK(1)` | Existente | Pedido cuyo viaje se descompone en tramos. |
+| 3 | `id_elemento_rastreado` | `BIGINT` | no | `FK` → `elementos_rastreados(id)` | Existente | Nave o vuelo que cubrió el tramo. |
+| 4 | `tramo` | `INTEGER` | no | `UK(2)` | `>= 1` (`ck_pedido_elemento_rastreado_tramo`) | Número de tramo: `1` el original, y uno más por cada transbordo. **Vive aquí y no en `elementos_rastreados`** porque una misma nave puede ser el segundo tramo de un pedido y el primero de otro. |
+| 5 | `fecha_desde` | `TIMESTAMPTZ` | no | | Instante UTC | Cuándo el pedido pasó a viajar en esta nave. |
+| 6 | `fecha_hasta` | `TIMESTAMPTZ` | sí | | Instante UTC, o `NULL` | Cuándo dejó de hacerlo. **`NULL` identifica el tramo vigente**, y es la condición del único parcial de §9.2. |
+| 7 | `puerto_transbordo` | `VARCHAR(80)` | sí | | Texto libre | Puerto donde se produjo el transbordo que abrió este tramo (RF-26). `NULL` en el tramo 1, que no proviene de un transbordo. No es FK a `maestro_destinos`: un transbordo ocurre en puertos intermedios que no son destino de Gutis y no están en el maestro. |
+| 8 | `fecha_notificacion` | `DATE` | sí | | Fecha | Fecha en que el transportista notificó el transbordo (RF-26). Distinta de `fecha_desde`, que es cuando el sistema aplicó el cambio. |
+| 9 | `motivo` | `VARCHAR(200)` | sí | | Texto libre | Observaciones del usuario de Logística. |
+
+### 9.2 Restricciones de tabla
+
+| Restricción | Definición | Qué garantiza |
+|---|---|---|
+| `pk_pedido_elemento_rastreado` | `PRIMARY KEY (id)` | |
+| `uq_pedido_elemento_rastreado_pedido_tramo` | `UNIQUE (id_pedido, tramo)` | Que no haya dos tramos con el mismo número en un pedido |
+| `uq_pedido_elemento_rastreado_vigente` | `UNIQUE (id_pedido) WHERE fecha_hasta IS NULL` | **Que un pedido no tenga dos tramos vigentes a la vez.** Es la invariante que impide que un transbordo mal aplicado deje el pedido en dos naves |
+| `fk_pedido_elemento_rastreado_id_pedido_pedidos_transito` | `ON DELETE CASCADE` | Los tramos no sobreviven al pedido |
+| `fk_pedido_elemento_rastreado_id_elemento_rastreado_elementos_rastreados` | `ON DELETE RESTRICT` | Que borrar una nave no borre la historia del viaje |
+
+### 9.3 Relación con el puntero del pedido
+
+`pedidos_transito.id_elemento_rastreado` apunta a la nave vigente y **es
+redundante** con la fila de esta tabla que tiene `fecha_hasta IS NULL`. La
+redundancia es deliberada: evita un join en la consulta más frecuente del
+dashboard. `US-30` debe actualizar ambos en la misma transacción, y conviene
+que sus pruebas verifiquen que no divergen.

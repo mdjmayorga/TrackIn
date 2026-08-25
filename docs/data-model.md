@@ -223,7 +223,9 @@ erDiagram
         integer     tramo                    "UK con el pedido, RF-26"
         timestamptz fecha_desde
         timestamptz fecha_hasta              "NULL = tramo vigente"
-        varchar     motivo                   "puerto y fecha del transbordo"
+        varchar     puerto_transbordo        "RF-26"
+        date        fecha_notificacion       "RF-26"
+        varchar     motivo                   "observaciones libres"
     }
 ```
 
@@ -1230,9 +1232,13 @@ Ninguna es un invento: cada una se cita textualmente abajo.
 | `tramo` | `INTEGER` | no | 1 para el tramo original; +1 por transbordo |
 | `fecha_desde` | `TIMESTAMPTZ` | no | |
 | `fecha_hasta` | `TIMESTAMPTZ` | sí | `NULL` = tramo vigente |
-| `motivo` | `VARCHAR(200)` | sí | Puerto y fecha del transbordo (RF-26) |
+| `puerto_transbordo` | `VARCHAR(80)` | sí | Puerto donde se produjo el transbordo (RF-26) |
+| `fecha_notificacion` | `DATE` | sí | Fecha en que el transportista notificó (RF-26) |
+| `motivo` | `VARCHAR(200)` | sí | Observaciones libres |
 
-Con `UNIQUE (id_pedido, tramo)`. Es la tabla que hace cumplibles a la vez RF-26
+Con `UNIQUE (id_pedido, tramo)` y un único parcial `UNIQUE (id_pedido) WHERE
+fecha_hasta IS NULL`, que impide que un pedido tenga dos tramos vigentes a la
+vez. Es la tabla que hace cumplibles a la vez RF-26
 —conservar el historial de la nave anterior *«asociado al tramo
 correspondiente»*— y RF-22 —consultar el trayecto completo de un pedido—, y es
 donde `tramo` deja de ser ambiguo (§4.4).
@@ -1240,6 +1246,13 @@ donde `tramo` deja de ser ambiguo (§4.4).
 `pedidos_transito.id_elemento_rastreado` se conserva como puntero a la nave
 vigente: es redundante con la fila de `fecha_hasta IS NULL`, pero evita un join
 en la consulta más frecuente del dashboard.
+
+> **Afinado en `TASK-26`.** La versión aprobada el 25/08 guardaba «puerto y fecha
+> del transbordo» dentro de `motivo`, un `VARCHAR` libre. RF-26 pide esos dos
+> datos de forma explícita —*«el puerto en que se produjo y la fecha de la
+> notificación»*—, así que se separan en `puerto_transbordo` y
+> `fecha_notificacion`. `motivo` queda para observaciones. No cambia el alcance
+> de la entidad aprobada, solo su lista de campos.
 
 ### 8.2 `auditoria_intervenciones` — la exige RF-14 y no está en §8.1
 

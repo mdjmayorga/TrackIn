@@ -40,10 +40,16 @@ pudo habilitarlo. No existe alternativa en espacio de usuario.
 El stack corre entonces de forma nativa. Los archivos de compose siguen siendo
 válidos y son el artefacto de despliegue para el servidor.
 
+> **Son cuatro procesos, no tres.** `TASK-20` resolvio que el rastreo corre en un
+> worker aparte y no dentro del proceso de la API: con `--reload`, cada guardado
+> reiniciaria uvicorn y tumbaria la suscripcion WebSocket de AIS. Ver
+> [`architecture.md`](architecture.md) §1.4 y §2.
+
 | Componente | Cómo corre en el equipo de Gutis |
 |---|---|
 | PostgreSQL 16.14 + PostGIS 3.6.2 | Binarios portables en `C:\Users\<usuario>\pgsql`, sin servicio de Windows |
-| Backend | `uvicorn` desde el `.venv` de `backend/` |
+| Backend — API | `uvicorn` desde el `.venv` de `backend/`, puerto 8000 |
+| Backend — worker de rastreo | `python -m app.workers` desde el mismo `.venv`, sin puerto |
 | Frontend | `npm run dev` (Vite) |
 | pgAdmin | Incluido en los binarios de EDB, o cualquier cliente SQL |
 
