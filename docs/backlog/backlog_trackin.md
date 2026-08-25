@@ -23,10 +23,12 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-13` | Modelar la entidad maestro_destinos ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / modelo de datos |
 | `TASK-14` | Modelar la entidad historial_tracking (geoespacial) | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / modelo de datos |
 | `TASK-15` | Modelar usuarios, elementos_rastreados, proveedores y materiales, y consolidar el ER ✅ | Task | OE1 | **Must** | Sprint 2 | 10h | Diseño OE1 / modelo de datos (SRS v0.3 §8.1) |
-| `TASK-16` | Diccionario de datos: pedidos_transito | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
-| `TASK-17` | Diccionario de datos: maestro_destinos | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
-| `TASK-18` | Diccionario de datos: historial_tracking | Task | OE1 | **Must** | Sprint 2 | 3h | Diseño OE1 / diccionario de datos |
-| `TASK-24` | Diccionario de datos: elementos_rastreados, proveedores y materiales | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / diccionario de datos (SRS v0.3 §8.1) |
+| `TASK-16` | Diccionario de datos: pedidos_transito ✅ | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
+| `TASK-17` | Diccionario de datos: maestro_destinos ✅ | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
+| `TASK-18` | Diccionario de datos: historial_tracking ✅ | Task | OE1 | **Must** | Sprint 2 | 3h | Diseño OE1 / diccionario de datos |
+| `TASK-24` | Diccionario de datos: elementos_rastreados, proveedores y materiales ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / diccionario de datos (SRS v0.3 §8.1) |
+| `TASK-26` | Diccionario de datos: auditoria_intervenciones, parametros_sistema y pedido_elemento_rastreado | Task | OE1 | **Must** | Sprint 2 | 3h | Revision con el supervisor, 25/08/2026 |
+| `TASK-25` | Emitir el SRS v0.4 con las decisiones de la revision del 25/08 | Task | OE1 | **Must** | Sprint 2 | 8h | Revision con el supervisor, 25/08/2026 |
 | `TASK-20` | Arquitectura: vista de componentes | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / arquitectura |
 | `TASK-21` | Arquitectura: vista de despliegue (instalacion nativa) | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / arquitectura (decision: sin Docker) |
 | `TASK-22` | Arquitectura: vista de secuencia (flujo de tracking) | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / arquitectura |
@@ -35,7 +37,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-36` | Wireframe del mapa aéreo | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-38` | Prototipo interactivo navegable en Figma | Story | OE1 | **Must** | Sprint 2 | 8h | Diseño OE1 / prototipo |
 | `US-39` | Validación de prototipos con usuarios clave | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / criterio de aceptación de OE1 |
-| `TASK-01` | Esquema de base de datos y migraciones Alembic | Task | OE4 | **Must** | Sprint 3 | 10h | SRS 8.1-8.5 |
+| `TASK-01` | Esquema de base de datos y migraciones Alembic | Task | OE4 | **Must** | Sprint 3 | 14h | SRS 8.1-8.5 |
 | `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
 | `TASK-03` | Adaptador de ingesta de pedidos con datos semilla | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
 | `US-01` | Asociar un identificador de rastreo externo a un pedido | Story | OE2 | **Must** | Sprint 3 | 6h | RF-03 |
@@ -91,7 +93,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 
 ### Sprint 2 (24 ago - 4 sep 2026)
 
-**16 items · 75 h estimadas · capacidad 65 h — SOBRECARGADO en 10 h** (11 Task, 5 Story). Corresponde a OE1 (analisis y diseño); produce el modelo de datos de las **siete** entidades del SRS v0.3 §8.1, el diccionario, la arquitectura y los prototipos sobre los que se construyen los Sprints 3-7.
+**18 items · 86 h estimadas · capacidad 65 h nominal** (13 Task, 5 Story). Corresponde a OE1 (analisis y diseño); produce el modelo de datos de las **siete** entidades del SRS v0.3 §8.1, el diccionario, la arquitectura y los prototipos sobre los que se construyen los Sprints 3-7.
 
 > Revisado el 24/08 — ver «Revision del 24/08» al final de esta seccion y el [plan de la semana 1](plan_semanal_s2_sem1.md).
 
@@ -116,7 +118,7 @@ Como desarrollador, quiero modelar la entidad pedidos_transito con sus atributos
 
 > **Completada el 24/08** en `docs/data-model.md` §1 (rama `Modelos_Datos`). Los tres criterios de aceptacion se satisfacen: atributos y PK en §1.2-§1.3, relacion con `maestro_destinos` con cardinalidad 1:N y FK `NOT NULL` en §1.7, e indices propuestos en §1.8.
 >
-> Pendiente de la DoD: la revision con Greivin, agendada para el viernes 28 junto al ER consolidado de TASK-15. §1.9 lista los cinco puntos abiertos que hay que llevar a esa revision, entre ellos la propuesta de separar el estado en dos dimensiones (§1.4), que si se aprueba afecta a US-10 y US-24.
+> **DoD completa:** revisada y aprobada por el supervisor el 25/08. La separacion del estado en dos dimensiones (§1.4) quedo aprobada, y la implementan US-10 y US-24. Ver el acta en `agenda_revision_supervisor.md`.
 
 #### TASK-13 — Modelar la entidad maestro_destinos ✅ HECHA
 
@@ -201,7 +203,7 @@ Como desarrollador, quiero modelar las cuatro entidades restantes del SRS v0.3 �
 >
 > Ademas **RNF-04 declara la autenticacion dentro del alcance** con mecanismo propio, y ninguna historia del backlog la construye. Ver §7.2: la pregunta para Greivin no es si se hace, sino de donde salen las 20-25 h o si se modifica el SRS.
 
-#### TASK-16 — Diccionario de datos: pedidos_transito
+#### TASK-16 — Diccionario de datos: pedidos_transito ✅ HECHA
 
 Como desarrollador, quiero documentar el diccionario de datos de pedidos_transito, para garantizar consistencia en la implementacion de la tabla.
 
@@ -219,7 +221,11 @@ Como desarrollador, quiero documentar el diccionario de datos de pedidos_transit
 | Origen | Diseño OE1 / diccionario de datos |
 | Etiquetas | `diseno,diccionario` |
 
-#### TASK-17 — Diccionario de datos: maestro_destinos
+> **Completada el 25/08** en `docs/data-dictionary.md` §1. Los 26 campos con nombre, tipo, nulabilidad, PK/FK, dominio y descripcion en §1.1; restricciones de tabla en §1.2.
+>
+> La consistencia con el ER **se verifica de forma automatica**, no por inspeccion: `scripts/check_docs_model.py` compara el diccionario contra el bloque mermaid de `data-model.md` y falla si divergen campos, orden o tipos. Sirve para las tres tareas de diccionario restantes.
+
+#### TASK-17 — Diccionario de datos: maestro_destinos ✅ HECHA
 
 Como desarrollador, quiero documentar el diccionario de datos de maestro_destinos, para garantizar consistencia en la implementacion de la tabla.
 
@@ -237,7 +243,9 @@ Como desarrollador, quiero documentar el diccionario de datos de maestro_destino
 | Origen | Diseño OE1 / diccionario de datos |
 | Etiquetas | `diseno,diccionario` |
 
-#### TASK-18 — Diccionario de datos: historial_tracking
+> **Completada el 25/08** en `docs/data-dictionary.md` §2. Los 12 campos con tipo, restricciones y descripcion; `lead_time_dias` documentado como unico por destino (RN-12) y aclarando que **no incluye** el circuito de Control de Calidad que el SRS §7.1 deja fuera de RN-01.
+
+#### TASK-18 — Diccionario de datos: historial_tracking ✅ HECHA
 
 Como desarrollador, quiero documentar el diccionario de datos de historial_tracking, para dejar clara la estructura geoespacial y del payload almacenado.
 
@@ -255,7 +263,9 @@ Como desarrollador, quiero documentar el diccionario de datos de historial_track
 | Origen | Diseño OE1 / diccionario de datos |
 | Etiquetas | `diseno,diccionario,geoespacial` |
 
-#### TASK-24 — Diccionario de datos: elementos_rastreados, proveedores y materiales
+> **Completada el 25/08** en `docs/data-dictionary.md` §3. Los 8 campos con su SRID explicito y la estructura del `JSONB`; §3.3 documenta el caracter append-only y §3.4 el dimensionamiento medido (~25 M filas y ~20 GB al año).
+
+#### TASK-24 — Diccionario de datos: elementos_rastreados, proveedores y materiales ✅ HECHA
 
 Como desarrollador, quiero documentar el diccionario de datos de las tres entidades incorporadas, para que TASK-01 pueda implementarlas sin ambiguedad.
 
@@ -273,6 +283,8 @@ Como desarrollador, quiero documentar el diccionario de datos de las tres entida
 | Estimacion | 4 h |
 | Origen | Diseño OE1 / diccionario de datos (SRS v0.3 §8.1) |
 | Etiquetas | `diseno,diccionario` |
+
+> **Completada el 25/08** en `docs/data-dictionary.md` §4 a §6. `elementos_rastreados` incluye identificador externo (MMSI e icao24), via, `posicion_actual` con SRID y `ultima_actualizacion_api`; §4.3 explica por que el unico es parcial y §4.4 por que `tramo` no esta.
 
 #### TASK-20 — Arquitectura: vista de componentes
 
@@ -421,6 +433,8 @@ Como usuario clave de Compras/Logística, quiero revisar y aprobar los prototipo
 | Origen | Diseño OE1 / criterio de aceptación de OE1 |
 | Etiquetas | `ux,validación` |
 
+> **Sesion agendada para el viernes 4 de septiembre**, ultimo dia del sprint. El prototipo de US-38 debe estar terminado antes. Si los usuarios piden cambios, el criterio se cumple documentandolos: aplicarlos no cabe en el Sprint 2 y caeria en el Sprint 3 o en las historias de frontend del Sprint 6.
+
 #### Revision del 24/08 — que cambio en este sprint y por que
 
 Al arrancar el Sprint 2 se contrasto el backlog contra el **SRS v0.3** (el backlog original se derivo de v0.2) y contra el codigo ya existente. Resultado:
@@ -437,9 +451,9 @@ Al arrancar el Sprint 2 se contrasto el backlog contra el **SRS v0.3** (el backl
 
 **Neto: 81 h → 75 h.** El sprint sigue 10 h por encima de la capacidad de 65 h.
 
-##### Lo que queda por decidir
+##### Resuelto el 25/08: no se recorta
 
-Para cerrar las 10 h restantes hay una sola palanca que no degrada un entregable `Must`: **el nivel de fidelidad del prototipo de `US-38`**. Un prototipo navegable completo en Figma son 8 h; wireframes estaticos con navegacion minima entre las tres vistas son ~4 h, y `US-39` se puede validar igual. **Es decision de Greivin**, y conviene tomarla en la revision del viernes 28, no el 4 de septiembre.
+La palanca disponible era bajar la fidelidad del prototipo de `US-38` de un navegable en Figma (8 h) a wireframes con navegacion minima (~4 h). **El supervisor decidio dejar el sprint como esta**: ocho tareas estimadas en 37 h se cerraron en dos dias, de modo que la sobrecarga aparente proviene de la estimacion y no del alcance. Se revisa con datos reales al cierre del Sprint 2, no antes.
 
 ##### Efecto sobre el Sprint 3
 
@@ -449,19 +463,97 @@ Las 10 h movidas caen sobre un sprint que ya estaba en 66 h. Lo compensa parcial
 
 `backlog_trackin.csv` tiene 44 filas y **no contiene ningun item del Sprint 2** (se genero antes del commit `60d4184`). Los cambios de esta revision no lo afectan, pero el CSV no sirve hoy para importar el Sprint 2 a Jira.
 
+#### TASK-26 — Diccionario de datos: auditoria_intervenciones, parametros_sistema y pedido_elemento_rastreado
+
+Como desarrollador, quiero documentar el diccionario de las tres tablas aprobadas en la revision del 25/08, para que TASK-01 pueda implementarlas sin ambiguedad y su criterio de las diez entidades sea alcanzable.
+
+**Criterios de aceptación**
+
+- Dada `auditoria_intervenciones`, cuando documento el diccionario, entonces cada campo tiene nombre, tipo, nulabilidad, PK/FK, dominio y descripcion, y el dominio de `tipo_intervencion` queda enumerado de forma explicita
+- Dada `parametros_sistema`, cuando documento el diccionario, entonces registra `clave` como PK natural, el dominio de `tipo_dato`, y la lista de parametros que exigen RN-05, RN-10, RN-11 y RN-16
+- Dada `pedido_elemento_rastreado`, cuando documento el diccionario, entonces incluye `tramo`, `fecha_desde` y `fecha_hasta`, con la semantica de que `fecha_hasta` nula identifica el tramo vigente
+- Dado el ER consolidado, cuando ejecuto `scripts/check_docs_model.py`, entonces no reporta divergencias en ninguna de las tres tablas
+
+| | |
+|---|---|
+| Tipo | Task |
+| Objetivo específico | OE1 |
+| MoSCoW | **Must** |
+| Estimacion | 3 h |
+| Origen | Revision con el supervisor, 25/08/2026 |
+| Etiquetas | `diseno,diccionario` |
+
+> **Por que existe esta tarea.** Las tres tablas se aprobaron el 25/08 pero ninguna tarea de diccionario las cubria: `TASK-16` a `TASK-19` y `TASK-24` se escribieron cuando el modelo tenia siete entidades. Sin ellas documentadas, `TASK-01` no puede cumplir su criterio nuevo de crear las diez.
+
+#### TASK-25 — Emitir el SRS v0.4 con las decisiones de la revision del 25/08
+
+Como estudiante practicante, quiero el SRS actualizado a v0.4 con las decisiones aprobadas y las correcciones que produjo el modelado, para que la especificacion vigente no comprometa requisitos que el proyecto no va a entregar ni describa un modelo de datos que ya no es el aprobado.
+
+**Criterios de aceptación**
+
+- Dados RNF-04 y RNF-05, cuando emito v0.4, entonces la autenticacion queda descrita como trabajo previo al despliegue a cargo del Centro de Competencias, y se suma a las exclusiones explicitas de la seccion 1.2.2
+- Dada la seccion 8.1, cuando la actualizo, entonces enumera las **diez** entidades del modelo aprobado, incluidas `auditoria_intervenciones`, `parametros_sistema` y `pedido_elemento_rastreado`
+- Dadas las secciones 8.2 a 8.5, cuando las corrijo, entonces reflejan los campos incorporados, el tipo `GEOGRAPHY` en lugar de `GEOMETRY`, `id_elemento_rastreado` como `BIGINT` y no `VARCHAR`, y la salida de `tramo` de `elementos_rastreados`
+- Dada RN-05, cuando la actualizo, entonces distingue el criterio de arribo aereo (`on_ground`) del maritimo (geocerca), y contempla el radio por destino
+- Dado el supuesto de la seccion 9.4 sobre la entrega de la especificacion de SAP, cuando lo reviso, entonces queda registrado como **incumplido** y remite al riesgo R2
+- Dado el historial de revisiones, cuando lo consulto, entonces registra v0.4 con su fecha y la descripcion de los cambios
+
+| | |
+|---|---|
+| Tipo | Task |
+| Objetivo específico | OE1 |
+| MoSCoW | **Must** |
+| Estimacion | 8 h |
+| Origen | Revision con el supervisor, 25/08/2026 |
+| Etiquetas | `documentacion,srs,hito` |
+
+> **Por que es Must y no se puede omitir.** La decision del 25/08 fue sacar la autenticacion del alcance de la practica. Esa decision **se ejecuta modificando el SRS**: mientras el documento vigente diga que «se implementara un mecanismo propio», RNF-04 y RNF-05 siguen siendo requisitos comprometidos y no entregados, y el Informe 1 se presentaria contra una especificacion que el producto no cumple.
+>
+> **Trampa de ejecucion:** `docs/srs/README.md` advierte que `generador/srs.js` quedo desfasado en v0.1 y que **regenerar el documento destruiria todo lo posterior**. La v0.4 se edita directamente sobre el `.docx`, no se regenera. Tras editar, actualizar la tabla de contenidos con F9.
+>
+> **Calibracion:** `TASK-11` costo 6 h para incorporar los hallazgos de los spikes. Esta toca mas secciones —dos RNF, cinco subsecciones del modelo de datos, una regla de negocio y un supuesto— de ahi las 8 h.
+
+---
+
+### Revision con el supervisor — 25/08/2026
+
+Cubre la DoD «Revision con supervisor (Greivin) cuando aplique» para `TASK-12` a `TASK-18` y `TASK-24`. Acta completa en [`agenda_revision_supervisor.md`](agenda_revision_supervisor.md); el modelo aprobado esta en `docs/data-model.md`.
+
+| Punto | Decision | Efecto en el backlog |
+|---|---|---|
+| Transbordo y trayecto | Se conserva el trayecto completo: entra `pedido_elemento_rastreado` | El ER pasa a diez entidades |
+| Entidades de `TASK-01` | Criterio actualizado a diez entidades | `TASK-01` reestimada de 10 h a **14 h**; Sprint 3 de 70 h a 74 h |
+| Autenticacion RNF-04 | **Fuera del alcance de la practica** | No entra ninguna historia. **Requiere emitir el SRS v0.4** |
+| Estado del pedido | Dos columnas mas una derivada | Sin cambio de horas; lo implementan `US-10` y `US-24` |
+| Arribo aereo | `on_ground` para aereo, geocerca para maritimo | Criterio nuevo en `US-11` |
+| Volumen del historial | Intervalo minimo configurable en `US-04` | Criterio nuevo en `US-04`. `TASK-10` se queda en Sprint 7 con `Could` |
+| `tracking_interno` | Lo genera TrackIn | Consumo de `TASK-03` |
+| Sobrecarga del Sprint 2 y 3 | No se recorta alcance | Se revisa al cierre del Sprint 2 |
+| Especificacion de SAP | **Sin fecha, proceso varado** | Ver abajo |
+
+#### Consecuencias que quedan abiertas
+
+**1. Hay que emitir el SRS v0.4** — incorporado como **`TASK-25`** (8 h) al cierre del Sprint 2. Mientras el documento vigente diga que «se implementara un mecanismo propio» de autenticacion, RNF-04 y RNF-05 siguen siendo requisitos comprometidos y no entregados. La decision fue sacarlos del alcance de la practica, pero eso **se ejecuta modificando el SRS**, no omitiendolo.
+
+**2. Tres tablas aprobadas no tienen tarea de diccionario.** `auditoria_intervenciones`, `parametros_sistema` y `pedido_elemento_rastreado` quedaron aprobadas y modeladas, pero `TASK-16` a `TASK-19` y `TASK-24` no las cubren. Son ~3 h que hoy no estan en ningun sprint, y `TASK-01` las necesita documentadas.
+
+**3. El riesgo R2 empeoro.** Ver la seccion «Sin asignar».
+
 ---
 
 ### Sprint 3 (7-18 sep 2026)
 
-**10 items · 70 h estimadas · capacidad 65 h — SOBRECARGADO en 5 h.** TASK-19 y TASK-23 llegan desde el Sprint 2 (+10 h); TASK-11 se verifico cumplida y sus 6 h no se cuentan.
+**10 items · 74 h estimadas · capacidad 65 h — SOBRECARGADO en 9 h.** TASK-19 y TASK-23 llegan desde el Sprint 2 (+10 h); TASK-11 se verifico cumplida y sus 6 h no se cuentan; TASK-01 se reestimo de 10 h a 14 h el 25/08.
+
+> **No se recorta alcance por ahora** (decision del 25/08). Ocho tareas estimadas en 37 h se cerraron en dos dias, lo que sugiere que la holgura esta en la estimacion y no en el alcance. Se revisa con datos reales al cierre del Sprint 2.
 
 #### TASK-01 — Esquema de base de datos y migraciones Alembic
 
-Como desarrollador, quiero el esquema relacional de las siete entidades versionado en Alembic, para que el resto del backend tenga sobre que construir.
+Como desarrollador, quiero el esquema relacional de las diez entidades versionado en Alembic, para que el resto del backend tenga sobre que construir.
 
 **Criterios de aceptación**
 
-- Dado el repositorio limpio, cuando ejecuto 'alembic upgrade head', entonces se crean las siete entidades de la seccion 8.1 del SRS sin error
+- Dado el repositorio limpio, cuando ejecuto 'alembic upgrade head', entonces se crean las **diez** entidades del modelo sin error: las siete del SRS v0.3 seccion 8.1 mas `auditoria_intervenciones` (RF-14), `parametros_sistema` (RN-05, RN-11) y `pedido_elemento_rastreado` (RF-26)
 - Dado el esquema aplicado, cuando inspecciono pedidos_transito, entonces existen los campos de la seccion 8.2 con sus tipos
 - Dado el esquema aplicado, cuando ejecuto 'alembic downgrade base', entonces la base queda vacia sin error
 
@@ -470,9 +562,11 @@ Como desarrollador, quiero el esquema relacional de las siete entidades versiona
 | Tipo | Task |
 | Objetivo específico | OE4 |
 | MoSCoW | **Must** |
-| Estimacion | 10 h |
-| Origen en el SRS | SRS 8.1-8.5 |
+| Estimacion | 14 h |
+| Origen en el SRS | SRS 8.1-8.5 + articulado (RF-14, RN-05, RN-11, RF-26) |
 | Etiquetas | `backend,persistencia,fundacional` |
+
+> **Reestimada el 25/08** de 10 h a 14 h. El esquema tiene diez tablas, no siete: dos las exige el articulado del SRS aunque su seccion 8.1 no las enumere, y la tercera se aprobo en la revision con el supervisor. Modelo en `docs/data-model.md`, diccionario en `docs/data-dictionary.md`.
 
 #### TASK-02 — Habilitar PostGIS y columna geometrica WGS 84
 
@@ -580,6 +674,7 @@ Como usuario de Logística, quiero que cada lectura de API quede registrada con 
 - Dada una lectura valida, cuando la proceso, entonces inserto un registro en historial_tracking con fecha, coordenadas, velocidad, rumbo, estado crudo y payload en JSONB
 - Dado un registro del historial, cuando intento modificarlo, entonces la operacion se rechaza por ser inmutable
 - Dado un volumen alto de mensajes, cuando aplico el submuestreo configurado, entonces persisto como maximo una posicion por elemento rastreado por intervalo
+- Dado el parametro `intervalo_minimo_persistencia_s`, cuando lo modifico, entonces el intervalo cambia sin desplegar codigo (decision del 25/08: el crecimiento del historial se ataca con un parametro desde el Sprint 3, no subiendo TASK-10 de prioridad)
 
 | | |
 |---|---|
@@ -780,6 +875,8 @@ Como usuario de Logística, quiero que el sistema asuma el arribo cuando el buqu
 - Dado un buque a menos del radio configurado (50 km por defecto) del destino, cuando evaluo su estado, entonces lo clasifico como 'En destino' conforme a RN-05
 - Dado un buque dentro del radio pero con velocidad superior al umbral configurado, cuando evaluo, entonces NO lo doy por arribado, para descartar el trafico en transito hacia el Canal de Panama
 - Dado el radio y el umbral de velocidad, cuando los modifico en la tabla de parámetros, entonces se aplican sin desplegar codigo
+- Dado un elemento **aereo**, cuando evaluo su arribo, entonces uso el indicador `on_ground` de la fuente y no la geocerca, porque 50 km alrededor de un aeropuerto capturan trafico en sobrevuelo (decision del 25/08)
+- Dado un destino con `radio_geocerca_km` propio, cuando evaluo la proximidad, entonces ese valor tiene precedencia sobre el parametro global
 - Dado un arribo inferido, cuando lo registro, entonces queda marcado como inferido y no como confirmado por la fuente
 
 | | |
@@ -1329,6 +1426,12 @@ Como técnico del Centro de Competencias, quiero la guía de despliegue, para as
 ### Sin asignar (bloqueadas por insumo externo sin fecha)
 
 **3 items · 32 h estimadas — sin calendarizar a proposito.** Su dependencia externa no tiene fecha comprometida; asignarles sprint seria fingir un compromiso que no controlamos.
+
+> 🔴 **Actualizacion del 25/08 — el riesgo R2 empeoro.** El supervisor confirmo que **no hay fecha presupuestada para la especificacion del servicio de SAP y el proceso esta varado**. El SRS seccion 9.4 la daba por recibida antes del Sprint 3, que arranca el 7 de septiembre: ese supuesto ya no se sostiene.
+>
+> Lo que esto significa, dicho sin rodeos: **no existe hoy ninguna funcion de usuario que meta pedidos al sistema.** `TASK-03` resuelve el desarrollo y la demostracion con datos semilla, y el Informe 1 del 25/09 se cubre con eso. Pero un sistema sin via de entrada de datos no es entregable como producto.
+>
+> **Decision que sigue abierta y ya no puede esperar al Sprint 5:** si SAP no llega, hace falta un RF de carga manual de pedidos, con sus historias y sus horas. Es un cambio de alcance y no se asume aqui. Conviene plantearlo formalmente antes del cierre del Sprint 3.
 
 #### US-31 — Sincronizar los pedidos en transito desde el servicio API de SAP
 

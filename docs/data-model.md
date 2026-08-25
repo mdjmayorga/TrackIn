@@ -20,14 +20,29 @@ definitivo a este archivo.
 | `proveedores` | `TASK-15` | ✅ Modelada — 25/08/2026 |
 | `materiales` | `TASK-15` | ✅ Modelada — 25/08/2026 |
 | `usuarios` | `TASK-15` | ✅ Modelada — 25/08/2026 |
-| `auditoria_intervenciones` | `TASK-15` | ⚠️ Propuesta — exigida por RF-14 |
-| `parametros_sistema` | `TASK-15` | ⚠️ Propuesta — exigida por RN-05 y RN-11 |
-| `pedido_elemento_rastreado` | `TASK-15` | ⚠️ Propuesta — opción A de §3.8 |
+| `auditoria_intervenciones` | `TASK-15` | ✅ Aprobada — 25/08/2026 |
+| `parametros_sistema` | `TASK-15` | ✅ Aprobada — 25/08/2026 |
+| `pedido_elemento_rastreado` | `TASK-15` | ✅ Aprobada — 25/08/2026 |
 | ER consolidado | `TASK-15` | ✅ Consolidado — 25/08/2026 |
 
 El diccionario de datos formal —nulabilidad, dominios y descripciones campo por
 campo— es un entregable aparte (`TASK-16` a `TASK-19` y `TASK-24`) derivado de
 este modelo.
+
+## Decisiones aprobadas — revisión con el supervisor, 25/08/2026
+
+El modelo quedó **revisado y aprobado**. Las decisiones que estaban abiertas se
+cerraron así (acta en [`backlog/agenda_revision_supervisor.md`](backlog/agenda_revision_supervisor.md)):
+
+| Punto | Decisión | Efecto |
+|---|---|---|
+| Transbordo (§3.8) | **Se conserva el trayecto completo**: entra la entidad asociativa | El ER queda en **diez** entidades; `tramo` vive en la asociativa |
+| Entidades de `TASK-01` (§8.4) | **Se actualiza el criterio a diez entidades** | `TASK-01` se reestima de 10 h a 14 h |
+| Autenticación RNF-04 (§7.2) | **Fuera del alcance de la práctica**, documentado en el SRS | `usuarios` se construye igual, por RF-14 |
+| Estado del pedido (§1.4) | **Dos columnas más una derivada** | Sin costo adicional; lo implementan `US-10` y `US-24` |
+| Arribo aéreo (§2.5) | **`on_ground` para aéreo, geocerca para marítimo** | Simplifica `US-11` |
+| Volumen del historial (§3.6) | **Intervalo mínimo configurable en `US-04`**; `TASK-10` se queda en el Sprint 7 | Es un parámetro, no una historia |
+| `tracking_interno` (§1.2) | **Lo genera TrackIn** | Consumo de `TASK-03` |
 
 ---
 
@@ -61,7 +76,8 @@ Adoptadas en `TASK-12`:
 ## Diagrama ER consolidado
 
 Las **siete** entidades del SRS v0.3 §8.1 más las **tres** que su articulado
-exige pero su lista no enumera (§8). Las propuestas están marcadas.
+exige pero su lista no enumera (§8). **Las diez quedaron aprobadas en la
+revisión del 25/08.**
 
 ```mermaid
 erDiagram
@@ -180,7 +196,7 @@ erDiagram
     }
 
     AUDITORIA_INTERVENCIONES {
-        bigserial   id                PK "PROPUESTA - exigida por RF-14"
+        bigserial   id                PK "exigida por RF-14"
         bigint      id_pedido         FK "NOT NULL"
         bigint      id_usuario        FK "NOT NULL"
         timestamptz fecha_hora           "RF-14"
@@ -192,7 +208,7 @@ erDiagram
     }
 
     PARAMETROS_SISTEMA {
-        varchar     clave                   PK "PROPUESTA - exigida por RN-05 y RN-11"
+        varchar     clave                   PK "natural, exigida por RN-05 y RN-11"
         text        valor
         varchar     tipo_dato                  "CHECK"
         varchar     descripcion
@@ -201,7 +217,7 @@ erDiagram
     }
 
     PEDIDO_ELEMENTO_RASTREADO {
-        bigserial   id                    PK "PROPUESTA - opcion A de 3.8"
+        bigserial   id                    PK "aprobada 25/08, ver 3.8"
         bigint      id_pedido             FK "NOT NULL"
         bigint      id_elemento_rastreado FK "NOT NULL"
         integer     tramo                    "UK con el pedido, RF-26"
@@ -216,8 +232,8 @@ erDiagram
 | Grupo | Entidades | Estado |
 |---|---|---|
 | SRS v0.3 §8.1 | `pedidos_transito`, `maestro_destinos`, `historial_tracking`, `elementos_rastreados`, `proveedores`, `materiales`, `usuarios` | Modeladas |
-| Exigidas por el articulado, ausentes de §8.1 | `auditoria_intervenciones` (RF-14), `parametros_sistema` (RN-05, RN-11) | **Propuestas — sin ellas no se cumplen esas reglas** |
-| Derivada del análisis | `pedido_elemento_rastreado` (RF-26 + RF-22) | **Propuesta — opción A de §3.8** |
+| Exigidas por el articulado, ausentes de §8.1 | `auditoria_intervenciones` (RF-14), `parametros_sistema` (RN-05, RN-11) | ✅ Aprobadas el 25/08 |
+| Derivada del análisis | `pedido_elemento_rastreado` (RF-26 + RF-22) | ✅ Aprobada el 25/08 |
 
 ## 1. `pedidos_transito`
 
@@ -347,8 +363,7 @@ manuales de `US-15`, que es una entidad aparte con usuario y valor anterior.
 
 ### 1.4 El estado son dos dimensiones, no una
 
-**Este es el punto que más se aparta de §8.2 y requiere confirmación de
-Greivin.**
+**Aprobado en la revisión del 25/08.** Es el punto que más se aparta de §8.2.
 
 El SRS §7.2 lo dice con todas sus letras: *«Las reglas relativas a la etapa del
 viaje (RN-02 a RN-05) describen dónde se encuentra la carga; las relativas al
@@ -387,11 +402,9 @@ calculada para que la grilla de `US-19` pueda filtrar e indexar por ella sin
 recomputar la precedencia en cada consulta (RNF-02 fija 1 s para aplicar un
 filtro).
 
-> **Qué pasa si Greivin prefiere una sola columna.** Se eliminan `etapa_viaje` y
-> `estado_cumplimiento` y se conserva `estado_calculado` con los diez valores.
-> El costo es que el dashboard no podrá responder «¿dónde está?» y «¿llega a
-> tiempo?» a la vez, y `US-21` perderá uno de los dos filtros. Es una decisión
-> de producto, no técnica.
+> **Decisión del 25/08:** se adoptan las dos columnas más la derivada. El
+> dashboard puede responder «¿dónde está?» y «¿llega a tiempo?» a la vez, y
+> `US-21` conserva ambos filtros.
 
 ### 1.5 Restricciones de integridad
 
@@ -511,11 +524,11 @@ razonamiento habitual:
 
 | # | Punto | Quién decide | Cuándo |
 |---|---|---|---|
-| 1 | ¿Dos columnas de estado o una? (§1.4) | Greivin | Revisión del vie 28 |
-| 2 | Longitud real de `oc_numero` y formato de `posicion_oc` | Especificación de SAP (riesgo R2) | Sin fecha |
-| 3 | PK sustituta o natural en `maestro_destinos` (§1.7) | `TASK-13` | Mar 25 |
+| 1 | ¿Dos columnas de estado o una? (§1.4) | Greivin | ✅ **Dos columnas más la derivada** — 25/08 |
+| 2 | Longitud real de `oc_numero` y formato de `posicion_oc` | Especificación de SAP (riesgo R2) | ⚠️ **Sin fecha: el proceso con SAP está varado** (25/08) |
+| 3 | PK sustituta o natural en `maestro_destinos` (§1.7) | `TASK-13` | ✅ Sustituta — 25/08 |
 | 4 | ¿Búsqueda de OC exacta o por fragmento? (§1.8) | Usuarios clave en `US-39` | Semana del 1–4 sep |
-| 5 | Formato de `tracking_interno`: ¿lo define Gutis o lo genera TrackIn? | Greivin | Revisión del vie 28 |
+| 5 | Formato de `tracking_interno`: ¿lo define Gutis o lo genera TrackIn? | Greivin | ✅ **Lo genera TrackIn** — 25/08 |
 
 ---
 
@@ -652,9 +665,9 @@ hace falta desplegar código para corregir un destino que dé falsos positivos.
 > global y aquí no se duplica: es propiedad del comportamiento del elemento
 > rastreado, no del destino. Y para la vía aérea la proximidad es de por sí un
 > criterio pobre — la señal buena es el indicador `on_ground` de OpenSky, que
-> `US-06` ya consume. Conviene que `US-11` use la geocerca como criterio
-> **marítimo** y `on_ground` como criterio **aéreo**, en vez de forzar la misma
-> regla sobre las dos vías.
+> `US-06` ya consume. **Decisión del 25/08:** `US-11` usa la geocerca como
+> criterio **marítimo** y `on_ground` como criterio **aéreo**, en vez de forzar
+> la misma regla sobre las dos vías.
 
 ### 2.6 Restricciones de integridad
 
@@ -744,8 +757,8 @@ podrían corresponder.
 | 1 | Lead time real de cada destino | Logística | Antes del Sprint 4 (`US-09`) |
 | 2 | Lista definitiva de destinos que opera Gutis | Logística | Antes del Sprint 3 (`TASK-03`) |
 | 3 | UN/LOCODE oficial de los puertos | Logística | Antes del Sprint 3 |
-| 4 | ¿La geocerca aplica a la vía aérea, o se usa `on_ground`? (§2.5) | Greivin | Revisión del vie 28 |
-| 5 | ¿Se acepta el FK compuesto de §2.7? | Greivin | Revisión del vie 28 |
+| 4 | ¿La geocerca aplica a la vía aérea, o se usa `on_ground`? (§2.5) | Greivin | ✅ **`on_ground` para aéreo, geocerca para marítimo** — 25/08 |
+| 5 | ¿Se acepta el FK compuesto de §2.7? | Greivin | Informado el 25/08 como decisión técnica; se mantiene salvo objeción |
 
 ---
 
@@ -879,11 +892,11 @@ aeronaves: 10 × (86 400 / 31)    ≈ 27 900 filas/día
 
 **Tres conclusiones que este número obliga a sacar:**
 
-1. **El submuestreo de `TASK-10` no es opcional, es estructural.** Está marcado
-   `Could` en el Sprint 7. Guardar cada mensaje significa 25 millones de filas
-   anuales para un sistema que muestra 200 pedidos. Conviene subirlo de
-   prioridad o, como mínimo, que `US-04` nazca ya con el intervalo mínimo entre
-   lecturas persistidas configurado.
+1. **`US-04` nace con un intervalo mínimo entre lecturas persistidas.**
+   Decisión del 25/08: en vez de subir `TASK-10` de `Could` a `Must`, el
+   problema se ataca con un parámetro (`intervalo_minimo_persistencia_s`) desde
+   el Sprint 3. Resuelve el grueso del crecimiento sin agregar horas a un
+   sprint cargado; `TASK-10` conserva la política de purga en el Sprint 7.
 2. **La consulta de los pedidos activos nunca debe tocar esta tabla.** Por eso
    `elementos_rastreados` guarda `posicion_actual` y `ultima_actualizacion_api`
    (§8.5): el dashboard lee la última posición de ahí, y el historial solo se
@@ -959,16 +972,17 @@ trayecto histórico desaparece.
 actual. Es coherente si Greivin considera que el transbordo es raro y que ver el
 tramo anterior no aporta.
 
-Recomendación: **Opción A**, y decidirlo antes de `TASK-15`, porque cambia el
-recuento de entidades del ER consolidado y el criterio de aceptación de
-`TASK-01`, que hoy dice «las siete entidades de la sección 8.1».
+> **Decisión del 25/08: opción A.** El supervisor confirmó que el historial de
+> la nave anterior debe conservarse, en línea con lo que RF-26 ya prometía. Entra
+> `pedido_elemento_rastreado` (§8.1), el ER queda en diez entidades y el criterio
+> de `TASK-01` se actualiza en consecuencia.
 
 ### 3.9 Puntos abiertos que deja `TASK-14`
 
 | # | Punto | Quién decide | Cuándo |
 |---|---|---|---|
-| 1 | Transbordo y trayecto: opción A, B o C (§3.8) | Greivin | Revisión del vie 28 |
-| 2 | ¿Sube `TASK-10` (submuestreo) de `Could` a `Must`? (§3.6) | Greivin | Revisión del vie 28 |
+| 1 | Transbordo y trayecto: opción A, B o C (§3.8) | Greivin | ✅ **Opción A: entra la asociativa** — 25/08 |
+| 2 | ¿Sube `TASK-10` (submuestreo) de `Could` a `Must`? (§3.6) | Greivin | ✅ **No sube.** Intervalo mínimo en `US-04` — 25/08 |
 | 3 | Intervalo mínimo entre lecturas persistidas | `US-04` / `US-17` | Sprint 3 |
 | 4 | ¿Particionar por fecha desde el inicio? | `TASK-10` | Sprint 7 |
 
@@ -1059,9 +1073,8 @@ Esto es evidencia independiente de lo que ya señalaba §3.8: el número de tram
 pertenece a la **relación** pedido↔elemento, no a ninguno de los dos extremos.
 En este modelo `tramo` vive en la entidad asociativa propuesta en §8.1.
 
-> Si Greivin descarta la asociativa (opción C de §3.8), `tramo` vuelve a
-> `elementos_rastreados` y se acepta que su valor solo es correcto cuando el
-> elemento transporta un único pedido.
+> **Confirmado el 25/08.** Al aprobarse la asociativa (opción A de §3.8),
+> `tramo` queda definitivamente fuera de `elementos_rastreados`.
 
 ### 4.5 Restricciones e índices
 
@@ -1181,12 +1194,18 @@ lo que se había supuesto:
 - **Es** que el SRS la compromete, ningún RF la especifica, y **ninguna historia
   del backlog la construye**.
 
-Es decir: el proyecto tiene comprometido un requisito no funcional para el que
-no hay trabajo planificado. La estimación de 20–25 h sigue siendo válida, pero
-la pregunta para Greivin ya no es «¿la hacemos?» sino **«¿de dónde salen esas
-horas, o se modifica el SRS para retirar RNF-04?»**. Retirarla es una opción
-legítima —el sistema es interno y el despliegue queda fuera del alcance— pero
-requiere cambiar el documento, no simplemente no hacerla.
+Es decir: el proyecto tenía comprometido un requisito no funcional para el que
+no había trabajo planificado.
+
+> **Decisión del 25/08: la autenticación queda fuera del alcance de la
+> práctica.** No se construye durante el proyecto y **el SRS debe modificarse**
+> para reflejarlo: RNF-04 y RNF-05 pasan a describirse como trabajo previo al
+> despliegue, a cargo del Centro de Competencias. Es coherente con el §9.1, que
+> ya excluye el despliegue en producción del alcance de la práctica.
+>
+> **Pendiente que esto genera:** emitir el SRS v0.4 con ese cambio. Mientras el
+> documento vigente diga «se implementará un mecanismo propio», sigue habiendo un
+> requisito comprometido y no entregado.
 
 La entidad `usuarios` se modela igual, porque RF-14 la necesita para la
 auditoría aunque no hubiera login.
@@ -1201,7 +1220,7 @@ Ninguna es un invento: cada una se cita textualmente abajo.
 
 ### 8.1 `pedido_elemento_rastreado` — asociativa de tramos
 
-**Propuesta, pendiente de decisión (§3.8, opción A).**
+**Aprobada en la revisión del 25/08** (opción A de §3.8).
 
 | Campo | Tipo | Nulo | Notas |
 |---|---|---|---|
@@ -1280,6 +1299,7 @@ Los parámetros que el SRS ya obliga a tener:
 | `velocidad_minima_eta` | *a definir* | RN-16 |
 | `tolerancia_recepcion_pct` | 10 | RN-10 |
 | `intervalo_consulta_adsb_s` | 31 | Spike TG-11 |
+| `intervalo_minimo_persistencia_s` | *a definir* | Decisión del 25/08, §3.6 |
 
 Es la única entidad del modelo con **clave primaria natural**: `clave` es
 estable, legible y se usa literalmente en el código (`obtener_parametro('umbral_riesgo_horas')`).
@@ -1290,12 +1310,12 @@ Una PK sustituta aquí solo agregaría un join.
 El criterio de aceptación de `TASK-01` dice hoy: *«se crean las siete entidades
 de la sección 8.1 del SRS»*. Con lo anterior, **el esquema tiene diez tablas**:
 las siete del SRS, más `auditoria_intervenciones` y `parametros_sistema` —que el
-articulado exige— más `pedido_elemento_rastreado` si se acepta la opción A de
-§3.8.
+articulado exige— más `pedido_elemento_rastreado`, aprobada el 25/08.
 
-Hay que actualizar ese criterio y reestimar `TASK-01`, hoy en 10 h. Tres tablas
-adicionales, dos de ellas simples, sugieren unas **4 h más**. Se anota como
-punto abierto; no se modifica la estimación por cuenta propia.
+> **Decisión del 25/08:** el criterio de `TASK-01` se actualiza a **diez
+> entidades** y la tarea se reestima de 10 h a **14 h**. El Sprint 3 pasa de
+> 70 h a 74 h; el supervisor decidió no recortar alcance todavía (ver C1 del
+> acta).
 
 ---
 
@@ -1303,9 +1323,9 @@ punto abierto; no se modifica la estimación por cuenta propia.
 
 | # | Punto | Quién decide | Cuándo |
 |---|---|---|---|
-| 1 | ¿Se acepta la asociativa de tramos? (§8.1) | Greivin | Revisión del vie 28 |
-| 2 | RNF-04: ¿de dónde salen las 20–25 h de autenticación, o se retira del SRS? (§7.2) | Greivin | Revisión del vie 28 |
-| 3 | Actualizar el criterio de `TASK-01` de siete a diez entidades y reestimar (§8.4) | Greivin | Revisión del vie 28 |
+| 1 | ¿Se acepta la asociativa de tramos? (§8.1) | Greivin | ✅ **Sí** — 25/08 |
+| 2 | RNF-04: ¿de dónde salen las 20–25 h de autenticación, o se retira del SRS? (§7.2) | Greivin | ✅ **Fuera del alcance de la práctica**; se documenta en el SRS — 25/08 |
+| 3 | Actualizar el criterio de `TASK-01` de siete a diez entidades y reestimar (§8.4) | Greivin | ✅ **Diez entidades, reestimada a 14 h** — 25/08 |
 | 4 | ¿Hace falta un cuarto rol administrador? (§7.1) | Greivin | Antes del Sprint 5 |
 | 5 | Valores iniciales de `umbral_velocidad_arribo` y `velocidad_minima_eta` | Greivin / Logística | Antes del Sprint 4 |
-| 6 | ¿SAP expone códigos de proveedor y material, o solo texto? (§5) | Especificación de SAP | Sin fecha (R2) |
+| 6 | ¿SAP expone códigos de proveedor y material, o solo texto? (§5) | Especificación de SAP | ⚠️ **Sin fecha: proceso varado** (25/08) |

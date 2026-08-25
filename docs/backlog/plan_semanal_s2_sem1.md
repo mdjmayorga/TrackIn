@@ -4,8 +4,11 @@
 **Sprint 2:** 24 ago – 4 sep 2026 · **Ejecutor:** 1 persona
 **Capacidad de la semana:** 32,5 h (6,5 h/día × 5 días, mitad de las 65 h del sprint)
 
-> Este plan corresponde al backlog **ya revisado** el 24/08. Los cambios y su
-> justificación están en `backlog_trackin.md` §«Revision del 24/08».
+> **Actualizado el 25/08.** El bloque de modelado (`TASK-12` a `TASK-15`, 26 h) y
+> el de diccionario (`TASK-16`, `17`, `18`, `24`, 11 h) se cerraron el 24 y el 25,
+> y la revisión con el supervisor se celebró el **25/08**, no el 28 como proponía
+> este plan. El acta está en [`agenda_revision_supervisor.md`](agenda_revision_supervisor.md).
+> El plan diario de abajo se conserva como registro de lo planificado.
 
 ---
 
@@ -168,7 +171,7 @@ Palancas disponibles, en orden de preferencia:
 | Correr `US-39` en la primera semana del Sprint 3 | 4 h | Retrasa el cierre formal de OE1; hay que avisar a los usuarios clave al agendar. |
 
 Las tres juntas cierran las 12,5 h. **La decisión es de Greivin y el momento es
-la revisión del viernes 28.**
+la revisión con el supervisor (celebrada el 25/08).**
 
 Efecto ya absorbido en el Sprint 3: recibió `TASK-19` y `TASK-23` (+10 h), pero
 `TASK-11` se verificó cumplida —el SRS v0.3 del repositorio satisface sus dos
