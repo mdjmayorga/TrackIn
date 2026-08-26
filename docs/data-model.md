@@ -109,6 +109,7 @@ erDiagram
         integer     ajuste_manual_dias             "RN-01"
         timestamptz eta_utilizada                  "snapshot, RN-16"
         timestamptz ata_confirmada                 "manual, RN-14"
+        timestamptz ata_inferida                   "geocerca u on_ground, RN-05"
         date        fecha_proyectada_disponible    "NULL si ETA no estimable"
         varchar     etapa_viaje                    "CHECK, RN-02 a RN-06"
         varchar     estado_cumplimiento            "CHECK NULL, RN-07 a RN-09"
@@ -322,6 +323,7 @@ rastreable automáticamente. Se refuerza con un `CHECK` (§1.5).
 | `ajuste_manual_dias` | `INTEGER` | no, *default* 0 | `TASK-12` |
 | `eta_utilizada` | `TIMESTAMPTZ` | sí | `TASK-12` |
 | `ata_confirmada` | `TIMESTAMPTZ` | sí | §8.2 |
+| `ata_inferida` | `TIMESTAMPTZ` | sí | `TASK-12` (26/08) |
 | `fecha_proyectada_disponible` | `DATE` | sí | §8.2 |
 | `fecha_ultimo_recalculo` | `TIMESTAMPTZ` | sí | `TASK-12` |
 
@@ -332,6 +334,15 @@ produjo la fecha proyectada»*. Si el lead time se leyera siempre por join,
 editar el maestro reescribiría retroactivamente el desglose de todos los
 pedidos ya calculados. La columna guarda **el valor usado en el recálculo**;
 `US-12` la refresca cuando corresponde.
+
+`ata_inferida` guarda **el instante en que el sistema determinó el arribo** por
+geocerca o por `on_ground`, que no es lo mismo que el reportado por la fuente
+(`elementos_rastreados.ata_api`) ni el confirmado a mano (`ata_confirmada`).
+RN-05 exige explícitamente distinguir los tres —*«se registra como inferido y se
+distingue del reportado por la fuente y del confirmado manualmente»*— y el modelo
+solo guardaba dos. El **origen del arribo no necesita columna propia**: se deriva
+por precedencia, `ata_confirmada` → `MANUAL`, si no `ata_api` → `FUENTE`, si no
+`ata_inferida` → `INFERIDO`.
 
 `fecha_proyectada_disponible` es anulable porque RN-16 contempla el caso *«ETA
 no estimable»* —nave fondeada, velocidad bajo el mínimo—, en el que el sistema
@@ -398,6 +409,32 @@ precisión, cosa que ningún valor del dominio hace.
 2. Si `etapa_viaje = SIN_TRACKING` → `SIN_TRACKING`. No hay dato con que evaluar cumplimiento.
 3. Si `estado_cumplimiento` ∈ {`RETRASADO`, `EN_RIESGO`} → ese valor. **El riesgo manda sobre la etapa**: es la información por la que existe el sistema.
 4. En cualquier otro caso → el valor de `etapa_viaje`.
+
+**Decisiones del 26/08 que cierran los solapamientos del articulado.** Al armar
+los datos de ejemplo de `US-34` aparecieron tres reglas que se pisaban entre sí.
+Quedaron resueltas así, y `TASK-25` las lleva al SRS:
+
+| Solapamiento | Decisión |
+|---|---|
+| RN-07 dice «anterior o igual» sin calificar, y colisiona con RN-08 en las 48 h previas | **RN-08 prevalece por ser más específica.** `A_TIEMPO` exige margen **mayor** que el umbral; dentro del umbral es `EN_RIESGO` |
+| El umbral de RN-11 está en horas, pero ambas fechas son `DATE` sin hora | **48 h = 2 días.** El margen se calcula en días enteros: `> 2` es `A_TIEMPO`, `0` a `2` es `EN_RIESGO`, negativo es `RETRASADO` |
+| RN-05 y RN-06 colisionan: llegar al destino *es* cuando arranca el lead time | **`EN_DESTINO` dura 30 minutos.** `EN_PROCESO_ADUANAL` arranca 30 minutos después de la notificación del arribo |
+
+
+> **La regla de los 30 minutos tiene una consecuencia que conviene no pasar por
+> alto.** Es la **única transición de estado que dispara el paso del tiempo** y no
+> la llegada de un dato. Todas las demás ocurren cuando entra una lectura o una
+> intervención manual, que es lo que `US-12` recalcula. Un temporizador no es un
+> cambio de insumo.
+>
+> **Cómo se resuelve:** el planificador del worker ya late periódicamente para
+> consultar ADS-B (`US-07`), así que en ese mismo tic barre los pedidos con
+> `etapa_viaje = EN_DESTINO` cuyo arribo lleva más de 30 minutos y los pasa a
+> `EN_PROCESO_ADUANAL`. No hace falta un temporizador aparte ni calcular el
+> estado en tiempo de consulta.
+>
+> Los 30 minutos viven en `parametros_sistema` como
+> `duracion_en_destino_minutos`, no en el código (RNF-07, RNF-15).
 
 Se conserva `estado_calculado` como columna almacenada y no como vista
 calculada para que la grilla de `US-19` pueda filtrar e indexar por ella sin
@@ -1313,6 +1350,7 @@ Los parámetros que el SRS ya obliga a tener:
 | `tolerancia_recepcion_pct` | 10 | RN-10 |
 | `intervalo_consulta_adsb_s` | 31 | Spike TG-11 |
 | `intervalo_minimo_persistencia_s` | *a definir* | Decisión del 25/08, §3.6 |
+| `duracion_en_destino_minutos` | 30 | Decisión del 26/08, RN-05 contra RN-06 |
 
 Es la única entidad del modelo con **clave primaria natural**: `clave` es
 estable, legible y se usa literalmente en el código (`obtener_parametro('umbral_riesgo_horas')`).

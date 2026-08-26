@@ -32,7 +32,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-20` | Arquitectura: vista de componentes ✅ | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / arquitectura |
 | `TASK-21` | Arquitectura: vista de despliegue (instalacion nativa) ✅ | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / arquitectura (decision: sin Docker) |
 | `TASK-22` | Arquitectura: vista de secuencia (flujo de tracking) ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / arquitectura |
-| `US-34` | Wireframe del dashboard principal (grilla, filtros y KPIs) | Story | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / prototipo |
+| `US-34` | Wireframe del dashboard principal (grilla, filtros y KPIs) ✅ | Story | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / prototipo |
 | `US-35` | Wireframe del mapa marítimo | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-36` | Wireframe del mapa aéreo | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-37` | Wireframe del detalle de pedido | Story | OE1 | **Should** | Sprint 2 | 4h | Diseño OE1 / prototipo |
@@ -359,7 +359,7 @@ Como desarrollador, quiero elaborar el diagrama de secuencia del flujo principal
 >
 > **Lo que el diagrama hace visible:** las dos mitades no se tocan. El worker corre sin usuario presente y la API responde sin esperar a nadie; lo unico que comparten es la base. Ahi se ve por que RNF-03 y RNF-12 se pueden cumplir. Tambien se ve donde la secuencia deja de ser simetrica entre vias: geometria para lo maritimo, `on_ground` para lo aereo.
 
-#### US-34 — Wireframe del dashboard principal (grilla, filtros y KPIs)
+#### US-34 — Wireframe del dashboard principal (grilla, filtros y KPIs) ✅ HECHA
 
 Como usuario de Compras, quiero revisar un wireframe del dashboard con grilla, filtros y KPIs, para validar la vista principal antes de que se construya.
 
@@ -377,6 +377,10 @@ Como usuario de Compras, quiero revisar un wireframe del dashboard con grilla, f
 | Estimacion | 6 h |
 | Origen | Diseño OE1 / prototipo |
 | Etiquetas | `frontend,ux,wireframe` |
+
+> **Completada el 26/08.** Frame `01-dashboard` montado en Figma. Especificacion de contenido en `docs/design/wireframes.md` §1, con trazabilidad a RF-04, RF-15, RF-19, RF-20, RF-27 y RNF-08.
+>
+> Incluye el bloque de proximos arribos (decision del 25/08) y siete preguntas para la sesion del 4/09. Al armar los datos de ejemplo aparecieron los tres solapamientos de reglas que se resolvieron el 26/08.
 
 #### US-35 — Wireframe del mapa marítimo
 
@@ -536,6 +540,10 @@ Como estudiante practicante, quiero el SRS actualizado a v0.4 con las decisiones
 - Dada la seccion 8.1, cuando la actualizo, entonces enumera las **diez** entidades del modelo aprobado, incluidas `auditoria_intervenciones`, `parametros_sistema` y `pedido_elemento_rastreado`
 - Dadas las secciones 8.2 a 8.5, cuando las corrijo, entonces reflejan los campos incorporados, el tipo `GEOGRAPHY` en lugar de `GEOMETRY`, `id_elemento_rastreado` como `BIGINT` y no `VARCHAR`, y la salida de `tramo` de `elementos_rastreados`
 - Dada RN-05, cuando la actualizo, entonces distingue el criterio de arribo aereo (`on_ground`) del maritimo (geocerca), y contempla el radio por destino
+- Dada RN-07, cuando la reescribo, entonces exige margen **mayor** que el umbral y no solo «anterior o igual», dejando escrito que **RN-08 prevalece por ser mas especifica** (decision del 26/08)
+- Dado el umbral de RN-11, cuando lo reescribo, entonces queda fijado en **2 dias** al aplicarse entre dos valores `DATE` sin hora (decision del 26/08)
+- Dadas RN-05 y RN-06, cuando las reescribo, entonces `En destino` **dura 30 minutos** y `En proceso aduanal` arranca 30 minutos despues de la notificacion del arribo, con la duracion en la tabla de parametros (decision del 26/08)
+- Dada RN-05, cuando la reviso, entonces el modelo distingue los **tres origenes de arribo** que la regla exige: `ata_api` de la fuente, `ata_inferida` del sistema y `ata_confirmada` manual
 - Dado el supuesto de la seccion 9.4 sobre la entrega de la especificacion de SAP, cuando lo reviso, entonces queda registrado como **incumplido** y remite al riesgo R2
 - Dado el historial de revisiones, cuando lo consulto, entonces registra v0.4 con su fecha y la descripcion de los cambios
 
@@ -905,6 +913,11 @@ Como usuario de Compras, quiero que cada pedido tenga su estado calculado automa
 | MoSCoW | **Must** |
 | Estimacion | 12 h |
 | Origen en el SRS | RF-11 / RN-02 a RN-11 |
+
+> **Reglas desambiguadas el 26/08**, necesarias para implementar el motor:
+> 1. **RN-08 prevalece sobre RN-07.** `A_TIEMPO` exige margen mayor que el umbral; dentro del umbral es `EN_RIESGO`.
+> 2. **El umbral son 2 dias**, no 48 h, porque ambas fechas son `DATE` sin hora.
+> 3. **`EN_DESTINO` dura `duracion_en_destino_minutos` (30 por defecto)** y luego pasa a `EN_PROCESO_ADUANAL`. Es la **unica transicion que dispara el tiempo** y no un dato nuevo: la barre el tic periodico del planificador de US-07, no US-12.
 | Etiquetas | `backend,calculo,nucleo` |
 
 #### US-11 — Inferir el arribo a destino por geocerca de proximidad

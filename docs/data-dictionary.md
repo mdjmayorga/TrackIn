@@ -57,16 +57,17 @@ línea, no la orden: ver [`data-model.md` §1.1](data-model.md).
 | 14 | `ajuste_manual_dias` | `INTEGER` | no, *default* `0` | | Entero, puede ser negativo | Ajuste manual opcional que RN-01 suma a la fórmula. Un valor distinto de cero es una intervención y debe quedar registrada en `auditoria_intervenciones`. |
 | 15 | `eta_utilizada` | `TIMESTAMPTZ` | sí | | Instante UTC | ETA **empleada en el último cálculo**, copiada de `elementos_rastreados` o estimada por RN-16. Se guarda para que la cifra sea auditable; la ETA vigente cambia con cada lectura. |
 | 16 | `ata_confirmada` | `TIMESTAMPTZ` | sí | | Instante UTC | Llegada confirmada manualmente por Logística. Cuando existe, **prevalece sobre la ETA** por RN-14. `NULL` significa que nadie la ha confirmado. |
-| 17 | `fecha_proyectada_disponible` | `DATE` | sí | | Fecha | Resultado de RN-01: ETA o ATA + lead time + ajuste. `NULL` es significativo: indica «ETA no estimable» conforme a RN-16, situación de nave fondeada o por debajo de la velocidad mínima. |
-| 18 | `etapa_viaje` | `VARCHAR(20)` | no | | `SIN_TRACKING` · `EN_ORIGEN` · `EN_TRANSITO` · `EN_DESTINO` · `EN_PROCESO_ADUANAL` (`ck_pedidos_transito_etapa_viaje`) | Dónde se encuentra la carga, según RN-02 a RN-06. Es una de las **dos** dimensiones del estado; ver §1.4 del modelo. |
-| 19 | `estado_cumplimiento` | `VARCHAR(20)` | **sí** | | `A_TIEMPO` · `EN_RIESGO` · `RETRASADO`, o `NULL` (`ck_pedidos_transito_estado_cumplimiento`) | Si la línea llegará a tiempo, según RN-07 a RN-09. `NULL` cuando no hay `fecha_proyectada_disponible`: sin proyección no se puede afirmar nada, y ningún valor del dominio expresa eso. |
-| 20 | `estado_calculado` | `VARCHAR(20)` | no | | Los ocho anteriores más `CERRADO` y `CANCELADO` (`ck_pedidos_transito_estado_calculado`) | Estado único que exige RF-11, **derivado** de las dos columnas anteriores por la precedencia de §1.4 del modelo. Es el que consumen la grilla, los filtros y el semáforo de RNF-08. Se almacena, no se calcula en consulta, para poder indexarlo. |
-| 21 | `fecha_ultimo_recalculo` | `TIMESTAMPTZ` | sí | | Instante UTC | Momento del último recálculo de estado y fecha proyectada. `NULL` distingue «nunca recalculado» de «recalculado sin cambios», que es lo que necesita US-23 para indicar frescura. |
-| 22 | `fecha_recepcion_planta` | `TIMESTAMPTZ` | sí | | Instante UTC | Ingreso efectivo a planta o almacén (RF-25). Obligatorio cuando `motivo_cierre = 'RECEPCION_CONFORME'`. |
-| 23 | `cantidad_recibida` | `NUMERIC(14,3)` | sí | | `>= 0` (`ck_pedidos_transito_cantidad_recibida`) | Cantidad efectivamente recibida. RN-10 la compara con `cantidad_pedida` dentro del margen de tolerancia, que **no** está en el esquema sino en `parametros_sistema`. |
-| 24 | `motivo_cierre` | `VARCHAR(25)` | sí | | `RECEPCION_CONFORME` · `CIERRE_FORZADO` · `CANCELACION`, o `NULL` (`ck_pedidos_transito_motivo_cierre`) | Causa del estado terminal según RN-13. `NULL` equivale a pedido vivo, y es la condición que usan los índices parciales del dashboard. |
-| 25 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. Metadato técnico: **no** sustituye a la auditoría de RF-14. |
-| 26 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación de la fila. Metadato técnico. |
+| 17 | `ata_inferida` | `TIMESTAMPTZ` | sí | | Instante UTC | Instante en que **el sistema determinó** el arribo, por geocerca en lo marítimo o por `on_ground` en lo aéreo. Distinto de `ata_confirmada`, que es manual, y de `elementos_rastreados.ata_api`, que lo reporta la fuente: RN-05 exige distinguir los tres. Es el ancla desde la que corren los 30 minutos de `EN_DESTINO`. |
+| 18 | `fecha_proyectada_disponible` | `DATE` | sí | | Fecha | Resultado de RN-01: ETA o ATA + lead time + ajuste. `NULL` es significativo: indica «ETA no estimable» conforme a RN-16, situación de nave fondeada o por debajo de la velocidad mínima. |
+| 19 | `etapa_viaje` | `VARCHAR(20)` | no | | `SIN_TRACKING` · `EN_ORIGEN` · `EN_TRANSITO` · `EN_DESTINO` · `EN_PROCESO_ADUANAL` (`ck_pedidos_transito_etapa_viaje`) | Dónde se encuentra la carga, según RN-02 a RN-06. Es una de las **dos** dimensiones del estado; ver §1.4 del modelo. |
+| 20 | `estado_cumplimiento` | `VARCHAR(20)` | **sí** | | `A_TIEMPO` · `EN_RIESGO` · `RETRASADO`, o `NULL` (`ck_pedidos_transito_estado_cumplimiento`) | Si la línea llegará a tiempo, según RN-07 a RN-09. `NULL` cuando no hay `fecha_proyectada_disponible`: sin proyección no se puede afirmar nada, y ningún valor del dominio expresa eso. |
+| 21 | `estado_calculado` | `VARCHAR(20)` | no | | Los ocho anteriores más `CERRADO` y `CANCELADO` (`ck_pedidos_transito_estado_calculado`) | Estado único que exige RF-11, **derivado** de las dos columnas anteriores por la precedencia de §1.4 del modelo. Es el que consumen la grilla, los filtros y el semáforo de RNF-08. Se almacena, no se calcula en consulta, para poder indexarlo. |
+| 22 | `fecha_ultimo_recalculo` | `TIMESTAMPTZ` | sí | | Instante UTC | Momento del último recálculo de estado y fecha proyectada. `NULL` distingue «nunca recalculado» de «recalculado sin cambios», que es lo que necesita US-23 para indicar frescura. |
+| 23 | `fecha_recepcion_planta` | `TIMESTAMPTZ` | sí | | Instante UTC | Ingreso efectivo a planta o almacén (RF-25). Obligatorio cuando `motivo_cierre = 'RECEPCION_CONFORME'`. |
+| 24 | `cantidad_recibida` | `NUMERIC(14,3)` | sí | | `>= 0` (`ck_pedidos_transito_cantidad_recibida`) | Cantidad efectivamente recibida. RN-10 la compara con `cantidad_pedida` dentro del margen de tolerancia, que **no** está en el esquema sino en `parametros_sistema`. |
+| 25 | `motivo_cierre` | `VARCHAR(25)` | sí | | `RECEPCION_CONFORME` · `CIERRE_FORZADO` · `CANCELACION`, o `NULL` (`ck_pedidos_transito_motivo_cierre`) | Causa del estado terminal según RN-13. `NULL` equivale a pedido vivo, y es la condición que usan los índices parciales del dashboard. |
+| 26 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. Metadato técnico: **no** sustituye a la auditoría de RF-14. |
+| 27 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación de la fila. Metadato técnico. |
 
 ### 1.2 Restricciones de tabla
 
@@ -366,6 +367,7 @@ tienen de dónde leer sus umbrales:
 | `tolerancia_recepcion_pct` | `DECIMAL` | `10` | RN-10 — margen para cerrar por recepción |
 | `intervalo_consulta_adsb_s` | `ENTERO` | `31` | Spike TG-11 — cadencia sostenible de OpenSky |
 | `intervalo_minimo_persistencia_s` | `ENTERO` | **a definir** | Decisión del 25/08 — frena el crecimiento del historial |
+| `duracion_en_destino_minutos` | `ENTERO` | `30` | Decisión del 26/08 — cuánto dura `EN_DESTINO` antes de pasar a `EN_PROCESO_ADUANAL` |
 
 **Los tres «a definir» son datos de Logística**, no decisiones técnicas, y
 bloquean el Sprint 4.
