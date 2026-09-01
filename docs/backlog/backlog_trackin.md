@@ -33,9 +33,9 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-21` | Arquitectura: vista de despliegue (instalacion nativa) ✅ | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / arquitectura (decision: sin Docker) |
 | `TASK-22` | Arquitectura: vista de secuencia (flujo de tracking) ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / arquitectura |
 | `US-34` | Wireframe del dashboard principal (grilla, filtros y KPIs) ✅ | Story | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / prototipo |
-| `US-35` | Wireframe del mapa marítimo | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
-| `US-36` | Wireframe del mapa aéreo | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
-| `US-37` | Wireframe del detalle de pedido | Story | OE1 | **Should** | Sprint 2 | 4h | Diseño OE1 / prototipo |
+| `US-35` | Wireframe del mapa marítimo ✅ | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
+| `US-36` | Wireframe del mapa aéreo ✅ | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
+| `US-37` | Wireframe del detalle de pedido ✅ | Story | OE1 | **Should** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-38` | Prototipo interactivo navegable en Figma | Story | OE1 | **Must** | Sprint 2 | 8h | Diseño OE1 / prototipo |
 | `US-39` | Validación de prototipos con usuarios clave | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / criterio de aceptación de OE1 |
 | `TASK-01` | Esquema de base de datos y migraciones Alembic | Task | OE4 | **Must** | Sprint 3 | 14h | SRS 8.1-8.5 |
@@ -382,7 +382,7 @@ Como usuario de Compras, quiero revisar un wireframe del dashboard con grilla, f
 >
 > Incluye el bloque de proximos arribos (decision del 25/08) y siete preguntas para la sesion del 4/09. Al armar los datos de ejemplo aparecieron los tres solapamientos de reglas que se resolvieron el 26/08.
 
-#### US-35 — Wireframe del mapa marítimo
+#### US-35 — Wireframe del mapa marítimo ✅ HECHA
 
 Como usuario de Logística, quiero revisar un wireframe del mapa marítimo con marcadores y tooltips, para validar la visualizacion de las cargas maritimas antes de construirla.
 
@@ -400,7 +400,13 @@ Como usuario de Logística, quiero revisar un wireframe del mapa marítimo con m
 | Origen | Diseño OE1 / prototipo |
 | Etiquetas | `frontend,ux,wireframe` |
 
-#### US-36 — Wireframe del mapa aéreo
+> **Completada el 27/08** en `docs/design/wireframes.md` §2 y en el borrador visual (frame `02-mapa-maritimo`). Los dos criterios de aceptacion se satisfacen: marcadores geolocalizados coloreados por estado en §2.2, y emergente en §2.3.
+>
+> El criterio pedia un tooltip con «OC, nave y estado», que asume un pedido por marcador. Se entrego el contenido completo de RF-18 en formato de tabla, porque §8.6 del SRS establece que varias lineas de OC viajan en el mismo buque: el criterio se cumple **por exceso**, no por desviacion. La decision de colorear por `etapa_viaje` con anillo de peor cumplimiento (§2.2) queda a validar en `US-39`.
+>
+> Deja dos aportes fuera de su alcance: el contador de pedidos sin posicion (§2.6), que ningun RF cubre, y la verificacion de que la red de Gutis no bloquea los mosaicos de OpenStreetMap (§2.8), que descarta el riesgo del Sprint 7.
+
+#### US-36 — Wireframe del mapa aéreo ✅ HECHA
 
 Como usuario de Logística, quiero revisar un wireframe del mapa aéreo con rutas y estados, para validar la visualizacion de las cargas aereas antes de construirla.
 
@@ -418,7 +424,17 @@ Como usuario de Logística, quiero revisar un wireframe del mapa aéreo con ruta
 | Origen | Diseño OE1 / prototipo |
 | Etiquetas | `frontend,ux,wireframe` |
 
-#### US-37 — Wireframe del detalle de pedido
+> **Completada el 27/08** en `docs/design/wireframes.md` §3 y en el borrador visual (frame `03-mapa-aereo`). Los dos criterios de aceptacion se satisfacen: posicion y ruta del vuelo con su estado en §3.4, y carga asociada con su ETA en el emergente de §3.8.
+>
+> **La vista no reutiliza el mapa maritimo tal cual**, y §3.1 lista las cinco diferencias con su origen medido. Las tres de fondo: no se dibuja geocerca porque el arribo aereo se decide por `on_ground` (decision del 25/08) y el circulo sugeriria una regla que no aplica (§3.2); el marcador solo vale dentro de la ventana del tramo, porque un `icao24` vuela otra ruta a las pocas horas (§3.3, evidencia TG-11); y un marcador atenuado en descenso significa «probablemente aterrizo», no «esta lejos» (§3.5, caso `LRS1018`).
+>
+> **Deja tres puntos abiertos que no son de diseño:**
+>
+> 1. La ruta **recorrida** depende de `US-29`, hoy `Could` del Sprint 7. Si cae, `US-26` entrega solo la ruta prevista. Conviene decidirlo antes del Sprint 7 (§3.4).
+> 2. Si el sondeo ADS-B es por ventanas activas —la recomendacion del spike TG-11—, los horarios de la ventana son un parametro de `US-17`, y el indicador de frescura necesita **tres** estados, no dos (§3.7).
+> 3. MRLB no tiene cobertura ADS-B (riesgo R5, tres muestras en cero). Sus pedidos no esperan su primera lectura: no la van a tener. El wireframe los cuenta aparte de los `SIN_TRACKING` (§3.6).
+
+#### US-37 — Wireframe del detalle de pedido ✅ HECHA
 
 Como usuario de Compras, quiero revisar un wireframe de la vista de detalle de un pedido, para validar que muestre toda la informacion e historial necesarios.
 
@@ -435,6 +451,18 @@ Como usuario de Compras, quiero revisar un wireframe de la vista de detalle de u
 | Estimacion | 4 h |
 | Origen | Diseño OE1 / prototipo |
 | Etiquetas | `frontend,ux,wireframe` |
+
+> **Completada el 28/08** en `docs/design/wireframes.md` §4 y en el borrador visual (frame `04-detalle-pedido`). Los dos criterios de aceptacion se satisfacen: datos maestros, estado, ETA proyectada y trazabilidad en §4.1 a §4.3, y linea de tiempo de posiciones y estados en §4.5.
+>
+> **La linea de tiempo se aparta de la lectura literal del criterio, y conviene que conste.** Pedia «posiciones y estados» en una sola secuencia; un viaje de tres semanas produce decenas de miles de posiciones y menos de diez eventos, de modo que fundirlas entierra lo que importa. La vista muestra los eventos y **pliega las posiciones entre ellos** con su conteo y un enlace. La secuencia cronologica existe y es legible, y la posicion individual sigue a un clic.
+>
+> **Deja tres puntos abiertos, dos de ellos fuera de diseño:**
+>
+> 1. **Falta un valor en el dominio de `tipo_intervencion`.** Asociar un identificador de rastreo es una intervencion manual sobre un pedido —la exige `US-20` en su tercer criterio— y cae de lleno en RF-14, pero los cinco valores modelados no la cubren. Propuesto `ASOCIACION_TRACKING`. Va a `TASK-25` y lo consume `US-15` (§4.7).
+> 2. **`velocidad_minima_eta` sigue como *a definir*.** Cuando RN-16 no proyecta, la vista muestra distancia, velocidad e instante —los tres insumos que la regla exige exponer— y el umbral contra el que fallo. La vista se puede construir sin el valor; **validarla el 4 de septiembre, no** (§4.4).
+> 3. **El lead time usado no es el vigente.** El snapshot de `lead_time_destino_dias` puede diferir del maestro hasta que `US-12` recalcule, y ninguno de los dos esta mal. Esta es la unica vista donde la diferencia es visible, y se muestra al margen para evitar que se lea como un error (§4.1).
+>
+> Nota de interfaz para `US-14`, `US-18` y `US-12`: RF-14 exige el **motivo declarado** en cada intervencion, de modo que **ninguna accion puede ser un boton que ejecuta al pulsarlo**. Todas abren confirmacion con campo de motivo obligatorio (§4.8).
 
 > **Devuelta al Sprint 2 el 25/08.** Se había movido al Sprint 6 el 24/08 para aliviar carga, pero `US-38` exige navegar «entre dashboard, mapas **y detalle de pedido**»: sin este wireframe, el prototipo no puede cumplir su criterio y la sesion de validacion del 4 de septiembre se quedaria sin la vista donde vive el desglose del calculo de la ETA (RF-05), que es lo mas novedoso del producto.
 
