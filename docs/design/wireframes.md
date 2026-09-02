@@ -11,12 +11,17 @@ trazabilidad al margen.
 
 ## Estado
 
-| Vista | Historia | Especificación | Frame de Figma |
-|---|---|---|---|
-| Dashboard | `US-34` | ✅ 25/08/2026 | ✅ 26/08/2026 |
-| Mapa marítimo | `US-35` | ✅ 26/08/2026 | ✅ 27/08/2026 |
-| Mapa aéreo | `US-36` | ✅ 27/08/2026 | ✅ 27/08/2026 |
-| Detalle de pedido | `US-37` | ✅ 28/08/2026 | ✅ 28/08/2026 |
+| Vista | Historia | Especificación | Frame de Figma | Validado con usuarios |
+|---|---|---|---|---|
+| Dashboard | `US-34` | ✅ 25/08/2026 | ✅ 26/08/2026 | ✅ 01/09/2026 |
+| Mapa marítimo | `US-35` | ✅ 26/08/2026 | ✅ 27/08/2026 | ✅ 01/09/2026 |
+| Mapa aéreo | `US-36` | ✅ 27/08/2026 | ✅ 27/08/2026 | ✅ 01/09/2026 |
+| Detalle de pedido | `US-37` | ✅ 28/08/2026 | ✅ 28/08/2026 | ✅ 01/09/2026 |
+
+Las 14 respuestas de la sesión están en
+[`../backlog/dudas_sesion_validacion.md`](../backlog/dudas_sesion_validacion.md)
+§A, y ya aplicadas a este documento, al backlog y al borrador
+[`wireframes.html`](wireframes.html).
 
 ## Convenciones
 
@@ -65,7 +70,11 @@ Cinco tarjetas entre los KPIs y los filtros. Cada una: OC y posición, material,
 fecha proyectada con días restantes, destino y vía, y el distintivo de
 cumplimiento.
 
-**La regla de RF-27 tiene dos niveles, y ahí está la trampa:**
+> 🔴 **RF-27 cambió el 01/09.** Los usuarios pidieron **los cinco arribos más próximos, sin más**: se elimina el segundo nivel de la regla y con él las tarjetas de relleno. Lo que sigue describe la regla anterior y queda **derogado**; `TASK-25` debe llevar el cambio al SRS y `US-28` ya no necesita distinguir dos poblaciones.
+>
+> Efecto lateral bueno: desaparece el riesgo de que el bloque afirme que cinco pedidos llegan pronto cuando dos no.
+
+**~~La regla de RF-27 tiene dos niveles, y ahí está la trampa:~~** *(derogado)*
 
 1. Los cinco pedidos con `fecha_proyectada_disponible` más cercana **dentro de
    los 7 días** siguientes.
@@ -121,8 +130,10 @@ Con ordenamiento por columna y paginación, sobre el volumen de referencia de
 | `A_TIEMPO` | Verde | RN-07 |
 | `EN_RIESGO` | Naranja | RN-08 |
 | `RETRASADO` | Rojo | RN-09 |
-| `CERRADO` | **Neutro con contorno** | RN-10 — *sin color en el SRS* |
+| `CERRADO` | **Blanco, letras negras** | RN-10 — *sin color en el SRS* |
 | `CANCELADO` | Gris oscuro | RN-15 |
+
+> **Validado el 01/09:** los usuarios aprobaron **fondo blanco con letras negras**. Se conserva el contorno gris, sin el cual el distintivo desaparece sobre la fila blanca de la grilla.
 
 **`CERRADO` es el único color que no venía dado.** El SRS asigna color a nueve
 de los diez estados. Se resolvió el 25/08 como neutro con contorno, y no como
@@ -157,7 +168,7 @@ No solo el caso feliz. Las nueve filas de ejemplo cubren:
 | 2 | ¿El guion en «Cumplimiento» se entiende, o hace falta etiqueta explícita? | `US-19` |
 | 3 | ¿Agrupar visualmente las líneas de una misma OC, o repetir la OC está bien? | `US-19` |
 | 4 | ¿Se aprueba el neutro para `CERRADO`? | `US-24` y `TASK-25` (el SRS debe fijarlo) |
-| 5 | ¿La búsqueda por OC es exacta o por fragmento? | Índice de `pedidos_transito`, §1.8 del modelo |
+| 5 | ¿La búsqueda por OC es exacta o por fragmento? | ✅ **Por prefijo** — 01/09. El btree de `pedidos_transito` §1.8 basta |
 | 6 | ¿Se entiende que las tarjetas punteadas de próximos arribos son relleno y no arribos cercanos? | `US-28` |
 | 7 | Al filtrar por estado terminal, ¿la grilla cambia `ETA` y `F. proyectada` por `F. recepción` y `Cantidad recibida`? | `US-19` |
 
@@ -284,7 +295,7 @@ pedido a bordo.
 | Barra de filtros | RF-19 | Los seis filtros aplican también al mapa |
 | Lienzo del mapa | RF-16 | Leaflet; centrado en el Caribe con Moín visible |
 | Marcadores de nave | RF-16 | Uno por `elemento_rastreado` con posición conocida |
-| Geocerca del destino | RN-05 | Círculo de `radio_geocerca_km` alrededor de Moín |
+| ~~Geocerca del destino~~ | RN-05 | **Retirada el 01/09.** No se mostró en Figma y los usuarios no la echaron de menos. El arribo inferido sigue explicándose en el detalle de pedido |
 | Emergente | RF-18 | Tabla de pedidos a bordo |
 | Leyenda | RNF-08 | Solo los estados que aparecen en lo marítimo |
 | Contador de pedidos sin posición | **§2.6** | No es de ningún RF |
@@ -366,11 +377,16 @@ spikes, no por preferencia.
 | 4 | Sin lectura = está lejos | Sin lectura = **pudo haber aterrizado** | TG-11, caso `LRS1018` |
 | 5 | Fuente continua por WebSocket | Sondeo con cuota diaria de 4000 créditos | TG-11 fases 1 y 3 |
 
-### 3.2 Aquí no se dibuja la geocerca, y es deliberado
+### 3.2 Aquí la geocerca no aplica como regla, y tampoco se dibuja
 
-El mapa marítimo dibuja el círculo de `radio_geocerca_km` alrededor de Moín
-porque RN-05 decide el arribo con él. **En el aéreo el círculo sería una mentira
-gráfica:** el arribo lo decide `on_ground`, por decisión del 25/08
+> **Actualizado el 01/09.** Los usuarios pidieron **retirar el círculo también del
+> mapa marítimo** (respuesta A10), así que ninguna de las dos vistas lo dibuja.
+> Lo que sigue conserva su valor porque la diferencia de fondo no era gráfica
+> sino **de regla**: en lo marítimo la proximidad decide el arribo, en lo aéreo no.
+
+RN-05 decide el arribo marítimo por proximidad al puerto, y esa regla sigue
+vigente aunque el círculo ya no se pinte. **En el aéreo el círculo sería además
+una mentira gráfica:** el arribo lo decide `on_ground`, por decisión del 25/08
 (`data-model.md` §2.5, punto 4 de §2.10). Dibujar un círculo alrededor de MROC
 haría creer que entrar en él significa haber llegado, y no significa nada —
 cincuenta kilómetros alrededor de Juan Santamaría cubren buena parte del Valle
@@ -556,7 +572,7 @@ error de redondeo.
 | Lienzo del mapa | RF-17 | Leaflet; encuadre de la ruta activa, no de Costa Rica |
 | Marcadores de aeronave | RF-17 | Uno por `elemento_rastreado` en vuelo |
 | Rutas | `US-36` | Punteada la prevista, continua la recorrida (§3.4) |
-| Aeropuertos de destino | `maestro_destinos` | MROC y MRLB, **sin círculo de geocerca** (§3.2) |
+| Aeropuertos de destino | `maestro_destinos` | MROC y MRLB, **sin círculo** — como el marítimo desde el 01/09 (§3.2) |
 | Emergente | RF-18 | Tabla de pedidos a bordo, con altitud (§3.8) |
 | Leyenda | RNF-08 | Las mismas tres codificaciones de `US-35` |
 | Contador de pedidos sin posición | §3.6 | Desglosado por razón |
@@ -656,11 +672,17 @@ tiene columna propia: se deriva por precedencia** (`data-model.md` §1.3).
 En la grilla hay una sola columna de fecha, así que la distinción se pierde por
 falta de espacio. Aquí caben las tres, cada una con su origen:
 
-| Origen | Campo | Ejemplo |
+| Origen | Campo | En el borrador |
 |---|---|---|
-| `MANUAL` | `ata_confirmada` | — |
-| `FUENTE` | `elementos_rastreados.ata_api` | `07/09/2026 02:10` |
-| `INFERIDO` | `ata_inferida` | `07/09/2026 01:44` |
+| `MANUAL` | `ata_confirmada` | *sin confirmar* |
+| `FUENTE` | `elementos_rastreados.ata_api` | *sin reportar* |
+| `INFERIDO` | `ata_inferida` | *fuera de la geocerca* |
+
+> **Corregido el 01/09.** El ejemplo mostraba las tres vías con fechas del 7 de
+> septiembre para un pedido que la grilla marca `EN TRÁNSITO` y cuyo «ahora» es el
+> 25 de agosto: un arribo diez días en el futuro. Como el pedido de esta pantalla
+> —`4500012847·10`— sigue navegando, **las tres vías van vacías**. La grilla ya
+> tiene un pedido arribado, `4500012760·40`, si se quiere ilustrar el caso lleno.
 
 **Cuando dos de los tres discrepan, la discrepancia es información.** Veintiséis
 minutos entre lo que infirió la geocerca y lo que reportó la fuente no es un
@@ -715,10 +737,12 @@ ellos.** Cada tramo entre dos eventos muestra su conteo —«1 284 posiciones»�
 enlace al historial completo. Así la secuencia cronológica existe y es legible,
 y la posición individual sigue estando a un clic.
 
-> El historial posición por posición, con su `payload_api`, es `US-29` — y es
-> **`Could`** del Sprint 7. Esta vista **tiene que ser útil sin ella**: por eso
-> el conteo plegado es contenido de `US-20`, no de `US-29`. Si `US-29` entra, el
-> enlace abre la tabla; si no entra, el conteo sigue diciendo lo que hubo.
+> **Resuelto el 01/09 (decisión B3).** `US-29` **se mantiene en `Could`** y el
+> enlace «ver historial» **se retiró del detalle**: el conteo plegado queda como
+> dato informativo sin acción, y es contenido de `US-20`. Si en algún momento se
+> considera que RF-22 queda incumplido por eso, hay que reabrir la decisión.
+>
+> El conteo sigue diciendo lo que hubo.
 
 ### 4.6 El transbordo parte la línea de tiempo, y hay que verlo
 

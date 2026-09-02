@@ -554,10 +554,12 @@ razonamiento habitual:
 3. **Postgres no indexa las claves foráneas automáticamente.** Los cuatro
    índices de FK se declaran a mano; sin ellos, cada verificación de integridad
    y cada join con las tablas maestras degrada a *seq scan*.
-4. `ix_pedidos_transito_oc_numero` asume búsqueda **exacta o por prefijo**. Si
-   la validación de `US-39` revela que el usuario busca por fragmento del número
-   —`ILIKE '%1234%'`—, un btree no sirve y hay que pasar a `pg_trgm`. Queda
-   como punto a verificar en la sesión con usuarios clave.
+4. `ix_pedidos_transito_oc_numero` sirve para búsqueda **exacta o por prefijo**,
+   y eso es lo que se validó. Los usuarios describieron el caso real el 01/09:
+   escribir «4500» y obtener todas las OC que **inician** con esa serie, o sea
+   `oc_numero LIKE '4500%'`, que el btree resuelve. **No hace falta `pg_trgm`**
+   y la persistencia sigue dependiendo solo de PostgreSQL con PostGIS, como
+   acota RNF-20.
 
 ### 1.9 Puntos abiertos que deja `TASK-12`
 
@@ -566,7 +568,7 @@ razonamiento habitual:
 | 1 | ¿Dos columnas de estado o una? (§1.4) | Greivin | ✅ **Dos columnas más la derivada** — 25/08 |
 | 2 | Longitud real de `oc_numero` y formato de `posicion_oc` | Especificación de SAP (riesgo R2) | ⚠️ **Sin fecha: el proceso con SAP está varado** (25/08) |
 | 3 | PK sustituta o natural en `maestro_destinos` (§1.7) | `TASK-13` | ✅ Sustituta — 25/08 |
-| 4 | ¿Búsqueda de OC exacta o por fragmento? (§1.8) | Usuarios clave en `US-39` | Semana del 1–4 sep |
+| 4 | ¿Búsqueda de OC exacta o por fragmento? (§1.8) | Usuarios clave en `US-39` | ✅ **Por prefijo**; el btree basta — 01/09 |
 | 5 | Formato de `tracking_interno`: ¿lo define Gutis o lo genera TrackIn? | Greivin | ✅ **Lo genera TrackIn** — 25/08 |
 
 ---
@@ -1311,13 +1313,17 @@ Sprint 5 sin tener entidad modelada.
 | `id_pedido` | `BIGINT` → `pedidos_transito` | no | `ON DELETE RESTRICT` |
 | `id_usuario` | `BIGINT` → `usuarios` | no | `ON DELETE RESTRICT` |
 | `fecha_hora` | `TIMESTAMPTZ` | no | *default* `now()` |
-| `tipo_intervencion` | `VARCHAR(30)` | no | `CONFIRMACION_DESEMBARCO`, `RECEPCION_PLANTA`, `TRANSBORDO`, `AJUSTE_MANUAL`, `CIERRE_FORZADO` |
+| `tipo_intervencion` | `VARCHAR(30)` | no | `CONFIRMACION_DESEMBARCO`, `RECEPCION_PLANTA`, `TRANSBORDO`, `AJUSTE_MANUAL`, `CIERRE_FORZADO`, `ASOCIACION_TRACKING` |
 | `campo_afectado` | `VARCHAR(50)` | sí | |
 | `valor_anterior` | `TEXT` | sí | |
 | `valor_nuevo` | `TEXT` | sí | |
 | `motivo` | `VARCHAR(300)` | no | RF-14 lo exige declarado |
 
 Append-only, como `historial_tracking` y por la misma razón.
+
+> **`ASOCIACION_TRACKING` se agregó el 01/09 (decisión B6).** Asociar un identificador de rastreo a un pedido (`US-01`, RF-03) es una intervención manual sobre un pedido y cae de lleno en RF-14, pero el dominio no la cubría. El hueco apareció al dibujar el estado vacío del detalle de pedido.
+>
+> **La autoría no está autenticada** (decisión B5). Al quedar la autenticación fuera del alcance de la práctica, `id_usuario` se llena con el usuario que se elige en el diálogo de cada intervención, sin que el sistema verifique su identidad. La auditoría registra quién *dijo* ser, no quién *era*: es una limitación conocida y el SRS v0.4 debe declararla.
 
 ### 8.3 `parametros_sistema` — la citan RN-05 y RN-11
 

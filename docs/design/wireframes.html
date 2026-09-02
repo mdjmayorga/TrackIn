@@ -127,7 +127,7 @@ h2{
   letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft);
 }
 .arrivals-head .hint{margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-soft)}
-.arr-row{display:grid; grid-template-columns:repeat(5,1fr); gap:8px}
+.arr-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
 @media (max-width:860px){ .arr-row{grid-template-columns:repeat(2,1fr)} }
 .arr{
   border:1px solid var(--line-hard); background:var(--box); padding:8px 10px;
@@ -177,7 +177,7 @@ tbody tr:hover{background:var(--panel)}
 .c-atiempo{background:var(--s-atiempo); color:var(--on-chip)}
 .c-riesgo{background:var(--s-riesgo); color:var(--on-chip-dark)}
 .c-retrasado{background:var(--s-retrasado); color:var(--on-chip)}
-.c-cerrado{background:var(--s-cerrado); color:var(--ink-mid); border-color:var(--s-cerrado-line)}
+.c-cerrado{background:var(--s-cerrado); color:var(--on-chip-dark); border-color:var(--s-cerrado-line)}
 .c-cancelado{background:var(--s-cancelado); color:var(--on-chip)}
 
 .pager{
@@ -240,7 +240,7 @@ ul.tight code, .card code{font-family:"IBM Plex Mono",monospace; font-size:12px;
 .ship-s.ring-w{box-shadow:0 0 0 2.5px var(--s-riesgo)}
 .ship-s.stale{opacity:.42}
 
-.popup{position:absolute; background:var(--sheet); border:1.5px solid var(--line-hard); min-width:326px; box-shadow:4px 4px 0 rgba(0,0,0,.06)}
+.popup{position:absolute; background:var(--sheet); border:1.5px solid var(--line-hard); min-width:420px; box-shadow:4px 4px 0 rgba(0,0,0,.06)}
 .popup header{padding:8px 11px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:2px; border-top:0}
 .popup .vessel{font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600}
 .popup .meta{font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--ink-soft)}
@@ -412,7 +412,7 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
             <div class="arrivals-head">
               <span class="callout">3</span>
               <h4>Próximos arribos</h4>
-              <span class="hint">5 más cercanos · 7 días · responde a los filtros</span>
+              <span class="hint">los 5 arribos más próximos · responde a los filtros</span>
             </div>
             <div class="arr-row">
               <div class="arr">
@@ -435,20 +435,6 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
                 <span class="when">30/08 · en 5 d</span>
                 <span class="tag">Moín · marítimo</span>
                 <span class="chip c-atiempo">A TIEMPO</span>
-              </div>
-              <div class="arr fill">
-                <span class="oc">4500011920·10</span>
-                <span class="mat">Hipromelosa E5</span>
-                <span class="when">14/09 · en 20 d</span>
-                <span class="tag">fuera de 7 d · relleno</span>
-                <span class="chip c-retrasado">RETRASADO</span>
-              </div>
-              <div class="arr fill">
-                <span class="oc">4500012218·20</span>
-                <span class="mat">Cápsula gelatina n.º 1</span>
-                <span class="when">19/09 · en 25 d</span>
-                <span class="tag">fuera de 7 d · relleno</span>
-                <span class="chip c-riesgo">EN RIESGO</span>
               </div>
             </div>
           </div>
@@ -572,7 +558,7 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
       <aside class="rail">
         <div class="note"><span class="callout">1</span><div><b>Frescura, RF-20.</b> Fecha de última actualización y estado de cada fuente por separado. El AIS y el ADS-B se caen por separado, así que un solo indicador miente.</div></div>
         <div class="note"><span class="callout">2</span><div><b>KPIs, RF-15.</b> Los cinco que pide la regla. Responden a los filtros activos: si se filtra por Moín, los porcentajes se recalculan.</div></div>
-        <div class="note"><span class="callout">3</span><div><b>Próximos arribos, RF-27.</b> Va dentro del dashboard, no en vista aparte: RNF-01 ya lo situaba entre los KPIs y la grilla. Las dos tarjetas <b>punteadas</b> entran por relleno —peor cumplimiento a 30 días— y no porque arriben pronto.</div></div>
+        <div class="note"><span class="callout">3</span><div><b>Próximos arribos, RF-27.</b> Va dentro del dashboard, no en vista aparte: RNF-01 ya lo situaba entre los KPIs y la grilla. <b>Simplificado el 01/09:</b> los usuarios pidieron los cinco arribos más próximos y nada más. Se eliminó el segundo nivel de la regla, que rellenaba con los de peor cumplimiento a 30 días.</div></div>
         <div class="note"><span class="callout">4</span><div><b>Filtros, RF-19.</b> Los seis del requisito. Se aplican también a los KPIs, a próximos arribos y a los dos mapas, no solo a la grilla.</div></div>
         <div class="note"><span class="callout">5</span><div><b>Grilla, RF-04.</b> Once columnas: las nueve del requisito, más <code>Pos.</code> porque la fila es la <i>línea</i> de OC, y el desdoble del estado en dos.</div></div>
         <div class="note"><span class="callout">6</span><div><b>Paginación.</b> RNF-01 fija 200 pedidos activos como volumen de referencia y tres segundos para la vista completa.</div></div>
@@ -699,7 +685,6 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
             <div class="coast"><span>COSTA RICA</span></div>
 
             <!-- geocerca y puerto -->
-            <div class="fence" style="left:150px; bottom:96px"><b>geocerca 50 km · RN-05</b></div>
             <div class="port" style="left:220px; bottom:166px"><i>Puerto Moín</i></div>
 
             <!-- naves -->
@@ -722,10 +707,10 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
                 <span class="meta">10,42 N · −81,90 W · 12,4 nudos · lectura hace 3 min</span>
               </header>
               <table>
-                <thead><tr><th>OC · Pos.</th><th>Material</th><th>Proveedor</th><th>F. proy.</th><th>Cumpl.</th></tr></thead>
+                <thead><tr><th>OC · Pos.</th><th>Material</th><th>Proveedor</th><th>ETA</th><th>F. proy.</th><th>Cumpl.</th></tr></thead>
                 <tbody>
-                  <tr><td class="num">4500012847·10</td><td>Lactosa monohidrato</td><td>DFE Pharma</td><td class="num">08/09</td><td><span class="chip c-atiempo">A TIEMPO</span></td></tr>
-                  <tr><td class="num">4500012847·20</td><td>Estearato de magnesio</td><td>Peter Greven</td><td class="num">08/09</td><td><span class="chip c-atiempo">A TIEMPO</span></td></tr>
+                  <tr><td class="num">4500012847·10</td><td>Lactosa monohidrato</td><td>DFE Pharma</td><td class="num">02/09 08:00</td><td class="num">08/09</td><td><span class="chip c-atiempo">A TIEMPO</span></td></tr>
+                  <tr><td class="num">4500012847·20</td><td>Estearato de magnesio</td><td>Peter Greven</td><td class="num">02/09 08:00</td><td class="num">08/09</td><td><span class="chip c-atiempo">A TIEMPO</span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -866,10 +851,10 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
                 <span class="meta">lectura hace 2 s · en movimiento</span>
               </header>
               <table>
-                <thead><tr><th>OC · Pos.</th><th>Material</th><th>Proveedor</th><th>F. proy.</th><th>Cumpl.</th></tr></thead>
+                <thead><tr><th>OC · Pos.</th><th>Material</th><th>Proveedor</th><th>ETA</th><th>F. proy.</th><th>Cumpl.</th></tr></thead>
                 <tbody>
-                  <tr><td class="num">4500013044·10</td><td>Dióxido de titanio</td><td>Kronos</td><td class="num">28/08</td><td><span class="chip c-riesgo">EN RIESGO</span></td></tr>
-                  <tr><td class="num">4500013044·20</td><td>Óxido de hierro rojo</td><td>Colorcon</td><td class="num">28/08</td><td><span class="chip c-riesgo">EN RIESGO</span></td></tr>
+                  <tr><td class="num">4500012993·30</td><td>Celulosa microcristalina</td><td>JRS Pharma</td><td class="num">27/08 03:40</td><td class="num">29/08</td><td><span class="chip c-retrasado">RETRASADO</span></td></tr>
+                  <tr><td class="num">4500012993·40</td><td>Óxido de hierro rojo</td><td>Colorcon</td><td class="num">27/08 03:40</td><td class="num">29/08</td><td><span class="chip c-retrasado">RETRASADO</span></td></tr>
                   <tr><td class="num">4500012993·30</td><td>Celulosa microcristalina</td><td>DuPont</td><td class="num">29/08</td><td><span class="chip c-retrasado">RETRASADO</span></td></tr>
                 </tbody>
               </table>
@@ -973,13 +958,13 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
           <div class="dhead">
             <div class="who">
               <span class="oc">4500012847 · 10</span>
-              <span class="mat">Lactosa monohidrato 200M · DFE Pharma · 12 000 kg</span>
+              <span class="mat">MP-00412 Lactosa monohidrato · DFE Pharma · 12 000 kg</span>
             </div>
             <div class="chips">
               <span class="callout">1</span>
               <span class="dimlbl">etapa</span><span class="chip c-transito">EN TRÁNSITO</span>
-              <span class="dimlbl">cumpl.</span><span class="chip c-riesgo">EN RIESGO</span>
-              <span class="dimlbl">derivado</span><span class="chip c-riesgo">EN RIESGO</span>
+              <span class="dimlbl">cumpl.</span><span class="chip c-atiempo">A TIEMPO</span>
+              <span class="dimlbl">derivado</span><span class="chip c-transito">EN TRÁNSITO</span>
             </div>
           </div>
 
@@ -988,17 +973,17 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
             <div class="dpane">
               <h5><span class="callout" style="width:15px;height:15px;font-size:9px;vertical-align:middle">2</span> Desglose del cálculo — RF-05</h5>
               <div class="calc">
-                <div class="row"><span class="op"></span><span>ETA utilizada</span><span class="val">05/09/2026 14:20</span></div>
-                <div class="src">snapshot de la ETA de la nave al recalcular</div>
-                <div class="row"><span class="op">+</span><span>Lead time del destino</span><span class="val">3 días</span></div>
-                <div class="src warn">el maestro de Moín dice hoy 5 días · recalculado el 26/08 09:41</div>
+                <div class="row"><span class="op"></span><span>ETA utilizada</span><span class="val">02/09/2026 08:00</span></div>
+                <div class="src">snapshot de la ETA de la nave al recalcular · aún no hay ATA</div>
+                <div class="row"><span class="op">+</span><span>Lead time del destino</span><span class="val">6 días</span></div>
+                <div class="src warn">el maestro de Moín dice hoy 5 días · recalculado el 20/08 09:44</div>
                 <div class="row"><span class="op">+</span><span>Ajuste manual</span><span class="val">0 días</span></div>
                 <div class="row tot"><span class="op">=</span><span>Fecha proyectada</span><span class="val">08/09/2026</span></div>
 
                 <div class="cmp">
-                  <div class="row"><span class="op"></span><span>Fecha comprometida</span><span class="val">09/09/2026</span></div>
-                  <div class="row"><span class="op"></span><span>Margen</span><span class="val">+1 día</span></div>
-                  <div class="src">umbral 2 días · RN-08 prevalece sobre RN-07</div>
+                  <div class="row"><span class="op"></span><span>Fecha comprometida</span><span class="val">15/09/2026</span></div>
+                  <div class="row"><span class="op"></span><span>Margen</span><span class="val">+7 días</span></div>
+                  <div class="src">supera el umbral de 2 días, así que es A TIEMPO — RN-07. Dentro del umbral sería EN RIESGO, porque RN-08 prevalece</div>
                 </div>
               </div>
             </div>
@@ -1009,16 +994,16 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
                 <dt>tracking</dt><dd>MMSI 636019825 · MSC BRUNELLA</dd>
                 <dt>vía</dt><dd>Marítimo · destino Moín</dd>
                 <dt>últ. posición</dt><dd>10,42 N · −81,90 W · 12,4 nudos</dd>
-                <dt>últ. consulta</dt><dd>28/08/2026 09:07 · hace 3 min</dd>
+                <dt>últ. consulta</dt><dd>25/08/2026 14:29 · hace 3 min</dd>
               </dl>
 
               <h5 style="margin-top:6px"><span class="callout" style="width:15px;height:15px;font-size:9px;vertical-align:middle">3</span> Arribo — RN-05</h5>
               <dl class="kv">
-                <dt>confirmado</dt><dd>— <span class="badge">manual</span></dd>
-                <dt>reportado</dt><dd>07/09/2026 02:10 <span class="badge on">fuente · gobierna</span></dd>
-                <dt>inferido</dt><dd>07/09/2026 01:44 <span class="badge">geocerca</span></dd>
+                <dt>manual</dt><dd><i>sin confirmar</i></dd>
+                <dt>fuente</dt><dd><i>sin reportar</i></dd>
+                <dt>inferido</dt><dd><i>fuera de la geocerca</i></dd>
               </dl>
-              <span style="font-size:11px; color:var(--ink-soft)">26 min entre cruzar el radio y atracar. La discrepancia se muestra, no se resuelve.</span>
+              <span style="font-size:11px; color:var(--ink-soft)">El buque sigue navegando, así que las tres vías están vacías. RN-05 exige distinguirlas porque suelen discrepar: la geocerca se dispara al cruzar el radio y la fuente reporta al atracar, con minutos de diferencia. A falta de confirmación manual gobierna la fuente — RN-14.</span>
             </div>
 
           </div>
@@ -1028,22 +1013,16 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
               <span class="callout" style="width:15px;height:15px;font-size:9px;vertical-align:middle">4</span> Línea de tiempo — RF-22
             </h5>
 
-            <div class="tl-ev">
-              <span class="when">26/08 14:02</span>
-              <span class="pin"><i style="background:var(--s-riesgo)"></i></span>
-              <span class="what"><b>Cumplimiento pasa a EN RIESGO</b><span>margen cae a 1 día tras recalcular con la ETA nueva — RN-08</span></span>
-            </div>
-
             <div class="tl-gap">
               <span></span><span class="pin"></span>
-              <span class="fold">1 284 posiciones plegadas<a href="#">ver historial ›</a></span>
+              <span class="fold">7 248 posiciones plegadas · tramo 2, en curso</span>
             </div>
 
             <div class="tl-ev">
-              <span class="when">26/08 09:41</span>
+              <span class="when">20/08 09:41</span>
               <span class="pin"><i></i></span>
               <span class="what">
-                <span class="tramo">tramo 2 · desde el 26/08</span>
+                <span class="tramo">tramo 2 · desde el 20/08</span>
                 <b>Transbordo a MSC BRUNELLA</b>
                 <span>Ana Corrales · motivo: «transbordo notificado por el agente naviero» — RF-26</span>
               </span>
@@ -1051,14 +1030,14 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
 
             <div class="tl-gap">
               <span></span><span class="pin"></span>
-              <span class="fold">9 617 posiciones plegadas<a href="#">ver historial ›</a></span>
+              <span class="fold">11 268 posiciones plegadas · tramo 1</span>
             </div>
 
             <div class="tl-ev">
               <span class="when">12/08 06:18</span>
               <span class="pin"><i></i></span>
               <span class="what">
-                <span class="tramo">tramo 1 · 12/08 al 26/08</span>
+                <span class="tramo">tramo 1 · 12/08 al 20/08</span>
                 <b>Zarpe · CMA CGM LIBRA</b>
                 <span>primera posición recibida · la etapa pasa a EN TRÁNSITO — RN-04</span>
               </span>
@@ -1080,8 +1059,8 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
           </div>
 
           <div class="empty">
-            <span class="dimlbl"><span class="callout" style="width:15px;height:15px;font-size:9px;vertical-align:middle">6</span> Estado vacío · pedido 4500013101 · 20</span>
-            <b>Este pedido no es rastreable</b>
+            <span class="dimlbl"><span class="callout" style="width:15px;height:15px;font-size:9px;vertical-align:middle">6</span> Estado vacío · pedido 4500013188 · 10</span>
+            <b>MP-00655 Povidona K30 · Ashland — este pedido no es rastreable</b>
             <span>No tiene identificador de rastreo, así que no hay posición, ni ETA, ni cumplimiento — RN-02. La fecha proyectada no se puede calcular.</span>
             <span class="act" style="align-self:flex-start; margin-top:4px">Asociar identificador de rastreo</span>
           </div>
@@ -1089,11 +1068,11 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
       </div>
 
       <aside class="rail">
-        <div class="note"><span class="callout">1</span><div><b>Las dos dimensiones y la derivada.</b> Naranja en el dashboard y <code>EN_TRANSITO</code> aquí son ciertas a la vez: en la precedencia, el riesgo tapa la etapa. Mostrar las tres evita que parezca contradicción.</div></div>
+        <div class="note"><span class="callout">1</span><div><b>Las dos dimensiones y la derivada.</b> Acá el cumplimiento es <code>A TIEMPO</code>, así que no tapa nada y el derivado coincide con la etapa. Cuando hay riesgo o retraso el derivado cambia y la etapa parece contradecirlo — por eso se muestran las tres.</div></div>
         <div class="note"><span class="callout">2</span><div><b>El desglose es una operación, no un párrafo.</b> RF-05 pide el cálculo que produjo la fecha; RN-01 da la fórmula. Escribirla como suma la vuelve verificable a ojo.</div></div>
         <div class="note"><span class="callout">2</span><div><b>El lead time usado no es el vigente, y ninguno está mal.</b> La columna guarda el valor del recálculo, a propósito: si se leyera por <i>join</i>, editar el maestro reescribiría el desglose de todos los pedidos ya calculados. <b>Esta es la única vista donde la diferencia se puede ver.</b></div></div>
         <div class="note"><span class="callout">3</span><div><b>Tres arribos, un solo origen gobernando.</b> RN-05 exige distinguir el inferido del reportado y del confirmado. En la grilla cabe una fecha; aquí caben las tres y cuál manda.</div></div>
-        <div class="note"><span class="callout">4</span><div><b>Eventos arriba, posiciones plegadas.</b> Un viaje de tres semanas da decenas de miles de posiciones y menos de diez eventos. Fundirlos en una lista entierra lo que importa. El conteo es de <code>US-20</code>; la tabla completa es <code>US-29</code>, que es <b>Could</b>.</div></div>
+        <div class="note"><span class="callout">4</span><div><b>Eventos arriba, posiciones plegadas.</b> Un viaje de tres semanas da decenas de miles de posiciones y menos de diez eventos. Fundirlos en una lista entierra lo que importa. El conteo es de <code>US-20</code> y queda como <b>dato informativo, sin enlace</b>: la decisión B3 del 01/09 dejó <code>US-29</code> en <code>Could</code> y retiró la acción en vez de comprometerla.</div></div>
         <div class="note"><span class="callout">5</span><div><b>Ninguna acción es de un clic.</b> RF-14 exige el motivo declarado en cada intervención, así que todas abren confirmación con campo de motivo. Un botón que ejecuta al pulsarlo no puede cumplirlo.</div></div>
         <div class="note"><span class="callout">6</span><div><b>El estado vacío tiene una acción.</b> Y esa acción destapa un hueco: asociar un identificador es una intervención manual y <code>tipo_intervencion</code> no tiene valor para ella.</div></div>
       </aside>
@@ -1103,8 +1082,13 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
     <div class="cards">
       <div class="card ask">
         <h3>El número que esta vista existe para explicar</h3>
-        <p>La grilla dice <code>08/09</code>. Aquí se ve de dónde sale: ETA del buque, más el lead time del destino, más el ajuste manual. RF-05 lo exige y RN-01 da la fórmula.</p>
+        <p>La grilla dice <code>29/08</code>. Aquí se ve de dónde sale: la ATA real del buque —que desplazó a la ETA estimada—, más el lead time del destino, más el ajuste manual. RF-05 lo exige y RN-01 da la fórmula.</p>
         <p><b>Qué validar:</b> si la suma escrita se entiende sola, o si hace falta una frase que la acompañe.</p>
+      </div>
+      <div class="card ask">
+        <h3>Dos preguntas que salieron de revisarlo</h3>
+        <p><b>1 · El panel de arribo se leyó mal.</b> Las tres filas son <i>orígenes</i> —manual, fuente, inferido— y no estados. Con el guion pegado a la etiqueta, «confirmado — manual» parecía afirmar algo. Se cambió a «manual: sin confirmar». <b>Qué validar:</b> si así se entiende que son tres formas de saber lo mismo.</p>
+        <p><b>2 · El enlace «ver historial» se retiró.</b> Debía abrir la secuencia de posiciones del tramo y dibujar su trayecto sobre el mapa (RF-22), pero eso es <code>US-29</code>, que sigue siendo <code>Could</code> en el Sprint 7. <b>Resuelto el 01/09:</b> el conteo queda como dato informativo sin acción. Si RF-22 se considera incumplido por eso, hay que reabrir la decisión.</p>
       </div>
       <div class="card flag">
         <h3>Falta un valor en <code>tipo_intervencion</code></h3>

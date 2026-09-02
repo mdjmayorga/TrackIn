@@ -41,6 +41,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-01` | Esquema de base de datos y migraciones Alembic | Task | OE4 | **Must** | Sprint 3 | 14h | SRS 8.1-8.5 |
 | `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
 | `TASK-03` | Adaptador de ingesta de pedidos con datos semilla | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
+| `TASK-27` | Spike: suscripcion por MMSI y limite del plan gratuito de AISStream | Task | OE2 | **Must** | Sprint 3 | 4h | Riesgo R1 |
 | `US-01` | Asociar un identificador de rastreo externo a un pedido | Story | OE2 | **Must** | Sprint 3 | 6h | RF-03 |
 | `US-02` | Consumir posiciones AIS desde AISStream por WebSocket | Story | OE2 | **Must** | Sprint 3 | 16h | RF-06 |
 | `US-03` | Tolerar la caida de una API externa sin degradar el dashboard | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 |
@@ -56,11 +57,12 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-11` | Inferir el arribo a destino por geocerca de proximidad | Story | OE2 | **Must** | Sprint 4 | 8h | RN-05 (revisada, Greivin) |
 | `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 |
 | `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 |
-| `US-14` | Confirmar manualmente el desembarco de un pedido | Story | OE2 | **Should** | Sprint 5 | 8h | RF-13 / CU-05 |
+| `US-14` | Confirmar manualmente el desembarco de un pedido | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 |
 | `US-15` | Auditar toda intervencion manual sobre un pedido | Story | OE4 | **Should** | Sprint 5 | 8h | RF-14 / RNF-06 |
 | `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) |
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 |
 | `US-18` | Registrar la recepcion en planta y cerrar el pedido | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 |
+| `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) |
 | `TASK-04` | Publicar la documentacion OpenAPI del backend | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 |
 | `TASK-05` | Andamiaje del frontend React con TypeScript, Vite y Tailwind | Task | OE3 | **Must** | Sprint 6 | 6h | RNF (stack 5.8) |
 | `US-19` | Listar los pedidos en transito en una grilla ordenable | Story | OE3 | **Must** | Sprint 6 | 12h | RF-04 / RNF-01 |
@@ -572,6 +574,11 @@ Como estudiante practicante, quiero el SRS actualizado a v0.4 con las decisiones
 - Dado el umbral de RN-11, cuando lo reescribo, entonces queda fijado en **2 dias** al aplicarse entre dos valores `DATE` sin hora (decision del 26/08)
 - Dadas RN-05 y RN-06, cuando las reescribo, entonces `En destino` **dura 30 minutos** y `En proceso aduanal` arranca 30 minutos despues de la notificacion del arribo, con la duracion en la tabla de parametros (decision del 26/08)
 - Dada RN-05, cuando la reviso, entonces el modelo distingue los **tres origenes de arribo** que la regla exige: `ata_api` de la fuente, `ata_inferida` del sistema y `ata_confirmada` manual
+- Dada RN-05, cuando la actualizo, entonces registra que **no se adquieren fuentes de datos de pago** (decision B1 del 01/09) y que, por tanto, el arribo al puerto de destino **no se detecta automaticamente**: depende de la confirmacion manual de RF-13
+- Dado RF-14, cuando lo reviso, entonces el dominio de tipos de intervencion incluye **`ASOCIACION_TRACKING`**, que hoy falta pese a que asociar un identificador es una intervencion manual sobre un pedido (decision B6)
+- Dados RNF-04 y RNF-05, cuando los reescribo, entonces queda constancia de que **la autoria de las intervenciones no esta autenticada**: el usuario se elige de una lista en cada dialogo y el sistema no verifica su identidad (decision B5)
+- Dado RF-27, cuando lo reescribo, entonces la vista de proximos arribos muestra **los cinco pedidos con fecha proyectada mas cercana**, sin el segundo nivel que rellenaba con los de peor cumplimiento a 30 dias (validacion con usuarios del 01/09)
+- Dado RNF-05, cuando lo reviso, entonces los perfiles quedan fijados en **tres** —Compras, Logistica y Planificacion— sin rol administrador (decision B9)
 - Dado el supuesto de la seccion 9.4 sobre la entrega de la especificacion de SAP, cuando lo reviso, entonces queda registrado como **incumplido** y remite al riesgo R2
 - Dado el historial de revisiones, cuando lo consulto, entonces registra v0.4 con su fecha y la descripcion de los cambios
 
@@ -620,7 +627,7 @@ Cubre la DoD «Revision con supervisor (Greivin) cuando aplique» para `TASK-12`
 
 ### Sprint 3 (7-18 sep 2026)
 
-**10 items · 74 h estimadas · capacidad 65 h — SOBRECARGADO en 9 h.** TASK-19 y TASK-23 llegan desde el Sprint 2 (+10 h); TASK-11 se verifico cumplida y sus 6 h no se cuentan; TASK-01 se reestimo de 10 h a 14 h el 25/08.
+**11 items · 78 h estimadas · capacidad 65 h — SOBRECARGADO en 13 h.** TASK-19 y TASK-23 llegan desde el Sprint 2 (+10 h); TASK-11 se verifico cumplida y sus 6 h no se cuentan; TASK-01 se reestimo de 10 h a 14 h el 25/08.
 
 > **No se recorta alcance por ahora** (decision del 25/08). Ocho tareas estimadas en 37 h se cerraron en dos dias, lo que sugiere que la holgura esta en la estimacion y no en el alcance. Se revisa con datos reales al cierre del Sprint 2.
 
@@ -682,6 +689,30 @@ Como desarrollador, quiero una interfaz de ingesta con una implementación de da
 | Estimacion | 8 h |
 | Origen en el SRS | Habilitador de RF-01 |
 | Etiquetas | `backend,ingesta,riesgo-sap` |
+
+#### TASK-27 — Spike: suscripcion por MMSI y limite del plan gratuito de AISStream
+
+Como desarrollador, quiero medir si la suscripcion por MMSI funciona con la clave actual y cuanta cuota consume cada modalidad, para saber si el rastreo maritimo puede seguir a un buque fuera del Caribe sin topar el limite del plan.
+
+**Criterios de aceptación**
+
+- Dada la clave vigente, cuando me suscribo con `FiltersShipMMSI` sobre un MMSI conocido, entonces registro si llegan mensajes o el servidor rechaza la suscripcion
+- Dadas las dos modalidades —bounding box amplio contra filtro por MMSI—, cuando las comparo, entonces mido mensajes por minuto y volumen de datos de cada una
+- Dado el riesgo R1, cuando termino el spike, entonces queda documentado **cual es el limite real del plan gratuito** o por que no se pudo determinar
+- Dado el resultado, cuando lo documento, entonces `docs/api-references.md` recoge la estrategia de suscripcion que usara `US-02`
+
+| | |
+|---|---|
+| Tipo | Task |
+| Objetivo específico | OE2 |
+| MoSCoW | **Must** |
+| Estimacion | 4 h |
+| Origen en el SRS | Riesgo R1 / RF-06 |
+| Etiquetas | `spike,aisstream,riesgo` |
+
+> **Creada el 01/09 (decision B8).** El riesgo R1 esta abierto desde el 19/08: la clave es valida pero no llegan datos, y la hipotesis es un tope del plan gratuito que **nadie ha medido**. Ninguno de los seis spikes de TG-10 probo el filtro por MMSI; los seis usaron `BoundingBoxes`.
+>
+> Importa mas de lo que parece: con suscripcion por area, un buque **deja de reportarse al salir del recuadro**, asi que el seguimiento se cortaria en medio del viaje. Va **antes de `US-02`**, que son 16 h construidas sobre esta decision.
 
 #### US-01 — Asociar un identificador de rastreo externo a un pedido
 
@@ -960,6 +991,7 @@ Como usuario de Logística, quiero que el sistema asuma el arribo cuando el buqu
 - Dado un elemento **aereo**, cuando evaluo su arribo, entonces uso el indicador `on_ground` de la fuente y no la geocerca, porque 50 km alrededor de un aeropuerto capturan trafico en sobrevuelo (decision del 25/08)
 - Dado un destino con `radio_geocerca_km` propio, cuando evaluo la proximidad, entonces ese valor tiene precedencia sobre el parametro global
 - Dado un arribo inferido, cuando lo registro, entonces queda marcado como inferido y no como confirmado por la fuente
+- Dado un elemento rastreado cuyos pedidos han arribado todos, cuando cierro el arribo, entonces lo marco `activo = false` y el planificador deja de consultarlo (decision B7 del 01/09): la nave zarpa hacia otro puerto y su posicion deja de representar la carga, ademas de gastar cuota del plan gratuito
 
 | | |
 |---|---|
@@ -974,7 +1006,7 @@ Como usuario de Logística, quiero que el sistema asuma el arribo cuando el buqu
 
 ### Sprint 5 (5-16 oct 2026)
 
-**8 items · 62 h estimadas · capacidad 65 h — dentro de capacidad**
+**9 items · 66 h estimadas · capacidad 65 h — al limite.** US-40 entro el 01/09 (decision B4).
 
 #### US-12 — Recalcular fecha y estado ante cualquier cambio de insumo
 
@@ -1033,6 +1065,8 @@ Como usuario de Logística, quiero registrar la llegada real de la carga, para c
 | MoSCoW | **Should** |
 | Estimacion | 8 h |
 | Origen en el SRS | RF-13 / CU-05 |
+
+> **Sube de `Should` a `Must` el 01/09.** Confirmado que no se compran fuentes de datos de pago (B1), y el spike TG-10 probo que **no hay cobertura AIS gratuita en Moin**. Sin fuente satelital, el arribo al puerto de destino no se puede detectar automaticamente: esta historia deja de ser un respaldo del automatismo y pasa a ser el **unico mecanismo** que cierra ese paso del ciclo.
 | Etiquetas | `backend,manual` |
 
 #### US-15 — Auditar toda intervención manual sobre un pedido
@@ -1112,6 +1146,28 @@ Como usuario de Logística, quiero registrar la recepción efectiva en planta, p
 | Origen en el SRS | RF-25 / RN-10 |
 | Etiquetas | `backend,manual,ciclo-vida` |
 
+#### US-40 — Ajustar manualmente la fecha proyectada de un pedido
+
+Como usuario de Logistica, quiero sumar o restar dias a la fecha proyectada de un pedido, para reflejar informacion que el sistema no puede conocer por si solo.
+
+**Criterios de aceptación**
+
+- Dado el detalle de un pedido, cuando aplico un ajuste, entonces se guarda en `ajuste_manual_dias` y entra en la formula de RN-01 en el siguiente recalculo
+- Dado un ajuste, cuando lo confirmo, entonces el dialogo exige un **motivo declarado** y la intervencion queda registrada en `auditoria_intervenciones` con tipo `AJUSTE_MANUAL`, conforme a RF-14
+- Dado un ajuste ya aplicado, cuando lo modifico, entonces la auditoria conserva el valor anterior y el nuevo
+- Dado el desglose del calculo, cuando reviso el pedido ajustado, entonces el ajuste aparece como sumando propio y no mezclado con el lead time (RF-05)
+
+| | |
+|---|---|
+| Tipo | Story |
+| Objetivo específico | OE2 |
+| MoSCoW | **Should** |
+| Estimacion | 4 h |
+| Origen en el SRS | RN-01 (ajuste manual) / RF-14 |
+| Etiquetas | `backend,intervencion,auditoria` |
+
+> **Creada el 01/09 (decision B4).** RN-01 define la fecha proyectada como «ETA o ATA, mas el lead time, mas un **ajuste manual opcional**». `US-09` lo usaba en la formula y `US-20` lo mostraba en el desglose, pero **ninguna historia permitia introducirlo**: el campo existia en el modelo y hasta habia un valor `AJUSTE_MANUAL` en la auditoria, sin pantalla que lo escribiera. El hueco aparecio al dibujar la barra de acciones de US-37.
+
 #### TASK-04 — Publicar la documentación OpenAPI del backend
 
 Como desarrollador, quiero la documentación OpenAPI generada automáticamente, para cumplir RNF-17 y facilitar el trabajo del frontend.
@@ -1172,6 +1228,10 @@ Como usuario de Compras, quiero ver todos los pedidos en una grilla, para revisa
 | MoSCoW | **Must** |
 | Estimacion | 12 h |
 | Origen en el SRS | RF-04 / RNF-01 |
+
+> **Validado el 01/09.** Confirmado por los usuarios: dos columnas de estado —etapa y cumplimiento—, la OC repetida en cada linea sin agrupar, y el guion como marca de «cumplimiento no evaluable» sin etiqueta adicional.
+>
+> **Criterio nuevo:** al filtrar por un estado terminal, la grilla sustituye `ETA` y `F. proyectada` por `F. recepcion` y `Cantidad recibida`, que es lo que importa de un pedido cerrado.
 | Etiquetas | `frontend,grilla` |
 
 #### US-20 — Consultar el detalle completo de un pedido
@@ -1276,8 +1336,7 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 
 - Dado el dashboard, cuando lo abro, entonces el bloque de proximos arribos aparece entre la cinta de KPIs y la grilla, conforme al orden que enumera RNF-01
 - Dados pedidos con fecha proyectada, cuando se arma el bloque, entonces muestra los cinco mas proximos dentro de los siguientes 7 dias
-- Dado que hay menos de cinco en ese horizonte, cuando se completa el bloque, entonces se rellena con los de peor cumplimiento dentro de 30 dias
-- Dado un pedido que entra por relleno y no por proximidad, cuando lo muestro, entonces queda distinguible del que si arriba dentro de los 7 dias, para no sugerir que llega pronto
+- Dado que hay menos de cinco pedidos con fecha proyectada, cuando armo el bloque, entonces muestro los que haya, **sin rellenar** con pedidos ajenos al horizonte (RF-27 revisado el 01/09)
 - Dado un filtro activo, cuando cambia, entonces el bloque responde al subconjunto filtrado igual que los KPIs y la grilla
 
 | | |
@@ -1291,7 +1350,7 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 
 > **Reformulada y movida al Sprint 6 el 25/08.** Era una vista aparte en el Sprint 7. RNF-01 enumera la vista inicial como «cinta de KPIs, **vista de proximos arribos**, grilla y ambos mapas», de modo que el requisito no funcional ya la situaba dentro del dashboard. Se integra ahi y se agrupa con las demas historias del dashboard, que viven en el Sprint 6.
 
-> **Ojo con la regla de dos niveles de RF-27.** El bloque mezcla dos poblaciones: los que arriban dentro de 7 dias y, si no llegan a cinco, los de peor cumplimiento dentro de 30. Sin distinguirlos visualmente el bloque miente, porque sugiere que los cinco llegan pronto.
+> **RF-27 se simplifico el 01/09.** En la sesion de validacion los usuarios pidieron **los cinco arribos mas proximos y nada mas**: se elimina el segundo nivel de la regla —rellenar con los de peor cumplimiento a 30 dias— y con el la necesidad de distinguir dos poblaciones. La historia se simplifica; `TASK-25` lleva el cambio al SRS.
 
 ---
 
@@ -1373,6 +1432,10 @@ Como usuario de Logística, quiero ver el recorrido histórico de un pedido, par
 | MoSCoW | **Could** |
 | Estimacion | 10 h |
 | Origen en el SRS | RF-22 (Media en SRS) / CU-09 |
+
+> **Se mantiene en `Could` (decision B3 del 01/09).** Se evaluo subirla porque el detalle de pedido ofrecia un enlace «ver historial» que ninguna historia comprometida construye. **Se resolvio al reves: se quita el enlace del detalle** y esta historia sigue siendo la valvula de escape del Sprint 7.
+>
+> Consecuencia para `US-20` y `US-37`: el conteo de posiciones plegadas se muestra como dato informativo, **sin accion asociada**. Si RF-22 se considera incumplido por eso, hay que reabrir la decision.
 | Etiquetas | `frontend,mapas,auditoria` |
 
 #### US-30 — Actualizar la nave asignada ante un transbordo
