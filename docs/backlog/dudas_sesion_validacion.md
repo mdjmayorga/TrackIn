@@ -60,13 +60,13 @@
 
 | # | Dato | Para qué | Bloquea | Respuesta |
 |---|---|---|---|---|
-| C1 | **Lead time real** de cada destino, en días | Es el segundo sumando de RN-01; sin él no hay fecha proyectada | Sprint 4 · `US-09` | |
-| C2 | **Lista definitiva de destinos** que opera Gutis | Hoy el maestro solo tiene lo que los spikes necesitaron probar | Sprint 3 · `TASK-03` | |
-| C3 | **UN/LOCODE** oficial de los puertos | Clave natural del maestro de destinos | Sprint 3 | |
-| C4 | **Umbral de velocidad** bajo el cual se da por arribado un buque | RN-05 lo exige para descartar el tráfico que pasa de largo | Sprint 4 · `US-11` | |
-| C5 | **Velocidad mínima** para estimar ETA | RN-16: por debajo, el pedido se marca «ETA no estimable» | Sprint 4 · `US-08` | |
-| C6 | **Intervalo mínimo** entre lecturas guardadas | Decisión del 25/08 para frenar el crecimiento del historial | Sprint 3 · `US-04` | |
-| C7 | **¿De dónde zarpan los embarques?** | Determina el alcance del mapa: si es Europa, es transatlántico; si es EE. UU., mucho más cerrado. **Nunca se preguntó** | Sprint 7 · `US-25` | |
+| C1 | **Lead time real** de cada destino, en días | Es el segundo sumando de RN-01; sin él no hay fecha proyectada | Sprint 4 · `US-09` | ⚠️ **Parcial (03/09).** El Z-tracking trae `Fecha según Lead Time de SAP` y `Fecha de llegada a Gutis` por línea (SAP ya calcula un lead time), pero **no por puerto de origen**. Falta el lead time por origen |
+| C2 | **Lista definitiva de destinos** que opera Gutis | Hoy el maestro solo tiene lo que los spikes necesitaron probar | Sprint 3 · `TASK-03` | ✅ **Replanteada (03/09).** El destino es **único** (Gutis, `CR10`, puerto Limón/Moín). Lo que varía es el **origen**; `maestro_destinos` se reorienta a orígenes |
+| C3 | **UN/LOCODE** oficial de los puertos | Clave natural del maestro de destinos | Sprint 3 | ⚠️ **Replanteada y corregida (03/09).** Destino único: **Moín (`CRMOB`)** por vía marítima y **SJO** por aérea — `CRLIO` es Puerto Limón, otro puerto a 6 km. Sobre los **orígenes**: el país ya viene en el Z-tracking, no hace falta pedirlo; el UN/LOCODE de puertos de origen solo se necesita **si el lead time resulta ser por puerto** (ver C1) |
+| C4 | **Umbral de velocidad** bajo el cual se da por arribado un buque | RN-05 lo exige para descartar el tráfico que pasa de largo | Sprint 4 · `US-11` | ❌ **Pendiente.** No está en el Z-tracking; es parámetro de rastreo AIS |
+| C5 | **Velocidad mínima** para estimar ETA | RN-16: por debajo, el pedido se marca «ETA no estimable» | Sprint 4 · `US-08` | ❌ **Pendiente.** No está en el Z-tracking |
+| C6 | **Intervalo mínimo** entre lecturas guardadas | Decisión del 25/08 para frenar el crecimiento del historial | Sprint 3 · `US-04` | ❌ **Pendiente.** No está en el Z-tracking |
+| C7 | **¿De dónde zarpan los embarques?** | Determina el alcance del mapa: si es Europa, es transatlántico; si es EE. UU., mucho más cerrado. **Nunca se preguntó** | Sprint 7 · `US-25` | ✅ **Cerrada (03/09).** Multi-continente: India + China ≈ 62 %, luego Europa (España, Alemania, Suiza, Bélgica, Italia…) y LatAm (Brasil, México, Guatemala). Columna `País de Origen` (texto libre) → maestro de países (`TASK-29`) |
 
 ---
 
@@ -109,3 +109,25 @@ el 01/09: **es por prefijo**.
 **Consecuencia:** el índice de `pedidos_transito` §1.8 queda como estaba, no se
 agrega ninguna extensión a la migración de `TASK-01`, y la persistencia sigue
 dependiendo solo de PostgreSQL con PostGIS, como acota RNF-20.
+
+
+---
+
+## Addendum — reunión con Logística (03/09/2026)
+
+Con la entrega del **Z-tracking** y las decisiones tomadas, cambian cuatro
+respuestas previas. Las filas históricas se conservan; esto las reabre:
+
+| Decisión previa | Estado 03/09 |
+|---|---|
+| **B1** — no se compran fuentes de datos de pago | 🔄 **Revertida.** Luz verde a APIs de pago (container tracking / aéreo). → `TASK-28` |
+| **B2** — `US-14` desembarco sube a `Must` como única vía | ⚠️ **A revisar.** Si el container tracking (`TASK-28`) detecta el tramo final, deja de ser la *única* vía; se mantiene `Must` hasta el resultado del spike |
+| **B5** — selector de usuario, autoría **no** autenticada | 🔄 **Revertida.** Con login (`US-42`) la autoría de RF-14 pasa a ser **autenticada**; el selector manual se retira |
+| **B9** — no hace falta un cuarto rol Administrador | 🔄 **Revertida.** Con autenticación el rol **sí** restringe → entra el rol **Administrador** |
+
+**Nuevo al alcance (03/09):** autenticación con login y **dos vistas por rol**
+(simple: Material · Etapa · Cumplimiento / completa: la actual + deliveries,
+departures, ETD y ATD), y el detalle con **país de origen + mapa del pedido**.
+
+**Alcance de rastreo confirmado:** solo **PRODUCCION + IDA** (importaciones
+internacionales); las demás categorías del Z-tracking son compras locales.

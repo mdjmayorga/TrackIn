@@ -13,6 +13,7 @@ trazabilidad al margen.
 
 | Vista | Historia | Especificación | Frame de Figma | Validado con usuarios |
 |---|---|---|---|---|
+| Login | `US-41` | ✅ 03/09/2026 | ⏳ pendiente | ⏳ pendiente |
 | Dashboard | `US-34` | ✅ 25/08/2026 | ✅ 26/08/2026 | ✅ 01/09/2026 |
 | Mapa marítimo | `US-35` | ✅ 26/08/2026 | ✅ 27/08/2026 | ✅ 01/09/2026 |
 | Mapa aéreo | `US-36` | ✅ 27/08/2026 | ✅ 27/08/2026 | ✅ 01/09/2026 |
@@ -29,6 +30,55 @@ Las 14 respuestas de la sesión están en
 - Sin logo, sin sombras, sin esquinas redondeadas, sin tipografía corporativa.
 - Cada frame lleva anotaciones numeradas al margen con los RF que satisface.
 - Datos de ejemplo tomados del maestro de destinos real (Moín, MROC, MRLB).
+
+---
+
+## 0. `US-41` — Login / autenticación
+
+**Borrador visual:** [`wireframes.html`](wireframes.html) §00.
+
+**Trazabilidad:** RNF-05 (perfiles diferenciados, ahora con autenticación) ·
+RF-14 / RNF-06 (autoría de la intervención) · RNF-11 (pantalla permanente de
+planta) · **nuevo RF de autenticación y de vista según rol** (pendiente de
+numerar en el SRS v0.4).
+
+> **Origen del cambio (reunión con Logística, 03/09/2026).** El SRS v0.3 excluía
+> la autenticación. Logística confirmó que necesita **dos vistas** con distinto
+> nivel de detalle, y distinguirlas obliga a saber quién entra. La autenticación
+> pasa a estar **dentro del alcance**.
+
+### 0.1 Formulario
+
+Tarjeta centrada, sin logo, escala de grises. Campos: **Usuario** y
+**Contraseña**, casilla «Recordar sesión», enlace «¿Olvidó su contraseña?» y
+botón **Entrar**. Credenciales gestionadas por TrackIn (mecanismo propio); **no**
+hay Active Directory ni SSO —eso sigue fuera del alcance—.
+
+### 0.2 Estado de error
+
+Mensaje **genérico** que no revela si falló el usuario o la contraseña, más un
+contador de intentos restantes. El **bloqueo tras N intentos** es una decisión
+abierta.
+
+### 0.3 Enrutado por rol — la razón de ser del login
+
+Tras autenticar, el sistema lleva al usuario a una de dos vistas:
+
+| Vista | Roles | Grilla |
+|---|---|---|
+| **Simple** | Planificación · pantalla de planta | Solo **Material · Etapa · Cumplimiento** |
+| **Completa** | Compras · Logística | La actual **+ deliveries, departures, ETD y ATD**, con mapas, detalle y auditoría |
+
+### 0.4 Decisiones abiertas
+
+- Bloqueo tras N intentos; duración de sesión y cierre por inactividad (relevante
+  para la pantalla permanente de planta, RNF-11).
+- Flujo de «olvidó su contraseña»: sin infraestructura de correo, lo más probable
+  es **reinicio por administrador**.
+- Si «Recordar sesión» aplica en la pantalla de planta.
+- Confirmar el mapa **rol → vista** y si vuelve a hacer falta un **rol
+  Administrador** que gestione cuentas (la decisión B9 lo descartó *sin*
+  autenticación; con login el argumento cambia).
 
 ---
 

@@ -2,7 +2,11 @@
 
 Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSky). Priorizado con MoSCoW.
 
-**Generado:** 20 de agosto de 2026 · **Revisado:** 24 de agosto de 2026 (arranque del Sprint 2) · **Ejecutor:** 1 persona a tiempo completo
+**Generado:** 20 de agosto de 2026 · **Revisado:** 24 de agosto de 2026 (arranque del Sprint 2) · **Congelado:** 3 de septiembre de 2026 (cierre del Sprint 2) · **Ejecutor:** 1 persona a tiempo completo
+
+> **Backlog congelado.** Incorpora los hallazgos de la reunión con Logística del 03/09 y la
+> entrega del Z-tracking. A partir de aquí solo debería cambiar por la resolución de
+> `TASK-28`, que está explícitamente planteada como bifurcación (Plan A / Plan B).
 
 > Este archivo se genera desde un script. La justificacion de la priorizacion vive en `backlog_priorization_rationale.md`.
 
@@ -21,14 +25,14 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 |---|---|---|---|---|---|---|---|
 | `TASK-12` | Modelar la entidad pedidos_transito en el diagrama ER ✅ | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / modelo de datos |
 | `TASK-13` | Modelar la entidad maestro_destinos ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / modelo de datos |
-| `TASK-14` | Modelar la entidad historial_tracking (geoespacial) | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / modelo de datos |
+| `TASK-14` | Modelar la entidad historial_tracking (geoespacial) ✅ | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / modelo de datos |
 | `TASK-15` | Modelar usuarios, elementos_rastreados, proveedores y materiales, y consolidar el ER ✅ | Task | OE1 | **Must** | Sprint 2 | 10h | Diseño OE1 / modelo de datos (SRS v0.3 §8.1) |
 | `TASK-16` | Diccionario de datos: pedidos_transito ✅ | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-17` | Diccionario de datos: maestro_destinos ✅ | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-18` | Diccionario de datos: historial_tracking ✅ | Task | OE1 | **Must** | Sprint 2 | 3h | Diseño OE1 / diccionario de datos |
 | `TASK-24` | Diccionario de datos: elementos_rastreados, proveedores y materiales ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / diccionario de datos (SRS v0.3 §8.1) |
 | `TASK-26` | Diccionario de datos: auditoria_intervenciones, parametros_sistema y pedido_elemento_rastreado ✅ | Task | OE1 | **Must** | Sprint 2 | 3h | Revision con el supervisor, 25/08/2026 |
-| `TASK-25` | Emitir el SRS v0.4 con las decisiones de la revision del 25/08 | Task | OE1 | **Must** | Sprint 2 | 8h | Revision con el supervisor, 25/08/2026 |
+| `TASK-25` | Emitir el SRS v0.4 con las decisiones de la revision del 25/08 y de la reunion del 03/09 ✅ | Task | OE1 | **Must** | Sprint 2 | 8h | Revision con el supervisor, 25/08/2026 |
 | `TASK-20` | Arquitectura: vista de componentes ✅ | Task | OE1 | **Must** | Sprint 2 | 6h | Diseño OE1 / arquitectura |
 | `TASK-21` | Arquitectura: vista de despliegue (instalacion nativa) ✅ | Task | OE1 | **Must** | Sprint 2 | 2h | Diseño OE1 / arquitectura (decision: sin Docker) |
 | `TASK-22` | Arquitectura: vista de secuencia (flujo de tracking) ✅ | Task | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / arquitectura |
@@ -36,14 +40,18 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-35` | Wireframe del mapa marítimo ✅ | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-36` | Wireframe del mapa aéreo ✅ | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / prototipo |
 | `US-37` | Wireframe del detalle de pedido ✅ | Story | OE1 | **Should** | Sprint 2 | 4h | Diseño OE1 / prototipo |
-| `US-38` | Prototipo interactivo navegable en Figma | Story | OE1 | **Must** | Sprint 2 | 8h | Diseño OE1 / prototipo |
-| `US-39` | Validación de prototipos con usuarios clave | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / criterio de aceptación de OE1 |
+| `US-41` | Wireframe del login ✅ | Story | OE1 | **Must** | Sprint 2 | 3h | Reunión con Logística, 03/09/2026 (autenticación entra al alcance) |
+| `US-38` | Prototipo interactivo navegable en Figma ✅ | Story | OE1 | **Must** | Sprint 2 | 8h | Diseño OE1 / prototipo |
+| `US-39` | Validación de prototipos con usuarios clave ✅ | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / criterio de aceptación de OE1 |
 | `TASK-01` | Esquema de base de datos y migraciones Alembic | Task | OE4 | **Must** | Sprint 3 | 14h | SRS 8.1-8.5 |
 | `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
 | `TASK-03` | Adaptador de ingesta de pedidos con datos semilla | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
-| `TASK-27` | Spike: suscripcion por MMSI y limite del plan gratuito de AISStream | Task | OE2 | **Must** | Sprint 3 | 4h | Riesgo R1 |
+| `TASK-27` | Spike: suscripcion por MMSI y limite del plan gratuito de AISStream 🔀 | Task | OE2 | **Must** | Sprint 3 | 4h | Riesgo R1 |
+| `TASK-28` | Spike: cobertura de container tracking de pago (Vizion/Terminal49/ShipsGo) en Moín y aéreo en SJO | Task | OE2 | **Must** | Sprint 3 | 6h | Reunión Logística 03/09 (revierte decisión abierta #3 / B1) / Riesgo R1 |
+| `TASK-29` | Modelar maestro_paises y normalizar país, vía, incoterm y temperatura en la ingesta | Task | OE1 | **Must** | Sprint 3 | 6h | Muestra Z-tracking 03/09 (texto libre sucio) / RF-02 |
+| `TASK-30` | Contrato de captura de la referencia de embarque (contenedor, BL, booking, MAWB) | Task | OE1 | **Must** | Sprint 3 | 3h | Reunión Logística 03/09 (prerrequisito de todo rastreo) |
 | `US-01` | Asociar un identificador de rastreo externo a un pedido | Story | OE2 | **Must** | Sprint 3 | 6h | RF-03 |
-| `US-02` | Consumir posiciones AIS desde AISStream por WebSocket | Story | OE2 | **Must** | Sprint 3 | 16h | RF-06 |
+| `US-02` | Consumir posiciones AIS desde AISStream por WebSocket 🔀 | Story | OE2 | **Must** | Sprint 3 | 16h | RF-06 |
 | `US-03` | Tolerar la caida de una API externa sin degradar el dashboard | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 |
 | `US-04` | Registrar el historial de posiciones con el payload original | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
 | `TASK-19` | Diccionario de datos: usuarios | Task | OE1 | **Should** | Sprint 3 | 2h | Diseño OE1 / diccionario de datos |
@@ -51,10 +59,14 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-05` | Consumir posiciones ADS-B desde OpenSky con OAuth2 | Story | OE2 | **Must** | Sprint 4 | 10h | RF-07 |
 | `US-06` | Resolver el icao24 de un vuelo como vinculo temporal del tramo | Story | OE2 | **Must** | Sprint 4 | 8h | RF-07 / spike TG-11 |
 | `US-07` | Planificar las consultas periodicas con frecuencia parametrizable | Story | OE2 | **Must** | Sprint 4 | 8h | RF-08 (reformulado) |
-| `US-08` | Estimar la ETA a partir de la posicion y la velocidad del buque | Story | OE2 | **Must** | Sprint 4 | 12h | RN-16 (nueva, Greivin) |
+| `US-08` | Estimar la ETA a partir de la posicion y la velocidad del buque 🔀 | Story | OE2 | **Must** | Sprint 4 | 12h | RN-16 (nueva, Greivin) |
 | `US-09` | Calcular la fecha proyectada de disponibilidad | Story | OE2 | **Must** | Sprint 4 | 6h | RF-10 / RN-01 |
 | `US-10` | Determinar el estado logistico bajo el esquema de semaforo | Story | OE2 | **Must** | Sprint 4 | 12h | RF-11 / RN-02 a RN-11 |
-| `US-11` | Inferir el arribo a destino por geocerca de proximidad | Story | OE2 | **Must** | Sprint 4 | 8h | RN-05 (revisada, Greivin) |
+| `US-11` | Inferir el arribo a destino por geocerca de proximidad 🔀 | Story | OE2 | **Must** | Sprint 4 | 8h | RN-05 (revisada, Greivin) |
+| `US-31` | Cargar los pedidos en transito desde el archivo Z-tracking | Story | OE2 | **Must** | Sprint 4 | 14h | RF-31 carga manual (03/09) / RF-01 / CU-01 |
+| `US-32` | Validar y normalizar los datos del Z-tracking antes de persistirlos | Story | OE2 | **Must** | Sprint 4 | 10h | RF-02 / RN-17 |
+| `US-45` | Integrar la fuente comercial de rastreo marítimo por contenedor o BL 🔀 | Story | OE2 | **Must** | Sprint 4 | 12h | Plan A de `TASK-28` (03/09) |
+| `US-46` | Integrar el rastreo aéreo por guía aérea (MAWB) 🔀 | Story | OE2 | **Must** | Sprint 4 | 10h | Plan A de `TASK-28` (03/09) |
 | `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 |
 | `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 |
 | `US-14` | Confirmar manualmente el desembarco de un pedido | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 |
@@ -63,6 +75,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 |
 | `US-18` | Registrar la recepcion en planta y cerrar el pedido | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 |
 | `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) |
+| `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) |
 | `TASK-04` | Publicar la documentacion OpenAPI del backend | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 |
 | `TASK-05` | Andamiaje del frontend React con TypeScript, Vite y Tailwind | Task | OE3 | **Must** | Sprint 6 | 6h | RNF (stack 5.8) |
 | `US-19` | Listar los pedidos en transito en una grilla ordenable | Story | OE3 | **Must** | Sprint 6 | 12h | RF-04 / RNF-01 |
@@ -71,23 +84,25 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-22` | Mostrar la cinta de indicadores KPI | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 |
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
 | `US-24` | Aplicar el semaforo de estados de forma consistente | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 |
+| `US-43` | Ofrecer dos vistas de la grilla según el rol: simple y completa | Story | OE3 | **Must** | Sprint 6 | 10h | Reunión Logística 03/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
 | `US-28` | Presentar los proximos arribos dentro del dashboard | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 |
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | 10h | RF-22 (Media en SRS) / CU-09 |
 | `US-30` | Actualizar la nave asignada ante un transbordo | Story | OE2 | **Should** | Sprint 7 | 10h | RF-26 / CU-10 |
+| `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido | Story | OE3 | **Should** | Sprint 7 | 8h | Reunión Logística 03/09 / RF-05 (ampliado) |
+| `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` |
 | `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
 | `TASK-07` | Manual de instalacion local | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
 | `TASK-08` | Manual de usuario del dashboard | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 |
 | `TASK-09` | Guia de despliegue para produccion | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
-| `US-31` | Sincronizar los pedidos en transito desde el servicio API de SAP 🔒 | Story | OE2 | **Should** | Sin asignar | 16h | RF-01 / CU-01 |
-| `US-32` | Validar los datos recibidos de SAP antes de persistirlos 🔒 | Story | OE2 | **Should** | Sin asignar | 10h | RF-02 / CU-01 |
-| `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande 🔒 | Story | OE3 | **Could** | Sin asignar | 6h | RNF-11 |
 | `TASK-10` | Politica de retencion y submuestreo del historial de posiciones | Task | OE4 | **Could** | Sprint 7 | 8h | RNF-22 / spike TG-10 |
 | `TASK-11` | Actualizar el SRS con los hallazgos de los spikes tecnicos ✅ | Task | OE1 | **Must** | Sprint 3 | ~~6h~~ 0h | Fase 6 de TG-18 (cumplida por el SRS v0.3) |
 
-🔒 = bloqueada por insumo externo
+🔀 = alcance sujeto a la decisión de `TASK-28` (compra de la fuente comercial de rastreo). Ver «La bifurcación de `TASK-28`» al final.
+
+**Ya no queda ninguna historia bloqueada por insumo externo:** el riesgo R2 se resolvió el 03/09 formalizando la carga manual (`RF-31`).
 
 ---
 
@@ -1556,65 +1571,75 @@ Como técnico del Centro de Competencias, quiero la guía de despliegue, para as
 
 ---
 
-### Sin asignar (bloqueadas por insumo externo sin fecha)
+### Riesgo R2 — resuelto el 03/09: la carga manual entra al alcance
 
-**3 items · 32 h estimadas — sin calendarizar a proposito.** Su dependencia externa no tiene fecha comprometida; asignarles sprint seria fingir un compromiso que no controlamos.
+**Las tres historias que estaban «Sin asignar» ya tienen sprint.** El 25/08 se registró que
+SAP no tenía fecha y que, sin él, *no existía ninguna función de usuario que metiera pedidos
+al sistema*. El 03/09 se tomó la decisión pendiente: **se formaliza la carga manual como
+requerimiento** (`RF-31`), el archivo **Z-tracking pasa a ser la vía oficial de entrada** y la
+sincronización con el servicio de SAP queda como **evolución futura, fuera del alcance de la
+práctica**.
 
-> 🔴 **Actualizacion del 25/08 — el riesgo R2 empeoro.** El supervisor confirmo que **no hay fecha presupuestada para la especificacion del servicio de SAP y el proceso esta varado**. El SRS seccion 9.4 la daba por recibida antes del Sprint 3, que arranca el 7 de septiembre: ese supuesto ya no se sostiene.
->
-> Lo que esto significa, dicho sin rodeos: **no existe hoy ninguna funcion de usuario que meta pedidos al sistema.** `TASK-03` resuelve el desarrollo y la demostracion con datos semilla, y el Informe 1 del 25/09 se cubre con eso. Pero un sistema sin via de entrada de datos no es entregable como producto.
->
-> **Decision que sigue abierta y ya no puede esperar al Sprint 5:** si SAP no llega, hace falta un RF de carga manual de pedidos, con sus historias y sus horas. Es un cambio de alcance y no se asume aqui. Conviene plantearlo formalmente antes del cierre del Sprint 3.
+Con eso, el riesgo R2 **sale del camino crítico** y el backlog deja de tener deuda sin fecha.
 
-#### US-31 — Sincronizar los pedidos en transito desde el servicio API de SAP
+#### `US-31` — Cargar los pedidos en tránsito desde el archivo Z-tracking · Sprint 4
 
-Como usuario de Compras, quiero que los pedidos lleguen automaticamente desde SAP, para no mantener la informacion a mano.
+Como usuario de Compras, quiero cargar el archivo Z-tracking en el sistema, para que los
+pedidos entren sin mantenerlos a mano y sin depender de que SAP exponga un servicio.
 
 **Criterios de aceptación**
 
-- Dado el servicio de SAP disponible, cuando corre la sincronizacion, entonces los pedidos nuevos se insertan y los existentes se actualizan por OC y posicion
-- Dado un pedido que ya no figura en SAP, cuando sincronizo, entonces lo senalo para revision manual y NO lo elimino
-- Dado el servicio caido, cuando falla, entonces conservo la ultima sincronizacion y senalo la antiguedad en el encabezado
-- Dada la sincronizacion, cuando termina, entonces informo recibidos, insertados, actualizados y rechazados
+- Dado un archivo Z-tracking, cuando lo cargo, entonces los pedidos nuevos se insertan y los existentes se actualizan **por OC y posición**
+- Dado un pedido que ya no figura en el archivo, cuando cargo, entonces lo señalo para revisión manual y **NO** lo elimino
+- Dada una carga, cuando termina, entonces informo recibidos, insertados, actualizados y rechazados
+- Dadas las hojas del archivo, cuando lo proceso, entonces solo tomo **PRODUCCION e IDA** (alcance del 03/09)
+- Dadas las fechas en formato serial de Excel, cuando las leo, entonces las convierto a fecha ISO
 
 | | |
 |---|---|
 | Tipo | Story |
 | Objetivo específico | OE2 |
-| MoSCoW | **Should** |
-| Estimacion | 16 h |
-| Origen en el SRS | RF-01 / CU-01 |
-| Etiquetas | `backend,sap,bloqueada` |
-| 🔒 Bloqueada por | Especificacion del servicio API de SAP (Centro de Competencias) |
+| MoSCoW | **Must** |
+| Estimacion | 14 h |
+| Origen en el SRS | `RF-31` carga manual (03/09) · RF-01 · CU-01 |
+| Etiquetas | `backend,ingesta,carga-manual` |
 
-#### US-32 — Validar los datos recibidos de SAP antes de persistirlos
+> Reemplaza a la sincronización con el API de SAP, que pasa a evolución futura. La muestra
+> real anonimizada (`docs/analisis/2026-Agosto-WK36_anonimizado.csv`) sirve de caso de prueba.
 
-Como sistema, quiero validar cada registro recibido, para que un dato malo no contamine la base ni aborte la sincronizacion.
+#### `US-32` — Validar y normalizar los datos del Z-tracking antes de persistirlos · Sprint 4
+
+Como sistema, quiero validar y normalizar cada registro, para que un dato malo no contamine
+la base ni aborte la carga completa.
 
 **Criterios de aceptación**
 
-- Dado un registro sin campo obligatorio, cuando lo valido, entonces lo rechazo individualmente y continuo con los demas
-- Dada una via de transporte fuera de dominio, cuando la valido, entonces rechazo el registro indicando el motivo
-- Dado el informe de validación, cuando lo consulto, entonces identifica cada rechazo con su clave de origen y su motivo
+- Dado un registro sin OC, posición o material, cuando lo valido, entonces lo rechazo con su motivo y sigo con el resto del lote
+- Dado `USA` y `ESTADOS UNIDOS`, cuando normalizo, entonces ambos resuelven al mismo país del maestro (`TASK-29`)
+- Dado un valor no resoluble (`PENDIENTE`, `N/A`, fuera de catálogo), cuando lo proceso, entonces marco la línea para revisión **sin abortar el lote** (RN-17)
+- Dada la vía de transporte con ruido (`INDIA`, `AEREO/MARITIMO`), cuando la normalizo, entonces resuelve a {Aéreo, Marítimo, Terrestre} o a revisión
+- Dada una referencia de embarque presente, cuando la valido, entonces verifico su formato según `TASK-30`
+- Dada la carga, cuando termina, entonces queda un informe de validación con cada rechazo y su clave de origen
 
 | | |
 |---|---|
 | Tipo | Story |
 | Objetivo específico | OE2 |
-| MoSCoW | **Should** |
+| MoSCoW | **Must** |
 | Estimacion | 10 h |
-| Origen en el SRS | RF-02 / CU-01 |
-| Etiquetas | `backend,sap,bloqueada` |
-| 🔒 Bloqueada por | Especificacion del servicio API de SAP (Centro de Competencias) |
+| Origen en el SRS | RF-02 · RN-17 (nueva, 03/09) |
+| Etiquetas | `backend,ingesta,validacion,normalizacion` |
 
-#### US-33 — Habilitar el modo de visualizacion permanente en pantalla grande
+#### `US-33` — Habilitar el modo de visualización permanente en pantalla grande · Sprint 7
 
-Como gerencia, quiero un modo de pantalla permanente, para dejar el dashboard visible en planta.
+Como usuario de planta, quiero una vista permanente en pantalla grande, para seguir el estado
+de los pedidos sin interactuar con el sistema.
 
 **Criterios de aceptación**
 
-- Dado el modo de visualizacion, cuando lo activo, entonces la vista se adapta a pantalla grande con tipografia legible a distancia
-- Dado el modo activo, cuando pasa el tiempo, entonces la vista se refresca sola sin intervencion
+- Dada la pantalla de planta, cuando se abre, entonces muestra la **vista simple** de `US-43` (material, etapa y cumplimiento)
+- Dada la vista, cuando pasa el tiempo, entonces se refresca sola sin recargar la página (RNF-02)
+- Dada la sesión, cuando la pantalla queda desatendida, entonces se aplica la política de inactividad de `US-42`
 
 | | |
 |---|---|
@@ -1622,25 +1647,217 @@ Como gerencia, quiero un modo de pantalla permanente, para dejar el dashboard vi
 | Objetivo específico | OE3 |
 | MoSCoW | **Could** |
 | Estimacion | 6 h |
-| Origen en el SRS | RNF-11 |
-| Etiquetas | `frontend,ux,opcional` |
-| 🔒 Bloqueada por | Resolucion y tamano de la pantalla (pendiente de definir con usuarios clave) |
+| Origen en el SRS | RNF-11 · vista simple de `US-43` |
+| Etiquetas | `frontend,ux,pantalla-planta` |
+
+> **Desbloqueada el 03/09.** Ya no depende de definir qué mostrar: la vista simple lo resuelve.
+> Solo queda pendiente la resolución física de la pantalla, que es un detalle de maquetación.
 
 ---
 
-## Anexo: fuera del alcance (Won't have)
+## Cambios de la reunión con Logística (03/09/2026)
 
-No se cargan al backlog. Se listan por trazabilidad, tomados de la seccion 1.2.2 del SRS v0.2.
+Entrega del **Z-tracking** (`docs/analisis/2026-Agosto-WK36.xlsx`) y cierre de dudas.
+Las decisiones que reabre están anotadas en
+[`dudas_sesion_validacion.md`](dudas_sesion_validacion.md) (addendum 03/09).
 
-- Despliegue a produccion en la infraestructura corporativa
-- Servidor web productivo, balanceo de carga y terminacion SSL
-- Integracion con Active Directory / SSO corporativo
-- Sistema de colas distribuido en modo productivo
-- Monitoreo, logging centralizado y alertas de produccion
-- Desarrollo del servicio API del lado de SAP (corresponde al Centro de Competencias)
-- Trazabilidad automatica por contenedor, BL o booking sin dato de nave
-- Gestion documental de facturas, BL, AWB o DUAs
-- Prediccion avanzada de retrasos por congestion portuaria o clima
-- Aplicacion movil nativa
-- Contratacion de licencias de APIs comerciales de rastreo
+### `US-41` — Wireframe del login ✅ HECHA
+
+Como equipo, queremos un wireframe del login para maquetar la autenticación que
+Logística pidió, para validar la entrada y el enrutado por rol antes de construirla.
+
+**Criterios de aceptación**
+
+- Dado el wireframe, cuando lo reviso, entonces muestra usuario, contraseña, «recordar sesión», enlace de olvido y botón Entrar, en baja fidelidad y escala de grises
+- Dado el wireframe, cuando reviso el post-login, entonces documenta el enrutado **rol → vista** (simple vs completa) y las decisiones abiertas (bloqueo, sesión, olvido)
+
+> **Completada el 03/09.** Sección `00 · Autenticación` en `docs/design/wireframes.html` y §0 en `docs/design/wireframes.md`. Falta el frame de Figma.
+
+### `TASK-28` — Spike: container tracking de pago
+
+Como equipo, queremos medir la cobertura de **container tracking** de pago
+(`Vizion`, con `Terminal49` / `ShipsGo` como alternativas) en **Moín (`CRMOB`)** y de una
+fuente **aérea por AWB** (`Portcast` / `ShipsGo Air` / `TrackingMore`) en **SJO**, para
+decidir si resuelven el tramo final y el punto ciego de AIS antes de comprometer la
+arquitectura de rastreo.
+
+**Criterios de aceptación**
+
+- Dado un BL/booking/contenedor real, cuando consulto el API, entonces obtengo eventos de milestone hasta el arribo a Moín, o se documenta la ausencia de cobertura
+- Dado un **MAWB** real de India o China a SJO, cuando consulto el API aéreo, entonces obtengo los hitos de carga (no la posición de la aeronave)
+- Dado que el forwarder puede entregar un **HAWB**, cuando lo consulto, entonces documento si resuelve o si hace falta exigir el MAWB
+- Dado el resultado, cuando lo registro, entonces queda un `output/` con evidencia y una recomendación go/no-go y de costo, al estilo de TG-10 y TG-11
+
+> **Revierte la decisión abierta #3 / B1.** Se dio luz verde a fuentes de datos de pago (03/09).
+
+### `TASK-29` — Maestro de países y normalización de la ingesta
+
+Como desarrollador, quiero un **maestro de países** y una capa de normalización de
+`país`, `vía`, `incoterm` y `temperatura`, para que la carga (RF-02) convierta el
+texto libre sucio del Z-tracking en valores de dominio fiables.
+
+**Criterios de aceptación**
+
+- Dado el Z-tracking con `USA` y `ESTADOS UNIDOS`, cuando lo cargo, entonces ambos resuelven al mismo país del maestro (ISO)
+- Dado un valor no reconocido (`PENDIENTE`, `N/A`, país fuera del maestro), cuando lo cargo, entonces la línea se marca para revisión sin abortar el lote
+- Dado el campo `vía` con ruido (`INDIA`, `AEREO/MARITIMO`), cuando lo normalizo, entonces resuelve a {Aéreo, Marítimo, Terrestre} o a revisión
+
+### `US-42` — Autenticación con login, sesión y roles
+
+Como usuario, quiero iniciar sesión con usuario y contraseña, para que el sistema me
+identifique, restrinja las operaciones según mi rol y registre la autoría de mis
+intervenciones.
+
+**Criterios de aceptación**
+
+- Dadas credenciales válidas, cuando entro, entonces se crea una sesión y `auditoria_intervenciones.id_usuario` se llena **de la sesión**, no de un selector manual (revisa B5)
+- Dado mi rol (Compras, Logística, Planificación o **Administrador**), cuando opero, entonces solo el Administrador mantiene cuentas y solo los autorizados confirman/mantienen maestros (RNF-05)
+- Dadas credenciales inválidas, cuando fallo, entonces el mensaje es genérico y se cuenta el intento
+- Dada la pantalla de planta, cuando pasa el tiempo de inactividad, entonces la sesión cierra
+
+> Sin SSO/Active Directory: mecanismo propio (RNF-05 ampliado). **Revierte B9:** el rol Administrador entra porque, con login, el rol sí restringe.
+
+### `US-43` — Dos vistas de la grilla según el rol
+
+Como usuario, quiero que la grilla se ajuste a mi rol, para ver solo lo que me compete:
+una **vista simple** (Material · Etapa · Cumplimiento) o la **vista completa**.
+
+**Criterios de aceptación**
+
+- Dado un rol de Planificación / pantalla de planta, cuando abro el dashboard, entonces la grilla muestra solo Material, Etapa y Cumplimiento
+- Dado un rol de Compras o Logística, cuando abro el dashboard, entonces la grilla muestra la actual **más deliveries, departures, ETD y ATD**
+- Dado que ETD/ATD no vienen del Z-tracking, cuando los muestro, entonces provienen del rastreo (US-08/US-11) o de la fuente de container tracking (TASK-28) — **fuente por confirmar**
+
+### `US-44` — País de origen y mapa del pedido en el detalle
+
+Como usuario, quiero ver en el detalle el **país de origen** del pedido y un **mapa de
+seguimiento** de ese envío en particular, para saber de dónde viene y por dónde va.
+
+**Criterios de aceptación**
+
+- Dado un pedido, cuando abro su detalle, entonces muestra el país de origen normalizado (maestro de TASK-29)
+- Dado un pedido con posición, cuando abro su detalle, entonces muestra un mapa centrado en ese envío con su última posición y, si existe, su trayecto (depende de US-29/RF-22)
+
+### `TASK-30` — Contrato de captura de la referencia de embarque
+
+Como equipo, queremos definir por escrito qué referencia se captura por envío, en qué formato
+y quién la provee, para que Logística la registre de forma utilizable y la carga pueda
+validarla. **Es el prerrequisito de todo el rastreo: sin referencia, ninguna API devuelve nada.**
+
+**Criterios de aceptación**
+
+- Dado el documento, cuando lo reviso, entonces define los tipos admitidos: **contenedor** (ISO 6346, 4 letras + 7 dígitos), **BL máster**, **booking** y **MAWB** (11 dígitos con prefijo de aerolínea)
+- Dado el caso aéreo, cuando lo documento, entonces deja explícito que **el HAWB del agente de carga no resuelve** y que hay que exigir el MAWB o su correspondencia
+- Dado el incoterm, cuando lo documento, entonces indica quién posee la referencia: el agente de Gutis en `EXW`/`FOB`/`FCA` (56 OC) y el proveedor en `CIF`/`CIP`/`CPT` (71 OC)
+- Dado el contrato, cuando se entrega, entonces Logística puede añadir las columnas al Z-tracking y `US-32` puede validar el formato
+
+| | |
+|---|---|
+| Tipo | Task |
+| Objetivo específico | OE1 |
+| MoSCoW | **Must** |
+| Estimacion | 3 h |
+| Origen | Reunión con Logística, 03/09/2026 |
+| Etiquetas | `analisis,ingesta,referencia,prerrequisito` |
+
+> El Z-tracking no contiene **ninguna** referencia legible por máquina en sus 429 líneas, pero
+> los comentarios del comprador dicen «BL recibido»: el dato existe en el proceso y se pierde
+> por falta de un campo. Esta tarea cierra ese hueco.
+
+### `US-45` — Integrar la fuente comercial de rastreo marítimo 🔀
+
+Como sistema, quiero consultar la fuente comercial por contenedor o BL, para obtener los hitos
+y la posición del envío sin depender del AIS gratuito.
+
+**Criterios de aceptación**
+
+- Dada una referencia marítima válida, cuando consulto la fuente, entonces obtengo los hitos normalizados y los mapeo a las etapas de RN-02 a RN-06
+- Dada la respuesta, cuando la persisto, entonces guardo el **payload original** en `historial_tracking` (RF-21 / RNF-13)
+- Dada una respuesta con buque, cuando la proceso, entonces relleno `elementos_rastreados` con nombre, IMO y MMSI
+- Dado un envío con posición, cuando la registro, entonces alimenta el mapa marítimo con su antigüedad (RF-20)
+- Dada la fuente caída, cuando falla, entonces conservo la última lectura y señalo la antigüedad, sin degradar el dashboard (RF-09)
+
+| | |
+|---|---|
+| Tipo | Story |
+| Objetivo específico | OE2 |
+| MoSCoW | **Must** (solo en Plan A) |
+| Estimacion | 12 h |
+| Origen | Plan A de `TASK-28`, reunión 03/09 |
+| Etiquetas | `backend,tracking,api-pago,plan-a` |
+
+### `US-46` — Integrar el rastreo aéreo por guía aérea (MAWB) 🔀
+
+Como sistema, quiero consultar los hitos de carga aérea por MAWB, para conocer el estado real
+del envío y no solo la posición de la aeronave.
+
+**Criterios de aceptación**
+
+- Dado un MAWB válido, cuando consulto la fuente, entonces obtengo los hitos de carga y los mapeo a las etapas del semáforo
+- Dados los hitos, cuando los proceso, entonces extraigo **ETD y ATD** para la vista completa de `US-43`
+- Dado un envío partido en varias entregas, cuando lo rastreo, entonces la etapa refleja el estado de cada parte y no solo de la primera
+- Dado un HAWB en vez de un MAWB, cuando la consulta no resuelve, entonces lo señalo para revisión con un motivo claro
+- Dada la vía aérea, cuando la presento, entonces uso una **línea de tiempo de hitos**; la posición de la aeronave es opcional y no bloquea
+
+| | |
+|---|---|
+| Tipo | Story |
+| Objetivo específico | OE2 |
+| MoSCoW | **Must** (solo en Plan A) |
+| Estimacion | 10 h |
+| Origen | Plan A de `TASK-28`, reunión 03/09 |
+| Etiquetas | `backend,tracking,aereo,awb,plan-a` |
+
+---
+
+## La bifurcación de `TASK-28`
+
+`TASK-28`, en el Sprint 3, decide si se compra la fuente comercial de rastreo. **Es el único
+punto donde este backlog debería volver a cambiar.** Las historias marcadas 🔀 dependen de su
+resultado.
+
+### Plan A — se compra
+
+| Historia | Efecto |
+|---|---|
+| `US-45` Rastreo marítimo comercial | **Entra** (12 h) |
+| `US-46` Rastreo aéreo por MAWB | **Entra** (10 h) |
+| `US-02` Consumir AIS por WebSocket | Se **reduce**: el AIS deja de ser fuente primaria y queda de respaldo del mapa (16 h → ~6 h) |
+| `US-08` Estimar la ETA desde posición y velocidad | Pasa a **`Could`**: la fuente ya entrega ETA; RN-16 queda como respaldo |
+| `US-11` Inferir el arribo por geocerca | Se **simplifica**: el hito de descarga lo da la fuente (8 h → ~4 h) |
+| `TASK-27` Spike de cuota de AISStream | Se **cancela** |
+| `US-14` Confirmar el desembarco a mano | Baja de `Must` a `Should` si la fuente confirma el arribo (revisa la decisión B2) |
+
+**Balance: +22 h de integración contra −34 h de cálculo propio.** Cuadra sin sobrecargar el plan.
+
+### Plan B — no se compra
+
+Todo queda como está: AIS gratuito y OpenSky como fuentes primarias, `US-08` y `US-11` se
+construyen completas, `US-14` sigue `Must` como única vía de confirmar el arribo, y `US-45` y
+`US-46` **no entran**. El riesgo **R1** (sin cobertura AIS en Moín) sigue abierto y el tramo
+final se confirma a mano indefinidamente.
+
+### Criterio de decisión
+
+El spike debe responder tres cosas antes de que cierre el Sprint 3:
+
+1. ¿La fuente devuelve hitos hasta la **descarga en Moín** con un BL real?
+2. ¿Cubre las **aerolíneas** del tramo India/China → SJO con un MAWB real?
+3. ¿En qué **porcentaje** de los embarques se consigue la referencia, y con **cuántos días de antelación** al arribo?
+
+**La tercera es la que manda.** Si la referencia llega tres días antes de que la carga atraque,
+ninguna API vale lo que cuesta, y el Plan B deja de ser el peor escenario para ser el correcto.
+
+---
+
+## Cierre del Sprint 2 — 4 de septiembre de 2026
+
+**20 de 20 items completados · 93 h.** Cierra el Objetivo Específico 1 (análisis y diseño):
+
+- **Modelo de datos:** diez entidades modeladas y su diccionario completo (`TASK-12` a `TASK-18`, `TASK-24`, `TASK-26`).
+- **Arquitectura:** vistas de componentes, despliegue nativo y secuencia (`TASK-20` a `TASK-22`).
+- **Prototipos:** wireframes de dashboard, ambos mapas, detalle y **login** (`US-34` a `US-37`, `US-41`), prototipo navegable en Figma (`US-38`) y validación con usuarios clave (`US-39`).
+- **SRS v0.4** emitido con las decisiones del 25/08 y del 03/09 (`TASK-25`).
+
+Entra al Sprint 3 con el backlog congelado y sin historias bloqueadas por insumo externo.
 

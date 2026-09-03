@@ -5,11 +5,12 @@ Especificación de Requerimientos de Software del proyecto TrackIn, entregable d
 
 | | |
 |---|---|
-| Archivo | [`SRS_TrackIn_v0.3.docx`](SRS_TrackIn_v0.3.docx) |
-| Versión | v0.3 — 20 de agosto de 2026 |
+| Archivo | [`SRS_TrackIn_v0.4.docx`](SRS_TrackIn_v0.4.docx) |
+| Versión | v0.4 — 3 de septiembre de 2026 |
 | Estándar | IEEE 830-1998, adaptado |
 | Fuentes | Anteproyecto aprobado + Documento Técnico-Funcional v1.0 (18/06/2026) + spikes técnicos TG-10 y TG-11 |
-| Versiones anteriores | `SRS_TrackIn_v0.2.docx` (14/08), `SRS_TrackIn_v0.1.docx` (10/08) — se conservan sin modificar |
+| Versiones anteriores | `SRS_TrackIn_v0.3.docx` (20/08), `SRS_TrackIn_v0.2.docx` (14/08), `SRS_TrackIn_v0.1.docx` (10/08) — se conservan sin modificar |
+| Cambios de v0.4 | Ver [`SRS_v0.4_plan_de_cambios.md`](SRS_v0.4_plan_de_cambios.md). Editado directamente sobre el `.docx` de v0.3 (autenticación + dos vistas, detalle con país y mapa, APIs de pago, Anexo B poblado con el Z-tracking). **Abrir en Word y actualizar la TOC con F9.** |
 
 Contenido normativo: **27** requerimientos funcionales, **23** no funcionales,
 **10** casos de uso y **16** reglas de negocio, numerados sin huecos.

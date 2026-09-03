@@ -590,57 +590,33 @@ Definition of Done:
 
 Origen en el SRS: Criterios seccion 10
 MoSCoW: Must","Highest","Cierre","OE4-Persistencia","documentacion,cierre","6h","mamayorga"
-"Story","US-31 Sincronizar los pedidos en transito desde el servicio API de SAP","Como usuario de Compras, quiero que los pedidos lleguen automaticamente desde SAP, para no mantener la informacion a mano.
+"Story","US-31 Cargar los pedidos en transito desde el archivo Z-tracking","Como usuario de Compras, quiero cargar el archivo Z-tracking en el sistema, para que los pedidos entren sin mantenerlos a mano y sin depender de que SAP exponga un servicio.
 
 Criterios de aceptacion (Gherkin):
-- Dado el servicio de SAP disponible, cuando corre la sincronizacion, entonces los pedidos nuevos se insertan y los existentes se actualizan por OC y posicion
-- Dado un pedido que ya no figura en SAP, cuando sincronizo, entonces lo senalo para revision manual y NO lo elimino
-- Dado el servicio caido, cuando falla, entonces conservo la ultima sincronizacion y senalo la antiguedad en el encabezado
-- Dada la sincronizacion, cuando termina, entonces informo recibidos, insertados, actualizados y rechazados
+- Dado un archivo Z-tracking, cuando lo cargo, entonces los pedidos nuevos se insertan y los existentes se actualizan por OC y posicion
+- Dado un pedido que ya no figura en el archivo, cuando cargo, entonces lo senalo para revision manual y NO lo elimino
+- Dada una carga, cuando termina, entonces informo recibidos, insertados, actualizados y rechazados
+- Dadas las hojas del archivo, cuando lo proceso, entonces solo tomo PRODUCCION e IDA (alcance del 03/09)
+- Dadas las fechas en formato serial de Excel, cuando las leo, entonces las convierto a fecha ISO
 
-Definition of Done:
-- Codigo con pruebas unitarias (cobertura minima 70%)
-- Documentacion tecnica actualizada
-- Revision con supervisor (Greivin) cuando aplique
-- Merge a rama principal sin errores de CI
-
-Origen en el SRS: RF-01 / CU-01
-MoSCoW: Should
-
-[BLOQUEADA] Depende de un insumo externo: Especificacion del servicio API de SAP (Centro de Competencias)","High","Sin asignar","OE2-Backend","backend,sap,bloqueada,bloqueada-insumo-externo","16h","mamayorga"
-"Story","US-32 Validar los datos recibidos de SAP antes de persistirlos","Como sistema, quiero validar cada registro recibido, para que un dato malo no contamine la base ni aborte la sincronizacion.
+Reemplaza la sincronizacion con el API de SAP, que pasa a evolucion futura. Decision del 03/09/2026: se formaliza la carga manual como RF-31 y se resuelve el riesgo R2.","Highest","Sprint 4","OE2-Backend","backend,ingesta,carga-manual","14h","mamayorga"
+"Story","US-32 Validar y normalizar los datos del Z-tracking antes de persistirlos","Como sistema, quiero validar y normalizar cada registro, para que un dato malo no contamine la base ni aborte la carga completa.
 
 Criterios de aceptacion (Gherkin):
-- Dado un registro sin campo obligatorio, cuando lo valido, entonces lo rechazo individualmente y continuo con los demas
-- Dada una via de transporte fuera de dominio, cuando la valido, entonces rechazo el registro indicando el motivo
-- Dado el informe de validacion, cuando lo consulto, entonces identifica cada rechazo con su clave de origen y su motivo
-
-Definition of Done:
-- Codigo con pruebas unitarias (cobertura minima 70%)
-- Documentacion tecnica actualizada
-- Revision con supervisor (Greivin) cuando aplique
-- Merge a rama principal sin errores de CI
-
-Origen en el SRS: RF-02 / CU-01
-MoSCoW: Should
-
-[BLOQUEADA] Depende de un insumo externo: Especificacion del servicio API de SAP (Centro de Competencias)","High","Sin asignar","OE2-Backend","backend,sap,bloqueada,bloqueada-insumo-externo","10h","mamayorga"
-"Story","US-33 Habilitar el modo de visualizacion permanente en pantalla grande","Como gerencia, quiero un modo de pantalla permanente, para dejar el dashboard visible en planta.
+- Dado un registro sin OC, posicion o material, cuando lo valido, entonces lo rechazo con su motivo y sigo con el resto del lote
+- Dado 'USA' y 'ESTADOS UNIDOS', cuando normalizo, entonces ambos resuelven al mismo pais del maestro (TASK-29)
+- Dado un valor no resoluble (PENDIENTE, N/A, fuera de catalogo), cuando lo proceso, entonces marco la linea para revision sin abortar el lote (RN-17)
+- Dada la via de transporte con ruido (INDIA, AEREO/MARITIMO), cuando la normalizo, entonces resuelve a {Aereo, Maritimo, Terrestre} o a revision
+- Dada una referencia de embarque presente, cuando la valido, entonces verifico su formato segun TASK-30
+- Dada la carga, cuando termina, entonces queda un informe de validacion con cada rechazo y su clave de origen","Highest","Sprint 4","OE2-Backend","backend,ingesta,validacion,normalizacion","10h","mamayorga"
+"Story","US-33 Habilitar el modo de visualizacion permanente en pantalla grande","Como usuario de planta, quiero una vista permanente en pantalla grande, para seguir el estado de los pedidos sin interactuar con el sistema.
 
 Criterios de aceptacion (Gherkin):
-- Dado el modo de visualizacion, cuando lo activo, entonces la vista se adapta a pantalla grande con tipografia legible a distancia
-- Dado el modo activo, cuando pasa el tiempo, entonces la vista se refresca sola sin intervencion
+- Dada la pantalla de planta, cuando se abre, entonces muestra la vista simple de US-43 (material, etapa y cumplimiento)
+- Dada la vista, cuando pasa el tiempo, entonces se refresca sola sin recargar la pagina (RNF-02)
+- Dada la sesion, cuando la pantalla queda desatendida, entonces se aplica la politica de inactividad de US-42
 
-Definition of Done:
-- Codigo con pruebas unitarias (cobertura minima 70%)
-- Documentacion tecnica actualizada
-- Revision con supervisor (Greivin) cuando aplique
-- Merge a rama principal sin errores de CI
-
-Origen en el SRS: RNF-11
-MoSCoW: Could
-
-[BLOQUEADA] Depende de un insumo externo: Resolucion y tamano de la pantalla (pendiente de definir con usuarios clave)","Medium","Sin asignar","OE3-Frontend","frontend,ux,opcional,bloqueada-insumo-externo","6h","mamayorga"
+Desbloqueada el 03/09: la vista simple define que mostrar.","Medium","Sprint 7","OE3-Frontend","frontend,ux,pantalla-planta","6h","mamayorga"
 "Task","TASK-10 Politica de retencion y submuestreo del historial de posiciones","Como desarrollador, quiero una politica de retencion del historial, para que su crecimiento no degrade la consulta de pedidos activos.
 
 Criterios de aceptacion (Gherkin):
@@ -669,3 +645,72 @@ Definition of Done:
 
 Origen en el SRS: Fase 6 de TG-18
 MoSCoW: Must","Highest","Sprint 3","OE1-Analisis","documentacion,srs","6h","mamayorga"
+"Task","TASK-28 Spike: cobertura de container tracking de pago en Moin y aereo en SJO","Como equipo, quiero medir la cobertura de container tracking de pago (Vizion, con Terminal49 / ShipsGo como alternativas) en Moin (CRMOB) y de una fuente aerea por AWB (Portcast / ShipsGo Air / TrackingMore) en SJO, para decidir si resuelven el tramo final y el punto ciego de AIS antes de comprometer la arquitectura de rastreo.
+
+Criterios de aceptacion (Gherkin):
+- Dado un BL/booking/contenedor real, cuando consulto el API, entonces obtengo eventos de milestone hasta el arribo a Moin, o se documenta la ausencia de cobertura
+- Dado un MAWB real de India o China a SJO, cuando consulto el API aereo, entonces obtengo los hitos de carga (no la posicion de la aeronave); si el forwarder solo entrega HAWB, se documenta
+- Dado el resultado, cuando lo registro, entonces queda evidencia en output/ y una recomendacion go/no-go y de costo, al estilo de TG-10 y TG-11
+
+Revierte la decision abierta #3 / B1 (luz verde a fuentes de pago, 03/09/2026). Riesgo R1.","Highest","Sprint 3","OE2-Backend","backend,spike,tracking-pago,riesgo-externo","6h","mamayorga"
+"Task","TASK-29 Maestro de paises y normalizacion de la ingesta","Como desarrollador, quiero un maestro de paises y una capa de normalizacion de pais, via, incoterm y temperatura, para que la carga (RF-02) convierta el texto libre sucio del Z-tracking en valores de dominio fiables.
+
+Criterios de aceptacion (Gherkin):
+- Dado el Z-tracking con 'USA' y 'ESTADOS UNIDOS', cuando lo cargo, entonces ambos resuelven al mismo pais del maestro (ISO)
+- Dado un valor no reconocido (PENDIENTE, N/A, pais fuera del maestro), cuando lo cargo, entonces la linea se marca para revision sin abortar el lote
+- Dado el campo via con ruido (INDIA, AEREO/MARITIMO), cuando lo normalizo, entonces resuelve a {Aereo, Maritimo, Terrestre} o a revision
+
+Origen: muestra Z-tracking 03/09/2026.","Highest","Sprint 3","OE2-Backend","backend,ingesta,maestros,normalizacion","6h","mamayorga"
+"Story","US-42 Autenticar usuarios con login, sesion y tres roles mas Administrador","Como usuario, quiero iniciar sesion con usuario y contrasena, para que el sistema me identifique, restrinja las operaciones segun mi rol y registre la autoria de mis intervenciones.
+
+Criterios de aceptacion (Gherkin):
+- Dadas credenciales validas, cuando entro, entonces se crea una sesion y auditoria_intervenciones.id_usuario se llena de la sesion, no de un selector manual (revisa B5)
+- Dado mi rol (Compras, Logistica, Planificacion o Administrador), cuando opero, entonces solo el Administrador mantiene cuentas y solo los autorizados confirman/mantienen maestros (RNF-05)
+- Dadas credenciales invalidas, cuando fallo, entonces el mensaje es generico y se cuenta el intento
+- Dada la pantalla de planta, cuando pasa el tiempo de inactividad, entonces la sesion cierra
+
+Sin SSO/Active Directory: mecanismo propio (RNF-05 ampliado). Revierte B9. Origen: reunion Logistica 03/09/2026.","Highest","Sprint 5","OE2-Backend","backend,autenticacion,seguridad","12h","mamayorga"
+"Story","US-43 Ofrecer dos vistas de la grilla segun el rol: simple y completa","Como usuario, quiero que la grilla se ajuste a mi rol, para ver solo lo que me compete: una vista simple (Material, Etapa, Cumplimiento) o la vista completa.
+
+Criterios de aceptacion (Gherkin):
+- Dado un rol de Planificacion / pantalla de planta, cuando abro el dashboard, entonces la grilla muestra solo Material, Etapa y Cumplimiento
+- Dado un rol de Compras o Logistica, cuando abro el dashboard, entonces la grilla muestra la actual mas deliveries, departures, ETD y ATD
+- Dado que ETD/ATD no vienen del Z-tracking, cuando los muestro, entonces provienen del rastreo (US-08/US-11) o del container tracking (TASK-28) - fuente por confirmar
+
+Origen: reunion Logistica 03/09/2026.","Highest","Sprint 6","OE3-Frontend","frontend,grilla,roles","10h","mamayorga"
+"Story","US-44 Mostrar en el detalle el pais de origen y el mapa de seguimiento del pedido","Como usuario, quiero ver en el detalle el pais de origen del pedido y un mapa de seguimiento de ese envio en particular, para saber de donde viene y por donde va.
+
+Criterios de aceptacion (Gherkin):
+- Dado un pedido, cuando abro su detalle, entonces muestra el pais de origen normalizado (maestro de TASK-29)
+- Dado un pedido con posicion, cuando abro su detalle, entonces muestra un mapa centrado en ese envio con su ultima posicion y, si existe, su trayecto (depende de US-29/RF-22)
+
+Origen: reunion Logistica 03/09/2026.","High","Sprint 7","OE3-Frontend","frontend,detalle,mapa","8h","mamayorga"
+"Task","TASK-30 Contrato de captura de la referencia de embarque","Como equipo, quiero definir por escrito que referencia se captura por envio, en que formato y quien la provee, para que Logistica la registre de forma utilizable y la carga pueda validarla. Es el prerrequisito de todo el rastreo: sin referencia ninguna API devuelve nada.
+
+Criterios de aceptacion (Gherkin):
+- Dado el documento, cuando lo reviso, entonces define los tipos admitidos: contenedor (ISO 6346, 4 letras + 7 digitos), BL master, booking y MAWB (11 digitos con prefijo de aerolinea)
+- Dado el caso aereo, cuando lo documento, entonces deja explicito que el HAWB del agente de carga no resuelve y que hay que exigir el MAWB o su correspondencia
+- Dado el incoterm, cuando lo documento, entonces indica quien posee la referencia: el agente de Gutis en EXW/FOB/FCA (56 OC) y el proveedor en CIF/CIP/CPT (71 OC)
+- Dado el contrato, cuando se entrega, entonces Logistica puede anadir las columnas al Z-tracking y US-32 puede validar el formato
+
+Origen: reunion con Logistica 03/09/2026. El Z-tracking no contiene ninguna referencia legible por maquina en sus 429 lineas.","Highest","Sprint 3","OE2-Backend","analisis,ingesta,referencia,prerrequisito","3h","mamayorga"
+"Story","US-45 Integrar la fuente comercial de rastreo maritimo por contenedor o BL","Como sistema, quiero consultar la fuente comercial por contenedor o BL, para obtener los hitos y la posicion del envio sin depender del AIS gratuito.
+
+Criterios de aceptacion (Gherkin):
+- Dada una referencia maritima valida, cuando consulto la fuente, entonces obtengo los hitos normalizados y los mapeo a las etapas de RN-02 a RN-06
+- Dada la respuesta, cuando la persisto, entonces guardo el payload original en historial_tracking (RF-21 / RNF-13)
+- Dada una respuesta con buque, cuando la proceso, entonces relleno elementos_rastreados con nombre, IMO y MMSI
+- Dado un envio con posicion, cuando la registro, entonces alimenta el mapa maritimo con su antiguedad (RF-20)
+- Dada la fuente caida, cuando falla, entonces conservo la ultima lectura y senalo la antiguedad, sin degradar el dashboard (RF-09)
+
+SOLO EN PLAN A: sujeta al resultado de TASK-28.","Highest","Sprint 4","OE2-Backend","backend,tracking,api-pago,plan-a","12h","mamayorga"
+"Story","US-46 Integrar el rastreo aereo por guia aerea (MAWB)","Como sistema, quiero consultar los hitos de carga aerea por MAWB, para conocer el estado real del envio y no solo la posicion de la aeronave.
+
+Criterios de aceptacion (Gherkin):
+- Dado un MAWB valido, cuando consulto la fuente, entonces obtengo los hitos de carga y los mapeo a las etapas del semaforo
+- Dados los hitos, cuando los proceso, entonces extraigo ETD y ATD para la vista completa de US-43
+- Dado un envio partido en varias entregas, cuando lo rastreo, entonces la etapa refleja el estado de cada parte y no solo de la primera
+- Dado un HAWB en vez de un MAWB, cuando la consulta no resuelve, entonces lo senalo para revision con un motivo claro
+- Dada la via aerea, cuando la presento, entonces uso una linea de tiempo de hitos; la posicion de la aeronave es opcional y no bloquea
+
+SOLO EN PLAN A: sujeta al resultado de TASK-28.","Highest","Sprint 4","OE2-Backend","backend,tracking,aereo,awb,plan-a","10h","mamayorga"

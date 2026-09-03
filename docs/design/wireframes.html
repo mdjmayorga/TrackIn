@@ -350,13 +350,34 @@ ul.tight code, .card code{font-family:"IBM Plex Mono",monospace; font-size:12px;
 .empty b{font-size:13px}
 .empty span{font-size:12px; color:var(--ink-mid)}
 
+/* ---------- login (US-41) ---------- */
+.loginstage{background:var(--panel); padding:44px 20px; display:flex; justify-content:center; align-items:flex-start}
+.logincard{width:344px; max-width:100%; background:var(--sheet); border:1.5px solid var(--line-hard); padding:26px 24px; display:flex; flex-direction:column; gap:15px}
+.logincard .brand{font-size:23px; font-weight:700; letter-spacing:-.01em; text-align:center; display:flex; align-items:center; justify-content:center; gap:8px}
+.logincard .sub{margin:-9px 0 6px; text-align:center; font-size:12px; color:var(--ink-soft)}
+.lf{display:flex; flex-direction:column; gap:5px}
+.lf label{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); display:flex; align-items:center; gap:6px}
+.lf .input{border:1px solid var(--line-hard); background:var(--panel); padding:9px 11px; font-size:13px; color:var(--ink-soft); font-family:"IBM Plex Mono",monospace}
+.lf .input.filled{color:var(--ink)}
+.lrow{display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--ink-mid)}
+.lrow .chk{display:inline-flex; align-items:center; gap:6px}
+.lrow .box{width:13px; height:13px; border:1px solid var(--line-hard); display:inline-block}
+.lrow a{color:var(--accent); text-decoration:underline}
+.lbtn{border:1.5px solid var(--ink); background:var(--ink); color:var(--sheet); padding:10px; text-align:center; font-weight:600; font-size:13px; letter-spacing:.02em}
+.lerr{border:1px solid var(--s-retrasado); border-left:3px solid var(--s-retrasado); background:var(--sheet); padding:8px 10px; font-size:12px; color:var(--ink)}
+.lnote{text-align:center; font-size:11px; color:var(--ink-soft); font-family:"IBM Plex Mono",monospace}
+.route{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:4px}
+.route .rbox{border:1px solid var(--line); background:var(--panel); padding:11px 13px; display:flex; flex-direction:column; gap:5px}
+.route .rbox h4{margin:0; font-size:12.5px; font-weight:600}
+.route .rbox .role{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em}
+.route .rbox ul{margin:4px 0 0; padding-left:16px; font-size:11.5px; color:var(--ink-mid); display:flex; flex-direction:column; gap:3px}
 footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color:var(--ink-soft)}
 </style>
 
 <div class="wrap">
 
   <header class="masthead">
-    <div class="eyebrow">US-34 · US-35 · US-36 · US-37 · Wireframes · Sprint 2</div>
+    <div class="eyebrow">US-41 · US-34 · US-35 · US-36 · US-37 · Wireframes · Sprint 2</div>
     <h1>Dashboard, mapas y detalle</h1>
     <p class="lede">Borrador de baja fidelidad para replicar en Figma. Estructura y contenido, no diseño visual: la única decisión cromática es el semáforo, porque ahí el color es requisito y no estética.</p>
     <div class="rfs">
@@ -375,6 +396,91 @@ footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px; color
       <span class="rf">RNF-01 200 pedidos</span>
     </div>
   </header>
+
+  <section class="sec">
+    <h2>00 · Autenticación — Login · US-41</h2>
+    <div class="canvas">
+
+      <div class="sheet">
+        <div class="sheet-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span style="margin-left:6px">trackin.gutis.local / login</span>
+        </div>
+
+        <div class="loginstage">
+          <div class="logincard">
+            <div class="brand"><span class="callout">1</span> TrackIn</div>
+            <p class="sub">Seguimiento logístico · Laboratorios Gutis</p>
+
+            <div class="lf">
+              <label><span class="callout" style="width:15px;height:15px;font-size:9px">2</span> Usuario</label>
+              <div class="input filled">ksauma</div>
+            </div>
+            <div class="lf">
+              <label>Contraseña</label>
+              <div class="input">••••••••••</div>
+            </div>
+
+            <div class="lrow">
+              <span class="chk"><span class="box"></span> Recordar sesión</span>
+              <a href="#">¿Olvidó su contraseña?</a>
+            </div>
+
+            <div class="lbtn"><span class="callout">3</span> Entrar</div>
+
+            <div class="lerr"><span class="callout" style="width:15px;height:15px;font-size:9px">4</span> <b>Usuario o contraseña incorrectos.</b> Le quedan 4 intentos.</div>
+
+            <p class="lnote"><span class="callout" style="width:15px;height:15px;font-size:9px">5</span> Sin SSO corporativo · cierre por inactividad</p>
+          </div>
+        </div>
+
+        <!-- 6 · enrutado por rol tras autenticar -->
+        <div class="route" style="padding:14px">
+          <div class="rbox">
+            <h4><span class="callout" style="width:15px;height:15px;font-size:9px">6</span> Vista simple</h4>
+            <span class="role">Planificación · pantalla de planta</span>
+            <ul>
+              <li>Grilla reducida: <b>Material · Etapa · Cumplimiento</b></li>
+              <li>Sin ETD/ATD, deliveries ni departures</li>
+            </ul>
+          </div>
+          <div class="rbox">
+            <h4>Vista completa</h4>
+            <span class="role">Compras · Logística</span>
+            <ul>
+              <li>Grilla actual <b>+ deliveries, departures, ETD y ATD</b></li>
+              <li>Dos mapas, detalle, auditoría e intervención manual</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <aside class="rail">
+        <div class="note"><span class="callout">1</span><div><b>Marca, sin logo.</b> Baja fidelidad y escala de grises, como el resto del set. El único color permitido sigue siendo el del semáforo, que aquí no aparece.</div></div>
+        <div class="note"><span class="callout">2</span><div><b>Credenciales propias.</b> Usuario y contraseña gestionados por TrackIn (mecanismo propio de RNF-05, ampliado). <b>No</b> es Active Directory ni SSO: eso sigue fuera del alcance de la práctica.</div></div>
+        <div class="note"><span class="callout">3</span><div><b>Entrar.</b> Autentica y crea la sesión que exige <code>auditoria_intervenciones.id_usuario</code>. Con login real, la autoría de RF-14 deja de depender del selector de usuario manual (revisa la decisión B5).</div></div>
+        <div class="note"><span class="callout">4</span><div><b>Estado de error.</b> Mensaje genérico —no revela si falló el usuario o la contraseña— y contador de intentos. El bloqueo tras N intentos es una <b>decisión abierta</b>.</div></div>
+        <div class="note"><span class="callout">5</span><div><b>Sesión.</b> Cierre por inactividad para la pantalla permanente de planta (RNF-11). Duración por definir. «Recordar sesión» y el flujo de olvido de contraseña quedan <b>por decidir</b>.</div></div>
+        <div class="note"><span class="callout">6</span><div><b>Enrutado por rol.</b> El login decide la vista: <b>simple</b> (Material · Etapa · Cumplimiento) o <b>completa</b> (la actual + deliveries, departures, ETD y ATD). Es la razón por la que la autenticación entra al alcance.</div></div>
+      </aside>
+
+    </div>
+
+    <div class="cards">
+      <div class="card ask">
+        <h3>Por qué el login entra ahora</h3>
+        <p>El SRS v0.3 lo excluía: «no se implementará autenticación corporativa». Logística pidió <b>dos vistas</b> con distinto detalle, y separarlas exige saber quién entra. Deja de ser opcional.</p>
+      </div>
+      <div class="card flag">
+        <h3>Decisiones abiertas del login</h3>
+        <p>Bloqueo tras N intentos, duración de la sesión e inactividad, flujo de «olvidó su contraseña» (¿reinicio por administrador, sin correo?), y si «Recordar sesión» aplica en la pantalla de planta.</p>
+      </div>
+      <div class="card flag">
+        <h3>Qué falta para cerrar US-41</h3>
+        <p>Confirmar el mapa <b>rol → vista</b>, si existe un cuarto rol Administrador que gestione usuarios (revisa la decisión B9, tomada «sin autenticación») y dónde se crean las cuentas.</p>
+      </div>
+    </div>
+  </section>
 
   <section class="sec">
     <h2>01 · Vista completa</h2>
