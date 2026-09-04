@@ -4,9 +4,10 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 
 **Generado:** 20 de agosto de 2026 · **Revisado:** 24 de agosto de 2026 (arranque del Sprint 2) · **Congelado:** 3 de septiembre de 2026 (cierre del Sprint 2) · **Ejecutor:** 1 persona a tiempo completo
 
-> **Backlog congelado.** Incorpora los hallazgos de la reunión con Logística del 03/09 y la
-> entrega del Z-tracking. A partir de aquí solo debería cambiar por la resolución de
-> `TASK-28`, que está explícitamente planteada como bifurcación (Plan A / Plan B).
+> **Reabierto el 04/09** por la reunión con Planeación. La bifurcación de `TASK-28` quedó
+> resuelta a favor del **Plan A**: se aprobó la compra de **Vizion** (marítimo) y **Portcast**
+> (aéreo). Seis decisiones más reabrieron el alcance — ver «Cambios de la reunión con
+> Planeación (04/09/2026)» al final.
 
 > Este archivo se genera desde un script. La justificacion de la priorizacion vive en `backlog_priorization_rationale.md`.
 
@@ -46,12 +47,13 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-01` | Esquema de base de datos y migraciones Alembic | Task | OE4 | **Must** | Sprint 3 | 14h | SRS 8.1-8.5 |
 | `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
 | `TASK-03` | Adaptador de ingesta de pedidos con datos semilla | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
-| `TASK-27` | Spike: suscripcion por MMSI y limite del plan gratuito de AISStream 🔀 | Task | OE2 | **Must** | Sprint 3 | 4h | Riesgo R1 |
-| `TASK-28` | Spike: cobertura de container tracking de pago (Vizion/Terminal49/ShipsGo) en Moín y aéreo en SJO | Task | OE2 | **Must** | Sprint 3 | 6h | Reunión Logística 03/09 (revierte decisión abierta #3 / B1) / Riesgo R1 |
+| ~~`TASK-27`~~ | ~~Spike: suscripcion por MMSI y limite del plan gratuito de AISStream~~ ❌ **CANCELADA** (Plan A, 04/09) | Task | OE2 | — | — | ~~4h~~ 0h | Riesgo R1 |
+| `TASK-28` | Spike de **validación** de Vizion (marítimo) y Portcast (aéreo) con referencias reales | Task | OE2 | **Must** | Sprint 3 | 6h | Compra aprobada 04/09 · ya no elige proveedor |
 | `TASK-29` | Modelar maestro_paises y normalizar país, vía, incoterm y temperatura en la ingesta | Task | OE1 | **Must** | Sprint 3 | 6h | Muestra Z-tracking 03/09 (texto libre sucio) / RF-02 |
-| `TASK-30` | Contrato de captura de la referencia de embarque (contenedor, BL, booking, MAWB) | Task | OE1 | **Must** | Sprint 3 | 3h | Reunión Logística 03/09 (prerrequisito de todo rastreo) |
-| `US-01` | Asociar un identificador de rastreo externo a un pedido | Story | OE2 | **Must** | Sprint 3 | 6h | RF-03 |
-| `US-02` | Consumir posiciones AIS desde AISStream por WebSocket 🔀 | Story | OE2 | **Must** | Sprint 3 | 16h | RF-06 |
+| `TASK-30` | Especificar las columnas de referencia (contenedor y MAWB) que Planeación añade al Excel | Task | OE1 | **Must** | Sprint 3 | ~~3h~~ 2h | Reunión Planeación 04/09 · las entrega el archivo, no una pantalla |
+| `TASK-31` | Reponer `maestro_destinos` con los cuatro destinos reales y sus geocercas | Task | OE1 | **Must** | Sprint 3 | 4h | Reunión Planeación 04/09 (revierte «destino único» del 03/09) |
+| `US-01` | Tomar el identificador de rastreo del archivo, con asociación manual como excepción | Story | OE2 | **Must** | Sprint 3 | ~~6h~~ 4h | RF-03 · reformulada 04/09 |
+| `US-02` | Consumir posiciones AIS desde AISStream por WebSocket — **respaldo del mapa** | Story | OE2 | **Should** | Sprint 3 | ~~16h~~ 6h | RF-06 · reducida por Plan A (04/09) |
 | `US-03` | Tolerar la caida de una API externa sin degradar el dashboard | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 |
 | `US-04` | Registrar el historial de posiciones con el payload original | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
 | `TASK-19` | Diccionario de datos: usuarios | Task | OE1 | **Should** | Sprint 3 | 2h | Diseño OE1 / diccionario de datos |
@@ -59,21 +61,22 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-05` | Consumir posiciones ADS-B desde OpenSky con OAuth2 | Story | OE2 | **Must** | Sprint 4 | 10h | RF-07 |
 | `US-06` | Resolver el icao24 de un vuelo como vinculo temporal del tramo | Story | OE2 | **Must** | Sprint 4 | 8h | RF-07 / spike TG-11 |
 | `US-07` | Planificar las consultas periodicas con frecuencia parametrizable | Story | OE2 | **Must** | Sprint 4 | 8h | RF-08 (reformulado) |
-| `US-08` | Estimar la ETA a partir de la posicion y la velocidad del buque 🔀 | Story | OE2 | **Must** | Sprint 4 | 12h | RN-16 (nueva, Greivin) |
+| `US-08` | Estimar la ETA a partir de la posicion y la velocidad del buque | Story | OE2 | **Could** | Sprint 4 | 12h | RN-16 · degradada por Plan A: Vizion entrega ETA (04/09) |
 | `US-09` | Calcular la fecha proyectada de disponibilidad | Story | OE2 | **Must** | Sprint 4 | 6h | RF-10 / RN-01 |
 | `US-10` | Determinar el estado logistico bajo el esquema de semaforo | Story | OE2 | **Must** | Sprint 4 | 12h | RF-11 / RN-02 a RN-11 |
-| `US-11` | Inferir el arribo a destino por geocerca de proximidad 🔀 | Story | OE2 | **Must** | Sprint 4 | 8h | RN-05 (revisada, Greivin) |
+| `US-11` | Inferir el arribo a destino por geocerca de proximidad | Story | OE2 | **Must** | Sprint 4 | ~~8h~~ 4h | RN-05 · simplificada por Plan A (04/09) |
 | `US-31` | Cargar los pedidos en transito desde el archivo Z-tracking | Story | OE2 | **Must** | Sprint 4 | 14h | RF-31 carga manual (03/09) / RF-01 / CU-01 |
 | `US-32` | Validar y normalizar los datos del Z-tracking antes de persistirlos | Story | OE2 | **Must** | Sprint 4 | 10h | RF-02 / RN-17 |
-| `US-45` | Integrar la fuente comercial de rastreo marítimo por contenedor o BL 🔀 | Story | OE2 | **Must** | Sprint 4 | 12h | Plan A de `TASK-28` (03/09) |
-| `US-46` | Integrar el rastreo aéreo por guía aérea (MAWB) 🔀 | Story | OE2 | **Must** | Sprint 4 | 10h | Plan A de `TASK-28` (03/09) |
+| `US-45` | Integrar Vizion: rastreo marítimo por contenedor o BL | Story | OE2 | **Must** | Sprint 4 | 12h | Plan A **confirmado** 04/09 |
+| `US-46` | Integrar Portcast: rastreo aéreo por guía aérea (MAWB) | Story | OE2 | **Must** | Sprint 4 | 10h | Plan A **confirmado** 04/09 |
 | `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 |
 | `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 |
-| `US-14` | Confirmar manualmente el desembarco de un pedido | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 |
+| `US-14` | Confirmar el desembarco y **disparar el paso manual a proceso aduanal** | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 · RN-06 revisada 04/09 |
 | `US-15` | Auditar toda intervencion manual sobre un pedido | Story | OE4 | **Should** | Sprint 5 | 8h | RF-14 / RNF-06 |
 | `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) |
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 |
-| `US-18` | Registrar la recepcion en planta y cerrar el pedido | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 |
+| `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 |
+| `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada |
 | `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) |
 | `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) |
 | `TASK-04` | Publicar la documentacion OpenAPI del backend | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 |
@@ -991,7 +994,7 @@ Como usuario de Compras, quiero que cada pedido tenga su estado calculado automa
 > **Reglas desambiguadas el 26/08**, necesarias para implementar el motor:
 > 1. **RN-08 prevalece sobre RN-07.** `A_TIEMPO` exige margen mayor que el umbral; dentro del umbral es `EN_RIESGO`.
 > 2. **El umbral son 2 dias**, no 48 h, porque ambas fechas son `DATE` sin hora.
-> 3. **`EN_DESTINO` dura `duracion_en_destino_minutos` (30 por defecto)** y luego pasa a `EN_PROCESO_ADUANAL`. Es la **unica transicion que dispara el tiempo** y no un dato nuevo: la barre el tic periodico del planificador de US-07, no US-12.
+> 3. ~~**`EN_DESTINO` dura `duracion_en_destino_minutos` (30 por defecto)** y luego pasa a `EN_PROCESO_ADUANAL`.~~ **ANULADA el 04/09.** Planeación confirmó que el paso a proceso aduanal **es manual** en la operación real. No hay transición por tiempo: la dispara la confirmación de `US-14`. El parámetro `duracion_en_destino_minutos` se elimina y el tic de `US-07` deja de barrer esa transición.
 | Etiquetas | `backend,calculo,nucleo` |
 
 #### US-11 — Inferir el arribo a destino por geocerca de proximidad
@@ -1141,16 +1144,20 @@ Como administrador, quiero configurar credenciales y umbrales sin tocar el codig
 | Origen en el SRS | RF-24 / RNF-07 / RNF-15 |
 | Etiquetas | `backend,configuracion` |
 
-#### US-18 — Registrar la recepcion en planta y cerrar el pedido
+#### US-18 — Registrar la recepcion en planta (ya no cierra el pedido)
 
-Como usuario de Logística, quiero registrar la recepción efectiva en planta, para que el pedido pase a Cerrado y deje de consumir cuota de API.
+Como usuario de Logística, quiero registrar la recepción efectiva en planta, para que el pedido deje de consumir cuota de API y quede a la espera de Control de Calidad.
+
+> **Revisada el 04/09.** La recepción **ya no cierra** el pedido: lo deja en
+> `RECIBIDO_EN_PLANTA`. El cierre lo dispara la liberación de Calidad (`US-47`), entre 7 y
+> 15 días hábiles después. «Cerrado» pasa a significar **disponible para producción**.
 
 **Criterios de aceptación**
 
-- Dada una cantidad recibida dentro del margen del 10%, cuando la registro, entonces el pedido transita a 'Cerrado' conforme a RN-10
-- Dada una cantidad por debajo del margen, cuando la registro, entonces el pedido NO se cierra y se ofrece el cierre forzado
-- Dado un pedido cerrado, cuando corre el planificador, entonces no se consulta contra las APIs externas
-- Dado un pedido cerrado, cuando calculo los KPIs, entonces no computa entre los pedidos activos
+- Dada una cantidad recibida dentro del margen del 10%, cuando la registro, entonces el pedido transita a `RECIBIDO_EN_PLANTA`, **no** a `CERRADO`
+- Dada una cantidad por debajo del margen, cuando la registro, entonces el pedido NO avanza y se ofrece el cierre forzado
+- Dado un pedido recibido, cuando corre el planificador, entonces no se consulta contra las APIs externas: la carga ya llegó
+- Dado un pedido recibido pero no liberado, cuando calculo los KPIs, entonces **sigue contando como activo**, porque el material todavía no se puede usar
 
 | | |
 |---|---|
@@ -1810,43 +1817,235 @@ del envío y no solo la posición de la aeronave.
 
 ---
 
-## La bifurcación de `TASK-28`
+## La bifurcación de `TASK-28` — resuelta el 04/09 (Plan A)
 
-`TASK-28`, en el Sprint 3, decide si se compra la fuente comercial de rastreo. **Es el único
-punto donde este backlog debería volver a cambiar.** Las historias marcadas 🔀 dependen de su
-resultado.
+> **Cerrada.** Se aprobó la compra de **Vizion** (marítimo) y **Portcast** (aéreo). El
+> Plan B queda archivado; abajo se conserva para trazabilidad. `TASK-28` deja de decidir
+> proveedor y pasa a **validar** que ambos respondan con referencias reales.
 
-### Plan A — se compra
+### Plan A — aplicado
 
-| Historia | Efecto |
+| Historia | Efecto | Estado |
+|---|---|---|
+| `US-45` Vizion, rastreo marítimo | **Entra** (12 h) | ✅ aplicado |
+| `US-46` Portcast, rastreo aéreo por MAWB | **Entra** (10 h) | ✅ aplicado |
+| `US-02` Consumir AIS por WebSocket | Se **reduce** a respaldo del mapa (16 h → 6 h), baja a `Should` | ✅ aplicado |
+| `US-08` Estimar la ETA desde posición y velocidad | Pasa a **`Could`**: Vizion ya entrega ETA | ✅ aplicado |
+| `US-11` Inferir el arribo por geocerca | Se **simplifica** (8 h → 4 h) | ✅ aplicado |
+| `TASK-27` Spike de cuota de AISStream | Se **cancela** | ✅ aplicado |
+| `US-14` Confirmar el desembarco a mano | ⚠️ **Se queda en `Must`**, contra lo previsto | ✅ aplicado |
+
+**`US-14` es la excepción y conviene entender por qué.** El Plan A la degradaba a `Should`
+suponiendo que, si la fuente comercial confirma el arribo, la confirmación manual sobra.
+Planeación desmontó ese supuesto: **el paso a proceso aduanal es manual por proceso**, no
+por falta de datos. Vizion dirá que el contenedor se descargó, pero quién autoriza el
+cambio de etapa sigue siendo una persona. La historia cambia de justificación, no de peso.
+
+### Lo que `TASK-28` debe responder ahora
+
+Ya no elige proveedor. Valida, antes de que cierre el Sprint 3:
+
+1. ¿**Vizion** devuelve hitos hasta la descarga con un contenedor o BL real de Gutis?
+2. ¿**Portcast** cubre las aerolíneas del tramo India/China → SJO con un MAWB real?
+3. ¿Hay **cobertura en Caldera**? Está en el **Pacífico** y el spike TG-10 solo evaluó el
+   Caribe. **Es la pregunta nueva del 04/09 y no tiene respuesta previa.**
+4. ¿Con **cuántos días de antelación** al arribo llega la referencia en el archivo?
+
+**La cuarta sigue mandando.** Si la referencia llega tres días antes de que la carga
+atraque, las APIs se pagan para confirmar algo que ya se sabía.
+
+### Plan B — archivado
+
+No se aplica. Se conserva por trazabilidad: era mantener AIS gratuito y OpenSky como
+fuentes primarias, construir `US-08` y `US-11` completas, y dejar el tramo final
+confirmado a mano indefinidamente, con el riesgo **R1** abierto.
+
+---
+
+## Cambios de la reunión con Planeación (04/09/2026)
+
+Cierra el Sprint 2 con **seis decisiones** que reabren el backlog congelado el 03/09, más la
+**aprobación de la compra** de Vizion y Portcast. El detalle de las respuestas está en
+`dudas_reunion_planeacion.md`.
+
+### 1. El lead time de SAP **no** es el lead time de RN-01
+
+Es la decisión con más consecuencias y conviene no confundir los dos números:
+
+| | Lead time de **SAP** | Lead time de **RN-01** |
+|---|---|---|
+| Qué mide | Del **proveedor a la planta** de Gutis | Del **puerto a la planta** |
+| Desde cuándo | Fecha de creación de la SolPed | ETA o ATA real de la nave |
+| Naturaleza | **Planificado**, fijo desde que nace la SolPed | **Real**, se recalcula con cada posición |
+| Para qué sirve | Producir la *fecha de entrega sistema*, que es la línea base | Producir la *fecha proyectada de disponibilidad* |
+
+**Conclusión: no se sustituyen, conviven.** El lead time de SAP no puede entrar en RN-01
+porque arranca antes de que exista la nave. Y **el tramo puerto→planta sigue sin dato**: no
+está en SAP ni en el Z-tracking. Es el primer pendiente del correo a Planeación.
+
+### 2. La fecha comprometida es `Fecha entrega SolPed`
+
+Planeación confirmó la fórmula del estatus de SAP:
+
+```
+Diferencia Días        = Fecha entrega SolPed − Fecha entrega               (negativo = atraso)
+Fecha entrega sistema  = Fecha creación SolPed + lead time del proveedor
+```
+
+La *fecha entrega sistema* es la columna **`Fecha entrega`** del archivo, que sí viene
+—llena en 423 de 429 líneas—. **No hay que pedir ninguna columna nueva por este concepto.**
+
+**La regla de signos se verificó contra la muestra y es exacta:** las 98 líneas «Atrasado»
+tienen `Diferencia Días` negativa y las 331 «A Tiempo» la tienen positiva o cero, sin una
+sola excepción.
+
+> **Nota técnica, sin acción por ahora.** La aritmética de la muestra no reproduce
+> `Diferencia Días` a partir de esas dos columnas: en las 418 líneas comparables no coincide
+> ninguna, y en 104 ni siquiera concuerda el signo. Lo más probable es que `Diferencia Días`
+> se calculara en un corte anterior y quedara congelada, o que SAP use una tercera fecha que
+> el reporte no exporta. **Planeación indicó dejarlo de lado por ahora**, así que el valor de
+> SAP se ingesta tal cual como línea base (RN-18) y **no se recalcula**. Si más adelante hace
+> falta reproducirlo, esta nota es el punto de partida.
+
+### 3. El cierre del pedido se mueve: lo dispara Calidad, no la recepción
+
+La recepción en planta **deja de cerrar** el pedido. El material entra, pasa por muestreo y
+análisis, y solo cuando **Control de Calidad lo libera** —entre **7 y 15 días hábiles**— el
+pedido se cierra y el material se puede usar.
+
+Esto obliga a un **estado nuevo** entre `EN_PROCESO_ADUANAL` y `CERRADO`:
+
+| Estado | Qué significa |
 |---|---|
-| `US-45` Rastreo marítimo comercial | **Entra** (12 h) |
-| `US-46` Rastreo aéreo por MAWB | **Entra** (10 h) |
-| `US-02` Consumir AIS por WebSocket | Se **reduce**: el AIS deja de ser fuente primaria y queda de respaldo del mapa (16 h → ~6 h) |
-| `US-08` Estimar la ETA desde posición y velocidad | Pasa a **`Could`**: la fuente ya entrega ETA; RN-16 queda como respaldo |
-| `US-11` Inferir el arribo por geocerca | Se **simplifica**: el hito de descarga lo da la fuente (8 h → ~4 h) |
-| `TASK-27` Spike de cuota de AISStream | Se **cancela** |
-| `US-14` Confirmar el desembarco a mano | Baja de `Must` a `Should` si la fuente confirma el arribo (revisa la decisión B2) |
+| `RECIBIDO_EN_PLANTA` (nuevo) | Llegó físicamente, **no se puede usar todavía** |
+| `CERRADO` | Calidad liberó; disponible para producción |
 
-**Balance: +22 h de integración contra −34 h de cálculo propio.** Cuadra sin sobrecargar el plan.
+**`US-18` se parte:** registra la recepción y deja el pedido en el estado nuevo. **`US-47`**
+registra la liberación y cierra. Y como la ventana es de 7 a 15 días hábiles, la fecha
+estimada de liberación es un **rango**, no una fecha: hay que decidir si se muestra el
+optimista, el pesimista o ambos (pendiente del correo).
 
-### Plan B — no se compra
+### 4. El paso a proceso aduanal es **manual**
 
-Todo queda como está: AIS gratuito y OpenSky como fuentes primarias, `US-08` y `US-11` se
-construyen completas, `US-14` sigue `Must` como única vía de confirmar el arribo, y `US-45` y
-`US-46` **no entran**. El riesgo **R1** (sin cobertura AIS en Moín) sigue abierto y el tramo
-final se confirma a mano indefinidamente.
+Hoy lo es en la operación real, y así debe quedar. Esto **anula la decisión del 26/08** de
+que `EN_DESTINO` durara 30 minutos y pasara solo a `EN_PROCESO_ADUANAL`:
 
-### Criterio de decisión
+- El parámetro `duracion_en_destino_minutos` **se elimina**.
+- El tic periódico de `US-07` **deja de barrer** esa transición.
+- La confirmación de `US-14` es la que dispara el paso, y por eso **`US-14` se queda en
+  `Must`** aunque el Plan A la iba a degradar a `Should`. Ya no es «la única forma de saber
+  que llegó» —Vizion lo dirá—, sino **el acto humano que autoriza el cambio de etapa**.
+- `EN_DESTINO` deja de ser un estado de paso y pasa a durar lo que tarde alguien en
+  confirmar. Un pedido puede quedarse ahí días, y eso es correcto.
 
-El spike debe responder tres cosas antes de que cierre el Sprint 3:
+### 5. Vuelven los destinos múltiples
 
-1. ¿La fuente devuelve hitos hasta la **descarga en Moín** con un BL real?
-2. ¿Cubre las **aerolíneas** del tramo India/China → SJO con un MAWB real?
-3. ¿En qué **porcentaje** de los embarques se consigue la referencia, y con **cuántos días de antelación** al arribo?
+La decisión de «destino único» del 03/09 **queda revertida**. Los destinos reales son:
 
-**La tercera es la que manda.** Si la referencia llega tres días antes de que la carga atraque,
-ninguna API vale lo que cuesta, y el Plan B deja de ser el peor escenario para ser el correcto.
+| Destino | UN/LOCODE | Vía | Nota |
+|---|---|---|---|
+| Caldera | `CRCAL` | Marítima | **Pacífico** — aproximación y cobertura AIS distintas |
+| Moín | `CRMOB` | Marítima | Caribe · terminal de contenedores |
+| Limón | `CRLIO` | Marítima | Caribe · a 6 km de Moín |
+| Juan Santamaría | `CRSJO` | Aérea | Único aeropuerto |
+
+**Caldera es el hallazgo caro.** Está en el Pacífico: el spike TG-10 solo evaluó cobertura
+AIS en el Caribe, así que **no sabemos si hay cobertura ahí**. Entra como pregunta explícita
+de `TASK-28`. Además, tres puertos a distancias cortas obligan a **geocercas por destino** y
+no a un radio global: los 50 km por defecto solapan Moín y Limón.
+
+### 6. Las referencias de embarque llegan en el archivo
+
+Planeación las va a incluir: **número de contenedor y MAWB**. Cambia el diseño de dos items:
+
+- **`TASK-30`** deja de ser un contrato de captura y pasa a ser la **especificación de las
+  columnas** que Planeación agrega al Excel, con formato y validación (3 h → 2 h).
+- **`US-01`** deja de ser una pantalla de asociación manual: el vínculo llega en el archivo y
+  se asocia en la ingesta. La pantalla manual queda como **excepción** para lo que no
+  resuelva (6 h → 4 h).
+
+Es el desbloqueo más importante del Sprint 3: sin referencia, ni Vizion ni Portcast devuelven
+nada.
+
+---
+
+### `TASK-31` — Reponer `maestro_destinos` con los cuatro destinos reales
+
+Como desarrollador, quiero el maestro con Caldera, Moín, Limón y Juan Santamaría y sus
+geocercas propias, para que la inferencia de arribo distinga puertos a pocos kilómetros.
+
+**Criterios de aceptación**
+
+- Dado el maestro, cuando lo pueblo, entonces contiene los cuatro destinos con su UN/LOCODE, coordenadas y vía
+- Dado que Moín y Limón distan 6 km, cuando defino sus geocercas, entonces uso `radio_geocerca_km` por destino y **no** el global de 50 km, que los solaparía
+- Dado Caldera, cuando lo registro, entonces queda marcado como **Pacífico** y su cobertura AIS se verifica en `TASK-28`
+- Dado el lead time puerto→planta, cuando no lo tenga, entonces el destino se crea con el valor provisional documentado y no se bloquea la migración
+
+| | |
+|---|---|
+| Tipo | Task · OE1 · **Must** · Sprint 3 · 4 h |
+| Origen | Reunión con Planeación, 04/09/2026 |
+| Etiquetas | `datos,maestros,geo` |
+
+### `US-47` — Registrar la liberación de Calidad y cerrar el pedido
+
+Como usuario de Planificación, quiero que el pedido se cierre cuando Control de Calidad
+libera el material, para que «cerrado» signifique **disponible para producción** y no solo
+«llegó a la bodega».
+
+**Criterios de aceptación**
+
+- Dado un pedido `RECIBIDO_EN_PLANTA`, cuando registro la liberación de Calidad, entonces pasa a `CERRADO` y sale del tablero activo
+- Dada la recepción en planta, cuando ocurre, entonces el sistema estima la fecha de liberación sumando la ventana de Calidad **en días hábiles**
+- Dada la ventana de 7 a 15 días hábiles, cuando la presento, entonces queda claro que es un rango y no una fecha exacta
+- Dada la liberación, cuando la registro, entonces queda auditada con usuario, motivo e instante conforme a RF-14
+- Dado un pedido liberado parcialmente, cuando lo registro, entonces la línea sigue activa hasta que se libere el total
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Must** · Sprint 5 · 8 h |
+| Origen | Reunión con Planeación, 04/09/2026 |
+| Etiquetas | `backend,calidad,cierre` |
+
+---
+
+## Efecto neto sobre el plan
+
+| Concepto | Horas |
+|---|---|
+| `US-45` Vizion + `US-46` Portcast entran | **+22 h** |
+| `TASK-31` maestro de destinos | +4 h |
+| `US-47` liberación de Calidad | +8 h |
+| `US-02` reducida a respaldo (16 → 6 h) | −10 h |
+| `US-11` simplificada (8 → 4 h) | −4 h |
+| `US-01` reformulada (6 → 4 h) | −2 h |
+| `TASK-30` reformulada (3 → 2 h) | −1 h |
+| `TASK-27` cancelada | −4 h |
+| **Neto** | **+13 h** |
+
+`US-08` baja a `Could` y sus 12 h dejan de ser compromiso, con lo que el plan queda **neutro
+en la práctica**.
+
+**Carga real por sprint, recontada el 04/09** (capacidad nominal: 65 h):
+
+| Sprint | Horas | Estado |
+|---|---|---|
+| Sprint 3 (7–18 sep) | **80 h** | Sobrecargado en 15 h |
+| Sprint 4 (21 sep–2 oct) | **106 h** | ⚠️ **Sobrecargado en 41 h** |
+| Sprint 5 (5–16 oct) | 86 h | Sobrecargado en 21 h |
+| Sprint 6 (19–30 oct) | 74 h | Al límite |
+| Sprint 7 (2–13 nov) | 68 h | Al límite |
+
+**El Sprint 4 es el problema, no el Sprint 3.** Acumula la ingesta del archivo (`US-31`,
+`US-32`, 24 h), las dos integraciones de pago (`US-45`, `US-46`, 22 h) y todo el motor de
+cálculo. Descargarlo exige decisiones que no son mías:
+
+- **`US-08`** ya es `Could`: sus 12 h salen sin negociar y el Sprint 4 baja a 94 h.
+- **`TASK-23`** (Informe 1, 8 h) puede moverse del Sprint 3 al 4 o al revés según convenga.
+- Aun así quedan ~29 h de exceso en el Sprint 4. **Hay que mover historias al Sprint 5 o
+  aceptar que el sprint se desborda**, y esa conversación va con Greivin antes del 21/09.
+
+El Sprint 3 se sostiene a 80 h porque `TASK-23` es la única que no bloquea a nadie.
 
 ---
 

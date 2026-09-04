@@ -131,3 +131,24 @@ departures, ETD y ATD), y el detalle con **país de origen + mapa del pedido**.
 
 **Alcance de rastreo confirmado:** solo **PRODUCCION + IDA** (importaciones
 internacionales); las demás categorías del Z-tracking son compras locales.
+
+---
+
+## Addendum 2 — respuestas de Logística (04/09/2026)
+
+Tres consultas posteriores a la reunión del 03/09 cierran o replantean parte de la
+sección C:
+
+| # | Estado 04/09 |
+|---|---|
+| **C1** — lead time real | ✅ **Cerrada.** El lead time real **por origen vive en SAP**. El API está en desarrollo y la fecha es próxima. `maestro_destinos.lead_time_dias` deja de ser el dato maestro y queda como **respaldo** mientras el API no exista. Abre P2–P5 para Planeación: granularidad, si llega hasta puerto o hasta planta, y qué valor provisional se usa mientras tanto |
+| **C3** — UN/LOCODE de puertos de origen | ✅ **Cerrada como innecesaria.** El **puerto de origen no se requiere**: basta el **país**, que ya viene en el Z-tracking. `maestro_destinos` se reduce a los dos destinos (`CRMOB` y SJO) y el origen se modela solo en `maestro_paises` (`TASK-29`) |
+| **ETD/ATD** | ⚠️ **Nueva.** Hoy **no se registran**. Logística los entregará en **otro Excel**. Es una **segunda fuente de entrada** que `RF-31` no contempla y que ninguna historia ingesta. Ver sección R de `dudas_reunion_planeacion.md` |
+| **C4, C5, C6** | 🔄 **Reclasificadas.** Con Vizion entregando hitos y ETA, dejan de ser datos del negocio y pasan a **parámetros de sistema** con valor por defecto (RF-24 / RNF-15) |
+
+**Decisión de proveedores (04/09):** **Vizion** para rastreo marítimo, **Portcast**
+para carga aérea y **OpenSky** (gratuito) únicamente para la posición de la aeronave en
+el mapa. Resuelve `TASK-28` a favor del **Plan A**; el spike se reformula para
+*validar* ambas fuentes con un BL y un MAWB reales, no para elegir proveedor.
+
+**Las preguntas que quedan son para Planeación** → `dudas_reunion_planeacion.md`.
