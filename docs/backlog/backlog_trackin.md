@@ -44,14 +44,14 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-41` | Wireframe del login ✅ | Story | OE1 | **Must** | Sprint 2 | 3h | Reunión con Logística, 03/09/2026 (autenticación entra al alcance) |
 | `US-38` | Prototipo interactivo navegable en Figma ✅ | Story | OE1 | **Must** | Sprint 2 | 8h | Diseño OE1 / prototipo |
 | `US-39` | Validación de prototipos con usuarios clave ✅ | Story | OE1 | **Must** | Sprint 2 | 4h | Diseño OE1 / criterio de aceptación de OE1 |
-| `TASK-01` | Esquema de base de datos y migraciones Alembic | Task | OE4 | **Must** | Sprint 3 | 14h | SRS 8.1-8.5 |
-| `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
-| `TASK-03` | Adaptador de ingesta de pedidos con datos semilla | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
+| `TASK-01` | Esquema de base de datos y migraciones Alembic ✅ | Task | OE4 | **Must** | Sprint 3 | 14h | SRS 8.1-8.5 |
+| `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 ✅ | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
+| `TASK-03` | Adaptador de ingesta de pedidos con datos semilla ✅ | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
 | ~~`TASK-27`~~ | ~~Spike: suscripcion por MMSI y limite del plan gratuito de AISStream~~ ❌ **CANCELADA** (Plan A, 04/09) | Task | OE2 | — | — | ~~4h~~ 0h | Riesgo R1 |
 | `TASK-28` | Spike de **validación** de Vizion (marítimo) y Portcast (aéreo) con referencias reales | Task | OE2 | **Must** | Sprint 3 | 6h | Compra aprobada 04/09 · cotizar Vizion **Core y Professional** · terminal portuario descartado |
-| `TASK-29` | Modelar maestro_paises y normalizar país, vía, incoterm y temperatura en la ingesta | Task | OE1 | **Must** | Sprint 3 | 6h | Muestra Z-tracking 03/09 (texto libre sucio) / RF-02 |
-| `TASK-30` | Especificar las columnas de referencia (contenedor y MAWB) que Planeación añade al Excel | Task | OE1 | **Must** | Sprint 3 | ~~3h~~ 2h | Reunión Planeación 04/09 · las entrega el archivo, no una pantalla |
-| `TASK-31` | Reponer `maestro_destinos` con los cuatro destinos reales y sus geocercas | Task | OE1 | **Must** | Sprint 3 | 4h | Reunión Planeación 04/09 (revierte «destino único» del 03/09) |
+| `TASK-29` | Modelar maestro_paises y normalizar país, vía, incoterm y temperatura en la ingesta ✅ | Task | OE1 | **Must** | Sprint 3 | 6h | Muestra Z-tracking 03/09 (texto libre sucio) / RF-02 |
+| `TASK-30` | Especificar las columnas de referencia (contenedor y MAWB) que Planeación añade al Excel ✅ | Task | OE1 | **Must** | Sprint 3 | ~~3h~~ 2h | Reunión Planeación 04/09 · las entrega el archivo, no una pantalla |
+| `TASK-31` | Reponer `maestro_destinos` con los cuatro destinos reales y sus geocercas ✅ | Task | OE1 | **Must** | Sprint 3 | 4h | Reunión Planeación 04/09 (revierte «destino único» del 03/09) |
 | `US-01` | Tomar el identificador de rastreo del archivo, con asociación manual como excepción | Story | OE2 | **Must** | Sprint 3 | ~~6h~~ 4h | RF-03 · reformulada 04/09 |
 | `US-02` | Consumir posiciones AIS desde AISStream por WebSocket — **respaldo del mapa** | Story | OE2 | **Should** | Sprint 3 | ~~16h~~ 6h | RF-06 · reducida por Plan A (04/09) |
 | `US-03` | Tolerar la caida de una API externa sin degradar el dashboard | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 |
@@ -2082,3 +2082,112 @@ para registrar el paso a proceso aduanal sin tener que revisar la grilla pedido 
 
 > **Por qué no hay correo.** Se evaluó y se descartó: exigiría servidor SMTP y credenciales de
 > Gutis, una dependencia externa nueva para un aviso que el usuario ya ve al entrar al sistema.
+
+---
+
+## Avance del Sprint 3 — semana 1 (7–11 de septiembre de 2026)
+
+**Seis tareas cerradas · 37 h de las 80 h del sprint.**
+
+| Tarea | Entregable |
+|---|---|
+| `TASK-30` ✅ | [`contrato-referencia-embarque.md`](../analisis/contrato-referencia-embarque.md) — formatos, la trampa MAWB/HAWB y quién posee la referencia según incoterm |
+| `TASK-01` ✅ | Las once entidades en `backend/app/models/`, un módulo por entidad, y la migración `0001_esquema_inicial` |
+| `TASK-02` ✅ | PostGIS y `pgcrypto` en la migración; columnas `GEOGRAPHY(Point,4326)` con su índice GiST |
+| `TASK-29` ✅ | `maestro_paises` + `alias_paises`, y `app/services/normalizacion.py` (RN-17) |
+| `TASK-31` ✅ | Migración `0002` con Moín, Limón, Caldera y Juan Santamaría, cada uno con su geocerca |
+| `TASK-03` ✅ | Puerto `FuentePedidos` + adaptador semilla en `app/services/ingesta/`, y la fuente reportada en `/health` |
+
+**Verificación del esquema** (SQL generado en modo offline, sin base viva):
+13 tablas, 17 índices, 29 `CHECK`, 12 claves foráneas, cero duplicados.
+
+**Verificación del normalizador contra la muestra real** — lo que no resuelve es
+exactamente lo que debe quedar para revisión, y ningún valor legítimo falla:
+
+| Campo | Resueltos | A revisión |
+|---|---|---|
+| Incoterm | **231/231 (100 %)** | — |
+| País de origen | 168/179 (93 %) | 11 × `N/A` |
+| Temperatura | 205/216 (94 %) | `N/A`, `PENDIENTE` |
+| Vía de transporte | 136/167 (81 %) | `PENDIENTE`, `N/A`, `INDIA` (columna desplazada), `AEREO
+MARITIMO` |
+
+**Geocercas.** Moín y Limón distan **5,45 km** medidos sobre las coordenadas
+sembradas; con 2 km de radio cada uno quedan **1,45 km de margen** sin solape.
+Es la razón por la que el radio es por destino y no el global de 50 km.
+
+**Lead time provisional.** Los cuatro destinos se sembraron con un valor marcado
+como provisional en su observación, porque la duda **C1** —a qué nivel está
+definido el lead time— sigue abierta con Planeación. El criterio de `TASK-31`
+pedía explícitamente que eso no bloqueara la migración.
+
+### Entorno de base de datos — levantado el 07/09
+
+Se instaló el entorno nativo que especifica [`deployment.md`](../deployment.md):
+**PostgreSQL 16.14 + PostGIS 3.6.2** como binarios portables en
+`C:\Users\<usuario>\pgsql`, sin servicio de Windows y sin permisos de
+administrador. El cluster se inicializó con `-E UTF8 --locale=C`, los mismos
+parámetros que `POSTGRES_INITDB_ARGS` en el compose, para que el ordenamiento de
+índices sea idéntico.
+
+> **Docker sigue descartado.** Se intentó levantarlo y se revirtió: el motor no
+> puede correr sin WSL2 ni Hyper-V, que exigen administrador. La decisión de
+> `architecture.md` §2.3 y del SRS §9.3 se mantiene intacta.
+
+**Ambas migraciones aplicadas y verificadas contra la base viva:**
+
+| Comprobación | Resultado |
+|---|---|
+| `alembic current` | `0002_maestros_paises_destinos (head)` |
+| Extensiones | `postgis 3.6.2`, `pgcrypto 1.3` |
+| Esquema | 13 tablas de dominio, 44 índices, 30 `CHECK`, 12 claves foráneas |
+| Codificación | `UTF8`, `collate=C`, `ctype=C` |
+| Semilla | 15 países, 28 alias, 4 destinos |
+| Distancia Moín–Limón **medida por PostGIS** | **5,46 km** · radios 2+2 km · **no solapan** |
+
+**Los invariantes de negocio se probaron rechazando datos inválidos**, dentro de
+una transacción revertida:
+
+| Regla | Constraint | Resultado |
+|---|---|---|
+| RN-02 — etapa distinta de `SIN_TRACKING` exige nave | `ck_pedidos_transito_sin_tracking` | ✅ rechazó |
+| RN-13 — estado terminal exige motivo de cierre | `ck_pedidos_transito_terminal` | ✅ rechazó |
+| RN-10 — la cantidad pedida es positiva | `ck_pedidos_transito_cantidad_pedida` | ✅ rechazó |
+| Caso válido (`SIN_TRACKING` sin nave) | — | ✅ entró |
+
+La base **no arranca sola al encender el equipo**: hay que levantarla en cada
+sesión con `pg_ctl -D "$HOME/pgsql/data" -l "$HOME/pgsql/server.log" start`.
+
+### Pendiente de esta semana
+
+- `TASK-28` — el spike de Vizion y Portcast, a la espera de las credenciales de prueba.
+
+### `TASK-03` — cómo quedó la ingesta
+
+Se resolvió como **puerto y adaptadores**, que es lo que pedía el segundo
+criterio: el motor de cálculo y la API dependen de la interfaz `FuentePedidos`,
+nunca de una fuente concreta. Añadir la carga del archivo (`US-31`) es registrar
+una entrada más, sin tocar nada aguas abajo.
+
+| Pieza | Qué hace |
+|---|---|
+| `ingesta/dto.py` | `PedidoCrudo`, el registro **sin normalizar** tal como llega |
+| `ingesta/base.py` | El puerto `FuentePedidos` |
+| `ingesta/semilla.py` | Ocho pedidos con la forma y los **defectos** de la muestra real |
+| `ingesta/registro.py` | Selecciona el adaptador según `INGESTA_ADAPTADOR` |
+
+**Los tres criterios, verificados:**
+
+| Criterio | Resultado |
+|---|---|
+| Cubre marítimo, aéreo y un caso sin identificador | 4 marítimos · 2 aéreos · 1 terrestre · **4 sin referencia** |
+| El puerto desacopla el motor y la API | `isinstance(fuente, FuentePedidos)` → `True` |
+| Producción sin adaptador arranca y lo reporta | `HTTP 200`, `status: ok`, `ingesta: null` |
+
+La semilla **imita los defectos del archivo real** a propósito, y el normalizador
+los resuelve: `Exw`→`EXW`, `CIF LIMON`→`CIF`, `Terrestre`→`TERRESTRE`, y la línea
+con `PENDIENTE` / `N/A` queda marcada **para revisión sin abortar el lote** (RN-17).
+
+Cuatro de los ocho pedidos van **sin referencia de embarque**. No es un descuido:
+en la muestra real **ninguna** de las 429 líneas la traía, así que es el caso
+mayoritario y el que el motor tiene que saber tratar como `SIN_TRACKING` (RN-02).

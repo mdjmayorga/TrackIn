@@ -68,6 +68,14 @@ class Settings(BaseSettings):
     OPENSKY_USERNAME: str | None = None
     OPENSKY_PASSWORD: str | None = None
 
+    # --- Ingesta de pedidos (TASK-03) ---------------------------------------
+    # Fuente desde la que entran las líneas de orden de compra.
+    #   semilla → datos de ejemplo en memoria, para desarrollo y demostración.
+    #   ninguno → sin fuente. Es un valor válido, no un error: el sistema
+    #             arranca igual y lo reporta en el healthcheck.
+    # `US-31` añadirá `ztracking` cuando exista la carga del archivo.
+    INGESTA_ADAPTADOR: Literal["semilla", "ninguno"] = "semilla"
+
     # --- Derivados ----------------------------------------------------------
     @computed_field  # type: ignore[prop-decorator]
     @property
