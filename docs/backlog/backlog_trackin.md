@@ -52,7 +52,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-29` | Modelar maestro_paises y normalizar país, vía, incoterm y temperatura en la ingesta ✅ | Task | OE1 | **Must** | Sprint 3 | 6h | Muestra Z-tracking 03/09 (texto libre sucio) / RF-02 |
 | `TASK-30` | Especificar las columnas de referencia (contenedor y MAWB) que Planeación añade al Excel ✅ | Task | OE1 | **Must** | Sprint 3 | ~~3h~~ 2h | Reunión Planeación 04/09 · las entrega el archivo, no una pantalla |
 | `TASK-31` | Reponer `maestro_destinos` con los cuatro destinos reales y sus geocercas ✅ | Task | OE1 | **Must** | Sprint 3 | 4h | Reunión Planeación 04/09 (revierte «destino único» del 03/09) |
-| `US-01` | Tomar el identificador de rastreo del archivo, con asociación manual como excepción | Story | OE2 | **Must** | Sprint 3 | ~~6h~~ 4h | RF-03 · reformulada 04/09 |
+| `US-01` | Tomar el identificador de rastreo del archivo, con asociación manual como excepción ✅ | Story | OE2 | **Must** | Sprint 3 | ~~6h~~ 4h | RF-03 · reformulada 04/09 |
 | `US-02` | Consumir posiciones AIS desde AISStream por WebSocket — **respaldo del mapa** | Story | OE2 | **Should** | Sprint 3 | ~~16h~~ 6h | RF-06 · reducida por Plan A (04/09) |
 | `US-03` | Tolerar la caida de una API externa sin degradar el dashboard | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 |
 | `US-04` | Registrar el historial de posiciones con el payload original | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
@@ -733,9 +733,13 @@ Como desarrollador, quiero medir si la suscripcion por MMSI funciona con la clav
 >
 > Importa mas de lo que parece: con suscripcion por area, un buque **deja de reportarse al salir del recuadro**, asi que el seguimiento se cortaria en medio del viaje. Va **antes de `US-02`**, que son 16 h construidas sobre esta decision.
 
-#### US-01 — Asociar un identificador de rastreo externo a un pedido
+#### US-01 — Tomar el identificador de rastreo del archivo, con asociación manual como excepción ✅ HECHA
 
-Como usuario de Logística, quiero asociar a cada pedido su identificador de rastreo, para que el sistema pueda seguirlo automáticamente.
+> **Reformulada el 04/09/2026.** La referencia la entrega el **archivo** conforme al
+> contrato de `TASK-30`; la pantalla de asociación manual queda para las líneas que
+> no la traen. El texto original —abajo— asumía que la vía principal era manual.
+
+Como usuario de Logística, quiero que el identificador de rastreo llegue con el archivo y poder asociarlo a mano cuando falte, para que el sistema pueda seguir el pedido automáticamente.
 
 **Criterios de aceptación**
 
@@ -2087,7 +2091,7 @@ para registrar el paso a proceso aduanal sin tener que revisar la grilla pedido 
 
 ## Avance del Sprint 3 — semana 1 (7–11 de septiembre de 2026)
 
-**Seis tareas cerradas · 37 h de las 80 h del sprint.**
+**Siete tareas cerradas · 41 h de las 80 h del sprint.**
 
 | Tarea | Entregable |
 |---|---|
@@ -2097,6 +2101,7 @@ para registrar el paso a proceso aduanal sin tener que revisar la grilla pedido 
 | `TASK-29` ✅ | `maestro_paises` + `alias_paises`, y `app/services/normalizacion.py` (RN-17) |
 | `TASK-31` ✅ | Migración `0002` con Moín, Limón, Caldera y Juan Santamaría, cada uno con su geocerca |
 | `TASK-03` ✅ | Puerto `FuentePedidos` + adaptador semilla en `app/services/ingesta/`, y la fuente reportada en `/health` |
+| `US-01` ✅ | `services/referencia.py` (validación y rastreabilidad) y `services/asociacion.py` (vínculo con el pedido) |
 
 **Verificación del esquema** (SQL generado en modo offline, sin base viva):
 13 tablas, 17 índices, 29 `CHECK`, 12 claves foráneas, cero duplicados.
@@ -2191,3 +2196,41 @@ con `PENDIENTE` / `N/A` queda marcada **para revisión sin abortar el lote** (RN
 Cuatro de los ocho pedidos van **sin referencia de embarque**. No es un descuido:
 en la muestra real **ninguna** de las 429 líneas la traía, así que es el caso
 mayoritario y el que el motor tiene que saber tratar como `SIN_TRACKING` (RN-02).
+
+### `US-01` — la referencia se guarda siempre, se siga o no
+
+Se separaron **dos preguntas que no son la misma**, y de ahí salen dos módulos:
+
+| Módulo | Responde |
+|---|---|
+| `services/referencia.py` | ¿La referencia está bien escrita, y **la sigue alguien hoy**? Sin tocar base ni red. |
+| `services/asociacion.py` | Vincularla al pedido, creando o **reutilizando** el elemento rastreado. |
+
+Reutilizar el elemento no es una optimización cosmética: varias líneas viajan en
+el mismo contenedor o bajo la misma guía, y las fuentes comerciales **cobran por
+envío rastreado**. Duplicar el elemento sería pagar dos veces por el mismo dato.
+
+**Los tres criterios, verificados contra la base viva:**
+
+| Criterio | Resultado |
+|---|---|
+| MMSI válido de nueve dígitos habilita el rastreo | ✅ `rastreable=True` vía AISStream |
+| Sin identificador, el estado es `SIN_TRACKING` | ✅ lo garantiza el `CHECK` de RN-02 |
+| Tipo que ninguna API sigue: se acepta y advierte | ✅ `BUQUE` → válido, no rastreable, con motivo |
+
+Además: normaliza a mayúsculas, **reutiliza** el elemento entre pedidos, mueve la
+etapa a `EN_ORIGEN` al asociar —el `CHECK` de RN-02 lo exige— y una referencia
+inválida **deja el pedido intacto**.
+
+> ⚠️ **Consecuencia de que los proveedores no hayan respondido.** El servicio
+> distingue «referencia válida» de «referencia seguible hoy». Con Vizion y
+> Portcast aprobados pero **sin contratar**, el resultado sobre la semilla es:
+>
+> **0 de 4 referencias son rastreables hoy.** Las cuatro apuntan a Vizion o a
+> Portcast. Lo único que sigue funcionando es **MMSI/IMO por AISStream** y
+> **VUELO por OpenSky**, que son gratuitas.
+>
+> Esto cambia la prioridad de `US-02`: se había degradado a «respaldo del mapa»
+> asumiendo que Vizion sería la fuente primaria. Mientras el spike `TASK-28` no
+> cierre, **AISStream es la única vía de rastreo que se puede demostrar**, y eso
+> incluye la demo del Informe 1 del 25/09.
