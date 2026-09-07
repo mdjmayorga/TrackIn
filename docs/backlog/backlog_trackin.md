@@ -48,7 +48,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
 | `TASK-03` | Adaptador de ingesta de pedidos con datos semilla | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
 | ~~`TASK-27`~~ | ~~Spike: suscripcion por MMSI y limite del plan gratuito de AISStream~~ ❌ **CANCELADA** (Plan A, 04/09) | Task | OE2 | — | — | ~~4h~~ 0h | Riesgo R1 |
-| `TASK-28` | Spike de **validación** de Vizion (marítimo) y Portcast (aéreo) con referencias reales | Task | OE2 | **Must** | Sprint 3 | 6h | Compra aprobada 04/09 · ya no elige proveedor |
+| `TASK-28` | Spike de **validación** de Vizion (marítimo) y Portcast (aéreo) con referencias reales | Task | OE2 | **Must** | Sprint 3 | 6h | Compra aprobada 04/09 · cotizar Vizion **Core y Professional** · terminal portuario descartado |
 | `TASK-29` | Modelar maestro_paises y normalizar país, vía, incoterm y temperatura en la ingesta | Task | OE1 | **Must** | Sprint 3 | 6h | Muestra Z-tracking 03/09 (texto libre sucio) / RF-02 |
 | `TASK-30` | Especificar las columnas de referencia (contenedor y MAWB) que Planeación añade al Excel | Task | OE1 | **Must** | Sprint 3 | ~~3h~~ 2h | Reunión Planeación 04/09 · las entrega el archivo, no una pantalla |
 | `TASK-31` | Reponer `maestro_destinos` con los cuatro destinos reales y sus geocercas | Task | OE1 | **Must** | Sprint 3 | 4h | Reunión Planeación 04/09 (revierte «destino único» del 03/09) |
@@ -87,7 +87,8 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-22` | Mostrar la cinta de indicadores KPI | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 |
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
 | `US-24` | Aplicar el semaforo de estados de forma consistente | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 |
-| `US-43` | Ofrecer dos vistas de la grilla según el rol: simple y completa | Story | OE3 | **Must** | Sprint 6 | 10h | Reunión Logística 03/09 |
+| `US-43` | Ofrecer dos vistas de la grilla: completa por rol y simple para la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | 10h | Reunión Logística 03/09 · mapa rol→vista corregido 04/09 |
+| `US-48` | Bandeja de arribos pendientes de gestión para Planificación | Story | OE3 | **Must** | Sprint 6 | 6h | RF-32 (nuevo, 04/09) · aviso interno, sin correo |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
@@ -1731,9 +1732,10 @@ una **vista simple** (Material · Etapa · Cumplimiento) o la **vista completa**
 
 **Criterios de aceptación**
 
-- Dado un rol de Planificación / pantalla de planta, cuando abro el dashboard, entonces la grilla muestra solo Material, Etapa y Cumplimiento
+- Dado un rol de **Compras, Logística o Planificación**, cuando abro el dashboard, entonces veo la **vista completa** — Planificación la necesita para ejecutar el paso a proceso aduanal (corregido el 04/09)
+- Dada la **pantalla de planta** (`US-33`), cuando se abre, entonces muestra la **vista simple** con Material, Etapa y Cumplimiento, y es el único lugar donde se usa
 - Dado un rol de Compras o Logística, cuando abro el dashboard, entonces la grilla muestra la actual **más deliveries, departures, ETD y ATD**
-- Dado que ETD/ATD no vienen del Z-tracking, cuando los muestro, entonces provienen del rastreo (US-08/US-11) o de la fuente de container tracking (TASK-28) — **fuente por confirmar**
+- Dado que ETD/ATD no vienen del Z-tracking, cuando los muestro, entonces provienen de **Vizion** en lo marítimo y de **Portcast** en lo aéreo (`US-45` / `US-46`)
 
 ### `US-44` — País de origen y mapa del pedido en el detalle
 
@@ -2060,3 +2062,23 @@ El Sprint 3 se sostiene a 80 h porque `TASK-23` es la única que no bloquea a na
 
 Entra al Sprint 3 con el backlog congelado y sin historias bloqueadas por insumo externo.
 
+### `US-48` — Bandeja de arribos pendientes de gestión
+
+Como usuario de Planificación, quiero que el sistema me avise cuando un pedido llega a destino,
+para registrar el paso a proceso aduanal sin tener que revisar la grilla pedido por pedido.
+
+**Criterios de aceptación**
+
+- Dado un pedido que alcanza `EN_DESTINO`, cuando ocurre, entonces aparece en la **bandeja de pendientes** de Planificación con un contador visible en el encabezado
+- Dada la bandeja, cuando registro el paso a `P_ADUANAL` (`US-14`), entonces el pedido sale de la bandeja y la intervención queda auditada (RF-14)
+- Dado el aviso, cuando se emite, entonces es **dentro de la aplicación**: no requiere correo ni infraestructura externa (decisión del 04/09)
+- Dada la bandeja vacía, cuando la abro, entonces lo indica explícitamente en vez de mostrar una tabla en blanco
+
+| | |
+|---|---|
+| Tipo | Story · OE3 · **Must** · Sprint 6 · 6 h |
+| Origen en el SRS | `RF-32` (nuevo, 04/09) |
+| Etiquetas | `frontend,notificacion,planificacion` |
+
+> **Por qué no hay correo.** Se evaluó y se descartó: exigiría servidor SMTP y credenciales de
+> Gutis, una dependencia externa nueva para un aviso que el usuario ya ve al entrar al sistema.
