@@ -32,11 +32,58 @@ Implicaciones de diseño:
 
 ### Puntos a resolver en implementación
 
-- [ ] Confirmar límites del plan gratuito (conexiones y mensajes) — **hay
-      indicios de haber topado uno**, ver «Réplica desde red Gutis»
-- [ ] Definir qué mensajes AIS interesan (`PositionReport`, `ShipStaticData`)
+- [ ] 🔴 Confirmar límites del plan gratuito (conexiones y mensajes) — **hay
+      indicios de haber topado uno**, ver «Réplica desde red Gutis». Riesgo
+      **R1**, abierto desde el 19/08/2026
+- [x] ~~Definir qué mensajes AIS interesan~~ — resuelto el 08/09 al implementar
+      `US-02`, y **no eran los dos que decía este documento**: ver abajo
 - [x] Política de reconexión → **no depender de `close()` limpio** (ver spike)
-- [ ] Estrategia de submuestreo antes de persistir (no guardar cada mensaje)
+- [x] ~~Estrategia de submuestreo antes de persistir~~ — la resuelve `US-04`
+      con `intervalo_minimo_persistencia_s`, ajustable sin desplegar código
+
+### Qué mensajes interesan — resuelto el 08/09/2026
+
+Este documento decía «`PositionReport`, `ShipStaticData`». Al implementar `US-02`
+se contaron los tipos de los **161 mensajes reales** de la captura del 18/08 y
+son **cuatro**, no dos: cada uno tiene su gemelo de Class B.
+
+| Tipo | Mensajes | Qué aporta |
+|---|---|---|
+| `PositionReport` | 76 | Posición Class A |
+| `StandardClassBPositionReport` | 39 | Posición Class B |
+| `StaticDataReport` | 20 | Identidad Class B: solo el nombre, en la parte A |
+| `ShipStaticData` | 19 | Identidad Class A: IMO, nombre, destino y ETA |
+| `BaseStationReport`, `AidsToNavigationReport`, `UnknownMessage` | 7 | Nada; se ignoran |
+
+Quedarse con los dos que este documento nombraba habría descartado **59 de 161
+mensajes**, más de un tercio.
+
+#### Cuatro trampas del formato, medidas sobre la captura
+
+Ninguna es evidente leyendo la documentación de AISStream, y las cuatro están
+cubiertas por `tests/test_aisstream.py`:
+
+| Trampa | Detalle |
+|---|---|
+| **`time_utc` es formato Go, no ISO** | `2026-08-18 20:18:15.331999764 +0000 UTC`. `datetime.fromisoformat` lanza `ValueError`; la fracción trae 9, 8 o 6 dígitos y Python admite 6 |
+| **Los estáticos no traen posición en el cuerpo** | 40 de 161 mensajes. Solo está en `MetaData` |
+| **Los centinelas no son datos** | `TrueHeading = 511` en 44 de 115 posiciones, `Cog = 360` en 11. El segundo **viola el `CHECK`** `rumbo < 360` de `historial_tracking`: guardarlo da `IntegrityError`, no un dato malo |
+| **La ETA no lleva año** | Solo mes, día, hora y minuto, y 11 de 19 la traen en ceros. El año se resuelve por cercanía al mensaje, no como «próxima ocurrencia» |
+
+Los nombres y destinos vienen **rellenos a ancho fijo** (`'MARISOL             '`):
+sin recortar, el mismo buque entra dos veces según por qué mensaje llegó.
+
+#### Dónde vive la implementación
+
+| Módulo | Qué hace |
+|---|---|
+| `app/services/rastreo/aisstream.py` | Parseo puro: tipos, centinelas, instante, ETA, suscripción |
+| `app/services/rastreo/colector_ais.py` | El bucle de suscripción y la persistencia |
+
+**El colector no tiene backoff propio.** Usa la política de `US-03`, leída de
+`parametros_sistema`, así que la recomendación de «1 s con techo de 60 s» de la
+Fase 5 dejó de ser código y es un `UPDATE`. El valor vigente por defecto —5 s con
+techo de 300 s— es más conservador, que es lo que conviene con **R1** abierto.
 
 ---
 

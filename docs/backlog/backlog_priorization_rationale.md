@@ -172,11 +172,18 @@ no cierra la conexión— pero no llega un solo mensaje. Se descartó que sea la
 corporativa: no hay inspección TLS, el handshake WebSocket funciona y un echo
 público responde. La hipótesis es un tope del plan gratuito.
 
-**Impacto:** bloquea la verificación de **US-02**, que es 16 h del Sprint 3.
-**Mitigación:** el módulo se desarrolla y prueba contra el dataset crudo ya
-capturado (`02_caribbean_raw_personal.jsonl`, 161 mensajes reales). La
-integración en vivo se valida cuando la cuenta se restablezca.
-**Acción pendiente:** revisar el consumo en aisstream.io y probar desde otra red.
+**Impacto — reevaluado el 08/09/2026, y subió.** Ya no son «16 h de `US-02``»:
+la historia bajó a 6 h con el Plan A y **está construida y probada** contra el
+dataset capturado. Lo que cuelga de R1 ahora es **la demostración del Informe 1
+(25/09)**: con Vizion y Portcast aprobados pero sin contratar, 0 de 4
+referencias de la semilla son rastreables y **AISStream es la única vía de
+rastreo demostrable** — y está muda desde el 19/08.
+**Mitigación aplicada:** el módulo se desarrolló y se probó contra el dataset
+crudo (`02_caribbean_raw_personal.jsonl`, 161 mensajes reales) y contra un
+transporte inyectado. La integración en vivo se valida cuando la cuenta
+responda; **no hace falta escribir más código para eso**.
+**Acción pendiente, y es camino crítico:** revisar el consumo en aisstream.io y
+probar desde otra red. Ninguna de las dos cuesta código.
 
 ### R2 — La especificación del servicio de SAP no tiene fecha 🔴
 

@@ -69,7 +69,10 @@ app/
 ├── schemas/        Contratos Pydantic     (Sprint 1)
 └── services/       Lógica de negocio      (Sprint 2+)
     ├── resiliencia.py     Política de reintento, agnóstica del transporte
-    └── salud_fuentes.py   Estado por fuente + umbrales de parametros_sistema
+    ├── salud_fuentes.py   Estado por fuente + umbrales de parametros_sistema
+    └── rastreo/           Fuentes externas, una por proveedor
+        ├── aisstream.py     Parseo de AIS (puro, sin red)
+        └── colector_ais.py  Suscripción WebSocket + persistencia
 ```
 
 Los endpoints de `api/` no deben contener reglas de negocio: delegan en
@@ -136,3 +139,8 @@ Notas:
   base y no de la fuente, así que una API de terceros no puede tumbar la
   respuesta. La lista viene vacía mientras ningún adaptador esté conectado
   (`TASK-28`), igual que `ingesta: null`.
+- **El colector de AIS no se puede probar en vivo** y es a propósito que no haga
+  falta: el riesgo **R1** deja la cuenta de AISStream sin entregar datos desde
+  el 19/08/2026. El parseo se prueba contra los 161 mensajes reales que capturó
+  el spike, en `scripts/spikes/aisstream/output/`, y el bucle contra un
+  transporte inyectado. Ninguna prueba de `US-02` toca la red.

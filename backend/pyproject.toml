@@ -42,7 +42,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["ARG001", "S101"]
+# ARG002: una fixture pedida por su efecto —crear una fila, dejar un estado—
+# llega como argumento de método en las clases de prueba y nunca se usa por
+# nombre. Es el idioma de pytest, no un descuido.
+"tests/**/*.py" = ["ARG001", "ARG002", "S101"]
 # E402: los imports de `app` van después de ajustar sys.path, no hay alternativa.
 # F401: `import app.models` existe por su efecto de registrar el metadata.
 # ARG001: la firma de los callbacks (include_object) la impone Alembic.

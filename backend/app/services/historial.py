@@ -56,7 +56,7 @@ class ResultadoRegistro:
         return self.guardada
 
 
-def _punto(longitud: float, latitud: float) -> str:
+def punto_wkt(longitud: float, latitud: float) -> str:
     """WKT del punto, en el orden que espera PostGIS: **longitud primero**.
 
     Es el error clásico de los datos geoespaciales. Las fuentes AIS y ADS-B
@@ -133,7 +133,7 @@ async def registrar_posicion(
     registro = HistorialTracking(
         id_elemento_rastreado=id_elemento,
         fecha_registro=fecha_registro,
-        posicion=_punto(longitud, latitud),
+        posicion=punto_wkt(longitud, latitud),
         velocidad=Decimal(str(velocidad)) if velocidad is not None else None,
         rumbo=Decimal(str(rumbo)) if rumbo is not None else None,
         estado_api=estado_api,
@@ -165,6 +165,7 @@ __all__ = [
     "DESCARTE_DUPLICADA",
     "DESCARTE_SUBMUESTREO",
     "ResultadoRegistro",
+    "punto_wkt",
     "registrar_lote",
     "registrar_posicion",
     "ultima_lectura",

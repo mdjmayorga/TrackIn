@@ -53,7 +53,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-30` | Especificar las columnas de referencia (contenedor y MAWB) que Planeación añade al Excel ✅ | Task | OE1 | **Must** | Sprint 3 | ~~3h~~ 2h | Reunión Planeación 04/09 · las entrega el archivo, no una pantalla |
 | `TASK-31` | Reponer `maestro_destinos` con los cuatro destinos reales y sus geocercas ✅ | Task | OE1 | **Must** | Sprint 3 | 4h | Reunión Planeación 04/09 (revierte «destino único» del 03/09) |
 | `US-01` | Tomar el identificador de rastreo del archivo, con asociación manual como excepción ✅ | Story | OE2 | **Must** | Sprint 3 | ~~6h~~ 4h | RF-03 · reformulada 04/09 |
-| `US-02` | Consumir posiciones AIS desde AISStream por WebSocket — **respaldo del mapa** | Story | OE2 | **Should** | Sprint 3 | ~~16h~~ 6h | RF-06 · reducida por Plan A (04/09) |
+| `US-02` | Consumir posiciones AIS desde AISStream por WebSocket — **respaldo del mapa** ✅ | Story | OE2 | **Should** | Sprint 3 | ~~16h~~ 6h | RF-06 · reducida por Plan A (04/09) |
 | `US-03` | Política de resiliencia **independiente del transporte** ✅ | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 · reespecificada 08/09 |
 | `US-04` | Registrar el historial de posiciones con el payload original ✅ | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
 | `TASK-19` | Diccionario de datos: usuarios ✅ | Task | OE1 | **Should** | Sprint 3 | 2h | Diseño OE1 / diccionario de datos |
@@ -756,24 +756,115 @@ Como usuario de Logística, quiero que el identificador de rastreo llegue con el
 | Origen en el SRS | RF-03 |
 | Etiquetas | `backend,tracking` |
 
-#### US-02 — Consumir posiciones AIS desde AISStream por WebSocket
+#### US-02 — Consumir posiciones AIS como respaldo del mapa ✅ HECHA
 
-Como sistema, quiero mantener una suscripción WebSocket a AISStream, para recibir las posiciones de los buques asociados a pedidos activos.
+Como sistema, quiero mantener una suscripción a AISStream y guardar las posiciones de los
+buques que ya sigo, para **enriquecer el mapa entre hito e hito** de la fuente comercial.
+
+> **Reespecificada el 08/09/2026.** La tabla resumen ya recogía la decisión del Plan A
+> —`Should`, 6 h, «respaldo del mapa»—, pero **esta sección nunca se actualizó**: seguía
+> diciendo `Must` y 16 h, con criterios escritos cuando AIS era la fuente marítima
+> primaria. Es la misma deuda que tenía `US-03`, y se corrige igual.
+>
+> Con el Plan A, **Vizion es la fuente marítima**: entrega hitos, ETA y descarga. AIS ya no
+> tiene que responder «¿llegó?» —no puede: **no hay cobertura en la costa caribe de Costa
+> Rica**, confirmado en 45 min de captura con grupo de control—. Responde «¿por dónde va?»
+> entre un hito y el siguiente, que es un mapa más vivo y nada más.
+>
+> Tres criterios se reescriben porque el dataset del spike los contradice, y uno porque
+> `US-03` ya construyó lo que pedía.
+
+##### Lo que el dataset real obliga a cambiar
+
+Sobre los **161 mensajes** de `02_caribbean_raw_personal.jsonl`, que es la mitigación de
+**R1** —la cuenta no entrega datos desde el 19/08 y no hay captura nueva posible—:
+
+| Hallazgo | Qué rompía |
+|---|---|
+| Los tipos con posición son **cuatro**, no uno: `PositionReport` (76) y `StandardClassBPositionReport` (39); los estáticos son `ShipStaticData` (19) y `StaticDataReport` (20) | El criterio nombraba solo `PositionReport` y `ShipStaticData`: **59 de 161 mensajes** quedaban fuera |
+| **40 mensajes no traen posición en el cuerpo**: los estáticos solo la llevan en `MetaData` | Leer la posición del cuerpo revienta o la pierde en 1 de cada 4 mensajes |
+| `TrueHeading = 511` en **44 de 115** posiciones, y `Cog = 360` en 11: son los centinelas de «no disponible» de AIS | Guardarlos como rumbo pone 44 buques apuntando al norte y 11 al 360 |
+| `time_utc` viene en formato **Go**, no ISO: `2026-08-18 20:18:15.331999764 +0000 UTC`. `fromisoformat` lanza `ValueError`, y la fracción trae 9, 8 o 6 dígitos donde Python admite 6 | Toda lectura fallaría al parsear la fecha |
+| Solo 8 de 19 `ShipStaticData` declaran ETA; el resto trae `{Day:0, Hour:0, Minute:0, Month:0}` | Persistir esa ETA como fecha real es inventar un dato |
+
+**Class B no se descarta por tipo, y conviene entender por qué.** Es equipo de embarcación
+menor, así que un buque de carga nunca lo emite. Pero filtrarlo por tipo sería filtrar por
+un supuesto: lo correcto es **persistir solo lo que corresponde a un `ElementoRastreado`
+activo**, que es la regla que ya rige, y dejar que Class B no coincida por sí solo. Menos
+reglas y ningún supuesto que se pueda quedar viejo.
+
+##### El nombre, el IMO y el destino no tienen dónde ir — decisión pendiente
+
+El criterio original pedía persistir «IMO, nombre y destino». **`elementos_rastreados` no
+tiene columna para ninguno de los tres**: sus doce campos son el identificador externo, la
+ETA, la ATA, la posición, la velocidad, la frescura y las marcas de tiempo (§4.1 del
+diccionario). `eta_api` sí existe —y el diccionario la creó **citando esta misma fuente**—,
+así que la ETA se guarda y los otros tres no.
+
+No se añaden columnas por cuenta propia: el modelo lo revisó y aprobó el supervisor el
+25/08 (`TASK-15`, `TASK-24`), y tocarlo arrastra migración, `data-model.md` y diccionario.
+**Queda como decisión abierta**, y no urge:
+
+- El **destino** de AIS es texto libre sin normalizar y solo el 12 % de los buques lo
+  declara; el spike ya recomendó **no depender de él**.
+- El **nombre** serviría para rotular el mapa, que es cosmética.
+- El **IMO** es un tipo de rastreo aparte en el dominio, no un atributo del elemento.
+
+Mientras tanto **el dato no se pierde**: el mensaje estático completo llega en el payload
+crudo, que RNF-13 obliga a conservar. Si Logística pide ver el nombre del buque en el mapa,
+son tres columnas y una migración.
 
 **Criterios de aceptación**
+
+- Dada una suscripción establecida, cuando llega un mensaje con posición —de los cuatro tipos que la traen—, entonces lo normalizo y lo persisto por `US-04`, **solo si su MMSI corresponde a un elemento rastreado activo**
+- Dado un mensaje estático, cuando lo proceso, entonces actualizo la **ETA declarada** en `eta_api` **sin** tocar la posición, y **descarto la ETA no declarada** en vez de guardarla como fecha
+- Dado un valor centinela de AIS —rumbo `511`, curso `360`, velocidad `1023`—, cuando lo encuentro, entonces persisto `NULL` y no el número
+- Dada la caída del socket, cuando reconecto, entonces uso la política de `US-03` leída de `parametros_sistema`, **sin backoff propio**, y el estado de la fuente queda en el registro de salud
+- Dado un cierre inmediato tras conectar, cuando ocurre, entonces lo clasifico como `credencial_invalida` —fallo **permanente**— y no reintento en bucle cerrado
+- Dado un periodo sin mensajes, cuando lo evalúo, entonces **no reconecto por silencio**: la zona de interés no tiene cobertura y un watchdog por ausencia de datos entraría en bucle infinito
+- Dado el cierre de la suscripción, cuando termino, entonces **aborto el transporte** sin esperar el `close()` negociado, que se cuelga con volumen alto (Fase 0)
+
+##### El backoff del criterio viejo ahora es un valor, no código
+
+El spike midió que el tiempo hasta el primer mensaje se degrada —1.1 s → 4.9 s → 14.7 s en
+tres reconexiones seguidas— y recomendó 1 s con techo de 60 s. Eso **ya no se escribe en el
+código**: `US-03` dejó `resiliencia_espera_inicial_s` y `resiliencia_espera_maxima_s` en
+`parametros_sistema`.
+
+Y el valor por defecto vigente —5 s con techo de 300 s— es **más conservador** que el del
+spike, que es justo lo que conviene con **R1** abierto: si la hipótesis del tope de cuota es
+correcta, reconectar despacio ayuda. Si se quiere el 1/60 del spike, es un `UPDATE`.
+
+##### Lo que queda sin verificar, y por qué
+
+**R1 sigue abierto.** La clave es válida —el servidor no la rechaza ni cierra— pero no
+entrega un solo mensaje desde el 19/08. Las dos comprobaciones baratas —revisar el consumo
+en aisstream.io, probar desde otra red— **siguen pendientes**, y `TASK-27`, que iba a medir
+el límite, se canceló con el Plan A.
+
+En consecuencia se construye y prueba contra el dataset capturado, que es la mitigación que
+el propio riesgo documenta. **La ingesta en vivo no se puede dar por verificada**, y la
+historia no la reclama: el criterio que la exigía era el del texto viejo.
+
+<details>
+<summary>Texto original, anterior al 08/09/2026</summary>
+
+Como sistema, quiero mantener una suscripción WebSocket a AISStream, para recibir las posiciones de los buques asociados a pedidos activos.
 
 - Dada una clave de API valida, cuando abro la conexion y envio la suscripcion, entonces recibo mensajes PositionReport y los persisto
 - Dado un mensaje ShipStaticData, cuando lo proceso, entonces persisto IMO, nombre y destino por separado de la posicion
 - Dada una conexion establecida, cuando el socket se cae, entonces reconecto con backoff exponencial de 1s con techo de 60s
 - Dado el cierre de la conexion, cuando termino la suscripcion, entonces aborto el transporte sin esperar el close negociado
 
+</details>
+
 | | |
 |---|---|
 | Tipo | Story |
 | Objetivo específico | OE2 |
-| MoSCoW | **Must** |
-| Estimacion | 16 h |
-| Origen en el SRS | RF-06 |
+| MoSCoW | **Should** — degradada por el Plan A (04/09) |
+| Estimacion | ~~16 h~~ **6 h** |
+| Origen en el SRS | RF-06 · reespecificada y **cerrada** el 08/09/2026 (ingesta en vivo sin verificar: **R1**) |
 | Etiquetas | `backend,aisstream,riesgo-externo` |
 
 #### US-03 — Política de resiliencia independiente del transporte ✅ HECHA
@@ -2096,6 +2187,85 @@ queda anotado que el catálogo vigente es `app/services/parametros.py`.
 > —`resiliencia.py` y su prueba— **no estaban formateados** y habrían vuelto a
 > dejar CI en rojo, que es exactamente la deuda que esta sección documenta.
 > Corregido.
+
+### `US-02` — cerrada el 08/09/2026, con la ingesta en vivo **sin verificar**
+
+Segunda historia que se reespecifica antes de construirla, y por la misma razón que
+`US-03`: **la sección de detalle nunca recogió la decisión del 04/09**. La tabla resumen ya
+decía `Should` y 6 h; el detalle seguía en `Must` y 16 h, con criterios escritos cuando AIS
+era la fuente marítima primaria. Con el Plan A, Vizion lo es, y AIS pasó a **respaldo del
+mapa**: responde «¿por dónde va?» entre hitos, no «¿llegó?» —no puede, no hay cobertura en
+la costa caribe—.
+
+#### Lo que el dataset real desmintió
+
+Se contaron los tipos de los **161 mensajes** de la captura del 18/08 antes de escribir una
+línea, y tres criterios de los cuatro originales no sobrevivieron:
+
+| Lo que decía el criterio | Lo que dice la captura |
+|---|---|
+| Persistir `PositionReport` y `ShipStaticData` | Los tipos útiles son **cuatro**: cada uno tiene su gemelo de Class B. Los dos nombrados dejaban fuera **59 de 161 mensajes** |
+| Leer la posición del mensaje | **40 de 161 no la traen en el cuerpo**: los estáticos solo la llevan en `MetaData` |
+| Backoff propio de 1 s con techo de 60 s | `US-03` ya lo dejó en `parametros_sistema`. Ahora es un `UPDATE`, no código |
+
+Y dos trampas que ningún criterio mencionaba:
+
+- **`time_utc` viene en formato Go**, no ISO: `fromisoformat` lanza `ValueError` sobre cada
+  uno de los 161 mensajes, y la fracción trae 9, 8 o 6 dígitos donde Python admite 6.
+- **`Cog = 360` viola el `CHECK`** `rumbo < 360` de `historial_tracking`. Aparece en 11
+  mensajes: no habría dado un dato falso, habría dado `IntegrityError`. `TrueHeading = 511`
+  está en 44 de 115 posiciones.
+
+#### Los siete criterios y dónde vive cada uno
+
+| Criterio | Implementación |
+|---|---|
+| Posición de los cuatro tipos, solo si el MMSI corresponde a un elemento **activo** | `colector_ais.buscar_elemento()` + `historial.registrar_posicion()` |
+| El estático actualiza `eta_api` sin tocar la posición | `colector_ais._aplicar_estatico()` |
+| Los centinelas se persisten como `NULL` | `aisstream._sin_centinela()` |
+| La reconexión usa la política de `US-03`, sin backoff propio | `ColectorAIS.ejecutar()` — pide la espera a su `EstadoFuente` |
+| Cierre inmediato ⇒ `credencial_invalida`, permanente | `aisstream.clasificar_cierre()` |
+| No reconectar por silencio | Por construcción: el bucle no tiene watchdog de datos |
+| Abortar el transporte, no el `close()` negociado | `ColectorAIS._un_ciclo()`, en el `finally` |
+
+**Es el primer adaptador sobre el puerto de `US-03`, y eso lo validó.** El colector no sabe
+de backoff: clasifica su fallo con el vocabulario común, se lo cuenta a su `EstadoFuente` y
+pregunta cuánto esperar. Aparece solo en `/health` sin que nadie lo cablee.
+
+**Un fallo al *abrir* la conexión no es la credencial.** Se detectó al construirlo: una red
+caída dura cero segundos igual que un rechazo de credencial, y clasificar solo por duración
+habría marcado un corte de red como **permanente**, apagando la fuente para siempre. Es
+justo el error caro que `US-03` advierte. Se distingue «no llegó a conectar» de «conectó y
+duró cero», y hay una prueba que lo fija.
+
+#### Lo que queda sin verificar
+
+**R1 sigue abierto** y esta historia no lo cierra. La cuenta acepta la clave y no entrega un
+solo mensaje desde el 19/08. **La ingesta en vivo no está verificada**, y la historia no la
+reclama: el criterio que la exigía era el del texto viejo. Todo lo demás se probó contra los
+161 mensajes reales y contra un transporte inyectado.
+
+Las dos comprobaciones baratas siguen pendientes y **no dependen de código**: revisar el
+consumo en aisstream.io y repetir la Fase 0 desde otra red. Son el próximo paso de R1.
+
+> ⚠️ **Y R1 vale más de lo que su ficha dice.** El cierre de `US-01` dejó anotado que, con
+> Vizion y Portcast aprobados pero **sin contratar**, **0 de 4 referencias de la semilla son
+> rastreables** y *«AISStream es la única vía de rastreo que se puede demostrar, y eso
+> incluye la demo del Informe 1 del 25/09»*.
+>
+> Encadenando las dos cosas: **la única vía demostrable está caída desde el 19/08**. El
+> código de `US-02` ya no es lo que la bloquea —está escrito y probado—; lo que falta son
+> las dos comprobaciones de R1, que no cuestan código y hoy son **camino crítico del
+> Informe 1**. La ficha de R1 estima su impacto en «16 h de `US-02`», y esa cifra quedó
+> vieja por partida doble: la historia bajó a 6 h y ya está construida, pero lo que ahora
+> cuelga de R1 es la demostración del hito.
+
+**Decisión abierta:** el nombre del buque, el IMO y el destino **no tienen columna** en
+`elementos_rastreados`. No se añadieron por cuenta propia —el modelo lo aprobó el supervisor
+el 25/08— y el dato no se pierde, porque el payload crudo se conserva por RNF-13.
+
+**Resultado: 353 pruebas, 98 % de cobertura**; `aisstream.py` y `colector_ais.py` al 100 %,
+`ruff` y `black` limpios.
 
 ### Regla para lo que queda del sprint
 
