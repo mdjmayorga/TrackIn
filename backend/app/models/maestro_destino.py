@@ -30,9 +30,7 @@ class MaestroDestino(Base, TimestampMixin):
     __table_args__ = (
         CheckConstraint(check_in("via_transporte", VIAS_TRANSPORTE), name="via_transporte"),
         CheckConstraint("lead_time_dias >= 0", name="lead_time"),
-        CheckConstraint(
-            "radio_geocerca_km IS NULL OR radio_geocerca_km > 0", name="radio"
-        ),
+        CheckConstraint("radio_geocerca_km IS NULL OR radio_geocerca_km > 0", name="radio"),
         CheckConstraint("pais ~ '^[A-Z]{2}$'", name="pais"),
         {"comment": "Puertos y aeropuertos de entrada (TASK-13, repuesto en TASK-31)."},
     )
@@ -53,9 +51,7 @@ class MaestroDestino(Base, TimestampMixin):
 
     #: Días desde el arribo hasta que la carga está disponible en planta (RN-01).
     lead_time_dias: Mapped[int] = mapped_column(Integer, nullable=False)
-    activo: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("true")
-    )
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     observacion: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración

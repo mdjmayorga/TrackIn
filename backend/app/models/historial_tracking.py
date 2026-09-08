@@ -30,9 +30,7 @@ class HistorialTracking(Base):
     __tablename__ = "historial_tracking"
     __table_args__ = (
         CheckConstraint("velocidad IS NULL OR velocidad >= 0", name="velocidad"),
-        CheckConstraint(
-            "rumbo IS NULL OR (rumbo >= 0 AND rumbo < 360)", name="rumbo"
-        ),
+        CheckConstraint("rumbo IS NULL OR (rumbo >= 0 AND rumbo < 360)", name="rumbo"),
         # Idempotencia de la ingesta (§3.4): la misma lectura no se guarda dos
         # veces si el worker reprocesa o la fuente reenvía.
         Index(
@@ -55,9 +53,7 @@ class HistorialTracking(Base):
         BigInteger, ForeignKey("elementos_rastreados.id", ondelete="RESTRICT"), nullable=False
     )
     #: Instante que reporta la fuente, no el de inserción.
-    fecha_registro: Mapped[dt.datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    fecha_registro: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     posicion: Mapped[object] = mapped_column(
         Geography(geometry_type="POINT", srid=4326), nullable=False

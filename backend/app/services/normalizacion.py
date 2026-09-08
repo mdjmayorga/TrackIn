@@ -48,9 +48,7 @@ def normalizar_texto(valor: str | None) -> str | None:
         return None
     # NFD separa la tilde de la letra; se descartan los diacríticos (Mn).
     sin_tildes = "".join(
-        c
-        for c in unicodedata.normalize("NFD", str(valor))
-        if unicodedata.category(c) != "Mn"
+        c for c in unicodedata.normalize("NFD", str(valor)) if unicodedata.category(c) != "Mn"
     )
     limpio = re.sub(r"\s+", " ", sin_tildes).strip().upper()
     return None if limpio in VALORES_NO_DATO else limpio
@@ -115,15 +113,11 @@ async def resolver_pais(sesion: AsyncSession, valor: str | None) -> MaestroPais 
         return None
 
     if len(texto) == 2:
-        encontrado = await sesion.scalar(
-            select(MaestroPais).where(MaestroPais.codigo == texto)
-        )
+        encontrado = await sesion.scalar(select(MaestroPais).where(MaestroPais.codigo == texto))
         if encontrado is not None:
             return encontrado
 
-    return await sesion.scalar(
-        select(MaestroPais).join(AliasPais).where(AliasPais.alias == texto)
-    )
+    return await sesion.scalar(select(MaestroPais).join(AliasPais).where(AliasPais.alias == texto))
 
 
 __all__ = [

@@ -21,18 +21,14 @@ class Material(Base, TimestampMixin):
     """Material o insumo comprado."""
 
     __tablename__ = "materiales"
-    __table_args__ = {
-        "comment": "Maestro de materiales, normalizado desde el código de origen."
-    }
+    __table_args__ = ({"comment": "Maestro de materiales, normalizado desde el código de origen."},)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     codigo: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
     descripcion: Mapped[str] = mapped_column(String(200), nullable=False)
     #: Unidad base del material (G, ML, MG, UN, CS…).
     unidad_medida: Mapped[str | None] = mapped_column(String(10), nullable=True)
-    activo: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("true")
-    )
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
 
     def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración
         return f"<Material {self.codigo} {self.descripcion!r}>"

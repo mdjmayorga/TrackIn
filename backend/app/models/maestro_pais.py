@@ -31,11 +31,9 @@ class MaestroPais(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     codigo: Mapped[str] = mapped_column(String(2), nullable=False, unique=True)
     nombre: Mapped[str] = mapped_column(String(80), nullable=False)
-    activo: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("true")
-    )
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
 
-    alias: Mapped[list["AliasPais"]] = relationship(
+    alias: Mapped[list[AliasPais]] = relationship(
         back_populates="pais", cascade="all, delete-orphan"
     )
 
@@ -51,9 +49,9 @@ class AliasPais(Base):
     """
 
     __tablename__ = "alias_paises"
-    __table_args__ = {
-        "comment": "Grafías alternativas del país en el archivo de origen (TASK-29)."
-    }
+    __table_args__ = (
+        {"comment": "Grafías alternativas del país en el archivo de origen (TASK-29)."},
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     id_pais: Mapped[int] = mapped_column(

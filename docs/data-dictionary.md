@@ -13,7 +13,8 @@ modelo y este archivo se corrige.
 | `maestro_destinos` | `TASK-17` | ✅ 25/08/2026 |
 | `historial_tracking` | `TASK-18` | ✅ 25/08/2026 |
 | `elementos_rastreados`, `proveedores`, `materiales` | `TASK-24` | ✅ 25/08/2026 |
-| `usuarios` | `TASK-19` | ⏳ Pendiente (Sprint 3) |
+| `usuarios` | `TASK-19` | ✅ 08/09/2026 |
+| `maestro_paises`, `alias_paises` | `TASK-29` | ✅ 08/09/2026 |
 | `auditoria_intervenciones`, `parametros_sistema`, `pedido_elemento_rastreado` | `TASK-26` | ✅ 25/08/2026 |
 
 ## Convenciones de lectura
@@ -311,7 +312,7 @@ reitera RNF-06. Modelo: [`data-model.md` §8.2](data-model.md).
 |---|---|---|---|---|---|---|
 | 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador del asiento de auditoría. |
 | 2 | `id_pedido` | `BIGINT` | no | `FK` → `pedidos_transito(id)` | Existente | Pedido intervenido. RF-14 define la auditoría *«por cada intervención manual sobre un pedido»*, de modo que no hay asientos sin pedido. |
-| 3 | `id_usuario` | `BIGINT` | no | `FK` → `usuarios(id)` | Existente | Quién ejecutó la intervención. Es el motivo por el que la entidad `usuarios` existe aunque la autenticación quedara fuera del alcance. **La autoría no está autenticada** (decisión del 01/09): el usuario se elige de una lista en el diálogo y el sistema no verifica su identidad. |
+| 3 | `id_usuario` | `BIGINT` | no | `FK` → `usuarios(id)` | Existente | Quién ejecutó la intervención. **La autoría sí está autenticada** desde el 03/09/2026: la decisión B5 —selector manual de usuario, sin verificar identidad— quedó revertida al entrar la autenticación al alcance (`US-42`), y el valor se toma de la sesión. El selector manual se retira. |
 | 4 | `fecha_hora` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Cuándo se ejecutó. |
 | 5 | `tipo_intervencion` | `VARCHAR(30)` | no | | `CONFIRMACION_DESEMBARCO` · `RECEPCION_PLANTA` · `TRANSBORDO` · `AJUSTE_MANUAL` · `CIERRE_FORZADO` · `ASOCIACION_TRACKING` (`ck_auditoria_intervenciones_tipo`) | Qué clase de intervención fue. Los seis valores corresponden a las seis acciones manuales del backlog: `US-14` (RF-13), `US-18` (RF-25), `US-30` (RF-26), `US-40` (ajuste de RN-01), el cierre forzado de RN-10 y `US-01` (RF-03), este último agregado el 01/09. |
 | 6 | `campo_afectado` | `VARCHAR(50)` | sí | | Nombre de columna de `pedidos_transito` | Campo modificado, cuando la intervención afecta a uno solo. Es `NULL` en las intervenciones que cambian varios a la vez —un transbordo reasigna la nave y abre un tramo—, y en ese caso el detalle vive en los dos campos siguientes. |
@@ -419,3 +420,116 @@ redundante** con la fila de esta tabla que tiene `fecha_hasta IS NULL`. La
 redundancia es deliberada: evita un join en la consulta más frecuente del
 dashboard. `US-30` debe actualizar ambos en la misma transacción, y conviene
 que sus pruebas verifiquen que no divergen.
+
+---
+
+## 10. `usuarios`
+
+Usuario del sistema con credencial propia. Modelo:
+[`data-model.md` §7](data-model.md).
+
+**Entró al alcance el 03/09/2026.** El SRS v0.3 excluía la autenticación y esta
+entidad existía solo para que `auditoria_intervenciones.id_usuario` tuviera a
+qué apuntar. Con la reunión de Logística el login entra (`US-42`, `RF-28`) y la
+tabla pasa a sostener credenciales reales: se le añaden `hash_contrasena`,
+`rol` y `activo`. El rol determina además qué vista de la grilla se presenta
+(`RF-29` / `US-43`).
+
+### 10.1 Campos
+
+| # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
+|---|---|---|---|---|---|---|
+| 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador del usuario. |
+| 2 | `usuario` | `VARCHAR(50)` | no | `UK` | Texto sin espacios | Nombre de cuenta con el que se inicia sesión. Clave natural. **No es el correo**: se separan para que un cambio de correo no invalide la credencial. |
+| 3 | `nombre_completo` | `VARCHAR(120)` | no | | Texto libre | Nombre para mostrar. Es lo que aparece en el detalle de una intervención auditada, no el nombre de cuenta. |
+| 4 | `correo` | `VARCHAR(120)` | sí | `UK` | Dirección de correo | Opcional. Nulo mientras no haya servidor de correo: sin él no hay recuperación de contraseña por correo, y el reinicio lo hace el administrador. |
+| 5 | `hash_contrasena` | `VARCHAR(255)` | no | | Hash con sal de un algoritmo adaptativo | **Nunca la contraseña en claro** (RNF-24). El nombre de la columna lo hace evidente a quien lea un `SELECT *`. El largo admite argon2id, cuyo *encoded hash* supera holgadamente los 60 de bcrypt. |
+| 6 | `rol` | `VARCHAR(20)` | no | | `COMPRAS` · `LOGISTICA` · `PLANIFICACION` · `ADMINISTRADOR` (`ck_usuarios_rol`) | Perfil del usuario (RNF-05). **`ADMINISTRADOR` entró el 03/09/2026**: revierte la decisión B9, que lo había descartado cuando no había autenticación y por tanto un cuarto rol no restringía nada. Determina la vista: simple para `PLANIFICACION`, completa para el resto. |
+| 7 | `activo` | `BOOLEAN` | no, *default* `true` | | `true` · `false` | Baja lógica. No se borran: el FK desde `auditoria_intervenciones` es `RESTRICT`, porque quien firmó una intervención debe seguir existiendo. Un usuario inactivo no puede iniciar sesión pero conserva su rastro. |
+| 8 | `ultimo_acceso` | `TIMESTAMPTZ` | sí | | Instante UTC | Último inicio de sesión correcto. `NULL` significa que nunca entró. Sirve para detectar cuentas abandonadas. |
+| 9 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. |
+| 10 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación. |
+
+### 10.2 Restricciones de tabla
+
+| Nombre | Regla | Qué protege |
+|---|---|---|
+| `pk_usuarios` | `PRIMARY KEY (id)` | Identidad de la fila |
+| `uq_usuarios_usuario` | `UNIQUE (usuario)` | Que dos personas no compartan cuenta |
+| `uq_usuarios_correo` | `UNIQUE (correo)` | Que un correo identifique a una sola cuenta. Admite varios `NULL`, que es lo que se necesita mientras el correo sea opcional |
+| `ck_usuarios_rol` | `rol IN (...)` | Que el rol pertenezca al dominio de RNF-05 |
+
+### 10.3 Lo que deliberadamente no está
+
+- **No hay tabla de sesiones.** La sesión vive en el token que emite `RF-28`; persistirla exigiría limpieza periódica sin aportar nada al alcance de la práctica.
+- **No hay contador de intentos fallidos.** El bloqueo tras N intentos es una decisión abierta del wireframe de login; cuando se cierre, es una columna más y no una tabla.
+- **No hay integración con Active Directory.** SSO quedó explícitamente fuera del alcance en §1.2 del SRS y sigue fuera.
+
+### 10.4 Notas para la implementación
+
+`hash_contrasena` es `NOT NULL` y no tiene *default*: no se puede crear un
+usuario sin credencial. La consecuencia práctica es que **la migración no puede
+sembrar usuarios**, porque no hay dónde poner un hash legítimo. El primer
+administrador se crea con un comando de gestión que pide la contraseña por
+entrada estándar, nunca con un valor fijo en el repositorio.
+
+---
+
+## 11. `maestro_paises` y `alias_paises`
+
+Catálogo de países de origen y sus grafías alternativas. Nacen de `TASK-29`,
+después de que la muestra real del Z-tracking (03/09/2026) mostrara que el país
+llega como **texto libre sucio**.
+
+Las dos tablas responden a un solo problema: en el archivo conviven `USA` y
+`ESTADOS UNIDOS` para el mismo país, `Mexico` y `México`, y erratas sueltas.
+Normalizar contra un catálogo es lo que exige RN-17, y sin la tabla de alias
+haría falta coincidencia difusa, que es cara y frágil.
+
+### 11.1 `maestro_paises` — campos
+
+| # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
+|---|---|---|---|---|---|---|
+| 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador del país. |
+| 2 | `codigo` | `VARCHAR(2)` | no | `UK` | ISO 3166-1 alfa-2 (`ck_maestro_paises_codigo_iso`) | Clave natural. El `CHECK` es una expresión regular `^[A-Z]{2}$`: obliga a mayúsculas y a dos letras, de modo que no entra `cr` ni `CRI`. |
+| 3 | `nombre` | `VARCHAR(80)` | no | | Texto | Nombre oficial en español. Es lo que se muestra; los alias no se muestran nunca. |
+| 4 | `activo` | `BOOLEAN` | no, *default* `true` | | `true` · `false` | Baja lógica, coherente con los demás maestros. |
+| 5 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. |
+| 6 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación. |
+
+### 11.2 `alias_paises` — campos
+
+| # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
+|---|---|---|---|---|---|---|
+| 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador del alias. |
+| 2 | `id_pais` | `BIGINT` | no | `FK` → `maestro_paises(id)` | Existente | País al que resuelve esta grafía. Indexado: es el lado por el que se navega al resolver. |
+| 3 | `alias` | `VARCHAR(80)` | no | `UK` | Texto **ya normalizado** | Grafía tal como aparece en el archivo, guardada en mayúsculas, sin tildes y sin espacios de sobra. |
+
+### 11.3 Por qué el alias se guarda normalizado
+
+Es la decisión de diseño de la pareja. Si el alias se guardara como viene, cada
+consulta tendría que normalizar la columna —`upper(unaccent(alias))`— y eso
+**inutiliza el índice**: Postgres no puede usar un btree sobre una expresión que
+no está indexada como tal. Guardándolo ya normalizado, resolver un país es una
+igualdad sobre una columna única, que es lo más barato que hay.
+
+El precio es que la normalización de escritura y la de lectura **tienen que ser
+la misma función**. Ambas son `app.services.normalizacion.normalizar_texto`, y
+las pruebas de `tests/test_normalizacion.py` verifican que `ESPAÑA` y `ESPANA`
+resuelven al mismo país justamente para detectar que alguien las separe.
+
+### 11.4 Restricciones de tabla
+
+| Nombre | Regla | Qué protege |
+|---|---|---|
+| `ck_maestro_paises_codigo_iso` | `codigo ~ '^[A-Z]{2}$'` | Que el código sea ISO alfa-2 y no una variante |
+| `uq_maestro_paises_codigo` | `UNIQUE (codigo)` | Un país por código |
+| `uq_alias_paises_alias` | `UNIQUE (alias)` | **Que una grafía no resuelva a dos países.** Es la invariante que hace determinista la normalización |
+| `fk_alias_paises_id_pais_maestro_paises` | `ON DELETE CASCADE` | Los alias no sobreviven a su país. Es el único FK en cascada de los maestros, y se justifica porque un alias no tiene sentido por separado |
+
+### 11.5 Contenido inicial
+
+La migración `0002_maestros_paises_destinos` siembra **15 países y 28 alias**,
+extraídos de los valores distintos que aparecen en la muestra del Z-tracking.
+No pretende ser un catálogo ISO completo: se amplía cuando aparezca un origen
+nuevo, y lo que no resuelve se marca para revisión sin abortar el lote (RN-17).

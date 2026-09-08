@@ -43,9 +43,7 @@ class Usuario(Base, TimestampMixin):
     hash_contrasena: Mapped[str] = mapped_column(String(255), nullable=False)
 
     rol: Mapped[str] = mapped_column(String(20), nullable=False)
-    activo: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("true")
-    )
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     ultimo_acceso: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

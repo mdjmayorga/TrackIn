@@ -31,9 +31,7 @@ class Proveedor(Base, TimestampMixin):
     nombre: Mapped[str] = mapped_column(String(120), nullable=False)
     #: ISO 3166-1 alfa-2. Habilita el análisis de desempeño por origen.
     pais: Mapped[str | None] = mapped_column(String(2), nullable=True)
-    activo: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("true")
-    )
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
 
     def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración
         return f"<Proveedor {self.codigo} {self.nombre!r}>"

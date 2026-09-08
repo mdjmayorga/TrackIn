@@ -55,16 +55,13 @@ class PedidoTransito(Base, TimestampMixin):
             f"{check_in('estado_cumplimiento', ESTADOS_CUMPLIMIENTO)}",
             name="estado_cumplimiento",
         ),
-        CheckConstraint(
-            check_in("estado_calculado", ESTADOS_CALCULADOS), name="estado_calculado"
-        ),
+        CheckConstraint(check_in("estado_calculado", ESTADOS_CALCULADOS), name="estado_calculado"),
         CheckConstraint(
             f"motivo_cierre IS NULL OR {check_in('motivo_cierre', MOTIVOS_CIERRE)}",
             name="motivo_cierre",
         ),
         CheckConstraint(
-            f"tipo_proveedor IS NULL OR "
-            f"{check_in('tipo_proveedor', TIPOS_PROVEEDOR)}",
+            f"tipo_proveedor IS NULL OR " f"{check_in('tipo_proveedor', TIPOS_PROVEEDOR)}",
             name="tipo_proveedor",
         ),
         # --- Las tres que hacen trabajo real (§1.5) -------------------------
@@ -75,8 +72,7 @@ class PedidoTransito(Base, TimestampMixin):
         ),
         # RN-13: los estados terminales y el motivo de cierre van juntos.
         CheckConstraint(
-            "(motivo_cierre IS NULL) = "
-            "(estado_calculado NOT IN ('CERRADO','CANCELADO'))",
+            "(motivo_cierre IS NULL) = " "(estado_calculado NOT IN ('CERRADO','CANCELADO'))",
             name="terminal",
         ),
         # RN-10: una recepción conforme exige fecha y cantidad recibidas.
@@ -108,9 +104,7 @@ class PedidoTransito(Base, TimestampMixin):
     oc_numero: Mapped[str] = mapped_column(String(20), nullable=False)
     posicion_oc: Mapped[int] = mapped_column(Integer, nullable=False)
     #: Código interno que genera TrackIn en la ingesta. Clave alterna.
-    tracking_interno: Mapped[str] = mapped_column(
-        String(30), nullable=False, unique=True
-    )
+    tracking_interno: Mapped[str] = mapped_column(String(30), nullable=False, unique=True)
 
     # --- Datos maestros -----------------------------------------------------
     id_proveedor: Mapped[int] = mapped_column(
@@ -165,14 +159,10 @@ class PedidoTransito(Base, TimestampMixin):
     ata_confirmada: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    ata_inferida: Mapped[dt.datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    ata_inferida: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     #: Anulable: RN-16 contempla el caso «ETA no estimable», en el que el
     #: sistema explícitamente no proyecta.
-    fecha_proyectada_disponible: Mapped[dt.date | None] = mapped_column(
-        Date, nullable=True
-    )
+    fecha_proyectada_disponible: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
     fecha_ultimo_recalculo: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -188,17 +178,15 @@ class PedidoTransito(Base, TimestampMixin):
     fecha_recepcion_planta: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    cantidad_recibida: Mapped[Decimal | None] = mapped_column(
-        Numeric(14, 3), nullable=True
-    )
+    cantidad_recibida: Mapped[Decimal | None] = mapped_column(Numeric(14, 3), nullable=True)
     motivo_cierre: Mapped[str | None] = mapped_column(String(25), nullable=True)
 
     # --- Relaciones ---------------------------------------------------------
-    proveedor: Mapped["Proveedor"] = relationship()  # noqa: F821
-    material: Mapped["Material"] = relationship()  # noqa: F821
-    destino: Mapped["MaestroDestino"] = relationship()  # noqa: F821
-    pais_origen: Mapped["MaestroPais | None"] = relationship()  # noqa: F821
-    elemento_rastreado: Mapped["ElementoRastreado | None"] = relationship()  # noqa: F821
+    proveedor: Mapped[Proveedor] = relationship()  # noqa: F821
+    material: Mapped[Material] = relationship()  # noqa: F821
+    destino: Mapped[MaestroDestino] = relationship()  # noqa: F821
+    pais_origen: Mapped[MaestroPais | None] = relationship()  # noqa: F821
+    elemento_rastreado: Mapped[ElementoRastreado | None] = relationship()  # noqa: F821
 
     def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración
         return f"<PedidoTransito {self.oc_numero}-{self.posicion_oc}>"

@@ -16,7 +16,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
-from app.core.config import Settings, settings as settings_global
+from app.core.config import Settings
+from app.core.config import settings as settings_global
 from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.semilla import FuenteSemilla
 
@@ -54,9 +55,7 @@ def obtener_fuente(settings: Settings | None = None) -> FuentePedidos | None:
     if nombre == "semilla" and cfg.is_production:
         # No se bloquea —el arranque no debe depender de esto—, pero que quede
         # dicho: la semilla son datos inventados y no deben verse en producción.
-        logger.warning(
-            "Ingesta: la fuente 'semilla' está activa en un entorno de producción."
-        )
+        logger.warning("Ingesta: la fuente 'semilla' está activa en un entorno de producción.")
 
     return constructor()
 

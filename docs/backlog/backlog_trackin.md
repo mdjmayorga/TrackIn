@@ -55,8 +55,8 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-01` | Tomar el identificador de rastreo del archivo, con asociación manual como excepción ✅ | Story | OE2 | **Must** | Sprint 3 | ~~6h~~ 4h | RF-03 · reformulada 04/09 |
 | `US-02` | Consumir posiciones AIS desde AISStream por WebSocket — **respaldo del mapa** | Story | OE2 | **Should** | Sprint 3 | ~~16h~~ 6h | RF-06 · reducida por Plan A (04/09) |
 | `US-03` | Tolerar la caida de una API externa sin degradar el dashboard | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 |
-| `US-04` | Registrar el historial de posiciones con el payload original | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
-| `TASK-19` | Diccionario de datos: usuarios | Task | OE1 | **Should** | Sprint 3 | 2h | Diseño OE1 / diccionario de datos |
+| `US-04` | Registrar el historial de posiciones con el payload original ✅ | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
+| `TASK-19` | Diccionario de datos: usuarios ✅ | Task | OE1 | **Should** | Sprint 3 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-23` | Consolidar el material de OE1 para el Informe 1 | Task | OE1 | **Must** | Sprint 3 | 8h | Hito Informe 1 (25/09/2026) |
 | `US-05` | Consumir posiciones ADS-B desde OpenSky con OAuth2 | Story | OE2 | **Must** | Sprint 4 | 10h | RF-07 |
 | `US-06` | Resolver el icao24 de un vuelo como vinculo temporal del tramo | Story | OE2 | **Must** | Sprint 4 | 8h | RF-07 / spike TG-11 |
@@ -1865,6 +1865,131 @@ atraque, las APIs se pagan para confirmar algo que ya se sabía.
 No se aplica. Se conserva por trazabilidad: era mantener AIS gratuito y OpenSky como
 fuentes primarias, construir `US-08` y `US-11` completas, y dejar el tramo final
 confirmado a mano indefinidamente, con el riesgo **R1** abierto.
+
+---
+
+---
+
+## Deuda de Definition of Done detectada el 08/09/2026
+
+Al retomar el sprint se midió la cobertura de pruebas de los siete items que el
+07/09 quedaron marcados como cerrados. **Ninguno cumplía la DoD**, que exige
+«código con pruebas unitarias (cobertura mínima 70 %)».
+
+### Lo que se encontró
+
+| Módulo | Cobertura | Item que lo produjo |
+|---|---|---|
+| `app/services/referencia.py` | **0 %** | `US-01` |
+| `app/services/asociacion.py` | **0 %** | `US-01` |
+| `app/services/normalizacion.py` | **0 %** | `TASK-29` |
+| `app/models/*` (once entidades) | **0 %** | `TASK-01` |
+| **Total del backend** | **31 %** | |
+
+Pasaban cuatro pruebas, todas de `/health`. La lógica de negocio escrita el 07/09
+no tenía ninguna.
+
+**Por qué importaba más de lo que parece:** `referencia.py` valida el formato ISO
+6346 del contenedor y el del MAWB. Es exactamente el código del que depende que
+Vizion y Portcast devuelvan algo. Sin pruebas, cuando llegara la respuesta de los
+proveedores no habría forma de saber si un fallo es de ellos o nuestro.
+
+### Lo que se hizo
+
+| Archivo | Pruebas | Qué cubre |
+|---|---|---|
+| `tests/test_referencia.py` | 55 | Formato por tipo, normalización, rastreabilidad según fuente contratada, invariantes del módulo |
+| `tests/test_normalizacion.py` | 72 | RN-17 con los casos sucios **reales** de la muestra del 03/09 |
+| `tests/test_asociacion.py` | 19 | Integración: reutilización de elemento, `CHECK` de RN-02, auditoría de RF-14 |
+| `tests/test_ingesta_registro.py` | 23 | El puerto `FuentePedidos` y la degradación a «sin fuente» |
+
+**Resultado: 173 pruebas, 97 % de cobertura.** Los módulos de negocio quedan al
+100 %; lo que falta son los cuerpos `...` de los `Protocol` y un *placeholder*.
+
+Se añadió a `conftest.py` la *fixture* `sesion`, que da una sesión contra la base
+real y hace *rollback* al terminar, de modo que las pruebas de integración no
+tocan los datos semilla.
+
+### Documentación pendiente que salió a la luz
+
+Al revisar la DoD —que también exige «documentación técnica actualizada»—
+aparecieron dos huecos más, ya cerrados:
+
+- **`TASK-19`** estaba pendiente: `usuarios` no tenía entrada en el diccionario.
+  Ahora es la §10, con el rol `ADMINISTRADOR` y los campos de autenticación que
+  entraron el 03/09.
+- **`TASK-29` estaba marcada ✅ pero `maestro_paises` y `alias_paises` no estaban
+  documentadas en ninguna parte** —ni en el diccionario ni en el modelo—. Ahora
+  son la §11, con la justificación de por qué el alias se guarda ya normalizado.
+
+También se corrigió una nota obsoleta en §7: el diccionario todavía afirmaba que
+la autoría de las intervenciones **no** está autenticada, decisión (B5) que quedó
+revertida el 03/09 al entrar el login al alcance.
+
+### Hallazgo colateral: dónde vive la validación del adaptador
+
+`registro.py` documenta que un nombre de adaptador mal escrito «no debe tumbar el
+arranque» y degrada a «sin fuente». **Pero `Settings.INGESTA_ADAPTADOR` es un
+`Literal["semilla", "ninguno"]`**, así que pydantic rechaza el valor antes y la
+aplicación no arranca. Las ramas defensivas del registro son inalcanzables por la
+vía normal.
+
+No es un fallo —fallar temprano ante una errata es defendible—, pero **las dos
+capas se contradicen**. Conviene decidir cuál manda antes de que `US-31` agregue
+`ztracking` al `Literal` y el patrón se replique en las fuentes de rastreo. Las
+pruebas dejan documentado el comportamiento real y ejercitan las ramas
+defensivas con un doble.
+
+### La rama venía fallando CI
+
+La DoD también exige «merge a rama principal sin errores de CI». El flujo de
+`.github/workflows/ci.yml` corre `ruff check`, `black --check` y `pytest` sobre
+`app` y `tests`. **Los tres fallaban** en el commit del 07/09:
+
+- `ruff`: dos `RUF012` en `material.py` y `maestro_pais.py`, por declarar
+  `__table_args__` como diccionario suelto en vez de la tupla que usa el resto
+  de los modelos. Corregido.
+- `black`: seis archivos sin formatear. Corregido.
+- `pytest`: pasaba, pero con el 31 % de cobertura ya descrito.
+
+Los tres quedan verdes: **212 pruebas, 97 % de cobertura, ruff y black limpios**.
+
+### `US-04` — cerrada el 08/09/2026
+
+Los cuatro criterios, y dónde vive cada uno:
+
+| Criterio | Implementación |
+|---|---|
+| Lectura con fecha, coordenadas, velocidad, rumbo, estado crudo y payload en JSONB | `app/services/historial.py` · `registrar_posicion()` |
+| El registro es inmutable | **Disparador en la base** (migración `0003`), no una comprobación del ORM |
+| Submuestreo: una posición por elemento por intervalo | `registrar_posicion()`, comparando contra la última guardada |
+| El intervalo se cambia sin desplegar código | `app/services/parametros.py` + fila en `parametros_sistema` |
+
+**La inmutabilidad se puso en la base a propósito.** Si viviera en SQLAlchemy se
+cumpliría solo para quien pase por el modelo; un `UPDATE` desde `psql`, desde
+pgAdmin o desde un `bulk_update` lo saltaría sin resistencia. Una bitácora de
+auditoría no puede depender de por dónde entre la escritura. `DELETE` se bloquea
+igual: la retención de `TASK-10` tendrá que desactivar el disparador dentro de su
+transacción, que es exactamente lo que se quiere —que borrar historial sea un
+acto deliberado—.
+
+**Los parámetros declaran su defecto en el código**, en `parametros.CATALOGO`, y
+la fila de la base solo lo sobreescribe. Así el sistema arranca con la tabla
+vacía y un parámetro nuevo no rompe un despliegue viejo. La migración los siembra
+igual, para que quien administre los descubra. Una prueba verifica que los siete
+valores sembrados coinciden con los del catálogo, porque si divergen el
+comportamiento cambiaría según hubiera corrido o no la migración.
+
+De paso quedan sembrados los umbrales que esperan respuesta de Logística
+—`velocidad_minima_eta_nudos`, `velocidad_maxima_arribo_nudos`— con valor
+provisional y marcados como tales, que es lo acordado el 04/09 al reclasificar
+C4 y C5 como parámetros de sistema.
+
+### Regla para lo que queda del sprint
+
+Un item no se marca ✅ sin pruebas que lo cubran y sin su documentación al día.
+Los siete del 07/09 ya están regularizados; `US-02`, `US-03` y `US-04` entran con
+esa condición desde el principio.
 
 ---
 

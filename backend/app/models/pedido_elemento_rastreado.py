@@ -34,9 +34,7 @@ class PedidoElementoRastreado(Base):
     __table_args__ = (
         UniqueConstraint("id_pedido", "tramo", name="tramo"),
         CheckConstraint("tramo > 0", name="tramo_positivo"),
-        CheckConstraint(
-            "fecha_hasta IS NULL OR fecha_hasta >= fecha_desde", name="rango"
-        ),
+        CheckConstraint("fecha_hasta IS NULL OR fecha_hasta >= fecha_desde", name="rango"),
         # Impide que un pedido tenga dos tramos vigentes a la vez.
         Index(
             "uq_pedido_elemento_rastreado_vigente",
@@ -49,24 +47,22 @@ class PedidoElementoRastreado(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     id_pedido: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("pedidos_transito.id", ondelete="CASCADE"),
+        BigInteger,
+        ForeignKey("pedidos_transito.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     id_elemento_rastreado: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("elementos_rastreados.id", ondelete="RESTRICT"),
+        BigInteger,
+        ForeignKey("elementos_rastreados.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
     tramo: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    fecha_desde: Mapped[dt.datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    fecha_desde: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     #: `NULL` = tramo vigente.
-    fecha_hasta: Mapped[dt.datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    fecha_hasta: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     #: RF-26 pide el puerto y la fecha de la notificación como datos propios,
     #: no como texto libre dentro del motivo.

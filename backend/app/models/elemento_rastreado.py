@@ -43,13 +43,9 @@ class ElementoRastreado(Base, TimestampMixin):
 
     __tablename__ = "elementos_rastreados"
     __table_args__ = (
-        CheckConstraint(
-            check_in("tipo_tracking_externo", TIPOS_TRACKING), name="tipo_tracking"
-        ),
+        CheckConstraint(check_in("tipo_tracking_externo", TIPOS_TRACKING), name="tipo_tracking"),
         CheckConstraint(check_in("via_transporte", VIAS_TRANSPORTE), name="via_transporte"),
-        CheckConstraint(
-            "velocidad_actual IS NULL OR velocidad_actual >= 0", name="velocidad"
-        ),
+        CheckConstraint("velocidad_actual IS NULL OR velocidad_actual >= 0", name="velocidad"),
         # Clave natural **única mientras esté activo** (§4.3): un MMSI puede
         # reutilizarse años después; lo que no puede es haber dos filas activas
         # con el mismo identificador.
@@ -70,35 +66,24 @@ class ElementoRastreado(Base, TimestampMixin):
 
     #: ETA y ATA tal como las reporta la fuente externa. Se distinguen de la
     #: inferida por el sistema y de la confirmada a mano (RN-05).
-    eta_api: Mapped[dt.datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    ata_api: Mapped[dt.datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    eta_api: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ata_api: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     posicion_actual: Mapped[object | None] = mapped_column(
         Geography(geometry_type="POINT", srid=4326), nullable=True
     )
     #: Nudos. RN-05 la usa para descartar el buque que pasa de largo.
-    velocidad_actual: Mapped[Decimal | None] = mapped_column(
-        Numeric(6, 2), nullable=True
-    )
+    velocidad_actual: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
     ultima_actualizacion_api: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
     #: `US-11` lo pone en `false` al arribar, para no gastar cuota siguiendo
     #: naves que ya no llevan carga nuestra.
-    activo: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("true")
-    )
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
 
     def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración
-        return (
-            f"<ElementoRastreado {self.tipo_tracking_externo}"
-            f":{self.tracking_externo!r}>"
-        )
+        return f"<ElementoRastreado {self.tipo_tracking_externo}" f":{self.tracking_externo!r}>"
 
 
 __all__ = ["ElementoRastreado"]
