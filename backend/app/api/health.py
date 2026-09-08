@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.db.session import get_db
 from app.services.ingesta import obtener_fuente
+from app.services.salud_fuentes import registro as registro_salud
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,16 @@ class HealthResponse(BaseModel):
             "mientras la carga no esté conectada (TASK-03)."
         ),
     )
+    fuentes: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Salud de cada fuente externa de rastreo: si está degradada, el "
+            "motivo del último fallo y la **antigüedad** del último dato bueno "
+            "(RNF-12). La lista vacía significa que ninguna fuente se ha "
+            "consultado todavía, que es el estado normal mientras los "
+            "adaptadores esperan a TASK-28."
+        ),
+    )
     detail: str | None = Field(
         default=None, description="Motivo del estado degradado, cuando aplica."
     )
@@ -61,6 +72,13 @@ async def health_check(db: Annotated[AsyncSession, Depends(get_db)]) -> HealthRe
     fuente = obtener_fuente()
     nombre_fuente = fuente.nombre if fuente is not None else None
 
+    # La salud de las fuentes externas se informa, pero NO entra en `status`
+    # (US-03, quinto principio): el dashboard responde siempre porque lee de la
+    # base y no de la fuente, así que una API caída no puede degradar el
+    # servicio. Lo que sí tiene que verse es cuál falló y de cuándo es su último
+    # dato bueno, que es lo que exige RNF-12.
+    fuentes_externas = registro_salud.resumen()
+
     try:
         result = await db.execute(text("SELECT postgis_version();"))
         postgis_version = result.scalar_one()
@@ -75,6 +93,7 @@ async def health_check(db: Annotated[AsyncSession, Depends(get_db)]) -> HealthRe
             database="down",
             postgis=None,
             ingesta=nombre_fuente,
+            fuentes=fuentes_externas,
             detail=f"{type(exc).__name__}: {exc}",
         )
 
@@ -85,4 +104,5 @@ async def health_check(db: Annotated[AsyncSession, Depends(get_db)]) -> HealthRe
         database="up",
         postgis=str(postgis_version),
         ingesta=nombre_fuente,
+        fuentes=fuentes_externas,
     )

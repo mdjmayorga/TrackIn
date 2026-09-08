@@ -373,6 +373,40 @@ tienen de dónde leer sus umbrales:
 **Los tres «a definir» son datos de Logística**, no decisiones técnicas, y
 bloquean el Sprint 4.
 
+> **Nota del 08/09/2026.** Esta tabla recoge lo que el SRS obligaba a tener y no
+> refleja los renombres posteriores: la implementación siembra
+> `umbral_riesgo_dias` —días, no horas, porque ambas fechas son `DATE`—,
+> `velocidad_minima_eta_nudos` y `velocidad_maxima_arribo_nudos`, y
+> `duracion_en_destino_minutos` **quedó eliminado** por la decisión del 04/09
+> que devolvió el paso a proceso aduanal a un acto manual. El catálogo vigente
+> es `app/services/parametros.py`, que es también donde vive el valor por
+> defecto de cada uno.
+
+### 8.2.1 Umbrales de la política de resiliencia (`US-03`)
+
+Sembrados por la migración `0004`. Los consume `app/services/salud_fuentes.py`
+para armar la política de reintento de **cualquier** fuente externa: son
+agnósticos del transporte, así que valen igual para la suscripción WebSocket de
+AISStream que para las consultas REST de Vizion y Portcast.
+
+| `clave` | `tipo_dato` | Valor inicial | Qué controla |
+|---|---|---|---|
+| `resiliencia_espera_inicial_s` | `ENTERO` | `5` | Espera antes del primer reintento tras un fallo transitorio |
+| `resiliencia_factor_espera` | `DECIMAL` | `2.0` | Crecimiento de la espera entre reintentos: 5, 10, 20, 40 s |
+| `resiliencia_espera_maxima_s` | `ENTERO` | `300` | Tope de la espera, para que una caída larga no deje el reintento a horas |
+| `resiliencia_intentos_maximos` | `ENTERO` | `5` | Fallos seguidos tras los cuales la fuente queda degradada. Es lo que impide el bucle cerrado |
+| `resiliencia_ruido_espera` | `DECIMAL` | `0.2` | Fracción de la espera repartida al azar, para que los reintentos no se sincronicen |
+
+**Los cinco son provisionales a propósito.** El valor bueno de cada uno depende
+del proveedor que termine contratándose, y eso se sabrá cuando cierre
+`TASK-28`. Que sean parámetros y no constantes es justamente lo que permite
+afinarlos entonces sin desplegar código, y es el sexto criterio de aceptación de
+`US-03`.
+
+Un fallo **permanente** —credencial inválida, referencia inexistente, cuota
+agotada— no pasa por ninguno de estos umbrales: no se reintenta nunca, por
+muchos intentos que queden.
+
 ### 8.3 Por qué clave-valor y no columnas tipadas
 
 Una tabla con una columna por parámetro daría verificación de tipos en la base,

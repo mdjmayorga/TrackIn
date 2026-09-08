@@ -68,6 +68,8 @@ app/
 ├── models/         Modelos ORM            (Sprint 1-2)
 ├── schemas/        Contratos Pydantic     (Sprint 1)
 └── services/       Lógica de negocio      (Sprint 2+)
+    ├── resiliencia.py     Política de reintento, agnóstica del transporte
+    └── salud_fuentes.py   Estado por fuente + umbrales de parametros_sistema
 ```
 
 Los endpoints de `api/` no deben contener reglas de negocio: delegan en
@@ -128,3 +130,9 @@ Notas:
   `status: "degraded"`. Es intencional: distingue "el proceso murió" de "la
   base no responde". Con Postgres caído la respuesta tarda ~3 s, que es el
   timeout de conexión de asyncpg.
+- **Una fuente externa caída NO degrada `/health`** (`US-03`). Se reporta en el
+  campo `fuentes` —con el motivo del fallo y la antigüedad del último dato
+  bueno—, pero `status` sigue mirando solo a la base. El dashboard lee de la
+  base y no de la fuente, así que una API de terceros no puede tumbar la
+  respuesta. La lista viene vacía mientras ningún adaptador esté conectado
+  (`TASK-28`), igual que `ingesta: null`.

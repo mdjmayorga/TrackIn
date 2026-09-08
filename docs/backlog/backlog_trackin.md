@@ -54,7 +54,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-31` | Reponer `maestro_destinos` con los cuatro destinos reales y sus geocercas ✅ | Task | OE1 | **Must** | Sprint 3 | 4h | Reunión Planeación 04/09 (revierte «destino único» del 03/09) |
 | `US-01` | Tomar el identificador de rastreo del archivo, con asociación manual como excepción ✅ | Story | OE2 | **Must** | Sprint 3 | ~~6h~~ 4h | RF-03 · reformulada 04/09 |
 | `US-02` | Consumir posiciones AIS desde AISStream por WebSocket — **respaldo del mapa** | Story | OE2 | **Should** | Sprint 3 | ~~16h~~ 6h | RF-06 · reducida por Plan A (04/09) |
-| `US-03` | Tolerar la caida de una API externa sin degradar el dashboard | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 |
+| `US-03` | Política de resiliencia **independiente del transporte** ✅ | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 · reespecificada 08/09 |
 | `US-04` | Registrar el historial de posiciones con el payload original ✅ | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
 | `TASK-19` | Diccionario de datos: usuarios ✅ | Task | OE1 | **Should** | Sprint 3 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-23` | Consolidar el material de OE1 para el Informe 1 | Task | OE1 | **Must** | Sprint 3 | 8h | Hito Informe 1 (25/09/2026) |
@@ -776,16 +776,60 @@ Como sistema, quiero mantener una suscripción WebSocket a AISStream, para recib
 | Origen en el SRS | RF-06 |
 | Etiquetas | `backend,aisstream,riesgo-externo` |
 
-#### US-03 — Tolerar la caída de una API externa sin degradar el dashboard
+#### US-03 — Política de resiliencia independiente del transporte ✅ HECHA
 
-Como sistema, quiero una politica de reintentos y un watchdog de conexion, para que la indisponibilidad de una fuente externa no afecte la consulta del usuario.
+Como sistema, quiero una política de resiliencia **independiente del transporte**, para que
+la indisponibilidad de una fuente externa no afecte la consulta del usuario, sea cual sea la
+fuente que termine contratándose.
+
+> **Reespecificada el 08/09/2026.** La redacción anterior estaba escrita contra **WebSocket**:
+> hablaba de un watchdog apoyado en el ping/pong del protocolo y de clasificar un cierre
+> inmediato como fallo de credencial. Eso solo aplica a AISStream.
+>
+> Vizion y Portcast —aprobados el 04/09— son **REST de consulta**, no suscripciones: no hay
+> ping/pong ni cierre que interpretar, y la resiliencia son *timeouts*, reintentos con espera
+> creciente y límites de tasa. Con la especificación anterior, 8 h de un `Must` se habrían
+> construido contra el transporte que probablemente no queda.
+>
+> La reescritura separa **el principio del mecanismo**. Los principios valen para *push* y
+> para *pull*; el mecanismo vive en cada adaptador. Así la historia se puede construir **antes**
+> de que cierre `TASK-28`, que es lo que la desbloquea hoy.
+
+##### Los cinco principios, y cómo se cumplen en cada transporte
+
+| # | Principio (agnóstico) | En *push* (AISStream) | En *pull* (Vizion, Portcast) |
+|---|---|---|---|
+| 1 | **El silencio no es una caída** | Lo dice el ping/pong del protocolo, no la ausencia de mensajes | Una respuesta vacía con `200` es un contacto **exitoso** |
+| 2 | **Un fallo permanente no se reintenta en bucle** | Cierre inmediato tras conectar ⇒ credencial | `401`/`403` ⇒ credencial · `404` ⇒ referencia inexistente |
+| 3 | **Un fallo transitorio se reintenta con espera creciente** | Reconexión con *backoff* | Reintento con *backoff*, respetando `Retry-After` |
+| 4 | **Nunca se pierde la última lectura buena** | Igual en ambos: vive en `historial_tracking` | Igual |
+| 5 | **El dashboard responde siempre** | Igual en ambos: lee de la base, nunca de la fuente | Igual |
 
 **Criterios de aceptación**
 
-- Dada una API que no responde, cuando falla la consulta, entonces registro el error y conservo la ultima posicion valida con su antiguedad
-- Dada una suscripcion AIS a una zona sin trafico, cuando pasan minutos sin mensajes, entonces el watchdog NO reconecta, porque se apoya en el ping/pong del protocolo y no en la ausencia de datos
-- Dado un cierre inmediato tras conectar, cuando ocurre, entonces lo clasifico como problema de credencial y no reintento en bucle cerrado
-- Dada una API caida, cuando consulto el dashboard, entonces responde con los ultimos datos conocidos
+- Dada una fuente que falla, cuando registro el fallo, entonces queda su motivo, su instante y el número de fallos consecutivos, **sin perder la última lectura válida ni su antigüedad**
+- Dado un fallo clasificado como **permanente** —credencial inválida, referencia inexistente—, cuando ocurre, entonces **no se reintenta**: se marca la fuente como degradada y se expone el motivo
+- Dado un fallo clasificado como **transitorio** —tiempo agotado, error del servidor, corte de red—, cuando ocurre, entonces se reintenta con espera creciente y **tope máximo**, de modo que nunca haya un bucle cerrado
+- Dada una fuente que responde correctamente **sin datos nuevos**, cuando lo evalúo, entonces cuenta como **contacto exitoso** y reinicia el conteo de fallos: el silencio no es una caída
+- Dada cualquier fuente caída, cuando consulto el dashboard, entonces responde con los últimos datos conocidos y **su antigüedad** (RNF-12), nunca con un error
+- Dada la política de reintentos, cuando ajusto sus umbrales, entonces cambian **sin desplegar código** (RF-24), como el intervalo de `US-04`
+
+##### Qué se construyó y qué espera a `TASK-28`
+
+| Construido el 08/09 | Cuando cierre `TASK-28` |
+|---|---|
+| La clasificación de fallos y la política de espera — `app/services/resiliencia.py` | El mapeo de los errores concretos de cada proveedor |
+| El estado de salud por fuente y su exposición — `app/services/salud_fuentes.py` y el campo `fuentes` de `/health` | El cliente WebSocket o el cliente REST |
+| Los umbrales en `parametros_sistema` (migración `0004`) | El valor bueno de cada umbral, que depende del proveedor |
+| Que el dashboard lea siempre de la base | — |
+
+Es el mismo patrón de puerto y adaptadores que ya usa `TASK-03` con `FuentePedidos`: el
+principio vive en el puerto y lo específico en cada adaptador.
+
+> **Cerrada el 08/09/2026.** Los seis criterios se cumplen y están cubiertos por pruebas;
+> el detalle, en «[`US-03` — cerrada el 08/09/2026](#us-03--cerrada-el-08092026)» al final
+> de este archivo. Lo único que espera a `TASK-28` es el adaptador de cada proveedor, que
+> nunca fue parte de esta historia.
 
 | | |
 |---|---|
@@ -793,8 +837,8 @@ Como sistema, quiero una politica de reintentos y un watchdog de conexion, para 
 | Objetivo específico | OE2 |
 | MoSCoW | **Must** |
 | Estimacion | 8 h |
-| Origen en el SRS | RF-09 / RNF-12 |
-| Etiquetas | `backend,resiliencia` |
+| Origen en el SRS | RF-09 / RNF-12 · reespecificada y **cerrada** el 08/09/2026 |
+| Etiquetas | `backend,resiliencia,agnostico` |
 
 #### US-04 — Registrar el historial de posiciones con el payload original
 
@@ -1984,6 +2028,74 @@ De paso quedan sembrados los umbrales que esperan respuesta de Logística
 —`velocidad_minima_eta_nudos`, `velocidad_maxima_arribo_nudos`— con valor
 provisional y marcados como tales, que es lo acordado el 04/09 al reclasificar
 C4 y C5 como parámetros de sistema.
+
+### `US-03` — cerrada el 08/09/2026
+
+Se reespecificó primero y se construyó después, y el orden importa: la redacción
+original estaba escrita contra WebSocket —un watchdog apoyado en el ping/pong
+del protocolo, un cierre inmediato leído como fallo de credencial— y eso solo
+aplica a AISStream. Con Vizion y Portcast aprobados el 04/09, que son **REST de
+consulta**, 8 h de un `Must` se habrían gastado contra el transporte que
+probablemente no queda.
+
+La reescritura separa **el principio del mecanismo**, y eso es lo que permitió
+construirla **antes** de que cierre `TASK-28`, que es lo que la bloqueaba.
+
+Los seis criterios, y dónde vive cada uno:
+
+| Criterio | Implementación |
+|---|---|
+| El fallo queda con motivo, instante y conteo, sin perder la última lectura buena | `app/services/resiliencia.py` · `EstadoFuente.registrar_fallo()` |
+| Un fallo **permanente** no se reintenta: se degrada y se expone el motivo | `EstadoFuente.debe_reintentar` — devuelve `False` aunque queden intentos |
+| Un fallo **transitorio** se reintenta con espera creciente y tope | `PoliticaReintento.espera()` — geométrica, acotada y con ruido |
+| Una respuesta correcta **sin datos nuevos** es un contacto exitoso | `registrar_exito(con_datos=False)` — reinicia el conteo |
+| El dashboard responde con el último dato y **su antigüedad**, nunca con un error | `salud_fuentes.RegistroSalud` + campo `fuentes` de `/health` |
+| Los umbrales cambian **sin desplegar código** (RF-24) | `salud_fuentes.politica_vigente()` + migración `0004` |
+
+**Por qué la política quedó en tres capas.** `resiliencia.py` es política pura y
+no toca ni red ni base; `salud_fuentes.py` guarda el estado por fuente y arma la
+política desde `parametros_sistema`; el mapeo del error concreto de cada
+proveedor a una clase de fallo es del adaptador, y ese es el único pedazo que
+espera a `TASK-28`. Es el mismo patrón de puerto y adaptadores que `TASK-03` usa
+con `FuentePedidos`.
+
+**El estado tenía que vivir en algún lado.** Sin el registro,
+`fallos_consecutivos` se reiniciaría en cada consulta y la espera creciente
+nunca crecería —el módulo de política, solo, no cumple el tercer criterio—. Vive
+en memoria a propósito: es salud de conexión, no dato de negocio, y la última
+posición buena está en `historial_tracking`, donde ningún reinicio la toca.
+Cuando haya más de un proceso —no es el caso del despliegue de un solo servidor
+que aprobó `TASK-21`— habrá que moverlo a la base.
+
+**Una fuente caída no degrada `/health`.** Se reporta en el campo `fuentes` con
+su motivo y la antigüedad de su último dato bueno, pero `status` sigue mirando
+solo a la base. Mezclarlas habría contradicho el quinto principio de la propia
+historia. Hoy la lista viene vacía, que es correcto: ningún adaptador está
+conectado todavía, y es la misma decisión que ya se tomó con `ingesta: null`.
+
+**Lo desconocido se clasifica como transitorio a propósito.** Equivocarse hacia
+el reintento gasta cuota; equivocarse hacia lo permanente pierde datos y apaga
+una fuente que funcionaba. El primer error es más barato, y el tope de intentos
+lo acota igual.
+
+**Los cinco umbrales sembrados son provisionales**, como los de Logística: el
+valor bueno de cada uno depende del proveedor que se contrate. Que sean
+parámetros es justamente lo que permitirá afinarlos cuando cierre `TASK-28` sin
+volver a desplegar.
+
+Documentación al día: `docs/architecture.md` §1.5.1 (las tres capas y las tres
+reglas), `docs/data-dictionary.md` §8.2.1 (los cinco umbrales) y `backend/README.md`.
+De paso, §8.2 del diccionario llevaba desde el 04/09 una tabla de parámetros con
+nombres viejos y con `duracion_en_destino_minutos`, que esa reunión **eliminó**;
+queda anotado que el catálogo vigente es `app/services/parametros.py`.
+
+**Resultado: 271 pruebas, 98 % de cobertura**, `resiliencia.py` y
+`salud_fuentes.py` al 100 %, `ruff` y `black` limpios.
+
+> **Ojo con `black`.** Los archivos que la sesión anterior dejó sin commitear
+> —`resiliencia.py` y su prueba— **no estaban formateados** y habrían vuelto a
+> dejar CI en rojo, que es exactamente la deuda que esta sección documenta.
+> Corregido.
 
 ### Regla para lo que queda del sprint
 

@@ -164,6 +164,42 @@ En consecuencia:
 - El motor procesa pedido por pedido y aísla el fallo de uno (RNF-14): una
   lectura corrupta de un buque no interrumpe el recálculo de los demás.
 
+#### 1.5.1 Dónde vive la política, y por qué no en el adaptador
+
+`US-03` se reespecificó el 08/09/2026 para que la resiliencia **no dependa del
+transporte**. La redacción anterior estaba escrita contra WebSocket —un watchdog
+apoyado en el ping/pong del protocolo, un cierre inmediato leído como fallo de
+credencial—, y eso solo aplica a AISStream. Vizion y Portcast, aprobados el
+04/09, son REST de consulta: no hay ping/pong ni cierre que interpretar.
+
+La separación quedó así:
+
+| Capa | Módulo | Qué sabe |
+|---|---|---|
+| Política | `app/services/resiliencia.py` | Clasificar un fallo en transitorio o permanente, y calcular la espera. **No toca red ni base** |
+| Estado y umbrales | `app/services/salud_fuentes.py` | Un `EstadoFuente` por fuente, y la política armada desde `parametros_sistema` |
+| Mecanismo | El adaptador de cada proveedor (`TASK-28`) | Qué código HTTP o qué motivo de cierre corresponde a qué clase |
+
+Es el mismo patrón de puerto y adaptadores que `TASK-03` usa con
+`FuentePedidos`, y tiene la misma consecuencia práctica: la historia se pudo
+construir y probar **antes** de saber qué proveedor queda, que es lo que la
+bloqueaba.
+
+Tres reglas que la implementación fija y conviene no perder:
+
+- **El silencio no es una caída.** Una fuente que responde `200` sin datos
+  nuevos tuvo un contacto exitoso y reinicia el conteo de fallos. Confundir las
+  dos cosas fue lo que hizo parecer roto al spike TG-10, cuando lo que pasaba es
+  que en el Caribe no había tráfico que reportar.
+- **Un fallo permanente no se reintenta**, por muchos intentos que queden. Lo
+  desconocido, en cambio, se trata como transitorio: equivocarse hacia el
+  reintento cuesta cuota, y hacia lo permanente cuesta datos y apaga una fuente
+  que servía.
+- **Una fuente caída no degrada el servicio.** `/health` la reporta en `fuentes`
+  —con el motivo y la antigüedad del último dato bueno—, pero `status` sigue
+  mirando solo a la base. Es el mismo principio de esta sección: la API no
+  depende de una fuente externa para responder.
+
 ### 1.6 Decisiones clave que la arquitectura registra
 
 | Decisión | Qué implica en los componentes |

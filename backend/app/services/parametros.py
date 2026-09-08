@@ -105,6 +105,58 @@ CATALOGO: Final[dict[str, Parametro]] = {
             "Logística."
         ),
     ),
+    # --- Resiliencia de las fuentes externas (`US-03`, RF-09 / RNF-12) ------
+    # Los cinco describen la misma política de espera creciente, y son
+    # parámetros y no constantes por el sexto criterio de la historia: los
+    # umbrales tienen que poder ajustarse sin desplegar código. Importa más
+    # acá que en otros lados, porque el valor bueno de cada uno depende del
+    # proveedor que termine contratándose y hoy no se conoce (`TASK-28`).
+    "resiliencia_espera_inicial_s": Parametro(
+        clave="resiliencia_espera_inicial_s",
+        defecto=5,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Segundos de espera antes del primer reintento a una fuente externa "
+            "que falló de forma transitoria (RF-09)."
+        ),
+    ),
+    "resiliencia_factor_espera": Parametro(
+        clave="resiliencia_factor_espera",
+        defecto=Decimal("2.0"),
+        tipo_dato="DECIMAL",
+        descripcion=(
+            "Factor por el que se multiplica la espera en cada reintento "
+            "consecutivo. Con 2.0 la secuencia es 5, 10, 20, 40 s."
+        ),
+    ),
+    "resiliencia_espera_maxima_s": Parametro(
+        clave="resiliencia_espera_maxima_s",
+        defecto=300,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Tope de la espera creciente. Sin él, una caída larga deja el "
+            "siguiente reintento a horas de distancia."
+        ),
+    ),
+    "resiliencia_intentos_maximos": Parametro(
+        clave="resiliencia_intentos_maximos",
+        defecto=5,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Fallos transitorios seguidos tras los cuales la fuente se marca "
+            "degradada y se deja de reintentar. Es lo que impide el bucle cerrado."
+        ),
+    ),
+    "resiliencia_ruido_espera": Parametro(
+        clave="resiliencia_ruido_espera",
+        defecto=Decimal("0.2"),
+        tipo_dato="DECIMAL",
+        descripcion=(
+            "Fracción de la espera que se reparte al azar, para que los elementos "
+            "rastreados no reintenten todos en el mismo instante tras una caída "
+            "general. En 0 el reintento es determinista."
+        ),
+    ),
 }
 
 
