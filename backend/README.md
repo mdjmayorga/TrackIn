@@ -82,6 +82,9 @@ Los endpoints de `api/` no deben contener reglas de negocio: delegan en
 
 | Comando | Qué hace |
 |---|---|
+| `python scripts/cargar_semilla.py` | Carga en la base los pedidos de la fuente configurada |
+| `python scripts/cargar_semilla.py --resumen` | Muestra qué hay en la base, sin escribir |
+| `python scripts/cargar_semilla.py --limpiar` | Deja la base en un estado conocido y recarga |
 | `pytest` | Tests con cobertura |
 | `pytest -m "not integration"` | Solo lo que no necesita base de datos |
 | `pytest --no-cov -q` | Rápido, sin cobertura |
@@ -144,3 +147,12 @@ Notas:
   el 19/08/2026. El parseo se prueba contra los 161 mensajes reales que capturó
   el spike, en `scripts/spikes/aisstream/output/`, y el bucle contra un
   transporte inyectado. Ninguna prueba de `US-02` toca la red.
+- **El cargador es idempotente y no toca los maestros.** La clave natural es
+  `(oc_numero, posicion_oc)`, así que correrlo dos veces no duplica. `--limpiar`
+  borra pedidos y elementos rastreados, pero **no** destinos, países ni
+  parámetros —vienen de las migraciones— ni `historial_tracking`, que es
+  *append-only* por disparador (RNF-13).
+- **Sobre la semilla entran 6 de 8 líneas**, y las otras dos se rechazan con su
+  motivo: una vía `PENDIENTE`, que no es una vía, y una terrestre sin destino
+  posible en el maestro. No es un fallo del cargador: es RN-17 funcionando, y
+  esas dos líneas imitan defectos reales de la muestra del 03/09.

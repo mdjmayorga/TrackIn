@@ -2267,6 +2267,69 @@ el 25/08— y el dato no se pierde, porque el payload crudo se conserva por RNF-
 **Resultado: 353 pruebas, 98 % de cobertura**; `aisstream.py` y `colector_ais.py` al 100 %,
 `ruff` y `black` limpios.
 
+### Cargador de la semilla — 09/09/2026
+
+`TASK-03` construyó el **puerto** de ingesta y la fuente semilla, y `US-01` la
+normalización y la asociación. Faltaba lo que las une: **nadie escribía en la base**. Los
+ocho pedidos existían solo en código, que para una demostración es lo mismo que no existir
+—`pedidos_transito` tenía **0 filas**—.
+
+Se añade `app/services/ingesta/carga.py` y el script `scripts/cargar_semilla.py`. Sirve para
+cualquier fuente: recibe un `FuentePedidos`, así que `US-31` enchufa el Z-tracking real en el
+mismo sitio sin tocarlo.
+
+#### Lo que la carga demuestra sobre los 8 pedidos
+
+| | |
+|---|---|
+| Leídas | 8 |
+| Cargadas | **6** |
+| Rechazadas con motivo | **2** |
+| Con rastreo automático posible **hoy** | **0** |
+| Con referencia válida, sin API que la siga | 4 |
+| Sin referencia — `SIN_TRACKING` por RN-02 | 2 |
+
+**Las dos rechazadas son las sucias, y quedan a la vista en vez de tumbar el lote** (RN-17):
+una trae la vía en `PENDIENTE`, que no es una vía, y la otra es terrestre y ninguna vía
+terrestre tiene destino en el maestro. Son defectos calcados de la muestra real del 03/09.
+
+**El cero de la cuarta fila es el hallazgo de `US-01`, ahora medido de punta a punta.** Las
+cuatro referencias son válidas y ninguna se puede seguir, porque las cuatro apuntan a Vizion
+o Portcast, **aprobados el 04/09 pero sin contratar**. Una prueba lo fija, y otra prueba
+—con un MMSI, que AISStream sí sigue— fija el contraste, para que el día que se contraten se
+note la diferencia sin ambigüedad.
+
+#### Dos decisiones que valía la pena tomar despacio
+
+**El destino solo se infiere cuando es inequívoco.** El DTO ya contemplaba inferirlo de la
+vía, y se hace únicamente si esa vía tiene **un** destino activo: hoy solo `AEREO`, porque
+hay un aeropuerto y tres puertos. Adivinar entre Caldera, Limón y Moín sería peor que
+rechazar la línea —Caldera es **Pacífico** y los otros dos Caribe—, y colocar un buque en el
+océano equivocado estropea la geocerca de arribo y el ETA **sin que nada falle a la vista**.
+
+**Se rechaza por dos campos y solo por dos.** `via_transporte` e `id_destino` son `NOT NULL`
+en el modelo: no es una regla del cargador, es el modelo diciendo que un pedido sin vía ni
+destino no está en tránsito. Todo lo demás —país, incoterm, temperatura, referencia— es
+anulable y la línea entra igual.
+
+#### Detalles de operación
+
+- **Idempotente** por la clave natural `(oc_numero, posicion_oc)`: correrlo dos veces antes
+  de una demostración es seguro.
+- `--limpiar` deja la base en un estado conocido. **No toca los maestros** ni
+  `historial_tracking`, que es *append-only* por disparador: borrar la bitácora tiene que ser
+  un acto deliberado, no un efecto colateral de recargar.
+- El script fuerza la salida a **UTF-8** y apaga el eco de SQL. Suena menor y no lo es: la
+  consola de Windows usa cp1252 y `DEBUG=true` vuelca cada consulta, así que sin las dos
+  cosas el informe es ilegible justo cuando se proyecta.
+
+**Resultado: 382 pruebas, 98 % de cobertura**; `carga.py` al 100 %, `ruff` y `black` limpios.
+
+> **Nota sobre las pruebas.** Las del lote vacían `pedidos_transito` dentro de su propia
+> transacción antes de contar. Hace falta porque el entorno de desarrollo ahora tiene la
+> semilla **cargada y confirmada** —para eso está el script—, y una prueba que contara filas
+> absolutas mediría lo que dejó la última demostración en vez de lo que hizo la carga.
+
 ### Regla para lo que queda del sprint
 
 Un item no se marca ✅ sin pruebas que lo cubran y sin su documentación al día.
