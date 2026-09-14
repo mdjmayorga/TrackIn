@@ -1,0 +1,83 @@
+{
+  "spike": "TASK-28",
+  "fase": "3b-validacion-local",
+  "sin_llamadas_externas": true,
+  "prefijos_en_catalogo": 218,
+  "resultados": [
+    {
+      "referencia": "271102440",
+      "tipo": "BOOKING",
+      "valido": true,
+      "notas": [
+        "serie de 9 digitos emparejada con un contenedor: es el booking maritimo. No lleva digito de control verificable en local"
+      ]
+    },
+    {
+      "referencia": "MRSU8507472",
+      "tipo": "CONTENEDOR",
+      "valido": true,
+      "notas": [
+        "ISO 6346 correcto (digito de control 2)"
+      ],
+      "propietario": "MRS"
+    },
+    {
+      "referencia": "271108898",
+      "tipo": "BOOKING",
+      "valido": true,
+      "notas": [
+        "serie de 9 digitos emparejada con un contenedor: es el booking maritimo. No lleva digito de control verificable en local"
+      ]
+    },
+    {
+      "referencia": "MRSU8132490",
+      "tipo": "CONTENEDOR",
+      "valido": true,
+      "notas": [
+        "ISO 6346 correcto (digito de control 0)"
+      ],
+      "propietario": "MRS"
+    },
+    {
+      "referencia": "COSU6508789000",
+      "tipo": "BL_O_BOOKING",
+      "valido": true,
+      "notas": [
+        "cuatro letras de naviera (COSU) mas serie; no lleva digito de control verificable en local"
+      ],
+      "scac": "COSU"
+    },
+    {
+      "referencia": "TGBU4872990",
+      "tipo": "CONTENEDOR",
+      "valido": true,
+      "notas": [
+        "ISO 6346 correcto (digito de control 0)"
+      ],
+      "propietario": "TGB"
+    },
+    {
+      "referencia": "02050685434",
+      "tipo": "MAWB",
+      "valido": true,
+      "notas": [
+        "prefijo 020 = LUFTHANSA CARGO; digito de control 4 correcto"
+      ],
+      "prefijo": "020",
+      "aerolinea": "LUFTHANSA CARGO",
+      "iata": "LH"
+    },
+    {
+      "referencia": "6163512401",
+      "tipo": "PROBABLE_HAWB",
+      "valido": false,
+      "notas": [
+        "tiene 10 digitos; un MAWB son 11",
+        "probado con un cero delante (06163512401): prefijo 061 = AIR SEYCHELLES, pero el digito de control seria 0 y trae 1",
+        "probado como MAWB sin su digito de control: el prefijo 616 tampoco esta en el catalogo",
+        "ninguna hipotesis cuadra: es un HAWB del agente de carga. Pedirle el MAWB o la correspondencia HAWB/MAWB (TASK-30)"
+      ]
+    }
+  ],
+  "generado": "2026-09-14T15:42:48+00:00"
+}

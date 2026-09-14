@@ -512,6 +512,71 @@ fuente alternativa (ver «Otras fuentes evaluadas» al final del documento).
 
 ---
 
+### Cobertura AIS en el Pacífico: Puerto Caldera — medido el 14/09/2026
+
+Responde la pregunta 3 de `TASK-28`: *«¿Hay cobertura en Caldera? Está en el
+Pacífico y el spike TG-10 solo evaluó el Caribe.»* Script en
+`backend/scripts/spikes/task28/03_cobertura_caldera.py`.
+
+**Veredicto: `SIN_COBERTURA_REGIONAL`.** No es que Caldera esté oscuro — el feed
+gratuito de AISStream **no cubre el Pacífico oriental**.
+
+| Zona | Mensajes | Buques |
+|---|---|---|
+| Geocerca de Caldera (10 km) | 0 | 0 |
+| Golfo de Nicoya (~65 km) | 0 | 0 |
+| **Balboa — control, entrada pacífica del Canal** | **0** | **0** |
+| Pacífico abierto (resto de las cajas) | 2 | 1 |
+| **Caribe — línea base del mismo día** | **254** | **173** |
+
+Misma llave, mismos 180 s, capturas consecutivas.
+
+#### Los dos controles son lo que hace válida la prueba
+
+«Cero buques en Caldera» no prueba nada por sí solo. Hicieron falta dos:
+
+1. **Balboa, dentro de la misma captura.** Una de las aguas más transitadas del
+   mundo, a 600 km y en el mismo océano. Cero.
+2. **El Caribe del mismo día.** TG-10 midió 161 mensajes en 180 s sobre esa caja
+   el 18/08; hoy rindió **254**.
+
+El segundo control **cierra de paso la duda que TG-10 dejó abierta** en «⚠️ No es
+la red: es la cuenta». La cuenta entrega datos con normalidad: el cero del 18/08
+fue transitorio y no era un límite del plan gratuito agotado de forma
+permanente. La conclusión de TG-10 sobre la costa caribe **no cambia** —eso se
+midió con datos propios— pero su pendiente número 1 queda resuelta.
+
+#### ⚠️ La trampa del istmo
+
+La primera versión de este script usó una sola caja «del Pacífico oriental»,
+`[[5,-90],[15,-77]]`, y **seis de los siete buques capturados estaban en Bocas
+del Toro** (lat 9.3, lon −82.2), que es **costa Caribe**. A estas latitudes el
+istmo corre en diagonal y cualquier rectángulo grande abarca los dos océanos.
+
+La versión corregida usa **dos cajas estrictamente pacíficas**: la costa de
+Costa Rica y Nicaragua sin pasar de `lon −83.6`, y el Golfo de Panamá sin pasar
+de `lat 9.0` (Colón está a 9.35 y es Caribe). Con las cajas bien puestas, el
+Pacífico entero rindió **3 mensajes y 1 buque**.
+
+#### Consecuencias
+
+- **`US-11` (inferir el arribo por geocerca, RN-05) no es viable por AIS gratuito
+  en ningún puerto marítimo.** TG-10 lo descartó para Moín y Limón; esto lo
+  descarta para Caldera. La geocerca sigue existiendo en el maestro y sirve si
+  la posición llega **de la fuente comercial**, no del AIS gratuito.
+- **`US-14` (confirmación manual del desembarco) se refuerza como el único
+  mecanismo de arribo marítimo, en los cuatro destinos.** Ya había subido de
+  `Should` a `Must` el 01/09 por el hallazgo de Moín; ahora no queda ningún
+  puerto que pudiera librarse.
+- **Sube la exigencia sobre `ShipsGo`.** Si el AIS gratuito no ve ninguno de los
+  puertos de entrada, el hito de descarga tiene que venir del proveedor
+  comercial. Es lo que mide la fase 3 con una referencia real.
+- **`US-02` no cambia.** Su papel ya era «¿por dónde va?» entre hitos, no
+  «¿llegó?», y eso lo cumple en el Caribe, que es por donde entra el grueso de
+  la carga marítima.
+
+---
+
 ## OpenSky Network — tracking aéreo
 
 Posiciones de aeronaves por REST.
@@ -939,6 +1004,415 @@ implementación en `backend/app/services/`.
 
 ---
 
+## ShipsGo — tracking marítimo y aéreo
+
+> **Medido el 14/09/2026** en el spike `TASK-28`, fases 1 y 2. Scripts en
+> `backend/scripts/spikes/task28/`, evidencia cruda en su `output/`.
+> Llave de prueba gratuita, red personal.
+
+### Cómo funciona
+
+REST de consulta. Base `https://api.shipsgo.com/v2`, credencial en el header
+**`X-Shipsgo-User-Token`** (un UUID). Cubre **las dos vías**: `/ocean/*` y
+`/air/*`, lo que abre la posibilidad de resolver `US-45` y `US-46` con un solo
+proveedor.
+
+### Endpoints medidos
+
+| Endpoint | Método | Resultado |
+|---|---|---|
+| `/ocean/shipments?limit=1` | GET | `200` · `{"message":"SUCCESS","shipments":[],"meta":{"more":false,"total":0}}` |
+| `/air/shipments?limit=1` | GET | `200` · misma forma |
+| `/air/airlines` | GET | `200` · catálogo de aerolíneas, 25 por página |
+| `/air/carriers`, `/airlines` | GET | `404` · no existen |
+
+Errores de credencial, los dos con `401`:
+
+| Situación | Cuerpo |
+|---|---|
+| Sin header | `{"message":"TOKEN_MISSING"}` |
+| Token inválido | `{"message":"TOKEN_NOT_FOUND"}` |
+
+Los `401` **no descuentan** del contador de cuota.
+
+### ⚠️ Paginación: es `skip`, y los parámetros desconocidos se ignoran en silencio
+
+**La trampa más cara de este spike.** ShipsGo acepta cualquier parámetro de
+consulta, devuelve `200` con `meta.more = true`, y sirve **siempre la primera
+página**. `?page=2`, `?limit=100`, `?name=LUFTHANSA`, `?iata=LH` y `?offset=25`
+devuelven todos los mismos 25 registros, sin ningún error.
+
+Costó una conclusión falsa: con `?page=N` se descargaron 5000 registros que
+resultaron ser la misma página 200 veces, y media docena de aerolíneas se dieron
+por ausentes cuando sí estaban.
+
+**La paginación real es `?skip=N`**, en saltos de 25. El tamaño de página es
+fijo: `limit`, `size`, `perPage`, `per_page` y `pageSize` se ignoran todos.
+
+> Consecuencia para el adaptador de `US-45`/`US-46`: hay que **deduplicar** los
+> lotes y cortar cuando un lote no aporte registros nuevos. Confiar en
+> `meta.more` solo es un bucle infinito.
+
+### Catálogo de aerolíneas y prefijos MAWB
+
+`/air/airlines` devuelve **207 aerolíneas únicas**, 202 de ellas con el prefijo
+de 3 dígitos del MAWB:
+
+```json
+{"iata": "LH", "name": "LUFTHANSA CARGO", "status": "ACTIVE", "prefixes": ["020", "220"]}
+```
+
+**Cobertura de los tramos de Gutis: 22 de 22 prefijos objetivo.** India, China,
+Europa y el tramo final a SJO están todos.
+
+**El catálogo se cruza por prefijo, no por nombre.** ShipsGo nombra las
+divisiones de carga, no las aerolíneas de pasajeros:
+
+| Se busca | Aparece como | Prefijo |
+|---|---|---|
+| British Airways | `IAG CARGO` | `125` |
+| KLM | dentro de `AIR FRANCE` | `057` |
+| China Eastern | `CHINA CARGO AIRLINES` | `112` |
+| Lufthansa | `LUFTHANSA CARGO` | `020` / `220` |
+
+Buscar «KLM» por nombre da ausente y sería un falso negativo. El prefijo es la
+llave estable.
+
+> **Esto alimenta `TASK-30` y `US-32` directamente.** El contrato de captura de
+> la referencia distingue un MAWB de un HAWB por el prefijo de aerolínea. Este
+> catálogo **es** esa tabla de prefijos, y se puede descargar y cachear para
+> validar la guía localmente, sin gastar una llamada.
+
+### Cuota
+
+`x-ratelimit-limit: 100`, con `x-ratelimit-remaining` decreciente. **No expone
+`x-ratelimit-reset`**, así que la duración de la ventana no está publicada.
+
+Lo medido: el contador se reinició entre dos corridas separadas por minutos, y
+más de 200 llamadas seguidas nunca dispararon un `429`. **La ventana es corta**
+—del orden del minuto— pero la duración exacta queda abierta.
+
+---
+
+## TrackingMore — tracking por número de guía
+
+> **Medido el 14/09/2026**, mismo spike y misma corrida.
+
+### Cómo funciona
+
+REST de consulta. Base `https://api.trackingmore.com/v4`, credencial en el
+header **`Tracking-Api-Key`**. El cuerpo **duplica** el status HTTP en
+`meta.code`, así que el cliente tiene que leer el cuerpo y no solo el status.
+
+### Endpoints medidos
+
+| Endpoint | Método | Resultado |
+|---|---|---|
+| `/couriers/all` | GET | `200` · 1678 couriers. Sonda barata ideal para el healthcheck: valida la llave sin crear nada |
+| `/trackings/get?tracking_numbers=<inexistente>` | GET | **`400`** · `meta.code: 4102` |
+| `/couriers/detect` | GET | `400` · existe, pero pide otros parámetros |
+
+Errores de credencial, `401` con `meta.code: 401` y el mensaje
+*«Authentication failed or has no permission»*, tanto sin header como con llave
+inválida.
+
+El `4102` dice literalmente: *«Tracking No. no exists. Please use「Create a
+tracking」API first to create shipment.»*
+
+### ⚠️ La trampa del `200` vacío
+
+**TrackingMore devuelve `200` con `data: []` para rutas que no existen.**
+Medido en `/users/quota`, `/users/info`, `/account/quota`, `/air/couriers` y
+`/aircargo/couriers`: las cinco responden
+
+```json
+{"meta": {"code": 200, "type": "Success", "message": "The request was successful."}, "data": []}
+```
+
+y ninguna existe. Solo `/trackings/quota` devuelve un `404` honesto.
+
+> **Un `200` de TrackingMore no prueba que el endpoint exista.** Hay que exigir
+> que `data` traiga contenido. Va directo al mapeo de `resiliencia.clasificar()`.
+
+### Lo que no tiene: catálogo de carga aérea
+
+`/couriers/all` trae 1678 couriers, pero por tipo son **`express` = 1505** y
+**`globalpost` = 173**. **Cero aerolíneas de carga.** No hay Lufthansa Cargo, ni
+Air China, ni Iberia, ni Avianca.
+
+Buscar por nombre produce falsos positivos que hay que descartar a mano:
+«Emirates Post», «Qatar Post», «Turkish Post (PTT)», «South American Post»,
+«Deltafille» y «LATAM YOU» son servicios postales, no aerolíneas.
+
+Ninguna ruta candidata de catálogo aéreo respondió de verdad, y
+`?courier_type=air` se ignora: devuelve los 1678 igual.
+
+**No es un veredicto definitivo.** TrackingMore comercializa rastreo de carga
+aérea; puede que el catálogo no se exponga por esta vía. Lo que sí queda
+establecido es que **no se puede verificar la cobertura sin gastar créditos**,
+mientras que en ShipsGo se verifica gratis. La prueba definitiva es la fase 3,
+con un MAWB real.
+
+### Cuota
+
+No expone ningún header de rate limit ni endpoint de saldo. El consumo del
+trial hay que mirarlo en el panel web.
+
+---
+
+## `TASK-28` — Spike de fuentes comerciales
+
+> **Reasignado el 14/09/2026.** `Vizion` y `Portcast`, aprobados el 04/09, quedan
+> fuera: **ninguno de los dos proveedores respondió**. El Plan A se mantiene en
+> su principio —fuente comercial REST por referencia de embarque— y cambia de
+> proveedor a `ShipsGo` y `TrackingMore`, ambos con llave de prueba gratuita.
+
+### El hallazgo de arquitectura: los dos son *create-then-poll*
+
+**Ninguno responde «¿dónde está el contenedor X?» en frío.** Primero hay que
+dar de alta el embarque en la cuenta —eso es lo que cuesta— y después se
+consulta. TrackingMore lo dice en el `4102`; en ShipsGo, `/ocean/shipments`
+lista los embarques **de la cuenta**, no el universo de contenedores.
+
+Cuatro consecuencias de diseño:
+
+1. **`US-45` y `US-46` necesitan un paso de alta** que hoy no está en sus
+   criterios de aceptación. Encaja con `ASOCIACION_TRACKING`, que ya existe en
+   `TIPOS_INTERVENCION` (`app/models/enums.py`).
+2. **El costo es por embarque registrado, no por consulta.** Buena noticia para
+   `US-07`: sondear seguido no quema créditos, solo roza el rate limit.
+3. **`resiliencia.clasificar()` necesita un tercer caso.** Hoy separa permanente
+   de transitorio. El `4102` es permanente *para esa referencia* pero
+   **accionable**: no es «no reintentar nunca», es «hay que darla de alta
+   primero». No es ninguno de los dos que existen.
+4. Se confirma el principio 1 de la tabla de `US-03`: *«una respuesta vacía con
+   `200` es un contacto exitoso»*. ShipsGo hace exactamente eso.
+
+### Mapeo para `resiliencia.clasificar()`
+
+Es lo que `US-03` dejó pendiente al cerrarse el 08/09: *«el mapeo de los errores
+concretos de cada proveedor»*.
+
+| Señal | Clase | Acción |
+|---|---|---|
+| ShipsGo `401` (`TOKEN_MISSING` / `TOKEN_NOT_FOUND`) | permanente · credencial | Degradar la fuente, no reintentar |
+| TrackingMore `401` / `meta.code 401` | permanente · credencial | Igual |
+| TrackingMore `400` / `meta.code 4102` | permanente · **referencia sin alta** | No reintentar; requiere alta previa |
+| ShipsGo `200` con `shipments: []` | éxito sin datos | `registrar_exito(con_datos=False)` |
+| TrackingMore `200` con `data: []` | **sospechoso** | Verificar que la ruta exista; no contarlo como éxito |
+| `timeout` · `5xx` · `429` | transitorio | Backoff, respetar `Retry-After` |
+
+### Lo que la fase 2 **no** respondió
+
+- **Si una referencia inexistente da `404` o `200` vacío en ShipsGo.** La sonda
+  se hizo contra una cuenta vacía, así que el `200` con `shipments: []` no
+  distingue «el contenedor no existe» de «la cuenta no tiene nada».
+- **La duración exacta de la ventana de cuota de ShipsGo.**
+- **El saldo del trial de TrackingMore**, que no se expone por API.
+
+### Fase 3 — alta de embarques reales y payload (14/09/2026)
+
+Referencias reales de Gutis, validadas en local antes de gastar
+(`04_validar_referencias.py`). Scripts `05_alta_y_poll.py` y
+`06_payload_maduro.py`.
+
+#### ⚠️ El trial son 3 créditos de alta, y ShipsGo no valida el formato
+
+Dos hallazgos que van juntos y cuestan dinero:
+
+1. **El trial gratuito permite 3 altas.** La cuarta y la quinta devolvieron
+   `402 NOT_ENOUGH_CREDITS`.
+2. **ShipsGo acepta y cobra cualquier cosa.** Un `POST` con el contenedor
+   inventado `XXXX0000000` devolvió `200 SUCCESS` y creó el embarque (id
+   6734880, borrado después). No hay validación de formato del lado del
+   proveedor.
+
+> **Consecuencia directa para `US-32`:** la validación local del dígito de
+> control ISO 6346 y del prefijo MAWB **deja de ser una comodidad y pasa a ser
+> lo que protege el presupuesto**. Una referencia mal transcrita consume
+> crédito y devuelve vacío, y después no se distingue de una sin cobertura.
+
+Por gastar un crédito comprobando el punto 2, las altas del BL de COSCO y del
+MAWB de Lufthansa se quedaron sin cupo. **Quedan pendientes de créditos.**
+
+#### *Create-then-poll* con maduración: hay un tercer estado
+
+A los 45 s del alta, los dos embarques devolvían `status: NEW`, `route: null` y
+`containers: []`. A los ~90 s pasaron a `SAILING` con todo completo.
+
+> **Para `US-07`:** el planificador necesita contemplar **«dado de alta pero sin
+> datos todavía»**. No es un fallo ni una respuesta vacía definitiva, y tratarlo
+> como cualquiera de las dos da un falso negativo.
+
+#### Los datos viven en DOS endpoints
+
+| Endpoint | Qué aporta |
+|---|---|
+| `GET /ocean/shipments/{id}` | ruta, puertos, ETA, hitos, buque por tramo |
+| `GET /ocean/shipments/{id}/geojson` | **posición actual** y trayecto |
+
+El `geojson` **no estaba documentado** en la guía. Sin él la conclusión habría
+sido que ShipsGo no entrega posición, que es falso.
+
+#### Qué campos de TrackIn llegan
+
+Medido sobre `MRSU8507472` (Santos → Cartagena → Puerto Moín):
+
+| Campo | ¿Llega? | De dónde |
+|---|---|---|
+| Posición actual | ✅ | `geojson … properties.current.coordinates` → `[-79.885643, 9.36328]` |
+| Trayecto | ✅ | `LineString` PAST / CURRENT / FUTURE |
+| ETA | ✅ | `route.port_of_discharge.date_of_discharge_predicted` |
+| ETD / ATD | ✅ | `route.port_of_loading.date_of_loading` |
+| Hitos | ✅ | `containers[].movements[]` — 8 eventos, `ACT` vs `EST` |
+| Buque | ✅ | `movements[].vessel.name` |
+| IMO | ✅ | `geojson … properties.vessel.imo` → `9525388` |
+| **Transbordo** | ✅ | cambio de `vessel` entre tramos |
+| Puerto de destino | ✅ | `CRPMN` = Puerto Moín |
+| **Velocidad** | ❌ | no viene |
+| **Rumbo** | ❌ | no viene |
+
+**Los hitos distinguen `ACT` de `EST`**, que es exactamente la separación que
+RN-14 necesita entre lo ocurrido y lo estimado.
+
+#### El transbordo viene gratis — `US-30`
+
+El primer contenedor cambió de `MAERSK CHACHAI` a `POLAR BRASIL` en Cartagena;
+el segundo encadena **tres** naves (`MAERSK CHACHAI` → `MAERSK NACALA` →
+`MAERSK MONTE PASCOAL`). `US-30` está especificada como una intervención manual
+para sustituir la nave. Con ShipsGo **el transbordo llega en el payload**, así
+que la historia puede pasar de «capturarlo a mano» a «detectarlo y auditarlo».
+Conviene reestimarla.
+
+#### Velocidad y rumbo no llegan, y no hacen falta
+
+`historial_tracking` los tiene anulables. RN-16 los quería para **estimar** la
+ETA, y ShipsGo la entrega ya calculada, con `date_of_discharge_predicted` y un
+porcentaje de tránsito. RN-05 usaba la velocidad para inferir el arribo, y los
+hitos `DISC`/`ARRV` lo dicen directamente.
+
+> **Cierra la decisión que la salida de Vizion había reabierto:** `US-08`
+> (estimar la ETA desde posición y velocidad) **se mantiene `Could`**. El
+> supuesto «la fuente comercial ya entrega la ETA» se cumple con ShipsGo.
+
+**Salvedad:** en uno de los dos embarques `date_of_discharge_predicted` no vino
+poblado. Con dos casos no alcanza para saber si es transitorio o depende del
+carrier. Hay que verificarlo cuando haya créditos.
+
+#### TrackingMore con el MAWB: no resuelve
+
+| Paso | Resultado |
+|---|---|
+| `POST /couriers/detect` con `02050685434` | Propone `dachser`, `famiport`, `old-dominion`, `exapaq` — **ningún transportista aéreo** |
+| `POST /trackings/create` con `dachser` | `200`, tracking creado |
+| `GET /trackings/get` | `delivery_status: "pending"`, `updating: true`, sin ningún dato |
+
+TrackingMore **acepta el MAWB bajo un courier que no puede resolverlo** y no
+avisa. Sumado a que su catálogo son 1505 couriers `express` y 173 `globalpost`
+sin una sola aerolínea, y a que buscar «cargo» solo devuelve transitarios
+terrestres, **no sirve para rastrear una guía aérea madre**.
+
+#### Fase 3e — la vía aérea y la segunda naviera (14/09/2026)
+
+Con una cuenta de prueba nueva se completaron las dos altas que el trial
+anterior dejó sin cupo. Script `07_altas_pendientes.py`.
+
+##### ShipsGo Air resuelve el MAWB — `US-46` go
+
+`020-50685434`, la guía de Lufthansa Cargo:
+
+| Dato | Valor |
+|---|---|
+| Aerolínea | `LH` · LUFTHANSA CARGO |
+| Ruta | **PEK** (Beijing) → **FRA** (Fráncfort) → **SJO** (Juan Santamaría) |
+| Vuelos | `LH8431`, `LH518` |
+| Salida | 2026-09-04 07:05 `+08:00` |
+| Llegada (`RCF`) | 2026-09-05 18:43 `-06:00` |
+| Hitos | 10 eventos, **todos `ACT`** |
+| Estado | `DELIVERED` |
+
+Los hitos son **códigos IATA CIMP estándar**: `RCS` (recibido del expedidor),
+`DEP`, `MAN` (manifestado), `ARR`, `RCF` (recibido del vuelo) y `DLV`
+(entregado). Es exactamente lo que pide el criterio de `US-46` —*«obtengo los
+hitos de carga, no la posición de la aeronave»*— y mapea directo a RN-02…RN-06.
+
+> **La conexión en Fráncfort aparece como cambio de vuelo** (`LH8431` → `LH518`),
+> igual que el transbordo marítimo aparece como cambio de nave. El mismo
+> tratamiento sirve para las dos vías.
+
+##### La cobertura no depende del carrier
+
+El BL `COSU6508789000` con el contenedor `TGBU4872990` respondió igual de bien
+que los dos de Maersk: `SAILING`, ETA **2026-10-05**, salida 2026-08-15, 6
+hitos (3 `ACT` / 3 `EST`), naves `YANTIAN` → `MEDKON ZOE`, IMO `9305594`.
+
+Su destino es **`CRCAL` — Puerto Caldera**, el puerto del Pacífico. Que ShipsGo
+entregue sus hitos **cierra el hueco que dejó la medición de cobertura AIS**: el
+AIS gratuito no ve Caldera, pero la fuente comercial sí lo cubre.
+
+##### ⚠️ La posición en vivo NO está garantizada
+
+| Embarque | `geojson … current` |
+|---|---|
+| Maersk `MRSU8507472` | ✅ `[-79.885643, 9.36328]` |
+| COSCO `TGBU4872990` | ❌ `current: null` en todas las *features* |
+| Lufthansa (aéreo) | ❌ — pero está `DELIVERED`, no hay nada que posicionar |
+
+**Para `US-45` y el mapa (RF-16): la posición es opcional, los hitos no.** El
+adaptador tiene que funcionar sin coordenadas, y `US-02` (AIS como respaldo del
+mapa) recupera sentido justamente para esos casos.
+
+##### Resumen de campos, las dos vías
+
+| Campo | Marítimo | Aéreo |
+|---|---|---|
+| Hitos con `ACT`/`EST` | ✅ | ✅ |
+| ETA / llegada | ✅ | ✅ |
+| Salida (ETD/ATD) | ✅ | ✅ |
+| Transportista + identificador | ✅ IMO | ✅ IATA |
+| Cambio de transporte | ✅ transbordo | ✅ conexión |
+| Destino normalizado | ✅ `CRPMN`, `CRCAL` | ✅ `SJO` |
+| Trayecto | ✅ | ✅ |
+| **Posición en vivo** | ⚠️ a veces | ⚠️ a veces |
+| **Velocidad / rumbo** | ❌ | ❌ |
+
+##### Decisión: **ShipsGo para las dos vías**
+
+Queda resuelta la bifurcación que estaba abierta para el cierre del sprint.
+
+| | ShipsGo | TrackingMore |
+|---|---|---|
+| Catálogo aéreo | 207 aerolíneas, **22/22** prefijos de Gutis | **0 aerolíneas** |
+| MAWB real | ✅ resuelve, 10 hitos, ruta completa | ❌ `pending` sin datos bajo `dachser` |
+| Marítimo | ✅ dos navieras probadas | no aplica |
+| Verificar cobertura antes de gastar | ✅ gratis, por catálogo | ❌ imposible |
+
+**TrackingMore queda fuera.** No es que rastree peor: no rastrea carga aérea.
+
+##### Un detalle operativo: los `DELIVERED` se auto-archivan
+
+El embarque aéreo trajo `discarded_at` poblado en la misma respuesta que lo dio
+por entregado. ShipsGo archiva solo lo terminado, así que el adaptador **no
+puede asumir que un embarque siga consultable** después del `DLV`. Es un motivo
+más para que `historial_tracking` guarde el payload completo (RNF-13).
+
+---
+
+#### Recomendación provisional
+
+**`ShipsGo` para las dos vías: go.** Probado con tres embarques marítimos de dos
+navieras y una guía aérea real. Entrega todo lo que `US-45` y `US-46` necesitan,
+más el transbordo que `US-30` iba a capturar a mano.
+
+**`TrackingMore` queda descartado.** Su catálogo no tiene aerolíneas y con el
+mismo MAWB se quedó en `pending` bajo un courier que no podía resolverlo.
+
+**Costo:** pendiente de cotización. El trial no lo revela, ShipsGo no expone
+saldo por API, y **el trial gratuito son 3 altas**. Es el único punto que sigue
+sin respuesta antes de comprometer presupuesto.
+
+---
+
 ## Otras fuentes evaluadas
 
 | Fuente | Estado | Nota |
@@ -946,3 +1420,6 @@ implementación en `backend/app/services/`.
 | MarineTraffic | Descartada por ahora | API de pago |
 | VesselFinder | A evaluar | Tiene plan gratuito limitado |
 | FlightAware | Descartada por ahora | API de pago |
+| Vizion | **Descartada 14/09/2026** | Aprobada el 04/09, pero el proveedor nunca respondió a la solicitud |
+| Portcast | **Descartada 14/09/2026** | Igual que Vizion: sin respuesta |
+| Terminal49 | No evaluada | Alternativa marítima listada en `TASK-28`; no se solicitó llave |

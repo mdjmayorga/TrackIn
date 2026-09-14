@@ -1,0 +1,1664 @@
+[
+ {
+  "iata": "R7",
+  "name": "7AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "567"
+  ]
+ },
+ {
+  "iata": "A3",
+  "name": "AEGEAN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "390"
+  ]
+ },
+ {
+  "iata": "EI",
+  "name": "AER LINGUS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "053"
+  ]
+ },
+ {
+  "iata": "JK",
+  "name": "AERCARIBE",
+  "status": "ACTIVE",
+  "prefixes": [
+   "543",
+   "497"
+  ]
+ },
+ {
+  "iata": "SU",
+  "name": "AEROFLOT",
+  "status": "ACTIVE",
+  "prefixes": [
+   "555"
+  ]
+ },
+ {
+  "iata": "AR",
+  "name": "AEROLINEAS ARGENTINAS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "044"
+  ]
+ },
+ {
+  "iata": "AM",
+  "name": "AEROMEXICO CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "139"
+  ]
+ },
+ {
+  "iata": "6R",
+  "name": "AEROUNION",
+  "status": "ACTIVE",
+  "prefixes": [
+   "873"
+  ]
+ },
+ {
+  "iata": "MP",
+  "name": "AFCOM CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "198"
+  ]
+ },
+ {
+  "iata": "J7",
+  "name": "AFRIJET",
+  "status": "ACTIVE",
+  "prefixes": [
+   "277"
+  ]
+ },
+ {
+  "iata": "AH",
+  "name": "AIR ALGERIE",
+  "status": "ACTIVE",
+  "prefixes": [
+   "124"
+  ]
+ },
+ {
+  "iata": "G9",
+  "name": "AIR ARABIA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "514"
+  ]
+ },
+ {
+  "iata": "I5",
+  "name": "AIR ASIA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "807",
+   "900",
+   "843"
+  ]
+ },
+ {
+  "iata": "KC",
+  "name": "AIR ASTANA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "465"
+  ]
+ },
+ {
+  "iata": "BT",
+  "name": "AIR BALTIC",
+  "status": "ACTIVE",
+  "prefixes": [
+   "657"
+  ]
+ },
+ {
+  "iata": "KF",
+  "name": "AIR BELGIUM",
+  "status": "ACTIVE",
+  "prefixes": [
+   "142"
+  ]
+ },
+ {
+  "iata": "BP",
+  "name": "AIR BOTSWANA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "636"
+  ]
+ },
+ {
+  "iata": "AC",
+  "name": "AIR CANADA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "014"
+  ]
+ },
+ {
+  "iata": "CA",
+  "name": "AIR CHINA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "999"
+  ]
+ },
+ {
+  "iata": "VZ",
+  "name": "AIR CLASS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "510"
+  ]
+ },
+ {
+  "iata": "HF",
+  "name": "AIR COTE D IVOIRE",
+  "status": "ACTIVE",
+  "prefixes": [
+   "483"
+  ]
+ },
+ {
+  "iata": "UX",
+  "name": "AIR EUROPA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "996"
+  ]
+ },
+ {
+  "iata": "AF",
+  "name": "AIR FRANCE",
+  "status": "ACTIVE",
+  "prefixes": [
+   "074",
+   "057",
+   "129"
+  ]
+ },
+ {
+  "iata": "GL",
+  "name": "AIR GREENLAND",
+  "status": "ACTIVE",
+  "prefixes": [
+   "631"
+  ]
+ },
+ {
+  "iata": "KJ",
+  "name": "AIR INCHEON",
+  "status": "ACTIVE",
+  "prefixes": [
+   "994"
+  ]
+ },
+ {
+  "iata": "AI",
+  "name": "AIR INDIA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "098"
+  ]
+ },
+ {
+  "iata": "NX",
+  "name": "AIR MACAU CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "675"
+  ]
+ },
+ {
+  "iata": "KM",
+  "name": "AIR MALTA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "643"
+  ]
+ },
+ {
+  "iata": "MK",
+  "name": "AIR MAURITIUS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "239"
+  ]
+ },
+ {
+  "iata": "NZ",
+  "name": "AIR NEW ZEALAND",
+  "status": "ACTIVE",
+  "prefixes": [
+   "086"
+  ]
+ },
+ {
+  "iata": "PX",
+  "name": "AIR NIUGINI",
+  "status": "ACTIVE",
+  "prefixes": [
+   "656"
+  ]
+ },
+ {
+  "iata": "YP",
+  "name": "AIR PREMIA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "350"
+  ]
+ },
+ {
+  "iata": "HC",
+  "name": "AIR SENEGAL",
+  "status": "ACTIVE",
+  "prefixes": [
+   "490"
+  ]
+ },
+ {
+  "iata": "JU",
+  "name": "AIR SERBIA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "115"
+  ]
+ },
+ {
+  "iata": "HM",
+  "name": "AIR SEYCHELLES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "061"
+  ]
+ },
+ {
+  "iata": "TN",
+  "name": "AIR TAHITI NUI",
+  "status": "ACTIVE",
+  "prefixes": [
+   "244"
+  ]
+ },
+ {
+  "iata": "TC",
+  "name": "AIR TANZANIA",
+  "status": "ACTIVE",
+  "prefixes": []
+ },
+ {
+  "iata": "TS",
+  "name": "AIR TRANSAT",
+  "status": "ACTIVE",
+  "prefixes": [
+   "649"
+  ]
+ },
+ {
+  "iata": "4Z",
+  "name": "AIRLINK CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "749"
+  ]
+ },
+ {
+  "iata": "M8",
+  "name": "AIRMAX CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "658"
+  ]
+ },
+ {
+  "iata": "QP",
+  "name": "AKASA AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "516"
+  ]
+ },
+ {
+  "iata": "AS",
+  "name": "ALASKA AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "027"
+  ]
+ },
+ {
+  "iata": "4W",
+  "name": "ALLIED AIR",
+  "status": "PASSIVE",
+  "prefixes": [
+   "574"
+  ]
+ },
+ {
+  "iata": "KH",
+  "name": "ALOHA AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": []
+ },
+ {
+  "iata": "AA",
+  "name": "AMERICAN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "001"
+  ]
+ },
+ {
+  "iata": "M6",
+  "name": "AMERIJET INTERNATIONAL",
+  "status": "ACTIVE",
+  "prefixes": [
+   "810"
+  ]
+ },
+ {
+  "iata": "NH",
+  "name": "ANA CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "205"
+  ]
+ },
+ {
+  "iata": "OZ",
+  "name": "ASIANA CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "988"
+  ]
+ },
+ {
+  "iata": "3V",
+  "name": "ASL AIRLINES BELGIUM",
+  "status": "ACTIVE",
+  "prefixes": [
+   "756"
+  ]
+ },
+ {
+  "iata": "8V",
+  "name": "ASTRAL AVIATION",
+  "status": "ACTIVE",
+  "prefixes": [
+   "485"
+  ]
+ },
+ {
+  "iata": "EA",
+  "name": "ATLANTIS ACI",
+  "status": "ACTIVE",
+  "prefixes": [
+   "827"
+  ]
+ },
+ {
+  "iata": "NT",
+  "name": "ATLANTIS CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "474"
+  ]
+ },
+ {
+  "iata": "5Y",
+  "name": "ATLAS AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "369"
+  ]
+ },
+ {
+  "iata": "AV",
+  "name": "AVIANCA CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "134",
+   "729",
+   "202"
+  ]
+ },
+ {
+  "iata": "J2",
+  "name": "AZAL CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "771"
+  ]
+ },
+ {
+  "iata": "AD",
+  "name": "AZUL CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "577"
+  ]
+ },
+ {
+  "iata": "B2",
+  "name": "BELAVIA AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "628"
+  ]
+ },
+ {
+  "iata": "BG",
+  "name": "BIMAN BANGLADESH",
+  "status": "ACTIVE",
+  "prefixes": [
+   "997"
+  ]
+ },
+ {
+  "iata": "E6",
+  "name": "BRINGER AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "417"
+  ]
+ },
+ {
+  "iata": "5C",
+  "name": "CAL CARGO AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "700"
+  ]
+ },
+ {
+  "iata": "JD",
+  "name": "CAPITAL AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "898"
+  ]
+ },
+ {
+  "iata": "W8",
+  "name": "CARGOJET",
+  "status": "ACTIVE",
+  "prefixes": [
+   "489"
+  ]
+ },
+ {
+  "iata": "CV",
+  "name": "CARGOLUX",
+  "status": "ACTIVE",
+  "prefixes": [
+   "172",
+   "356"
+  ]
+ },
+ {
+  "iata": "BW",
+  "name": "CARIBBEAN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "106"
+  ]
+ },
+ {
+  "iata": "CX",
+  "name": "CATHAY CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "160"
+  ]
+ },
+ {
+  "iata": "5J",
+  "name": "CEBU PACIFIC AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "203"
+  ]
+ },
+ {
+  "iata": "BE",
+  "name": "CHALLENGE AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "744"
+  ]
+ },
+ {
+  "iata": "X6",
+  "name": "CHALLENGE AIRLINES MT",
+  "status": "ACTIVE",
+  "prefixes": [
+   "752"
+  ]
+ },
+ {
+  "iata": "CI",
+  "name": "CHINA AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "297"
+  ]
+ },
+ {
+  "iata": "CK",
+  "name": "CHINA CARGO AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "112"
+  ]
+ },
+ {
+  "iata": "GI",
+  "name": "CHINA CENTRAL AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "959"
+  ]
+ },
+ {
+  "iata": "CZ",
+  "name": "CHINA SOUTHERN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "784"
+  ]
+ },
+ {
+  "iata": "2C",
+  "name": "CMA CGM AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "003"
+  ]
+ },
+ {
+  "iata": "DE",
+  "name": "CONDOR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "881"
+  ]
+ },
+ {
+  "iata": "CM",
+  "name": "COPA AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "230"
+  ]
+ },
+ {
+  "iata": "XC",
+  "name": "CORENDON DUTCH AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "503"
+  ]
+ },
+ {
+  "iata": "SS",
+  "name": "CORSAIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "923"
+  ]
+ },
+ {
+  "iata": "7C",
+  "name": "COYNE AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "575"
+  ]
+ },
+ {
+  "iata": "DL",
+  "name": "DELTA CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "006"
+  ]
+ },
+ {
+  "iata": "D0",
+  "name": "DHL AVIATION",
+  "status": "ACTIVE",
+  "prefixes": [
+   "936",
+   "155",
+   "615",
+   "992"
+  ]
+ },
+ {
+  "iata": "ZE",
+  "name": "EASTAR JET",
+  "status": "ACTIVE",
+  "prefixes": [
+   "839"
+  ]
+ },
+ {
+  "iata": "MS",
+  "name": "EGYPTAIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "077"
+  ]
+ },
+ {
+  "iata": "LY",
+  "name": "EL AL ISRAEL AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "114"
+  ]
+ },
+ {
+  "iata": "EK",
+  "name": "EMIRATES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "176"
+  ]
+ },
+ {
+  "iata": "E7",
+  "name": "ESTAFETA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "355"
+  ]
+ },
+ {
+  "iata": "ET",
+  "name": "ETHIOPIAN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "071"
+  ]
+ },
+ {
+  "iata": "EY",
+  "name": "ETIHAD AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "607"
+  ]
+ },
+ {
+  "iata": "BR",
+  "name": "EVA AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "695"
+  ]
+ },
+ {
+  "iata": "FX",
+  "name": "FEDEX FREIGHT CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "023"
+  ]
+ },
+ {
+  "iata": "FJ",
+  "name": "FIJI AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "260"
+  ]
+ },
+ {
+  "iata": "AY",
+  "name": "FINNAIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "105"
+  ]
+ },
+ {
+  "iata": "8D",
+  "name": "FITS CARGO",
+  "status": "ACTIVE",
+  "prefixes": []
+ },
+ {
+  "iata": "9P",
+  "name": "FLY JINNAH",
+  "status": "ACTIVE",
+  "prefixes": [
+   "772"
+  ]
+ },
+ {
+  "iata": "FZ",
+  "name": "FLYDUBAI CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "141"
+  ]
+ },
+ {
+  "iata": "5F",
+  "name": "FLYONE",
+  "status": "ACTIVE",
+  "prefixes": [
+   "130"
+  ]
+ },
+ {
+  "iata": "GA",
+  "name": "GARUDA INDONESIA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "126"
+  ]
+ },
+ {
+  "iata": "G3",
+  "name": "GOL LINHAS AEREAS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "127"
+  ]
+ },
+ {
+  "iata": "HB",
+  "name": "GREATER BAY AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "283"
+  ]
+ },
+ {
+  "iata": "GF",
+  "name": "GULF AIR FALCON CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "072"
+  ]
+ },
+ {
+  "iata": "HU",
+  "name": "HAINAN AIRLINES CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "880"
+  ]
+ },
+ {
+  "iata": "HA",
+  "name": "HAWAIIAN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "173"
+  ]
+ },
+ {
+  "iata": "RH",
+  "name": "HONG KONG AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "828"
+  ]
+ },
+ {
+  "iata": "2G",
+  "name": "HUNGARY AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "038"
+  ]
+ },
+ {
+  "iata": "BA",
+  "name": "IAG CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "125"
+  ]
+ },
+ {
+  "iata": "II",
+  "name": "IBC AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "175"
+  ]
+ },
+ {
+  "iata": "IB",
+  "name": "IBERIA AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "075"
+  ]
+ },
+ {
+  "iata": "E9",
+  "name": "IBEROJET",
+  "status": "ACTIVE",
+  "prefixes": [
+   "783"
+  ]
+ },
+ {
+  "iata": "FI",
+  "name": "ICELANDAIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "108"
+  ]
+ },
+ {
+  "iata": "6E",
+  "name": "INDIGO CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "312"
+  ]
+ },
+ {
+  "iata": "AZ",
+  "name": "ITA AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "055"
+  ]
+ },
+ {
+  "iata": "JL",
+  "name": "JAPAN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "131"
+  ]
+ },
+ {
+  "iata": "7J",
+  "name": "JEJU AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "806"
+  ]
+ },
+ {
+  "iata": "LJ",
+  "name": "JIN AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "718"
+  ]
+ },
+ {
+  "iata": "HO",
+  "name": "JUNEYAO AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "018"
+  ]
+ },
+ {
+  "iata": "K4",
+  "name": "KALITTA AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "272"
+  ]
+ },
+ {
+  "iata": "RQ",
+  "name": "KAM AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "384"
+  ]
+ },
+ {
+  "iata": "KQ",
+  "name": "KENYA AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "706"
+  ]
+ },
+ {
+  "iata": "KE",
+  "name": "KOREAN AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "180"
+  ]
+ },
+ {
+  "iata": "48",
+  "name": "KUEHNE NAGEL",
+  "status": "ACTIVE",
+  "prefixes": []
+ },
+ {
+  "iata": "KU",
+  "name": "KUWAIT AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "229"
+  ]
+ },
+ {
+  "iata": "LA",
+  "name": "LATAM CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "045",
+   "957",
+   "549",
+   "145"
+  ]
+ },
+ {
+  "iata": "LO",
+  "name": "LOT CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "080"
+  ]
+ },
+ {
+  "iata": "LH",
+  "name": "LUFTHANSA CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "020",
+   "220"
+  ]
+ },
+ {
+  "iata": "DJ",
+  "name": "MAERSK AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "763"
+  ]
+ },
+ {
+  "iata": "W5",
+  "name": "MAHAN WORLD CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "537"
+  ]
+ },
+ {
+  "iata": "OD",
+  "name": "MALINDO AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "816"
+  ]
+ },
+ {
+  "iata": "M7",
+  "name": "MASAIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "865"
+  ]
+ },
+ {
+  "iata": "MH",
+  "name": "MASKARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "232"
+  ]
+ },
+ {
+  "iata": "4X",
+  "name": "MERCURY AMERICAS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "805"
+  ]
+ },
+ {
+  "iata": "ME",
+  "name": "MIDDLE EAST AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "076"
+  ]
+ },
+ {
+  "iata": "MB",
+  "name": "MNG AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "716"
+  ]
+ },
+ {
+  "iata": "CP",
+  "name": "MSC AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "233"
+  ]
+ },
+ {
+  "iata": "ON",
+  "name": "NAURU AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "123"
+  ]
+ },
+ {
+  "iata": "NO",
+  "name": "NEOS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "703"
+  ]
+ },
+ {
+  "iata": "NP",
+  "name": "NILE AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "325"
+  ]
+ },
+ {
+  "iata": "KZ",
+  "name": "NIPPON CARGO AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "933"
+  ]
+ },
+ {
+  "iata": "N0",
+  "name": "NORSE ATLANTIC AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "506"
+  ]
+ },
+ {
+  "iata": "NC",
+  "name": "NORTHERN AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "345"
+  ]
+ },
+ {
+  "iata": "DY",
+  "name": "NORWEGIAN",
+  "status": "ACTIVE",
+  "prefixes": [
+   "328"
+  ]
+ },
+ {
+  "iata": "WY",
+  "name": "OMAN AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "910"
+  ]
+ },
+ {
+  "iata": "PK",
+  "name": "PAKISTAN INTERNATIONAL AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "214"
+  ]
+ },
+ {
+  "iata": "PC",
+  "name": "PEGASUS CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "624"
+  ]
+ },
+ {
+  "iata": "PR",
+  "name": "PHILIPPINE AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "079"
+  ]
+ },
+ {
+  "iata": "PU",
+  "name": "PLUS ULTRA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "663"
+  ]
+ },
+ {
+  "iata": "CG",
+  "name": "PNG AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "626"
+  ]
+ },
+ {
+  "iata": "PO",
+  "name": "POLAR AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "403"
+  ]
+ },
+ {
+  "iata": "QF",
+  "name": "QANTAS AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "081"
+  ]
+ },
+ {
+  "iata": "QR",
+  "name": "QATAR AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "157"
+  ]
+ },
+ {
+  "iata": "TH",
+  "name": "RAYA AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "539"
+  ]
+ },
+ {
+  "iata": "AT",
+  "name": "ROYAL AIR MAROC",
+  "status": "ACTIVE",
+  "prefixes": [
+   "147"
+  ]
+ },
+ {
+  "iata": "BI",
+  "name": "ROYAL BRUNEI AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "672"
+  ]
+ },
+ {
+  "iata": "RJ",
+  "name": "ROYAL JORDANIAN",
+  "status": "ACTIVE",
+  "prefixes": [
+   "512"
+  ]
+ },
+ {
+  "iata": "WB",
+  "name": "RWANDAIR",
+  "status": "ACTIVE",
+  "prefixes": []
+ },
+ {
+  "iata": "S7",
+  "name": "S7 AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "421"
+  ]
+ },
+ {
+  "iata": "SK",
+  "name": "SAS CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "117"
+  ]
+ },
+ {
+  "iata": "S4",
+  "name": "SATA AZORES AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "331"
+  ]
+ },
+ {
+  "iata": "SV",
+  "name": "SAUDI ARABIAN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "065"
+  ]
+ },
+ {
+  "iata": "17",
+  "name": "SCAN GLOBAL LOGISTICS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "259"
+  ]
+ },
+ {
+  "iata": "O3",
+  "name": "SF AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "921"
+  ]
+ },
+ {
+  "iata": "ZH",
+  "name": "SHENZHEN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "479"
+  ]
+ },
+ {
+  "iata": "3U",
+  "name": "SICHUAN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "876"
+  ]
+ },
+ {
+  "iata": "7L",
+  "name": "SILK WAY WEST AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "501"
+  ]
+ },
+ {
+  "iata": "SQ",
+  "name": "SINGAPORE AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "618"
+  ]
+ },
+ {
+  "iata": "E1",
+  "name": "SKY CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "605"
+  ]
+ },
+ {
+  "iata": "QS",
+  "name": "SMARTWINGS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "797"
+  ]
+ },
+ {
+  "iata": "SA",
+  "name": "SOUTH AFRICAN AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "083"
+  ]
+ },
+ {
+  "iata": "S6",
+  "name": "SOUTH AMERICAN AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "817"
+  ]
+ },
+ {
+  "iata": "WN",
+  "name": "SOUTHWEST AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "526"
+  ]
+ },
+ {
+  "iata": "SG",
+  "name": "SPICEJET CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "775"
+  ]
+ },
+ {
+  "iata": "UL",
+  "name": "SRILANKAN CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "603"
+  ]
+ },
+ {
+  "iata": "4E",
+  "name": "STABO AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "242"
+  ]
+ },
+ {
+  "iata": "JX",
+  "name": "STARLUX",
+  "status": "ACTIVE",
+  "prefixes": [
+   "189"
+  ]
+ },
+ {
+  "iata": "Y8",
+  "name": "SUPARNA AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "871"
+  ]
+ },
+ {
+  "iata": "LX",
+  "name": "SWISS WORLD CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "724"
+  ]
+ },
+ {
+  "iata": "DT",
+  "name": "TAAG ANGOLA AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "118"
+  ]
+ },
+ {
+  "iata": "2L",
+  "name": "TAB CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "901"
+  ]
+ },
+ {
+  "iata": "TP",
+  "name": "TAP AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "047"
+  ]
+ },
+ {
+  "iata": "RO",
+  "name": "TAROM",
+  "status": "ACTIVE",
+  "prefixes": [
+   "281"
+  ]
+ },
+ {
+  "iata": "TG",
+  "name": "THAI AIRWAYS INTERNATIONAL",
+  "status": "ACTIVE",
+  "prefixes": [
+   "217"
+  ]
+ },
+ {
+  "iata": "SL",
+  "name": "THAI LION AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "310"
+  ]
+ },
+ {
+  "iata": "HT",
+  "name": "TIANJIN AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "877"
+  ]
+ },
+ {
+  "iata": "GS",
+  "name": "TIANJIN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "826"
+  ]
+ },
+ {
+  "iata": "RI",
+  "name": "TIGERAIR MANDALA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "488"
+  ]
+ },
+ {
+  "iata": "CB",
+  "name": "TRANSCARIBBEAN CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "456"
+  ]
+ },
+ {
+  "iata": "TB",
+  "name": "TUI",
+  "status": "ACTIVE",
+  "prefixes": [
+   "612"
+  ]
+ },
+ {
+  "iata": "TU",
+  "name": "TUNISAIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "199"
+  ]
+ },
+ {
+  "iata": "TK",
+  "name": "TURKISH CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "235"
+  ]
+ },
+ {
+  "iata": "T5",
+  "name": "TURKMENISTAN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "542"
+  ]
+ },
+ {
+  "iata": "TW",
+  "name": "TWAY AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "722"
+  ]
+ },
+ {
+  "iata": "UR",
+  "name": "UGANDA AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "109"
+  ]
+ },
+ {
+  "iata": "UA",
+  "name": "UNITED CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "016"
+  ]
+ },
+ {
+  "iata": "U7",
+  "name": "UNIWORLD AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "399"
+  ]
+ },
+ {
+  "iata": "5X",
+  "name": "UPS AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "406"
+  ]
+ },
+ {
+  "iata": "U6",
+  "name": "URAL AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "262"
+  ]
+ },
+ {
+  "iata": "HY",
+  "name": "UZBEKISTAN AIRWAYS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "250"
+  ]
+ },
+ {
+  "iata": "VJ",
+  "name": "VIETJET AIR CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "978"
+  ]
+ },
+ {
+  "iata": "VN",
+  "name": "VIETNAM AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "738"
+  ]
+ },
+ {
+  "iata": "VS",
+  "name": "VIRGIN ATLANTIC",
+  "status": "ACTIVE",
+  "prefixes": [
+   "932"
+  ]
+ },
+ {
+  "iata": "VA",
+  "name": "VIRGIN AUSTRALIA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "795"
+  ]
+ },
+ {
+  "iata": "UK",
+  "name": "VISTARA",
+  "status": "ACTIVE",
+  "prefixes": [
+   "228"
+  ]
+ },
+ {
+  "iata": "Y4",
+  "name": "VOLARIS",
+  "status": "ACTIVE",
+  "prefixes": [
+   "036",
+   "370"
+  ]
+ },
+ {
+  "iata": "PN",
+  "name": "WEST AIR",
+  "status": "ACTIVE",
+  "prefixes": [
+   "847"
+  ]
+ },
+ {
+  "iata": "WS",
+  "name": "WESTJET CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "838"
+  ]
+ },
+ {
+  "iata": "2W",
+  "name": "WORLD2FLY",
+  "status": "ACTIVE",
+  "prefixes": [
+   "825"
+  ]
+ },
+ {
+  "iata": "MF",
+  "name": "XIAMEN AIRLINES",
+  "status": "ACTIVE",
+  "prefixes": [
+   "731"
+  ]
+ },
+ {
+  "iata": "IY",
+  "name": "YEMENIA CARGO",
+  "status": "ACTIVE",
+  "prefixes": [
+   "635"
+  ]
+ },
+ {
+  "iata": "YG",
+  "name": "YTO INTERNATIONAL",
+  "status": "ACTIVE",
+  "prefixes": [
+   "860"
+  ]
+ }
+]

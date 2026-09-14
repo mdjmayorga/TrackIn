@@ -1,0 +1,179 @@
+{
+  "spike": "TASK-28",
+  "fase": "1-auth-error-cuota",
+  "timestamp_utc": "2026-09-14T14:29:28+00:00",
+  "network_profile": "personal",
+  "solo_lectura": true,
+  "referencias_reales_usadas": false,
+  "shipsgo": {
+    "credencial": "SHIPSGO_SECRET",
+    "base_url": "https://api.shipsgo.com/v2",
+    "sondas": [
+      {
+        "etiqueta": "0 sin credencial",
+        "metodo": "GET",
+        "url": "https://api.shipsgo.com/v2/ocean/shipments?limit=1",
+        "ok": false,
+        "status": 401,
+        "latencia_ms": 670,
+        "content_type": "application/json",
+        "cuerpo_forma": "dict",
+        "cuerpo_claves": [
+          "message"
+        ],
+        "cuerpo_muestra": "{\"message\":\"TOKEN_MISSING\"}",
+        "headers_cuota": {}
+      },
+      {
+        "etiqueta": "1 listado oceano (llave buena)",
+        "metodo": "GET",
+        "url": "https://api.shipsgo.com/v2/ocean/shipments?limit=1",
+        "ok": true,
+        "status": 200,
+        "latencia_ms": 209,
+        "content_type": "application/json",
+        "cuerpo_forma": "dict",
+        "cuerpo_claves": [
+          "message",
+          "meta",
+          "shipments"
+        ],
+        "cuerpo_muestra": "{\"message\":\"SUCCESS\",\"shipments\":[],\"meta\":{\"more\":false,\"total\":0}}",
+        "headers_cuota": {
+          "x-ratelimit-limit": "100",
+          "x-ratelimit-remaining": "99"
+        }
+      },
+      {
+        "etiqueta": "2 listado aereo (llave buena)",
+        "metodo": "GET",
+        "url": "https://api.shipsgo.com/v2/air/shipments?limit=1",
+        "ok": true,
+        "status": 200,
+        "latencia_ms": 192,
+        "content_type": "application/json",
+        "cuerpo_forma": "dict",
+        "cuerpo_claves": [
+          "message",
+          "meta",
+          "shipments"
+        ],
+        "cuerpo_muestra": "{\"message\":\"SUCCESS\",\"shipments\":[],\"meta\":{\"more\":false,\"total\":0}}",
+        "headers_cuota": {
+          "x-ratelimit-limit": "100",
+          "x-ratelimit-remaining": "98"
+        }
+      },
+      {
+        "etiqueta": "3 listado oceano (llave mala)",
+        "metodo": "GET",
+        "url": "https://api.shipsgo.com/v2/ocean/shipments?limit=1",
+        "ok": false,
+        "status": 401,
+        "latencia_ms": 187,
+        "content_type": "application/json",
+        "cuerpo_forma": "dict",
+        "cuerpo_claves": [
+          "message"
+        ],
+        "cuerpo_muestra": "{\"message\":\"TOKEN_NOT_FOUND\"}",
+        "headers_cuota": {}
+      },
+      {
+        "etiqueta": "4 contenedor inexistente",
+        "metodo": "GET",
+        "url": "https://api.shipsgo.com/v2/ocean/shipments?containerNumber=ZZZU0000005",
+        "ok": true,
+        "status": 200,
+        "latencia_ms": 192,
+        "content_type": "application/json",
+        "cuerpo_forma": "dict",
+        "cuerpo_claves": [
+          "message",
+          "meta",
+          "shipments"
+        ],
+        "cuerpo_muestra": "{\"message\":\"SUCCESS\",\"shipments\":[],\"meta\":{\"more\":false,\"total\":0}}",
+        "headers_cuota": {
+          "x-ratelimit-limit": "100",
+          "x-ratelimit-remaining": "97"
+        }
+      }
+    ]
+  },
+  "trackingmore": {
+    "credencial": "TRACKINGMORE_SECRET",
+    "base_url": "https://api.trackingmore.com/v4",
+    "sondas": [
+      {
+        "etiqueta": "0 sin credencial",
+        "metodo": "GET",
+        "url": "https://api.trackingmore.com/v4/couriers/all",
+        "ok": false,
+        "status": 401,
+        "latencia_ms": 649,
+        "content_type": "application/json",
+        "cuerpo_forma": "dict",
+        "cuerpo_claves": [
+          "data",
+          "meta"
+        ],
+        "cuerpo_muestra": "{\"meta\":{\"code\":401,\"message\":\"Authentication failed or has no permission. Please check and ensure your API Key is correct.\"},\"data\":null}",
+        "headers_cuota": {}
+      },
+      {
+        "etiqueta": "1 listado couriers (llave buena)",
+        "metodo": "GET",
+        "url": "https://api.trackingmore.com/v4/couriers/all",
+        "ok": true,
+        "status": 200,
+        "latencia_ms": 237,
+        "content_type": "application/json",
+        "cuerpo_forma": "dict",
+        "cuerpo_claves": [
+          "data",
+          "meta"
+        ],
+        "cuerpo_muestra": "{\"meta\":{\"code\":200,\"message\":\"Request response is successful\"},\"data\":[{\"courier_name\":\"FedEx\",\"courier_code\":\"fedex\",\"courier_country_iso2\":\"US\",\"courier_url\":\"https:\\/\\/www.fedex.com\\/fedextrack\\/?trknbr=******\",\"courier_phone\":\"1.800.247.4747\",\"courier_type\":\"express\",\"tracking_required_fields\":[],\"optional_fields\":[],\"default_language\":\"en\",\"support_language\":[\"en\",\"cn\",\"es\",\"de\",\"ru\",\"nl\",\"p [...]",
+        "headers_cuota": {}
+      },
+      {
+        "etiqueta": "2 listado couriers (llave mala)",
+        "metodo": "GET",
+        "url": "https://api.trackingmore.com/v4/couriers/all",
+        "ok": false,
+        "status": 401,
+        "latencia_ms": 103,
+        "content_type": "application/json",
+        "cuerpo_forma": "dict",
+        "cuerpo_claves": [
+          "data",
+          "meta"
+        ],
+        "cuerpo_muestra": "{\"meta\":{\"code\":401,\"message\":\"Authentication failed or has no permission. Please check and ensure your API Key is correct.\"},\"data\":null}",
+        "headers_cuota": {}
+      },
+      {
+        "etiqueta": "3 AWB inexistente (lectura)",
+        "metodo": "GET",
+        "url": "https://api.trackingmore.com/v4/trackings/get?tracking_numbers=999-99999999",
+        "ok": false,
+        "status": 400,
+        "latencia_ms": 143,
+        "content_type": "application/json",
+        "cuerpo_forma": "dict",
+        "cuerpo_claves": [
+          "data",
+          "meta"
+        ],
+        "cuerpo_muestra": "{\"meta\":{\"code\":4102,\"message\":\"Tracking No. no exists. Please use \\u300cCreate a tracking\\u300d API first to create shipment.\"},\"data\":null}",
+        "headers_cuota": {}
+      }
+    ]
+  },
+  "autenticacion": {
+    "shipsgo": true,
+    "trackingmore": true
+  },
+  "generado": "2026-09-14T14:29:31+00:00"
+}

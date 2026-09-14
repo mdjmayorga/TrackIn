@@ -645,7 +645,7 @@ Definition of Done:
 
 Origen en el SRS: Fase 6 de TG-18
 MoSCoW: Must","Highest","Sprint 3","OE1-Analisis","documentacion,srs","6h","mamayorga"
-"Task","TASK-28 Spike: cobertura de container tracking de pago en Moin y aereo en SJO","Como equipo, quiero medir la cobertura de container tracking de pago (Vizion, con Terminal49 / ShipsGo como alternativas) en Moin (CRMOB) y de una fuente aerea por AWB (Portcast / ShipsGo Air / TrackingMore) en SJO, para decidir si resuelven el tramo final y el punto ciego de AIS antes de comprometer la arquitectura de rastreo.
+"Task","TASK-28 Spike: validacion de ShipsGo (maritimo y aereo) y TrackingMore (aereo)","Como equipo, quiero medir la cobertura de container tracking de pago (ShipsGo) en Moin (CRMOB) y de una fuente aerea por AWB (ShipsGo Air o TrackingMore) en SJO, para decidir si resuelven el tramo final y el punto ciego de AIS antes de comprometer la arquitectura de rastreo. Vizion y Portcast quedaron fuera el 14/09/2026: ninguno de los dos proveedores respondio.
 
 Criterios de aceptacion (Gherkin):
 - Dado un BL/booking/contenedor real, cuando consulto el API, entonces obtengo eventos de milestone hasta el arribo a Moin, o se documenta la ausencia de cobertura

@@ -1,0 +1,1207 @@
+{
+  "spike": "TASK-28",
+  "fase": "3d-payload-maduro",
+  "solo_lectura": true,
+  "embarques": [
+    {
+      "id": 6734886,
+      "contenedor": "MRSU8507472",
+      "estado": "SAILING",
+      "campos": {
+        "etd_atd": {
+          "valor": "2026-08-24T12:00:00-03:00",
+          "de": "route.port_of_loading.date_of_loading"
+        },
+        "eta": {
+          "valor": "2026-09-15T12:00:00-06:00",
+          "de": "route.port_of_discharge.date_of_discharge_predicted"
+        },
+        "puerto_destino": {
+          "valor": "CRPMN",
+          "de": "route.port_of_discharge.location.code"
+        },
+        "transito": {
+          "valor": "22 dias, 98%",
+          "de": "route.transit_time"
+        },
+        "hitos": {
+          "valor": "8 eventos (6 ACT / 2 EST)",
+          "de": "containers[].movements[]"
+        },
+        "buque": {
+          "valor": "MAERSK CHACHAI -> POLAR BRASIL",
+          "de": "containers[].movements[].vessel.name"
+        },
+        "transbordo": {
+          "valor": "1 cambio(s) de nave",
+          "de": "cambio de vessel entre movements (US-30)"
+        },
+        "imo": {
+          "valor": "9525388",
+          "de": "geojson features[].properties.vessel.imo"
+        },
+        "trayecto": {
+          "valor": "LineString(s) PAST/CURRENT/FUTURE",
+          "de": "geojson features[].geometry"
+        },
+        "posicion": {
+          "valor": "[-79.885643, 9.36328]",
+          "de": "geojson features[].properties.current.coordinates"
+        }
+      },
+      "payload_shipment": {
+        "id": 6734886,
+        "reference": null,
+        "booking_number": "271102440",
+        "container_number": "MRSU8507472",
+        "container_count": 1,
+        "carrier": {
+          "scac": "MAEU",
+          "name": "MAERSK LINE"
+        },
+        "status": "SAILING",
+        "route": {
+          "port_of_loading": {
+            "location": {
+              "code": "BRSSZ",
+              "name": "SANTOS",
+              "timezone": "America/Sao_Paulo",
+              "country": {
+                "code": "BR",
+                "name": "Brazil"
+              }
+            },
+            "date_of_loading": "2026-08-24T12:00:00-03:00",
+            "date_of_loading_initial": "2026-08-24T12:00:00-03:00"
+          },
+          "ts_count": 1,
+          "port_of_discharge": {
+            "location": {
+              "code": "CRPMN",
+              "name": "PUERTO MOIN",
+              "timezone": "America/Costa_Rica",
+              "country": {
+                "code": "CR",
+                "name": "Costa Rica"
+              }
+            },
+            "date_of_discharge": "2026-09-15T12:00:00-06:00",
+            "date_of_discharge_initial": "2026-09-15T12:00:00-06:00",
+            "date_of_discharge_predicted": "2026-09-15T12:00:00-06:00"
+          },
+          "transit_time": 22,
+          "transit_percentage": 98,
+          "co2_emission": 1.07
+        },
+        "containers": [
+          {
+            "number": "MRSU8507472",
+            "status": "SAILING",
+            "size": 40,
+            "type": "HC",
+            "movements": [
+              {
+                "event": "EMSH",
+                "status": "ACT",
+                "location": {
+                  "code": "BRSSZ",
+                  "name": "SANTOS",
+                  "timezone": "America/Sao_Paulo",
+                  "country": {
+                    "code": "BR",
+                    "name": "Brazil"
+                  }
+                },
+                "vessel": null,
+                "voyage": null,
+                "timestamp": "2026-08-04T12:00:00-03:00"
+              },
+              {
+                "event": "GTIN",
+                "status": "ACT",
+                "location": {
+                  "code": "BRSSZ",
+                  "name": "SANTOS",
+                  "timezone": "America/Sao_Paulo",
+                  "country": {
+                    "code": "BR",
+                    "name": "Brazil"
+                  }
+                },
+                "vessel": null,
+                "voyage": null,
+                "timestamp": "2026-08-12T12:00:00-03:00"
+              },
+              {
+                "event": "LOAD",
+                "status": "ACT",
+                "location": {
+                  "code": "BRSSZ",
+                  "name": "SANTOS",
+                  "timezone": "America/Sao_Paulo",
+                  "country": {
+                    "code": "BR",
+                    "name": "Brazil"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK CHACHAI",
+                  "imo": 9525388
+                },
+                "voyage": "633N",
+                "timestamp": "2026-08-24T12:00:00-03:00"
+              },
+              {
+                "event": "DEPA",
+                "status": "ACT",
+                "location": {
+                  "code": "BRSSZ",
+                  "name": "SANTOS",
+                  "timezone": "America/Sao_Paulo",
+                  "country": {
+                    "code": "BR",
+                    "name": "Brazil"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK CHACHAI",
+                  "imo": 9525388
+                },
+                "voyage": "633N",
+                "timestamp": "2026-08-25T12:00:00-03:00"
+              },
+              {
+                "event": "ARRV",
+                "status": "ACT",
+                "location": {
+                  "code": "COCTG",
+                  "name": "CARTAGENA (COLOMBIA)",
+                  "timezone": "America/Bogota",
+                  "country": {
+                    "code": "CO",
+                    "name": "Colombia"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK CHACHAI",
+                  "imo": 9525388
+                },
+                "voyage": "633N",
+                "timestamp": "2026-09-05T12:00:00-05:00"
+              },
+              {
+                "event": "DEPA",
+                "status": "ACT",
+                "location": {
+                  "code": "COCTG",
+                  "name": "CARTAGENA (COLOMBIA)",
+                  "timezone": "America/Bogota",
+                  "country": {
+                    "code": "CO",
+                    "name": "Colombia"
+                  }
+                },
+                "vessel": {
+                  "name": "POLAR BRASIL",
+                  "imo": 9797216
+                },
+                "voyage": "637N",
+                "timestamp": "2026-09-11T12:00:00-05:00"
+              },
+              {
+                "event": "ARRV",
+                "status": "EST",
+                "location": {
+                  "code": "CRPMN",
+                  "name": "PUERTO MOIN",
+                  "timezone": "America/Costa_Rica",
+                  "country": {
+                    "code": "CR",
+                    "name": "Costa Rica"
+                  }
+                },
+                "vessel": {
+                  "name": "POLAR BRASIL",
+                  "imo": 9797216
+                },
+                "voyage": "637N",
+                "timestamp": "2026-09-15T12:00:00-06:00"
+              },
+              {
+                "event": "DISC",
+                "status": "EST",
+                "location": {
+                  "code": "CRPMN",
+                  "name": "PUERTO MOIN",
+                  "timezone": "America/Costa_Rica",
+                  "country": {
+                    "code": "CR",
+                    "name": "Costa Rica"
+                  }
+                },
+                "vessel": {
+                  "name": "POLAR BRASIL",
+                  "imo": 9797216
+                },
+                "voyage": "637N",
+                "timestamp": "2026-09-15T12:00:00-06:00"
+              }
+            ]
+          }
+        ],
+        "tokens": {
+          "map": "293736d5-21ad-40df-94bf-7c4964249c24"
+        },
+        "followers": [],
+        "tags": [],
+        "creator": {
+          "name": "Mariano Mayorga",
+          "email": "mayorga.halabi@gmail.com"
+        },
+        "created_at": "2026-09-14 15:47:39",
+        "updated_at": "2026-09-14 15:49:11",
+        "checked_at": "2026-09-14 15:49:11",
+        "discarded_at": null
+      },
+      "payload_geojson": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -46.3796942,
+                -23.9549113
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "location": {
+                "code": "BRSSZ",
+                "name": "SANTOS",
+                "timezone": "America/Sao_Paulo",
+                "country": {
+                  "code": "BR",
+                  "name": "Brazil"
+                }
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [
+                  -46.3796942,
+                  -23.9549113
+                ],
+                [
+                  -43.25,
+                  -23.3
+                ],
+                [
+                  -41.3,
+                  -23.5
+                ],
+                [
+                  -39.5,
+                  -20
+                ],
+                [
+                  -36.2,
+                  -13
+                ],
+                [
+                  -33.8,
+                  -5.25
+                ],
+                [
+                  -37.796,
+                  -3.252
+                ],
+                [
+                  -38.2315,
+                  -3.019
+                ],
+                [
+                  -42.7815,
+                  -0.2115
+                ],
+                [
+                  -46.401,
+                  2.023
+                ],
+                [
+                  -51.901,
+                  5.4005
+                ],
+                [
+                  -61.00675,
+                  10.9975
+                ],
+                [
+                  -61.799,
+                  10.6865
+                ],
+                [
+                  -63.7735,
+                  11.6135
+                ],
+                [
+                  -65.6245,
+                  12.488
+                ],
+                [
+                  -69.982281,
+                  12.989375
+                ],
+                [
+                  -70.6395,
+                  12.8415
+                ],
+                [
+                  -75.25,
+                  11.7
+                ],
+                [
+                  -75.729,
+                  10.8915
+                ],
+                [
+                  -75.53333,
+                  10.41667
+                ]
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "vessel": {
+                "name": "MAERSK CHACHAI",
+                "imo": 9525388
+              },
+              "voyage": "633N",
+              "events": {
+                "DEPA": {
+                  "location": {
+                    "code": "BRSSZ",
+                    "name": "SANTOS",
+                    "timezone": "America/Sao_Paulo",
+                    "country": {
+                      "code": "BR",
+                      "name": "Brazil"
+                    }
+                  },
+                  "timestamp": "2026-08-25T12:00:00-03:00"
+                },
+                "ARRV": {
+                  "location": {
+                    "code": "COCTG",
+                    "name": "CARTAGENA (COLOMBIA)",
+                    "timezone": "America/Bogota",
+                    "country": {
+                      "code": "CO",
+                      "name": "Colombia"
+                    }
+                  },
+                  "timestamp": "2026-09-05T12:00:00-05:00"
+                }
+              },
+              "current": null
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -75.53333,
+                10.41667
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "location": {
+                "code": "COCTG",
+                "name": "CARTAGENA (COLOMBIA)",
+                "timezone": "America/Bogota",
+                "country": {
+                  "code": "CO",
+                  "name": "Colombia"
+                }
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [
+                  -75.53333,
+                  10.41667
+                ],
+                [
+                  -75.9375,
+                  11.418
+                ],
+                [
+                  -79.9995,
+                  9.7515
+                ],
+                [
+                  -79.885643,
+                  9.36328
+                ],
+                [
+                  -81.90125,
+                  9.5295
+                ],
+                [
+                  -83.08333,
+                  10
+                ]
+              ]
+            },
+            "properties": {
+              "status": "CURRENT",
+              "vessel": {
+                "name": "POLAR BRASIL",
+                "imo": 9797216
+              },
+              "voyage": "637N",
+              "events": {
+                "DEPA": {
+                  "location": {
+                    "code": "COCTG",
+                    "name": "CARTAGENA (COLOMBIA)",
+                    "timezone": "America/Bogota",
+                    "country": {
+                      "code": "CO",
+                      "name": "Colombia"
+                    }
+                  },
+                  "timestamp": "2026-09-11T12:00:00-05:00"
+                },
+                "ARRV": {
+                  "location": {
+                    "code": "CRPMN",
+                    "name": "PUERTO MOIN",
+                    "timezone": "America/Costa_Rica",
+                    "country": {
+                      "code": "CR",
+                      "name": "Costa Rica"
+                    }
+                  },
+                  "timestamp": "2026-09-15T12:00:00-06:00"
+                }
+              },
+              "current": {
+                "index": 3,
+                "coordinates": [
+                  -79.885643,
+                  9.36328
+                ]
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -83.08333,
+                10
+              ]
+            },
+            "properties": {
+              "status": "FUTURE",
+              "location": {
+                "code": "CRPMN",
+                "name": "PUERTO MOIN",
+                "timezone": "America/Costa_Rica",
+                "country": {
+                  "code": "CR",
+                  "name": "Costa Rica"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 6734887,
+      "contenedor": "MRSU8132490",
+      "estado": "SAILING",
+      "campos": {
+        "etd_atd": {
+          "valor": "2026-08-24T12:00:00-03:00",
+          "de": "route.port_of_loading.date_of_loading"
+        },
+        "puerto_destino": {
+          "valor": "CRPMN",
+          "de": "route.port_of_discharge.location.code"
+        },
+        "transito": {
+          "valor": "25 dias, 87%",
+          "de": "route.transit_time"
+        },
+        "hitos": {
+          "valor": "10 eventos (8 ACT / 2 EST)",
+          "de": "containers[].movements[]"
+        },
+        "buque": {
+          "valor": "MAERSK CHACHAI -> MAERSK NACALA -> MAERSK MONTE PASCOAL",
+          "de": "containers[].movements[].vessel.name"
+        },
+        "transbordo": {
+          "valor": "2 cambio(s) de nave",
+          "de": "cambio de vessel entre movements (US-30)"
+        },
+        "imo": {
+          "valor": "9525388",
+          "de": "geojson features[].properties.vessel.imo"
+        },
+        "trayecto": {
+          "valor": "LineString(s) PAST/CURRENT/FUTURE",
+          "de": "geojson features[].geometry"
+        },
+        "posicion": {
+          "valor": "[-77.899132, 9.585382]",
+          "de": "geojson features[].properties.current.coordinates"
+        }
+      },
+      "payload_shipment": {
+        "id": 6734887,
+        "reference": null,
+        "booking_number": "271108898",
+        "container_number": "MRSU8132490",
+        "container_count": 1,
+        "carrier": {
+          "scac": "MAEU",
+          "name": "MAERSK LINE"
+        },
+        "status": "SAILING",
+        "route": {
+          "port_of_loading": {
+            "location": {
+              "code": "BRSSZ",
+              "name": "SANTOS",
+              "timezone": "America/Sao_Paulo",
+              "country": {
+                "code": "BR",
+                "name": "Brazil"
+              }
+            },
+            "date_of_loading": "2026-08-24T12:00:00-03:00",
+            "date_of_loading_initial": "2026-08-24T12:00:00-03:00"
+          },
+          "ts_count": 2,
+          "port_of_discharge": {
+            "location": {
+              "code": "CRPMN",
+              "name": "PUERTO MOIN",
+              "timezone": "America/Costa_Rica",
+              "country": {
+                "code": "CR",
+                "name": "Costa Rica"
+              }
+            },
+            "date_of_discharge": "2026-09-18T12:00:00-06:00",
+            "date_of_discharge_initial": "2026-09-18T12:00:00-06:00",
+            "date_of_discharge_predicted": null
+          },
+          "transit_time": 25,
+          "transit_percentage": 87,
+          "co2_emission": 1.15
+        },
+        "containers": [
+          {
+            "number": "MRSU8132490",
+            "status": "SAILING",
+            "size": 40,
+            "type": "HC",
+            "movements": [
+              {
+                "event": "EMSH",
+                "status": "ACT",
+                "location": {
+                  "code": "BRSSZ",
+                  "name": "SANTOS",
+                  "timezone": "America/Sao_Paulo",
+                  "country": {
+                    "code": "BR",
+                    "name": "Brazil"
+                  }
+                },
+                "vessel": null,
+                "voyage": null,
+                "timestamp": "2026-08-10T12:00:00-03:00"
+              },
+              {
+                "event": "GTIN",
+                "status": "ACT",
+                "location": {
+                  "code": "BRSSZ",
+                  "name": "SANTOS",
+                  "timezone": "America/Sao_Paulo",
+                  "country": {
+                    "code": "BR",
+                    "name": "Brazil"
+                  }
+                },
+                "vessel": null,
+                "voyage": null,
+                "timestamp": "2026-08-14T12:00:00-03:00"
+              },
+              {
+                "event": "LOAD",
+                "status": "ACT",
+                "location": {
+                  "code": "BRSSZ",
+                  "name": "SANTOS",
+                  "timezone": "America/Sao_Paulo",
+                  "country": {
+                    "code": "BR",
+                    "name": "Brazil"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK CHACHAI",
+                  "imo": 9525388
+                },
+                "voyage": "633N",
+                "timestamp": "2026-08-24T12:00:00-03:00"
+              },
+              {
+                "event": "DEPA",
+                "status": "ACT",
+                "location": {
+                  "code": "BRSSZ",
+                  "name": "SANTOS",
+                  "timezone": "America/Sao_Paulo",
+                  "country": {
+                    "code": "BR",
+                    "name": "Brazil"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK CHACHAI",
+                  "imo": 9525388
+                },
+                "voyage": "633N",
+                "timestamp": "2026-08-25T12:00:00-03:00"
+              },
+              {
+                "event": "ARRV",
+                "status": "ACT",
+                "location": {
+                  "code": "COCTG",
+                  "name": "CARTAGENA (COLOMBIA)",
+                  "timezone": "America/Bogota",
+                  "country": {
+                    "code": "CO",
+                    "name": "Colombia"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK CHACHAI",
+                  "imo": 9525388
+                },
+                "voyage": "633N",
+                "timestamp": "2026-09-05T12:00:00-05:00"
+              },
+              {
+                "event": "DEPA",
+                "status": "ACT",
+                "location": {
+                  "code": "COCTG",
+                  "name": "CARTAGENA (COLOMBIA)",
+                  "timezone": "America/Bogota",
+                  "country": {
+                    "code": "CO",
+                    "name": "Colombia"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK NACALA",
+                  "imo": 9459424
+                },
+                "voyage": "637N",
+                "timestamp": "2026-09-07T12:00:00-05:00"
+              },
+              {
+                "event": "ARRV",
+                "status": "ACT",
+                "location": {
+                  "code": "PAMIT",
+                  "name": "MANZANILLO (PANAMA)",
+                  "timezone": "America/Panama",
+                  "country": {
+                    "code": "PA",
+                    "name": "Panama"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK NACALA",
+                  "imo": 9459424
+                },
+                "voyage": "637N",
+                "timestamp": "2026-09-08T12:00:00-05:00"
+              },
+              {
+                "event": "DEPA",
+                "status": "ACT",
+                "location": {
+                  "code": "PAMIT",
+                  "name": "MANZANILLO (PANAMA)",
+                  "timezone": "America/Panama",
+                  "country": {
+                    "code": "PA",
+                    "name": "Panama"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK MONTE PASCOAL",
+                  "imo": 9283203
+                },
+                "voyage": "634S",
+                "timestamp": "2026-09-13T12:00:00-05:00"
+              },
+              {
+                "event": "ARRV",
+                "status": "EST",
+                "location": {
+                  "code": "CRPMN",
+                  "name": "PUERTO MOIN",
+                  "timezone": "America/Costa_Rica",
+                  "country": {
+                    "code": "CR",
+                    "name": "Costa Rica"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK MONTE PASCOAL",
+                  "imo": 9283203
+                },
+                "voyage": "634S",
+                "timestamp": "2026-09-18T12:00:00-06:00"
+              },
+              {
+                "event": "DISC",
+                "status": "EST",
+                "location": {
+                  "code": "CRPMN",
+                  "name": "PUERTO MOIN",
+                  "timezone": "America/Costa_Rica",
+                  "country": {
+                    "code": "CR",
+                    "name": "Costa Rica"
+                  }
+                },
+                "vessel": {
+                  "name": "MAERSK MONTE PASCOAL",
+                  "imo": 9283203
+                },
+                "voyage": "634S",
+                "timestamp": "2026-09-18T12:00:00-06:00"
+              }
+            ]
+          }
+        ],
+        "tokens": {
+          "map": "04162b63-852c-48c8-a6ff-bc3ffa18c661"
+        },
+        "followers": [],
+        "tags": [],
+        "creator": {
+          "name": "Mariano Mayorga",
+          "email": "mayorga.halabi@gmail.com"
+        },
+        "created_at": "2026-09-14 15:47:39",
+        "updated_at": "2026-09-14 15:48:40",
+        "checked_at": "2026-09-14 15:48:40",
+        "discarded_at": null
+      },
+      "payload_geojson": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -46.3796942,
+                -23.9549113
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "location": {
+                "code": "BRSSZ",
+                "name": "SANTOS",
+                "timezone": "America/Sao_Paulo",
+                "country": {
+                  "code": "BR",
+                  "name": "Brazil"
+                }
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [
+                  -46.3796942,
+                  -23.9549113
+                ],
+                [
+                  -43.25,
+                  -23.3
+                ],
+                [
+                  -41.3,
+                  -23.5
+                ],
+                [
+                  -39.5,
+                  -20
+                ],
+                [
+                  -36.2,
+                  -13
+                ],
+                [
+                  -33.8,
+                  -5.25
+                ],
+                [
+                  -37.796,
+                  -3.252
+                ],
+                [
+                  -38.2315,
+                  -3.019
+                ],
+                [
+                  -42.7815,
+                  -0.2115
+                ],
+                [
+                  -46.401,
+                  2.023
+                ],
+                [
+                  -51.901,
+                  5.4005
+                ],
+                [
+                  -61.00675,
+                  10.9975
+                ],
+                [
+                  -61.799,
+                  10.6865
+                ],
+                [
+                  -63.7735,
+                  11.6135
+                ],
+                [
+                  -65.6245,
+                  12.488
+                ],
+                [
+                  -69.982281,
+                  12.989375
+                ],
+                [
+                  -70.6395,
+                  12.8415
+                ],
+                [
+                  -75.25,
+                  11.7
+                ],
+                [
+                  -75.729,
+                  10.8915
+                ],
+                [
+                  -75.53333,
+                  10.41667
+                ]
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "vessel": {
+                "name": "MAERSK CHACHAI",
+                "imo": 9525388
+              },
+              "voyage": "633N",
+              "events": {
+                "DEPA": {
+                  "location": {
+                    "code": "BRSSZ",
+                    "name": "SANTOS",
+                    "timezone": "America/Sao_Paulo",
+                    "country": {
+                      "code": "BR",
+                      "name": "Brazil"
+                    }
+                  },
+                  "timestamp": "2026-08-25T12:00:00-03:00"
+                },
+                "ARRV": {
+                  "location": {
+                    "code": "COCTG",
+                    "name": "CARTAGENA (COLOMBIA)",
+                    "timezone": "America/Bogota",
+                    "country": {
+                      "code": "CO",
+                      "name": "Colombia"
+                    }
+                  },
+                  "timestamp": "2026-09-05T12:00:00-05:00"
+                }
+              },
+              "current": null
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -75.53333,
+                10.41667
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "location": {
+                "code": "COCTG",
+                "name": "CARTAGENA (COLOMBIA)",
+                "timezone": "America/Bogota",
+                "country": {
+                  "code": "CO",
+                  "name": "Colombia"
+                }
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [
+                  -75.53333,
+                  10.41667
+                ],
+                [
+                  -75.9375,
+                  11.418
+                ],
+                [
+                  -79.9995,
+                  9.7515
+                ],
+                [
+                  -79.8853,
+                  9.3599
+                ]
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "vessel": {
+                "name": "MAERSK NACALA",
+                "imo": 9459424
+              },
+              "voyage": "637N",
+              "events": {
+                "DEPA": {
+                  "location": {
+                    "code": "COCTG",
+                    "name": "CARTAGENA (COLOMBIA)",
+                    "timezone": "America/Bogota",
+                    "country": {
+                      "code": "CO",
+                      "name": "Colombia"
+                    }
+                  },
+                  "timestamp": "2026-09-07T12:00:00-05:00"
+                },
+                "ARRV": {
+                  "location": {
+                    "code": "PAMIT",
+                    "name": "MANZANILLO (PANAMA)",
+                    "timezone": "America/Panama",
+                    "country": {
+                      "code": "PA",
+                      "name": "Panama"
+                    }
+                  },
+                  "timestamp": "2026-09-08T12:00:00-05:00"
+                }
+              },
+              "current": null
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -79.8853,
+                9.3599
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "location": {
+                "code": "PAMIT",
+                "name": "MANZANILLO (PANAMA)",
+                "timezone": "America/Panama",
+                "country": {
+                  "code": "PA",
+                  "name": "Panama"
+                }
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [
+                  -79.8853,
+                  9.3599
+                ],
+                [
+                  -79.513,
+                  8.8695
+                ],
+                [
+                  -78.5245,
+                  8.2355
+                ],
+                [
+                  -77.899132,
+                  9.585382
+                ],
+                [
+                  -78.5245,
+                  8.2355
+                ],
+                [
+                  -79.513,
+                  8.8695
+                ],
+                [
+                  -79.92375,
+                  9.41375
+                ],
+                [
+                  -81.90125,
+                  9.5295
+                ],
+                [
+                  -83.08333,
+                  10
+                ]
+              ]
+            },
+            "properties": {
+              "status": "CURRENT",
+              "vessel": {
+                "name": "MAERSK MONTE PASCOAL",
+                "imo": 9283203
+              },
+              "voyage": "634S",
+              "events": {
+                "DEPA": {
+                  "location": {
+                    "code": "PAMIT",
+                    "name": "MANZANILLO (PANAMA)",
+                    "timezone": "America/Panama",
+                    "country": {
+                      "code": "PA",
+                      "name": "Panama"
+                    }
+                  },
+                  "timestamp": "2026-09-13T12:00:00-05:00"
+                },
+                "ARRV": {
+                  "location": {
+                    "code": "CRPMN",
+                    "name": "PUERTO MOIN",
+                    "timezone": "America/Costa_Rica",
+                    "country": {
+                      "code": "CR",
+                      "name": "Costa Rica"
+                    }
+                  },
+                  "timestamp": "2026-09-18T12:00:00-06:00"
+                }
+              },
+              "current": {
+                "index": 3,
+                "coordinates": [
+                  -77.899132,
+                  9.585382
+                ]
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -83.08333,
+                10
+              ]
+            },
+            "properties": {
+              "status": "FUTURE",
+              "location": {
+                "code": "CRPMN",
+                "name": "PUERTO MOIN",
+                "timezone": "America/Costa_Rica",
+                "country": {
+                  "code": "CR",
+                  "name": "Costa Rica"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "campos_presentes": [
+    "buque",
+    "eta",
+    "etd_atd",
+    "hitos",
+    "imo",
+    "posicion",
+    "puerto_destino",
+    "transbordo",
+    "transito",
+    "trayecto"
+  ],
+  "campos_ausentes": [
+    "velocidad",
+    "rumbo"
+  ],
+  "generado": "2026-09-14T15:51:39+00:00"
+}

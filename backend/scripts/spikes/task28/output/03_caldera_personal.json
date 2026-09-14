@@ -1,0 +1,86 @@
+{
+  "spike": "TASK-28",
+  "fase": "3a-cobertura-caldera",
+  "pregunta": "Hay cobertura AIS en Puerto Caldera (Pacifico)?",
+  "timestamp_utc": "2026-09-14T15:13:31+00:00",
+  "network_profile": "personal",
+  "bbox": [
+    [
+      [
+        5.0,
+        -92.0
+      ],
+      [
+        11.5,
+        -83.6
+      ]
+    ],
+    [
+      [
+        6.5,
+        -80.3
+      ],
+      [
+        9.0,
+        -78.0
+      ]
+    ]
+  ],
+  "zonas": {
+    "caldera": {
+      "lat": 9.9139,
+      "lon": -84.7203,
+      "radio_deg": 0.09
+    },
+    "golfo_nicoya": {
+      "lat": 9.95,
+      "lon": -84.85,
+      "radio_deg": 0.6
+    },
+    "balboa_control": {
+      "lat": 8.7,
+      "lon": -79.3,
+      "radio_deg": 0.45
+    }
+  },
+  "segundos_captura": 180,
+  "mensajes": 3,
+  "bytes": 1418,
+  "segundos_reales": 180.7,
+  "tipos_mensaje": {
+    "SubscriptionConfirmation": 1,
+    "StandardClassBPositionReport": 2
+  },
+  "mensajes_por_zona": {
+    "sin_posicion": 1,
+    "pacifico_abierto": 2
+  },
+  "buques_por_zona": {
+    "pacifico_abierto": 1
+  },
+  "buques_unicos": 1,
+  "errores_parseo": 0,
+  "errores_servidor": [],
+  "error": null,
+  "linea_base_caribe": {
+    "bbox": [
+      [
+        [
+          7.0,
+          -90.0
+        ],
+        [
+          25.0,
+          -59.0
+        ]
+      ]
+    ],
+    "mensajes_hoy": 254,
+    "buques_hoy": 173,
+    "mensajes_tg10_18ago": 161,
+    "cuenta_entregando_datos": true
+  },
+  "veredicto": "SIN_COBERTURA_REGIONAL",
+  "explicacion": "Cero buques en Caldera, en el Golfo de Nicoya y tambien en Balboa, la entrada pacifica del Canal de Panama, mientras el Caribe rendia 254 mensajes con la misma llave y en los mismos 3 minutos. No es que Caldera este oscuro: el feed gratuito de AISStream no cubre el Pacifico oriental. El arribo maritimo es manual en los dos puertos.",
+  "generado": "2026-09-14T15:19:33+00:00"
+}

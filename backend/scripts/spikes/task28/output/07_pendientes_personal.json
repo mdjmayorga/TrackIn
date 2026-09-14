@@ -1,0 +1,1342 @@
+{
+  "spike": "TASK-28",
+  "fase": "3e-altas-pendientes",
+  "timestamp_utc": "2026-09-14T16:06:04+00:00",
+  "network_profile": "personal",
+  "embarques": [
+    {
+      "etiqueta": "Lufthansa Cargo (MAWB)",
+      "via": "air",
+      "peticion": {
+        "awb_number": "02050685434"
+      },
+      "status": 200,
+      "id": 264179,
+      "respuesta_alta": {
+        "message": "SUCCESS",
+        "shipment": {
+          "id": 264179,
+          "reference": null,
+          "awb_number": "020-50685434"
+        }
+      },
+      "estado_final": "DELIVERED",
+      "campos": {
+        "etd_atd": {
+          "valor": "2026-09-04T07:05:00+08:00",
+          "de": "route.origen.date_of_dep"
+        },
+        "eta": {
+          "valor": "2026-09-05T18:43:00-06:00",
+          "de": "route.destino.date_of_rcf_initial"
+        },
+        "destino": {
+          "valor": "SJO",
+          "de": "route.destino.location"
+        },
+        "identificador": {
+          "valor": "LH · LUFTHANSA CARGO",
+          "de": "airline/carrier"
+        },
+        "hitos": {
+          "valor": "10 eventos (10 ACT / 0 EST)",
+          "de": "movements[]"
+        },
+        "transporte": {
+          "valor": "LH8431 -> LH518",
+          "de": "movements[].vessel/flight"
+        },
+        "trayecto": {
+          "valor": "LineString",
+          "de": "geojson geometry"
+        }
+      },
+      "payload_shipment": {
+        "id": 264179,
+        "reference": null,
+        "awb_number": "020-50685434",
+        "airline": {
+          "iata": "LH",
+          "name": "LUFTHANSA CARGO"
+        },
+        "cargo": {
+          "pieces": 1,
+          "weight": 12,
+          "volume": null
+        },
+        "status": "DELIVERED",
+        "status_split": false,
+        "status_extended": {
+          "DELIVERED": 1
+        },
+        "route": {
+          "origin": {
+            "location": {
+              "iata": "PEK",
+              "name": "Beijing Capital International Airport",
+              "timezone": "Asia/Shanghai",
+              "country": {
+                "code": "CN",
+                "name": "China"
+              }
+            },
+            "date_of_dep": "2026-09-04T07:05:00+08:00",
+            "date_of_dep_initial": "2026-09-04T07:05:00+08:00"
+          },
+          "ts_count": 1,
+          "destination": {
+            "location": {
+              "iata": "SJO",
+              "name": "Juan Santamaría International Airport",
+              "timezone": "America/Costa_Rica",
+              "country": {
+                "code": "CR",
+                "name": "Costa Rica"
+              }
+            },
+            "date_of_rcf": "2026-09-05T18:43:00-06:00",
+            "date_of_rcf_initial": "2026-09-05T18:43:00-06:00"
+          },
+          "transit_time": 50,
+          "transit_percentage": 100,
+          "co2_emission": 0.17
+        },
+        "movements": [
+          {
+            "event": "RCS",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "PEK",
+              "name": "Beijing Capital International Airport",
+              "timezone": "Asia/Shanghai",
+              "country": {
+                "code": "CN",
+                "name": "China"
+              }
+            },
+            "flight": null,
+            "timestamp": "2026-09-03T14:24:00+08:00"
+          },
+          {
+            "event": "DEP",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "PEK",
+              "name": "Beijing Capital International Airport",
+              "timezone": "Asia/Shanghai",
+              "country": {
+                "code": "CN",
+                "name": "China"
+              }
+            },
+            "flight": "LH8431",
+            "timestamp": "2026-09-04T07:05:00+08:00"
+          },
+          {
+            "event": "MAN",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "PEK",
+              "name": "Beijing Capital International Airport",
+              "timezone": "Asia/Shanghai",
+              "country": {
+                "code": "CN",
+                "name": "China"
+              }
+            },
+            "flight": "LH8431",
+            "timestamp": "2026-09-04T07:22:00+08:00"
+          },
+          {
+            "event": "ARR",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "FRA",
+              "name": "Frankfurt Airport",
+              "timezone": "Europe/Berlin",
+              "country": {
+                "code": "DE",
+                "name": "Germany"
+              }
+            },
+            "flight": "LH8431",
+            "timestamp": "2026-09-04T13:07:00+02:00"
+          },
+          {
+            "event": "RCF",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "FRA",
+              "name": "Frankfurt Airport",
+              "timezone": "Europe/Berlin",
+              "country": {
+                "code": "DE",
+                "name": "Germany"
+              }
+            },
+            "flight": "LH8431",
+            "timestamp": "2026-09-05T01:43:00+02:00"
+          },
+          {
+            "event": "MAN",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "FRA",
+              "name": "Frankfurt Airport",
+              "timezone": "Europe/Berlin",
+              "country": {
+                "code": "DE",
+                "name": "Germany"
+              }
+            },
+            "flight": "LH518",
+            "timestamp": "2026-09-05T12:23:00+02:00"
+          },
+          {
+            "event": "DEP",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "FRA",
+              "name": "Frankfurt Airport",
+              "timezone": "Europe/Berlin",
+              "country": {
+                "code": "DE",
+                "name": "Germany"
+              }
+            },
+            "flight": "LH518",
+            "timestamp": "2026-09-05T13:55:00+02:00"
+          },
+          {
+            "event": "ARR",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "SJO",
+              "name": "Juan Santamaría International Airport",
+              "timezone": "America/Costa_Rica",
+              "country": {
+                "code": "CR",
+                "name": "Costa Rica"
+              }
+            },
+            "flight": "LH518",
+            "timestamp": "2026-09-05T17:42:00-06:00"
+          },
+          {
+            "event": "RCF",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "SJO",
+              "name": "Juan Santamaría International Airport",
+              "timezone": "America/Costa_Rica",
+              "country": {
+                "code": "CR",
+                "name": "Costa Rica"
+              }
+            },
+            "flight": "LH518",
+            "timestamp": "2026-09-05T18:43:00-06:00"
+          },
+          {
+            "event": "DLV",
+            "status": "ACT",
+            "cargo": {
+              "pieces": 1,
+              "weight": 12,
+              "volume": null
+            },
+            "location": {
+              "iata": "SJO",
+              "name": "Juan Santamaría International Airport",
+              "timezone": "America/Costa_Rica",
+              "country": {
+                "code": "CR",
+                "name": "Costa Rica"
+              }
+            },
+            "flight": null,
+            "timestamp": "2026-09-07T09:42:00-06:00"
+          }
+        ],
+        "tokens": {
+          "map": "1f9e3528-3722-4691-8102-3f6c76cadea7"
+        },
+        "followers": [],
+        "tags": [],
+        "creator": {
+          "name": "Xavier Yensin",
+          "email": "xavier.yensin@gmail.com"
+        },
+        "created_at": "2026-09-14 16:01:53",
+        "updated_at": "2026-09-14 16:02:13",
+        "checked_at": "2026-09-14 16:02:13",
+        "discarded_at": "2026-09-14 16:02:13"
+      },
+      "payload_geojson": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                116.584556,
+                40.080111
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "location": {
+                "iata": "PEK",
+                "name": "Beijing Capital International Airport",
+                "timezone": "Asia/Shanghai",
+                "country": {
+                  "code": "CN",
+                  "name": "China"
+                }
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [
+                  116.584556,
+                  40.080111
+                ],
+                [
+                  113.991424,
+                  41.45501198
+                ],
+                [
+                  111.312862,
+                  42.80135933
+                ],
+                [
+                  108.540345,
+                  44.11552603
+                ],
+                [
+                  105.664871,
+                  45.39341533
+                ],
+                [
+                  102.677097,
+                  46.63041001
+                ],
+                [
+                  99.56756,
+                  47.82132597
+                ],
+                [
+                  96.327017,
+                  48.96037592
+                ],
+                [
+                  92.946926,
+                  50.04115187
+                ],
+                [
+                  89.420094,
+                  51.05663767
+                ],
+                [
+                  85.741494,
+                  51.99926579
+                ],
+                [
+                  81.909251,
+                  52.86103388
+                ],
+                [
+                  77.925721,
+                  53.6336961
+                ],
+                [
+                  73.79854,
+                  54.30903891
+                ],
+                [
+                  69.541479,
+                  54.87924017
+                ],
+                [
+                  65.174852,
+                  55.33729376
+                ],
+                [
+                  60.725285,
+                  55.67746124
+                ],
+                [
+                  56.224678,
+                  55.89569372
+                ],
+                [
+                  51.708397,
+                  55.98995841
+                ],
+                [
+                  47.21291,
+                  55.96041172
+                ],
+                [
+                  42.773228,
+                  55.8093857
+                ],
+                [
+                  38.420599,
+                  55.54119056
+                ],
+                [
+                  34.180801,
+                  55.16177075
+                ],
+                [
+                  30.073221,
+                  54.67827494
+                ],
+                [
+                  26.110726,
+                  54.09860508
+                ],
+                [
+                  22.30015,
+                  53.43099924
+                ],
+                [
+                  18.643181,
+                  52.6836836
+                ],
+                [
+                  15.137438,
+                  51.86460884
+                ],
+                [
+                  11.777531,
+                  50.98127013
+                ],
+                [
+                  8.55603,
+                  50.0406
+                ]
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "cargo": {
+                "pieces": 1,
+                "weight": 12,
+                "volume": null
+              },
+              "flight": "LH8431",
+              "events": {
+                "DEP": {
+                  "location": {
+                    "iata": "PEK",
+                    "name": "Beijing Capital International Airport",
+                    "timezone": "Asia/Shanghai",
+                    "country": {
+                      "code": "CN",
+                      "name": "China"
+                    }
+                  },
+                  "timestamp": "2026-09-04T07:05:00+08:00"
+                },
+                "ARR": {
+                  "location": {
+                    "iata": "FRA",
+                    "name": "Frankfurt Airport",
+                    "timezone": "Europe/Berlin",
+                    "country": {
+                      "code": "DE",
+                      "name": "Germany"
+                    }
+                  },
+                  "timestamp": "2026-09-04T13:07:00+02:00"
+                }
+              },
+              "current": null
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                8.55603,
+                50.0406
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "location": {
+                "iata": "FRA",
+                "name": "Frankfurt Airport",
+                "timezone": "Europe/Berlin",
+                "country": {
+                  "code": "DE",
+                  "name": "Germany"
+                }
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [
+                  8.55603,
+                  50.0406
+                ],
+                [
+                  4.445562,
+                  49.8675608
+                ],
+                [
+                  0.300832,
+                  49.5714505
+                ],
+                [
+                  -3.854681,
+                  49.15064821
+                ],
+                [
+                  -7.996908,
+                  48.60524415
+                ],
+                [
+                  -12.102506,
+                  47.93703369
+                ],
+                [
+                  -16.150074,
+                  47.14940046
+                ],
+                [
+                  -20.12113,
+                  46.24710596
+                ],
+                [
+                  -24.000748,
+                  45.23601503
+                ],
+                [
+                  -27.77783,
+                  44.12279134
+                ],
+                [
+                  -31.445054,
+                  42.91459549
+                ],
+                [
+                  -34.998561,
+                  41.6188108
+                ],
+                [
+                  -38.437487,
+                  40.24281284
+                ],
+                [
+                  -41.763421,
+                  38.79378946
+                ],
+                [
+                  -44.979848,
+                  37.27861097
+                ],
+                [
+                  -48.091647,
+                  35.70374532
+                ],
+                [
+                  -51.104647,
+                  34.07521074
+                ],
+                [
+                  -54.025264,
+                  32.39855752
+                ],
+                [
+                  -56.860217,
+                  30.67887136
+                ],
+                [
+                  -59.616316,
+                  28.92079151
+                ],
+                [
+                  -62.300304,
+                  27.12853847
+                ],
+                [
+                  -64.918753,
+                  25.30594712
+                ],
+                [
+                  -67.478001,
+                  23.45650239
+                ],
+                [
+                  -69.984108,
+                  21.58337545
+                ],
+                [
+                  -72.442849,
+                  19.68945903
+                ],
+                [
+                  -74.859709,
+                  17.77740112
+                ],
+                [
+                  -77.239895,
+                  15.84963667
+                ],
+                [
+                  -79.588361,
+                  13.90841701
+                ],
+                [
+                  -81.909825,
+                  11.95583715
+                ],
+                [
+                  -84.208806,
+                  9.993861
+                ]
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "cargo": {
+                "pieces": 1,
+                "weight": 12,
+                "volume": null
+              },
+              "flight": "LH518",
+              "events": {
+                "DEP": {
+                  "location": {
+                    "iata": "FRA",
+                    "name": "Frankfurt Airport",
+                    "timezone": "Europe/Berlin",
+                    "country": {
+                      "code": "DE",
+                      "name": "Germany"
+                    }
+                  },
+                  "timestamp": "2026-09-05T13:55:00+02:00"
+                },
+                "ARR": {
+                  "location": {
+                    "iata": "SJO",
+                    "name": "Juan Santamaría International Airport",
+                    "timezone": "America/Costa_Rica",
+                    "country": {
+                      "code": "CR",
+                      "name": "Costa Rica"
+                    }
+                  },
+                  "timestamp": "2026-09-05T17:42:00-06:00"
+                }
+              },
+              "current": null
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -84.208806,
+                9.993861
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "location": {
+                "iata": "SJO",
+                "name": "Juan Santamaría International Airport",
+                "timezone": "America/Costa_Rica",
+                "country": {
+                  "code": "CR",
+                  "name": "Costa Rica"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "etiqueta": "COSCO (BL + contenedor)",
+      "via": "ocean",
+      "peticion": {
+        "booking_number": "COSU6508789000",
+        "container_number": "TGBU4872990"
+      },
+      "status": 200,
+      "id": 6734941,
+      "respuesta_alta": {
+        "message": "SUCCESS",
+        "shipment": {
+          "id": 6734941,
+          "reference": null,
+          "booking_number": "COSU6508789000",
+          "container_number": "TGBU4872990"
+        }
+      },
+      "estado_final": "SAILING",
+      "campos": {
+        "etd_atd": {
+          "valor": "2026-08-15T12:00:00+08:00",
+          "de": "route.origen.date_of_loading"
+        },
+        "eta": {
+          "valor": "2026-10-05T12:00:00-06:00",
+          "de": "route.destino.date_of_discharge"
+        },
+        "destino": {
+          "valor": "CRCAL",
+          "de": "route.destino.location"
+        },
+        "identificador": {
+          "valor": "COSU · COSCO",
+          "de": "airline/carrier"
+        },
+        "hitos": {
+          "valor": "6 eventos (3 ACT / 3 EST)",
+          "de": "movements[]"
+        },
+        "transporte": {
+          "valor": "YANTIAN -> MEDKON ZOE",
+          "de": "movements[].vessel/flight"
+        },
+        "trayecto": {
+          "valor": "LineString",
+          "de": "geojson geometry"
+        }
+      },
+      "payload_shipment": {
+        "id": 6734941,
+        "reference": null,
+        "booking_number": "COSU6508789000",
+        "container_number": "TGBU4872990",
+        "container_count": 1,
+        "carrier": {
+          "scac": "COSU",
+          "name": "COSCO"
+        },
+        "status": "SAILING",
+        "route": {
+          "port_of_loading": {
+            "location": {
+              "code": "CNNBG",
+              "name": "NINGBO",
+              "timezone": "Asia/Shanghai",
+              "country": {
+                "code": "CN",
+                "name": "China"
+              }
+            },
+            "date_of_loading": "2026-08-15T12:00:00+08:00",
+            "date_of_loading_initial": "2026-08-15T12:00:00+08:00"
+          },
+          "ts_count": 1,
+          "port_of_discharge": {
+            "location": {
+              "code": "CRCAL",
+              "name": "PUERTO CALDERA",
+              "timezone": "America/Costa_Rica",
+              "country": {
+                "code": "CR",
+                "name": "Costa Rica"
+              }
+            },
+            "date_of_discharge": "2026-10-05T12:00:00-06:00",
+            "date_of_discharge_initial": "2026-10-05T12:00:00-06:00",
+            "date_of_discharge_predicted": null
+          },
+          "transit_time": 51,
+          "transit_percentage": 60,
+          "co2_emission": 2.13
+        },
+        "containers": [
+          {
+            "number": "TGBU4872990",
+            "status": "SAILING",
+            "size": 40,
+            "type": "HC",
+            "movements": [
+              {
+                "event": "LOAD",
+                "status": "ACT",
+                "location": {
+                  "code": "CNNBG",
+                  "name": "NINGBO",
+                  "timezone": "Asia/Shanghai",
+                  "country": {
+                    "code": "CN",
+                    "name": "China"
+                  }
+                },
+                "vessel": {
+                  "name": "YANTIAN",
+                  "imo": 9305594
+                },
+                "voyage": "133E",
+                "timestamp": "2026-08-15T12:00:00+08:00"
+              },
+              {
+                "event": "DEPA",
+                "status": "ACT",
+                "location": {
+                  "code": "CNNBG",
+                  "name": "NINGBO",
+                  "timezone": "Asia/Shanghai",
+                  "country": {
+                    "code": "CN",
+                    "name": "China"
+                  }
+                },
+                "vessel": {
+                  "name": "YANTIAN",
+                  "imo": 9305594
+                },
+                "voyage": "133E",
+                "timestamp": "2026-08-15T12:00:00+08:00"
+              },
+              {
+                "event": "ARRV",
+                "status": "ACT",
+                "location": {
+                  "code": "PECHY",
+                  "name": "CHANCAY",
+                  "timezone": "America/Lima",
+                  "country": {
+                    "code": "PE",
+                    "name": "Peru"
+                  }
+                },
+                "vessel": {
+                  "name": "YANTIAN",
+                  "imo": 9305594
+                },
+                "voyage": "133E",
+                "timestamp": "2026-09-13T12:00:00-05:00"
+              },
+              {
+                "event": "DEPA",
+                "status": "EST",
+                "location": {
+                  "code": "PECHY",
+                  "name": "CHANCAY",
+                  "timezone": "America/Lima",
+                  "country": {
+                    "code": "PE",
+                    "name": "Peru"
+                  }
+                },
+                "vessel": {
+                  "name": "MEDKON ZOE",
+                  "imo": 9434797
+                },
+                "voyage": "206N",
+                "timestamp": "2026-09-25T12:00:00-05:00"
+              },
+              {
+                "event": "ARRV",
+                "status": "EST",
+                "location": {
+                  "code": "CRCAL",
+                  "name": "PUERTO CALDERA",
+                  "timezone": "America/Costa_Rica",
+                  "country": {
+                    "code": "CR",
+                    "name": "Costa Rica"
+                  }
+                },
+                "vessel": {
+                  "name": "MEDKON ZOE",
+                  "imo": 9434797
+                },
+                "voyage": "206N",
+                "timestamp": "2026-10-05T12:00:00-06:00"
+              },
+              {
+                "event": "DISC",
+                "status": "EST",
+                "location": {
+                  "code": "CRCAL",
+                  "name": "PUERTO CALDERA",
+                  "timezone": "America/Costa_Rica",
+                  "country": {
+                    "code": "CR",
+                    "name": "Costa Rica"
+                  }
+                },
+                "vessel": {
+                  "name": "MEDKON ZOE",
+                  "imo": 9434797
+                },
+                "voyage": "206N",
+                "timestamp": "2026-10-05T12:00:00-06:00"
+              }
+            ]
+          }
+        ],
+        "tokens": {
+          "map": "1d3ab6e7-dcff-4398-8255-6c8e26d473fe"
+        },
+        "followers": [],
+        "tags": [],
+        "creator": {
+          "name": "Xavier Yensin",
+          "email": "xavier.yensin@gmail.com"
+        },
+        "created_at": "2026-09-14 16:01:53",
+        "updated_at": "2026-09-14 16:03:07",
+        "checked_at": "2026-09-14 16:03:07",
+        "discarded_at": null
+      },
+      "payload_geojson": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                121.55,
+                29.88333
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "location": {
+                "code": "CNNBG",
+                "name": "NINGBO",
+                "timezone": "Asia/Shanghai",
+                "country": {
+                  "code": "CN",
+                  "name": "China"
+                }
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [
+                  121.55,
+                  29.88333
+                ],
+                [
+                  122.366,
+                  30.1485
+                ],
+                [
+                  124.8915,
+                  29.085
+                ],
+                [
+                  129.221,
+                  30.4785
+                ],
+                [
+                  130.9,
+                  31
+                ],
+                [
+                  132.396,
+                  32.412
+                ],
+                [
+                  135.039,
+                  33.182
+                ],
+                [
+                  139.3,
+                  35
+                ],
+                [
+                  139.9,
+                  34.8
+                ],
+                [
+                  140.3125,
+                  34.962
+                ],
+                [
+                  147.6675,
+                  37.8475
+                ],
+                [
+                  150.941,
+                  39.132
+                ],
+                [
+                  154.0565,
+                  40.0865
+                ],
+                [
+                  160,
+                  40
+                ],
+                [
+                  170,
+                  40
+                ],
+                [
+                  180,
+                  40
+                ],
+                [
+                  189.466,
+                  41.262
+                ],
+                [
+                  191.2475,
+                  41.397
+                ],
+                [
+                  199.586,
+                  41.74
+                ],
+                [
+                  205.15,
+                  41.633
+                ],
+                [
+                  209.999,
+                  41.313
+                ],
+                [
+                  211.072,
+                  41.201
+                ],
+                [
+                  220,
+                  40
+                ],
+                [
+                  224.233,
+                  38.2715
+                ],
+                [
+                  226.8615,
+                  37.104
+                ],
+                [
+                  229.998,
+                  35.613
+                ],
+                [
+                  233.343,
+                  33.8475
+                ],
+                [
+                  236.4585,
+                  32.109
+                ],
+                [
+                  240,
+                  30
+                ],
+                [
+                  242.589,
+                  27.5545
+                ],
+                [
+                  250,
+                  20
+                ],
+                [
+                  256.3355,
+                  13.9165
+                ],
+                [
+                  259.31,
+                  10.788
+                ],
+                [
+                  260,
+                  10
+                ],
+                [
+                  265.065,
+                  4.9925
+                ],
+                [
+                  267.4885,
+                  2.5475
+                ],
+                [
+                  270,
+                  0
+                ],
+                [
+                  273.1525,
+                  -3.1895
+                ],
+                [
+                  274.733,
+                  -4.7885
+                ],
+                [
+                  280,
+                  -10
+                ],
+                [
+                  282.730004,
+                  -11.5627697
+                ]
+              ]
+            },
+            "properties": {
+              "status": "PAST",
+              "vessel": {
+                "name": "YANTIAN",
+                "imo": 9305594
+              },
+              "voyage": "133E",
+              "events": {
+                "DEPA": {
+                  "location": {
+                    "code": "CNNBG",
+                    "name": "NINGBO",
+                    "timezone": "Asia/Shanghai",
+                    "country": {
+                      "code": "CN",
+                      "name": "China"
+                    }
+                  },
+                  "timestamp": "2026-08-15T12:00:00+08:00"
+                },
+                "ARRV": {
+                  "location": {
+                    "code": "PECHY",
+                    "name": "CHANCAY",
+                    "timezone": "America/Lima",
+                    "country": {
+                      "code": "PE",
+                      "name": "Peru"
+                    }
+                  },
+                  "timestamp": "2026-09-13T12:00:00-05:00"
+                }
+              },
+              "current": null
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -77.2699958,
+                -11.5627697
+              ]
+            },
+            "properties": {
+              "status": "CURRENT",
+              "location": {
+                "code": "PECHY",
+                "name": "CHANCAY",
+                "timezone": "America/Lima",
+                "country": {
+                  "code": "PE",
+                  "name": "Peru"
+                }
+              }
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [
+                  -77.2699958,
+                  -11.5627697
+                ],
+                [
+                  -80,
+                  -10
+                ],
+                [
+                  -80.2,
+                  -7.3
+                ],
+                [
+                  -81.726,
+                  -5.4595
+                ],
+                [
+                  -81.893,
+                  -5.258125
+                ],
+                [
+                  -81.25,
+                  -3
+                ],
+                [
+                  -81.8,
+                  -0.9
+                ],
+                [
+                  -81.176,
+                  1.8485
+                ],
+                [
+                  -80.413,
+                  5.195
+                ],
+                [
+                  -80,
+                  7
+                ],
+                [
+                  -79.5,
+                  8.6
+                ],
+                [
+                  -79.513,
+                  8.8695
+                ],
+                [
+                  -79.92375,
+                  9.41375
+                ],
+                [
+                  -81.714,
+                  9.5125
+                ],
+                [
+                  -82.22,
+                  9.9415
+                ],
+                [
+                  -83.0455,
+                  10.642
+                ],
+                [
+                  -84.71667,
+                  9.91667
+                ]
+              ]
+            },
+            "properties": {
+              "status": "FUTURE",
+              "vessel": {
+                "name": "MEDKON ZOE",
+                "imo": 9434797
+              },
+              "voyage": "206N",
+              "events": {
+                "DEPA": {
+                  "location": {
+                    "code": "PECHY",
+                    "name": "CHANCAY",
+                    "timezone": "America/Lima",
+                    "country": {
+                      "code": "PE",
+                      "name": "Peru"
+                    }
+                  },
+                  "timestamp": "2026-09-25T12:00:00-05:00"
+                },
+                "ARRV": {
+                  "location": {
+                    "code": "CRCAL",
+                    "name": "PUERTO CALDERA",
+                    "timezone": "America/Costa_Rica",
+                    "country": {
+                      "code": "CR",
+                      "name": "Costa Rica"
+                    }
+                  },
+                  "timestamp": "2026-10-05T12:00:00-06:00"
+                }
+              },
+              "current": null
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [
+                -84.71667,
+                9.91667
+              ]
+            },
+            "properties": {
+              "status": "FUTURE",
+              "location": {
+                "code": "CRCAL",
+                "name": "PUERTO CALDERA",
+                "timezone": "America/Costa_Rica",
+                "country": {
+                  "code": "CR",
+                  "name": "Costa Rica"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

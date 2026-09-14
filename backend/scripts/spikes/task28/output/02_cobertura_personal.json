@@ -1,0 +1,260 @@
+{
+  "spike": "TASK-28",
+  "fase": "2-cobertura-aerea-y-cuota",
+  "timestamp_utc": "2026-09-14T14:43:10+00:00",
+  "network_profile": "personal",
+  "solo_lectura": true,
+  "shipsgo_air": {
+    "aerolineas_unicas": 207,
+    "con_prefijo_mawb": 202,
+    "paginacion": "skip",
+    "pagina_fija": 25,
+    "llamadas": 9,
+    "cobertura": {
+      "tramo largo India": {
+        "encontradas": [
+          {
+            "prefijo": "020",
+            "buscada": "Lufthansa Cargo",
+            "catalogo": "LUFTHANSA CARGO",
+            "iata": "LH"
+          },
+          {
+            "prefijo": "098",
+            "buscada": "Air India",
+            "catalogo": "AIR INDIA",
+            "iata": "AI"
+          },
+          {
+            "prefijo": "176",
+            "buscada": "Emirates",
+            "catalogo": "EMIRATES",
+            "iata": "EK"
+          },
+          {
+            "prefijo": "157",
+            "buscada": "Qatar Airways",
+            "catalogo": "QATAR AIRWAYS",
+            "iata": "QR"
+          },
+          {
+            "prefijo": "235",
+            "buscada": "Turkish Cargo",
+            "catalogo": "TURKISH CARGO",
+            "iata": "TK"
+          },
+          {
+            "prefijo": "607",
+            "buscada": "Etihad",
+            "catalogo": "ETIHAD AIRWAYS",
+            "iata": "EY"
+          }
+        ],
+        "faltantes": []
+      },
+      "tramo largo China": {
+        "encontradas": [
+          {
+            "prefijo": "784",
+            "buscada": "China Southern",
+            "catalogo": "CHINA SOUTHERN AIRLINES",
+            "iata": "CZ"
+          },
+          {
+            "prefijo": "112",
+            "buscada": "China Eastern / China Cargo",
+            "catalogo": "CHINA CARGO AIRLINES",
+            "iata": "CK"
+          },
+          {
+            "prefijo": "999",
+            "buscada": "Air China",
+            "catalogo": "AIR CHINA",
+            "iata": "CA"
+          },
+          {
+            "prefijo": "160",
+            "buscada": "Cathay",
+            "catalogo": "CATHAY CARGO",
+            "iata": "CX"
+          },
+          {
+            "prefijo": "297",
+            "buscada": "China Airlines",
+            "catalogo": "CHINA AIRLINES",
+            "iata": "CI"
+          },
+          {
+            "prefijo": "180",
+            "buscada": "Korean Air",
+            "catalogo": "KOREAN AIR CARGO",
+            "iata": "KE"
+          }
+        ],
+        "faltantes": []
+      },
+      "tramo Europa": {
+        "encontradas": [
+          {
+            "prefijo": "075",
+            "buscada": "Iberia",
+            "catalogo": "IBERIA AIRLINES",
+            "iata": "IB"
+          },
+          {
+            "prefijo": "057",
+            "buscada": "KLM (dentro de Air France)",
+            "catalogo": "AIR FRANCE",
+            "iata": "AF"
+          },
+          {
+            "prefijo": "074",
+            "buscada": "Air France",
+            "catalogo": "AIR FRANCE",
+            "iata": "AF"
+          },
+          {
+            "prefijo": "125",
+            "buscada": "British Airways / IAG Cargo",
+            "catalogo": "IAG CARGO",
+            "iata": "BA"
+          }
+        ],
+        "faltantes": []
+      },
+      "tramo final a SJO": {
+        "encontradas": [
+          {
+            "prefijo": "001",
+            "buscada": "American",
+            "catalogo": "AMERICAN AIRLINES",
+            "iata": "AA"
+          },
+          {
+            "prefijo": "016",
+            "buscada": "United",
+            "catalogo": "UNITED CARGO",
+            "iata": "UA"
+          },
+          {
+            "prefijo": "134",
+            "buscada": "Avianca",
+            "catalogo": "AVIANCA CARGO",
+            "iata": "AV"
+          },
+          {
+            "prefijo": "230",
+            "buscada": "Copa",
+            "catalogo": "COPA AIRLINES",
+            "iata": "CM"
+          },
+          {
+            "prefijo": "006",
+            "buscada": "Delta",
+            "catalogo": "DELTA CARGO",
+            "iata": "DL"
+          },
+          {
+            "prefijo": "045",
+            "buscada": "LATAM",
+            "catalogo": "LATAM CARGO",
+            "iata": "LA"
+          }
+        ],
+        "faltantes": []
+      }
+    },
+    "objetivos_cubiertos": 22,
+    "objetivos_faltantes": 0
+  },
+  "trackingmore_aire": {
+    "couriers_totales": 1678,
+    "por_tipo": {
+      "express": 1505,
+      "globalpost": 173
+    },
+    "sondas": [
+      {
+        "etiqueta": "GET /couriers/air",
+        "url": "https://api.trackingmore.com/v4/couriers/air",
+        "ok": false,
+        "status": 404,
+        "latencia_ms": 97,
+        "ratelimit_limit": null,
+        "ratelimit_remaining": null,
+        "existe": false
+      },
+      {
+        "etiqueta": "GET /air/couriers",
+        "url": "https://api.trackingmore.com/v4/air/couriers",
+        "ok": true,
+        "status": 200,
+        "latencia_ms": 124,
+        "ratelimit_limit": null,
+        "ratelimit_remaining": null,
+        "existe": false
+      },
+      {
+        "etiqueta": "GET /aircargo/couriers",
+        "url": "https://api.trackingmore.com/v4/aircargo/couriers",
+        "ok": true,
+        "status": 200,
+        "latencia_ms": 134,
+        "ratelimit_limit": null,
+        "ratelimit_remaining": null,
+        "existe": false
+      }
+    ],
+    "catalogo_aereo_accesible": false
+  },
+  "cuota": {
+    "shipsgo_limit": "100",
+    "shipsgo_reset_header": null,
+    "shipsgo_llamadas_sin_429": 9,
+    "shipsgo_ventana": "corta - se reinicia entre corridas, duracion exacta no publicada",
+    "trackingmore_saldo_por_api": false,
+    "trackingmore_sondas_saldo": [
+      {
+        "etiqueta": "GET /users/quota",
+        "url": "https://api.trackingmore.com/v4/users/quota",
+        "ok": true,
+        "status": 200,
+        "latencia_ms": 115,
+        "ratelimit_limit": null,
+        "ratelimit_remaining": null,
+        "existe": false
+      },
+      {
+        "etiqueta": "GET /users/info",
+        "url": "https://api.trackingmore.com/v4/users/info",
+        "ok": true,
+        "status": 200,
+        "latencia_ms": 131,
+        "ratelimit_limit": null,
+        "ratelimit_remaining": null,
+        "existe": false
+      },
+      {
+        "etiqueta": "GET /account/quota",
+        "url": "https://api.trackingmore.com/v4/account/quota",
+        "ok": true,
+        "status": 200,
+        "latencia_ms": 130,
+        "ratelimit_limit": null,
+        "ratelimit_remaining": null,
+        "existe": false
+      },
+      {
+        "etiqueta": "GET /trackings/quota",
+        "url": "https://api.trackingmore.com/v4/trackings/quota",
+        "ok": false,
+        "status": 404,
+        "latencia_ms": 97,
+        "ratelimit_limit": null,
+        "ratelimit_remaining": null,
+        "existe": false
+      }
+    ]
+  },
+  "generado": "2026-09-14T14:43:14+00:00"
+}

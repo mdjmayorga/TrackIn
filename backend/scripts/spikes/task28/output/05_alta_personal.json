@@ -1,0 +1,352 @@
+{
+  "spike": "TASK-28",
+  "fase": "3c-alta-y-poll",
+  "timestamp_utc": "2026-09-14T15:47:59+00:00",
+  "network_profile": "personal",
+  "altas": [
+    {
+      "tipo": "ocean",
+      "etiqueta": "Maersk 1",
+      "peticion": {
+        "container_number": "MRSU8507472",
+        "booking_number": "271102440"
+      },
+      "status": 200,
+      "id": 6734886,
+      "respuesta": {
+        "message": "SUCCESS",
+        "shipment": {
+          "id": 6734886,
+          "reference": null,
+          "booking_number": "271102440",
+          "container_number": "MRSU8507472"
+        }
+      },
+      "poll": {
+        "status": 200,
+        "campos_trackin": {},
+        "payload": {
+          "message": "SUCCESS",
+          "shipment": {
+            "id": 6734886,
+            "reference": null,
+            "booking_number": "271102440",
+            "container_number": "MRSU8507472",
+            "container_count": 0,
+            "carrier": {
+              "scac": "MAEU",
+              "name": "MAERSK LINE"
+            },
+            "status": "NEW",
+            "route": null,
+            "containers": [],
+            "tokens": {
+              "map": "293736d5-21ad-40df-94bf-7c4964249c24"
+            },
+            "followers": [],
+            "tags": [],
+            "creator": {
+              "name": "Mariano Mayorga",
+              "email": "mayorga.halabi@gmail.com"
+            },
+            "created_at": "2026-09-14 15:47:39",
+            "updated_at": "2026-09-14 15:47:39",
+            "checked_at": null,
+            "discarded_at": null
+          }
+        }
+      }
+    },
+    {
+      "tipo": "ocean",
+      "etiqueta": "Maersk 2",
+      "peticion": {
+        "container_number": "MRSU8132490",
+        "booking_number": "271108898"
+      },
+      "status": 200,
+      "id": 6734887,
+      "respuesta": {
+        "message": "SUCCESS",
+        "shipment": {
+          "id": 6734887,
+          "reference": null,
+          "booking_number": "271108898",
+          "container_number": "MRSU8132490"
+        }
+      },
+      "poll": {
+        "status": 200,
+        "campos_trackin": {},
+        "payload": {
+          "message": "SUCCESS",
+          "shipment": {
+            "id": 6734887,
+            "reference": null,
+            "booking_number": "271108898",
+            "container_number": "MRSU8132490",
+            "container_count": 0,
+            "carrier": {
+              "scac": "MAEU",
+              "name": "MAERSK LINE"
+            },
+            "status": "NEW",
+            "route": null,
+            "containers": [],
+            "tokens": {
+              "map": "04162b63-852c-48c8-a6ff-bc3ffa18c661"
+            },
+            "followers": [],
+            "tags": [],
+            "creator": {
+              "name": "Mariano Mayorga",
+              "email": "mayorga.halabi@gmail.com"
+            },
+            "created_at": "2026-09-14 15:47:39",
+            "updated_at": "2026-09-14 15:47:39",
+            "checked_at": null,
+            "discarded_at": null
+          }
+        }
+      }
+    },
+    {
+      "tipo": "ocean",
+      "etiqueta": "COSCO",
+      "peticion": {
+        "container_number": "TGBU4872990",
+        "booking_number": "COSU6508789000"
+      },
+      "status": 402,
+      "id": null,
+      "respuesta": {
+        "message": "NOT_ENOUGH_CREDITS"
+      }
+    },
+    {
+      "tipo": "air",
+      "etiqueta": "Lufthansa Cargo",
+      "peticion": {
+        "awb_number": "02050685434"
+      },
+      "status": 402,
+      "id": null,
+      "respuesta": {
+        "message": "NOT_ENOUGH_CREDITS"
+      }
+    }
+  ],
+  "trackingmore": {
+    "poll": {
+      "status": 200,
+      "campos_trackin": {},
+      "payload": {
+        "meta": {
+          "code": 200,
+          "message": "Request response is successful"
+        },
+        "data": [
+          {
+            "id": "a2bebc8cdb95b9e33ba627c24f735cda",
+            "tracking_number": "02050685434",
+            "courier_code": "dachser",
+            "order_number": "02050685434",
+            "order_date": null,
+            "created_at": "2026-09-14T15:48:28+00:00",
+            "update_at": "2026-09-14T15:48:29+00:00",
+            "delivery_status": "pending",
+            "archived": "tracking",
+            "updating": true,
+            "source": "API",
+            "destination_country": null,
+            "destination_state": null,
+            "destination_city": null,
+            "origin_country": null,
+            "origin_state": null,
+            "origin_city": null,
+            "tracking_postal_code": null,
+            "tracking_ship_date": null,
+            "tracking_destination_country": null,
+            "tracking_origin_country": null,
+            "tracking_key": null,
+            "tracking_courier_account": null,
+            "customer_name": null,
+            "customer_email": null,
+            "customer_sms": null,
+            "recipient_postcode": null,
+            "order_id": null,
+            "title": null,
+            "logistics_channel": null,
+            "note": null,
+            "label": null,
+            "signed_by": null,
+            "service_code": null,
+            "weight": null,
+            "weight_kg": null,
+            "product_type": null,
+            "pieces": null,
+            "dimension": null,
+            "previously": null,
+            "destination_track_number": null,
+            "exchange_number": null,
+            "scheduled_delivery_date": null,
+            "scheduled_address": null,
+            "substatus": "pending001",
+            "status_info": null,
+            "latest_event": null,
+            "latest_checkpoint_time": null,
+            "transit_time": 0,
+            "origin_info": {
+              "courier_code": "dachser",
+              "courier_phone": "+49 831 5916 0",
+              "weblink": "https://elogistics.dachser.com",
+              "tracking_link": "https://elogistics.dachser.com",
+              "reference_number": null,
+              "milestone_date": {
+                "inforeceived_date": null,
+                "pickup_date": null,
+                "outfordelivery_date": null,
+                "delivery_date": null,
+                "returning_date": null,
+                "returned_date": null
+              },
+              "pickup_date": null,
+              "departed_airport_date": null,
+              "arrived_abroad_date": null,
+              "customs_received_date": null,
+              "trackinfo": []
+            },
+            "destination_info": {
+              "courier_code": null,
+              "courier_phone": null,
+              "weblink": null,
+              "tracking_link": null,
+              "reference_number": null,
+              "milestone_date": {
+                "inforeceived_date": null,
+                "pickup_date": null,
+                "outfordelivery_date": null,
+                "delivery_date": null,
+                "returning_date": null,
+                "returned_date": null
+              },
+              "pickup_date": null,
+              "departed_airport_date": null,
+              "arrived_abroad_date": null,
+              "customs_received_date": null,
+              "trackinfo": []
+            }
+          }
+        ]
+      }
+    },
+    "detect_propuestos": [
+      "dachser",
+      "famiport",
+      "old-dominion",
+      "exapaq"
+    ],
+    "create": {
+      "ok": true,
+      "status": 200,
+      "json": {
+        "meta": {
+          "code": 200,
+          "message": "Request response is successful"
+        },
+        "data": {
+          "id": "a2bebc8cdb95b9e33ba627c24f735cda",
+          "tracking_number": "02050685434",
+          "courier_code": "dachser",
+          "order_number": "02050685434",
+          "order_date": null,
+          "created_at": "2026-09-14T15:48:28+00:00",
+          "update_at": null,
+          "delivery_status": "pending",
+          "archived": "tracking",
+          "updating": true,
+          "source": "API",
+          "destination_country": null,
+          "destination_state": null,
+          "destination_city": null,
+          "origin_country": null,
+          "origin_state": null,
+          "origin_city": null,
+          "tracking_postal_code": null,
+          "tracking_ship_date": null,
+          "tracking_destination_country": null,
+          "tracking_origin_country": null,
+          "tracking_key": null,
+          "tracking_courier_account": null,
+          "customer_name": null,
+          "customer_email": null,
+          "customer_sms": null,
+          "recipient_postcode": null,
+          "order_id": null,
+          "title": null,
+          "logistics_channel": null,
+          "note": null,
+          "label": null,
+          "signed_by": null,
+          "service_code": null,
+          "weight": null,
+          "weight_kg": null,
+          "product_type": null,
+          "pieces": null,
+          "dimension": null,
+          "previously": null,
+          "destination_track_number": null,
+          "exchange_number": null,
+          "scheduled_delivery_date": null,
+          "scheduled_address": null,
+          "substatus": "pending001",
+          "status_info": null,
+          "latest_event": null,
+          "latest_checkpoint_time": null,
+          "transit_time": 0,
+          "origin_info": {
+            "courier_code": "dachser",
+            "courier_phone": "+49 831 5916 0",
+            "weblink": "https://elogistics.dachser.com",
+            "tracking_link": "https://elogistics.dachser.com",
+            "reference_number": null,
+            "milestone_date": {
+              "inforeceived_date": null,
+              "pickup_date": null,
+              "outfordelivery_date": null,
+              "delivery_date": null,
+              "returning_date": null,
+              "returned_date": null
+            },
+            "pickup_date": null,
+            "departed_airport_date": null,
+            "arrived_abroad_date": null,
+            "customs_received_date": null,
+            "trackinfo": []
+          },
+          "destination_info": {
+            "courier_code": null,
+            "courier_phone": null,
+            "weblink": null,
+            "tracking_link": null,
+            "reference_number": null,
+            "milestone_date": {
+              "inforeceived_date": null,
+              "pickup_date": null,
+              "outfordelivery_date": null,
+              "delivery_date": null,
+              "returning_date": null,
+              "returned_date": null
+            },
+            "pickup_date": null,
+            "departed_airport_date": null,
+            "arrived_abroad_date": null,
+            "customs_received_date": null,
+            "trackinfo": []
+          }
+        }
+      }
+    }
+  },
+  "campos_presentes": []
+}

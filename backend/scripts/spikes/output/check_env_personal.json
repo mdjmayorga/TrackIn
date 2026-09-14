@@ -1,10 +1,10 @@
 {
   "spike_phase": "0-check-env",
-  "timestamp_utc": "2026-08-18T15:24:17+00:00",
+  "timestamp_utc": "2026-09-14T14:24:38+00:00",
   "network_profile": "personal",
-  "python_version": "3.13.2",
-  "env_file": "C:\\Users\\Mayorga\\OneDrive\\Documents\\TEC\\IIS2026\\Práctica\\TrackIn\\backend\\.env",
-  "env_vars_parsed": 18,
+  "python_version": "3.12.10",
+  "env_file": "C:\\Users\\m.mayorga\\Documents\\GitHub\\TrackIn\\backend\\.env",
+  "env_vars_parsed": 23,
   "aisstream": {
     "present": true,
     "length": 40,
@@ -40,6 +40,22 @@
       "issues": []
     }
   },
+  "task28": {
+    "ShipsGo": {
+      "variable_usada": "SHIPSGO_SECRET",
+      "present": true,
+      "length": 36,
+      "masked": "1131...5b87",
+      "issues": []
+    },
+    "TrackingMore": {
+      "variable_usada": "TRACKINGMORE_SECRET",
+      "present": true,
+      "length": 36,
+      "masked": "ukwi...pc7i",
+      "issues": []
+    }
+  },
   "packages": [
     {
       "module": "httpx",
@@ -60,7 +76,10 @@
       "error": null
     }
   ],
-  "warnings": [],
+  "warnings": [
+    "ShipsGo: la llave esta en SHIPSGO_SECRET. El nombre canonico de .env.example es SHIPSGO_API_TOKEN.",
+    "TrackingMore: la llave esta en TRACKINGMORE_SECRET. El nombre canonico de .env.example es TRACKINGMORE_API_KEY."
+  ],
   "blocking": [],
   "passed": true
 }

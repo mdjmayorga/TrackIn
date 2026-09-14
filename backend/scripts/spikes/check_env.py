@@ -1,5 +1,5 @@
 """
-Spike TG-10 / TG-11 - Fase 0: verificacion de entorno.
+Spike TG-10 / TG-11 / TASK-28 - Fase 0: verificacion de entorno.
 
 QUE PRUEBA
     Que el entorno local esta en condiciones de ejecutar los spikes de
@@ -20,9 +20,16 @@ VERIFICA
          - OAuth2 (actual):   OPENSKY_CLIENT_ID / OPENSKY_CLIENT_SECRET
          - Basic  (retirado): OPENSKY_USERNAME  / OPENSKY_PASSWORD
        y reporta cual esta en uso sin asumir nada.
-    4. Fallas silenciosas tipicas: espacios sobrantes, comillas envolventes
+    4. Credenciales de TASK-28 (ShipsGo y TrackingMore), aceptando LOS DOS
+       esquemas de nombres, igual que con OpenSky:
+         - Canonico (.env.example):  SHIPSGO_API_TOKEN / TRACKINGMORE_API_KEY
+         - Par ID/SECRET:            SHIPSGO_SECRET    / TRACKINGMORE_SECRET
+       Ademas describe la FORMA del valor (UUID, hex, correo) sin revelarlo,
+       porque un ID que parece correo casi nunca es la credencial del API.
+       No bloquea: TG-10 y TG-11 no dependen de estas llaves.
+    5. Fallas silenciosas tipicas: espacios sobrantes, comillas envolventes
        accidentales, caracteres de control, valores placeholder sin llenar.
-    5. Que httpx, websockets y python-dotenv importen, con su version.
+    6. Que httpx, websockets y python-dotenv importen, con su version.
 
 SEGURIDAD
     Nunca imprime un secreto completo. Solo primeros 4 + ultimos 4
@@ -60,6 +67,28 @@ PLACEHOLDERS = {
 }
 
 REQUIRED_PACKAGES = ["httpx", "websockets", "dotenv"]
+
+
+def shape(value: str) -> str:
+    """
+    Describe la FORMA de un valor sin revelarlo.
+
+    Sirve para distinguir una credencial de API de algo que no lo es: un valor
+    con arroba es un correo de acceso al panel, no la llave que viaja en el
+    header. Detectarlo aca ahorra depurar un 401 que nunca fue del API.
+    """
+    import re
+
+    if "@" in value:
+        return "parece un correo"
+    if re.fullmatch(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+                    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", value):
+        return "UUID"
+    if re.fullmatch(r"[0-9a-fA-F]+", value):
+        return "hexadecimal"
+    if re.fullmatch(r"[A-Za-z0-9]+", value):
+        return "alfanumerico"
+    return "mixto con simbolos"
 
 
 def mask(value: str) -> str:
@@ -209,8 +238,11 @@ def main() -> int:
     blocking: list[str] = []
     warnings: list[str] = []
 
+    def strip_name(d: dict) -> dict:
+        return {k: v for k, v in d.items() if k != "name"}
+
     print(SEP)
-    print(" TrackIn - Spikes TG-10 / TG-11 - Fase 0: verificacion de entorno")
+    print(" TrackIn - Spikes TG-10 / TG-11 / TASK-28 - Fase 0: verificacion de entorno")
     print(SEP)
     print("  Fecha (UTC) : " + timestamp)
     print("  Red         : " + args.network)
@@ -280,6 +312,40 @@ def main() -> int:
         blocking.append("Faltan credenciales de OpenSky: TG-11 no puede arrancar.")
 
     print(SUB)
+    print("  CREDENCIALES - TASK-28 (ShipsGo / TrackingMore)")
+    print(SUB)
+
+    # Dos esquemas de nombres, como con OpenSky. El canonico es el de
+    # .env.example; el par ID/SECRET es como quedaron pegadas el 14/09.
+    task28 = {}
+    for proveedor, canonico, alterno in (
+        ("ShipsGo", "SHIPSGO_API_TOKEN", "SHIPSGO_SECRET"),
+        ("TrackingMore", "TRACKINGMORE_API_KEY", "TRACKINGMORE_SECRET"),
+    ):
+        usado = canonico if raw.get(canonico) else alterno
+        diag = diagnose(usado, raw.get(usado))
+        print_var(diag)
+        if diag["present"]:
+            valor = (raw.get(usado) or "").strip()
+            print("  " + " " * 37 + "-> forma: " + shape(valor))
+            if usado == alterno:
+                warnings.append(
+                    proveedor + ": la llave esta en " + alterno + ". El nombre "
+                    "canonico de .env.example es " + canonico + "."
+                )
+            if "@" in valor:
+                blocking.append(
+                    proveedor + ": " + usado + " parece un correo, no una "
+                    "credencial de API. Revisar cual de los dos valores es la llave."
+                )
+        else:
+            warnings.append(
+                proveedor + ": sin credencial (" + canonico + " ni " + alterno
+                + "). TASK-28 no puede pasar de la fase 0."
+            )
+        task28[proveedor] = {"variable_usada": usado, **strip_name(diag)}
+
+    print(SUB)
     print("  DEPENDENCIAS")
     print(SUB)
     packages, packages_ok = check_packages()
@@ -309,9 +375,6 @@ def main() -> int:
         print("  Fase 0 superada. Entorno listo para la Fase 1.")
     print(SEP)
 
-    def strip_name(d: dict) -> dict:
-        return {k: v for k, v in d.items() if k != "name"}
-
     evidence = {
         "spike_phase": "0-check-env",
         "timestamp_utc": timestamp,
@@ -323,6 +386,7 @@ def main() -> int:
         "opensky_scheme": scheme,
         "opensky_oauth": {k: strip_name(d) for k, d in oauth.items()},
         "opensky_basic": {k: strip_name(d) for k, d in basic.items()},
+        "task28": task28,
         "packages": packages,
         "warnings": warnings,
         "blocking": blocking,

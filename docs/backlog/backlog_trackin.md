@@ -9,6 +9,13 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 > (aéreo). Seis decisiones más reabrieron el alcance — ver «Cambios de la reunión con
 > Planeación (04/09/2026)» al final.
 
+> **Revocado el 14/09/2026 — Vizion y Portcast quedan fuera.** Ninguno de los dos
+> proveedores respondió a la solicitud. El Plan A **se mantiene en su principio** —una
+> fuente comercial de consulta, REST, por referencia de embarque— pero cambia de
+> proveedor a **ShipsGo** (marítimo y aéreo) y **TrackingMore** (aéreo), que sí
+> entregaron llaves de prueba gratuitas. Lo que el cambio arrastra está en «La
+> bifurcación de `TASK-28`» al final.
+
 > Este archivo se genera desde un script. La justificacion de la priorizacion vive en `backlog_priorization_rationale.md`.
 
 ## Definition of Done (aplica a todo el backlog)
@@ -48,7 +55,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 ✅ | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
 | `TASK-03` | Adaptador de ingesta de pedidos con datos semilla ✅ | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
 | ~~`TASK-27`~~ | ~~Spike: suscripcion por MMSI y limite del plan gratuito de AISStream~~ ❌ **CANCELADA** (Plan A, 04/09) | Task | OE2 | — | — | ~~4h~~ 0h | Riesgo R1 |
-| `TASK-28` | Spike de **validación** de Vizion (marítimo) y Portcast (aéreo) con referencias reales | Task | OE2 | **Must** | Sprint 3 | 6h | Compra aprobada 04/09 · cotizar Vizion **Core y Professional** · terminal portuario descartado |
+| `TASK-28` | Spike de **validación** de ShipsGo (marítimo y aéreo) y TrackingMore (aéreo) | Task | OE2 | **Must** | Sprint 3 | 6h | ✅ **Decidido 14/09: ShipsGo para las dos vías.** Solo queda la cotización de costo |
 | `TASK-29` | Modelar maestro_paises y normalizar país, vía, incoterm y temperatura en la ingesta ✅ | Task | OE1 | **Must** | Sprint 3 | 6h | Muestra Z-tracking 03/09 (texto libre sucio) / RF-02 |
 | `TASK-30` | Especificar las columnas de referencia (contenedor y MAWB) que Planeación añade al Excel ✅ | Task | OE1 | **Must** | Sprint 3 | ~~3h~~ 2h | Reunión Planeación 04/09 · las entrega el archivo, no una pantalla |
 | `TASK-31` | Reponer `maestro_destinos` con los cuatro destinos reales y sus geocercas ✅ | Task | OE1 | **Must** | Sprint 3 | 4h | Reunión Planeación 04/09 (revierte «destino único» del 03/09) |
@@ -61,14 +68,14 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-05` | Consumir posiciones ADS-B desde OpenSky con OAuth2 | Story | OE2 | **Must** | Sprint 4 | 10h | RF-07 |
 | `US-06` | Resolver el icao24 de un vuelo como vinculo temporal del tramo | Story | OE2 | **Must** | Sprint 4 | 8h | RF-07 / spike TG-11 |
 | `US-07` | Planificar las consultas periodicas con frecuencia parametrizable | Story | OE2 | **Must** | Sprint 4 | 8h | RF-08 (reformulado) |
-| `US-08` | Estimar la ETA a partir de la posicion y la velocidad del buque | Story | OE2 | **Could** | Sprint 4 | 12h | RN-16 · degradada por Plan A: Vizion entrega ETA (04/09) |
+| `US-08` | Estimar la ETA a partir de la posicion y la velocidad del buque | Story | OE2 | **Could** | Sprint 4 | 12h | RN-16 · **se mantiene `Could`**: la fase 3 midió que ShipsGo entrega la ETA ya calculada (14/09) |
 | `US-09` | Calcular la fecha proyectada de disponibilidad | Story | OE2 | **Must** | Sprint 4 | 6h | RF-10 / RN-01 |
 | `US-10` | Determinar el estado logistico bajo el esquema de semaforo | Story | OE2 | **Must** | Sprint 4 | 12h | RF-11 / RN-02 a RN-11 |
 | `US-11` | Inferir el arribo a destino por geocerca de proximidad | Story | OE2 | **Must** | Sprint 4 | ~~8h~~ 4h | RN-05 · simplificada por Plan A (04/09) |
 | `US-31` | Cargar los pedidos en transito desde el archivo Z-tracking | Story | OE2 | **Must** | Sprint 4 | 14h | RF-31 carga manual (03/09) / RF-01 / CU-01 |
 | `US-32` | Validar y normalizar los datos del Z-tracking antes de persistirlos | Story | OE2 | **Must** | Sprint 4 | 10h | RF-02 / RN-17 |
-| `US-45` | Integrar Vizion: rastreo marítimo por contenedor o BL | Story | OE2 | **Must** | Sprint 4 | 12h | Plan A **confirmado** 04/09 |
-| `US-46` | Integrar Portcast: rastreo aéreo por guía aérea (MAWB) | Story | OE2 | **Must** | Sprint 4 | 10h | Plan A **confirmado** 04/09 |
+| `US-45` | Integrar la fuente marítima por contenedor o BL — **ShipsGo** | Story | OE2 | **Must** | Sprint 4 | 12h | ✅ **GO** 14/09: probado con contenedor real, entrega posición, ETA, hitos, buque, IMO y transbordo |
+| `US-46` | Integrar la fuente aérea por guía aérea (MAWB) — **ShipsGo Air** | Story | OE2 | **Must** | Sprint 4 | 10h | ✅ **GO** 14/09: MAWB real resuelto (PEK→FRA→SJO, 10 hitos CIMP). TrackingMore descartado: no tiene aerolíneas |
 | `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 |
 | `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 |
 | `US-14` | Confirmar el desembarco y **disparar el paso manual a proceso aduanal** | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 · RN-06 revisada 04/09 |
@@ -94,7 +101,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
 | `US-28` | Presentar los proximos arribos dentro del dashboard | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 |
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | 10h | RF-22 (Media en SRS) / CU-09 |
-| `US-30` | Actualizar la nave asignada ante un transbordo | Story | OE2 | **Should** | Sprint 7 | 10h | RF-26 / CU-10 |
+| `US-30` | Actualizar la nave asignada ante un transbordo | Story | OE2 | **Should** | Sprint 7 | 10h | RF-26 / CU-10 · ⚠️ **reestimar**: la fase 3 midió que ShipsGo trae el transbordo en el payload (hasta 3 naves en un envío), así que puede pasar de captura manual a detección automática |
 | `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido | Story | OE3 | **Should** | Sprint 7 | 8h | Reunión Logística 03/09 / RF-05 (ampliado) |
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` |
 | `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
@@ -773,6 +780,11 @@ buques que ya sigo, para **enriquecer el mapa entre hito e hito** de la fuente c
 >
 > Tres criterios se reescriben porque el dataset del spike los contradice, y uno porque
 > `US-03` ya construyó lo que pedía.
+>
+> **14/09/2026 — cambia el proveedor, no el papel de AIS.** Vizion quedó fuera por no
+> responder y la fuente marítima pasa a ser **ShipsGo**. AIS sigue siendo respaldo del
+> mapa. Lo que **sí** queda pendiente de `TASK-28` es confirmar que ShipsGo entrega hitos,
+> ETA y descarga: si no los entrega, la reducción de 16 h a 6 h hay que revisarla.
 
 ##### Lo que el dataset real obliga a cambiar
 
@@ -877,7 +889,8 @@ fuente que termine contratándose.
 > hablaba de un watchdog apoyado en el ping/pong del protocolo y de clasificar un cierre
 > inmediato como fallo de credencial. Eso solo aplica a AISStream.
 >
-> Vizion y Portcast —aprobados el 04/09— son **REST de consulta**, no suscripciones: no hay
+> Las fuentes comerciales —Vizion y Portcast el 04/09; **ShipsGo y TrackingMore desde el
+> 14/09**— son **REST de consulta**, no suscripciones: no hay
 > ping/pong ni cierre que interpretar, y la resiliencia son *timeouts*, reintentos con espera
 > creciente y límites de tasa. Con la especificación anterior, 8 h de un `Must` se habrían
 > construido contra el transporte que probablemente no queda.
@@ -888,7 +901,7 @@ fuente que termine contratándose.
 
 ##### Los cinco principios, y cómo se cumplen en cada transporte
 
-| # | Principio (agnóstico) | En *push* (AISStream) | En *pull* (Vizion, Portcast) |
+| # | Principio (agnóstico) | En *push* (AISStream) | En *pull* (ShipsGo, TrackingMore) |
 |---|---|---|---|
 | 1 | **El silencio no es una caída** | Lo dice el ping/pong del protocolo, no la ausencia de mensajes | Una respuesta vacía con `200` es un contacto **exitoso** |
 | 2 | **Un fallo permanente no se reintenta en bucle** | Cierre inmediato tras conectar ⇒ credencial | `401`/`403` ⇒ credencial · `404` ⇒ referencia inexistente |
@@ -1823,15 +1836,23 @@ Logística pidió, para validar la entrada y el enrutado por rol antes de constr
 ### `TASK-28` — Spike: container tracking de pago
 
 Como equipo, queremos medir la cobertura de **container tracking** de pago
-(`Vizion`, con `Terminal49` / `ShipsGo` como alternativas) en **Moín (`CRMOB`)** y de una
-fuente **aérea por AWB** (`Portcast` / `ShipsGo Air` / `TrackingMore`) en **SJO**, para
-decidir si resuelven el tramo final y el punto ciego de AIS antes de comprometer la
-arquitectura de rastreo.
+(**`ShipsGo`**) en **Moín (`CRMOB`)** y de una fuente **aérea por AWB**
+(**`ShipsGo Air`** o **`TrackingMore`**) en **SJO**, para decidir si resuelven el tramo
+final y el punto ciego de AIS antes de comprometer la arquitectura de rastreo.
+
+> **Reasignado el 14/09/2026.** `Vizion` y `Portcast` —los dos elegidos el 04/09— quedan
+> **fuera**: ninguno respondió a la solicitud. La tarea deja de validar a esos dos y pasa a
+> validar a los que sí entregaron llave de prueba gratuita, que ya estaban listados aquí
+> como alternativas desde el 03/09. El spike recupera además parte de su carácter de
+> **decisión**: aparte de validar cobertura, tiene que elegir la fuente aérea entre
+> `ShipsGo Air` y `TrackingMore`.
 
 **Criterios de aceptación**
 
+- Dada la llave de prueba, cuando la valido **sin referencia real**, entonces queda documentado el esquema de autenticación, la forma del error con credencial inválida, el costo por llamada y la respuesta ante una referencia inexistente — fase que **no depende** de datos de Gutis (14/09)
 - Dado un BL/booking/contenedor real, cuando consulto el API, entonces obtengo eventos de milestone hasta el arribo a Moín, o se documenta la ausencia de cobertura
 - Dado un **MAWB** real de India o China a SJO, cuando consulto el API aéreo, entonces obtengo los hitos de carga (no la posición de la aeronave)
+- Dadas las dos fuentes aéreas candidatas, cuando las comparo, entonces la recomendación elige **una** entre `ShipsGo Air` y `TrackingMore`, con su costo
 - Dado que el forwarder puede entregar un **HAWB**, cuando lo consulto, entonces documento si resuelve o si hace falta exigir el MAWB
 - Dado el resultado, cuando lo registro, entonces queda un `output/` con evidencia y una recomendación go/no-go y de costo, al estilo de TG-10 y TG-11
 
@@ -1874,7 +1895,7 @@ una **vista simple** (Material · Etapa · Cumplimiento) o la **vista completa**
 - Dado un rol de **Compras, Logística o Planificación**, cuando abro el dashboard, entonces veo la **vista completa** — Planificación la necesita para ejecutar el paso a proceso aduanal (corregido el 04/09)
 - Dada la **pantalla de planta** (`US-33`), cuando se abre, entonces muestra la **vista simple** con Material, Etapa y Cumplimiento, y es el único lugar donde se usa
 - Dado un rol de Compras o Logística, cuando abro el dashboard, entonces la grilla muestra la actual **más deliveries, departures, ETD y ATD**
-- Dado que ETD/ATD no vienen del Z-tracking, cuando los muestro, entonces provienen de **Vizion** en lo marítimo y de **Portcast** en lo aéreo (`US-45` / `US-46`)
+- Dado que ETD/ATD no vienen del Z-tracking, cuando los muestro, entonces provienen de la **fuente comercial** que fije `TASK-28` (`US-45` / `US-46`) — **a confirmar (14/09)**: que ShipsGo y TrackingMore los entreguen es parte de lo que el spike valida, no un hecho dado
 
 ### `US-44` — País de origen y mapa del pedido en el detalle
 
@@ -1960,9 +1981,35 @@ del envío y no solo la posición de la aeronave.
 
 ## La bifurcación de `TASK-28` — resuelta el 04/09 (Plan A)
 
-> **Cerrada.** Se aprobó la compra de **Vizion** (marítimo) y **Portcast** (aéreo). El
-> Plan B queda archivado; abajo se conserva para trazabilidad. `TASK-28` deja de decidir
-> proveedor y pasa a **validar** que ambos respondan con referencias reales.
+> **Cerrada el 04/09.** Se aprobó la compra de **Vizion** (marítimo) y **Portcast**
+> (aéreo). El Plan B queda archivado; abajo se conserva para trazabilidad. `TASK-28` deja
+> de decidir proveedor y pasa a **validar** que ambos respondan con referencias reales.
+
+### Reabierta y reasignada el 14/09/2026
+
+**Ni Vizion ni Portcast respondieron.** No hay cotización, no hay contrato y no hay
+credencial: el Plan A tal como se aprobó el 04/09 **no se puede ejecutar**.
+
+La decisión que se toma **no** es volver al Plan B —AIS gratuito como fuente primaria, que
+el spike TG-10 ya descartó por falta de cobertura en Moín— sino **mantener el Plan A y
+cambiarle el proveedor**: `ShipsGo` (marítimo y aéreo) y `TrackingMore` (aéreo), ambos con
+llave de prueba gratuita ya en mano. Las dos estaban listadas como alternativas en
+`TASK-28` desde el 03/09, así que no es un proveedor nuevo sin evaluar.
+
+**Lo que el cambio arrastra, y que hay que decidir con el resultado del spike:**
+
+| Historia | Se decidió el 04/09 porque… | Estado al 14/09 |
+|---|---|---|
+| `US-08` bajó a `Could` (−12 h de compromiso) | «Vizion ya entrega ETA» | **Reabierta.** El supuesto se cayó con el proveedor. Si ShipsGo no entrega ETA, `US-08` vuelve a ser necesaria |
+| `US-02` se redujo a respaldo (16 h → 6 h) | Vizion era la fuente marítima primaria | **A reconfirmar.** El papel de AIS no cambia, pero depende de que ShipsGo entregue hitos, ETA y descarga |
+| `US-11` se simplificó (8 h → 4 h) | El arribo lo confirmaba la fuente comercial | **A reconfirmar**, por el mismo motivo |
+| `US-43` mostraría ETD/ATD | De Vizion y Portcast | **A confirmar** que ShipsGo y TrackingMore los entreguen |
+| `US-14` se quedó en `Must` | El paso a aduanal es manual **por proceso** | **Sin cambio.** No dependía del proveedor |
+| `TASK-27` (cuota de AISStream) se canceló | AIS dejaba de ser primario | **Sin cambio** |
+
+**Las cuatro marcadas «reabierta» o «a reconfirmar» no se reestiman todavía**: la
+información que falta la produce el propio spike. Se reestiman cuando `TASK-28` cierre, y
+antes de planificar el Sprint 4.
 
 ### Plan A — aplicado
 
@@ -1986,10 +2033,16 @@ cambio de etapa sigue siendo una persona. La historia cambia de justificación, 
 
 Ya no elige proveedor. Valida, antes de que cierre el Sprint 3:
 
-1. ¿**Vizion** devuelve hitos hasta la descarga con un contenedor o BL real de Gutis?
-2. ¿**Portcast** cubre las aerolíneas del tramo India/China → SJO con un MAWB real?
-3. ¿Hay **cobertura en Caldera**? Está en el **Pacífico** y el spike TG-10 solo evaluó el
-   Caribe. **Es la pregunta nueva del 04/09 y no tiene respuesta previa.**
+1. ¿**ShipsGo** devuelve hitos hasta la descarga con un contenedor o BL real de Gutis?
+2. ¿**ShipsGo Air** o **TrackingMore** cubren las aerolíneas del tramo India/China → SJO
+   con un MAWB real, y cuál de los dos se queda?
+3. ~~¿Hay **cobertura en Caldera**?~~ ✅ **RESPONDIDA el 14/09.** **No hay.** Y no es un
+   hueco de Caldera: el feed gratuito de AISStream **no cubre el Pacífico oriental**. Cero
+   buques en Caldera, en el Golfo de Nicoya y en Balboa —la entrada pacífica del Canal—
+   mientras el Caribe rendía 254 mensajes con la misma llave en los mismos 3 minutos.
+   Detalle y evidencia en [`api-references.md`](../api-references.md#cobertura-ais-en-el-pacífico-puerto-caldera--medido-el-14092026).
+   **Consecuencia:** `US-11` no es viable por AIS gratuito en **ningún** puerto, y `US-14`
+   queda como el único mecanismo de arribo marítimo en los cuatro destinos.
 4. ¿Con **cuántos días de antelación** al arribo llega la referencia en el archivo?
 
 **La cuarta sigue mandando.** Si la referencia llega tres días antes de que la carga
@@ -2440,8 +2493,8 @@ Planeación las va a incluir: **número de contenedor y MAWB**. Cambia el diseñ
   se asocia en la ingesta. La pantalla manual queda como **excepción** para lo que no
   resuelva (6 h → 4 h).
 
-Es el desbloqueo más importante del Sprint 3: sin referencia, ni Vizion ni Portcast devuelven
-nada.
+Es el desbloqueo más importante del Sprint 3: sin referencia, **ninguna fuente comercial**
+devuelve nada.
 
 ---
 
@@ -2635,7 +2688,8 @@ sesión con `pg_ctl -D "$HOME/pgsql/data" -l "$HOME/pgsql/server.log" start`.
 
 ### Pendiente de esta semana
 
-- `TASK-28` — el spike de Vizion y Portcast, a la espera de las credenciales de prueba.
+- `TASK-28` — el spike de **ShipsGo y TrackingMore**. Vizion y Portcast quedaron fuera el
+  14/09 por no responder; las llaves de prueba de los sustitutos **ya están**.
 
 ### `TASK-03` — cómo quedó la ingesta
 
