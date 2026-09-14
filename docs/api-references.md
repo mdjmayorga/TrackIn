@@ -1398,7 +1398,77 @@ más para que `historial_tracking` guarde el payload completo (RNF-13).
 
 ---
 
-#### Recomendación provisional
+#### Modelo de cobro: qué consume un crédito (14/09/2026)
+
+Medido agotando dos trials de 3 créditos cada uno.
+
+##### El alta es idempotente por referencia — y no vuelve a cobrar
+
+Repetir el alta de una referencia ya registrada devuelve **`409 ALREADY_EXISTS`
+con el embarque existente**, sin crear nada y **sin descontar crédito**:
+
+```
+POST /ocean/shipments  {"booking_number": "COSU6508789000"}
+409 {"message":"ALREADY_EXISTS","shipment":{"id":6734941, …}}
+```
+
+> **Para `US-45` y para `resiliencia.clasificar()`:** un `409` **no es un fallo**.
+> Es «ya está registrado, aquí tienes el id». Y tiene una consecuencia
+> presupuestaria concreta: si un alta se corta por *timeout*, el adaptador no
+> sabe si prosperó — **reintentarla es seguro y gratis**. Sin esta garantía
+> habría que llevar un registro propio de «qué ya registré» solo para no pagar
+> dos veces.
+
+##### Un BL se da de alta sin enumerar contenedores
+
+Basta el `booking_number`; ShipsGo resuelve los contenedores solo:
+
+```
+POST /ocean/shipments  {"booking_number": "271102440"}
+→ container_count: 1, containers: [ MRSU8507472 · 40 HC ]
+```
+
+##### La unidad de cobro es el embarque, no el contenedor
+
+Los créditos se descuentan **por registro de embarque creado**. El modelo de
+datos pone los contenedores *dentro* del embarque (`container_count` y
+`containers[]` son campos del shipment), y dar de alta por BL los trae todos en
+un solo registro.
+
+> **`1 BL = 1 crédito`, confirmado por ShipsGo el 14/09/2026**, sin importar
+> cuántos contenedores ampare. El spike lo había inferido de la estructura del
+> API; el proveedor lo confirmó por escrito. No hizo falta gastar un crédito en
+> medirlo.
+
+**Lo que esto elimina:** la duda entre cobrar por embarque y cobrar por
+contenedor era la mayor fuente de incertidumbre del presupuesto — valía unos
+400 USD al año. Queda cerrada.
+
+**Lo que queda abierto** es una incertidumbre distinta y menor: **cuántos BL
+genera una orden**. Una OC partida en dos entregas produce dos BL y por tanto dos
+créditos. En la muestra, **71 % de las OCs internacionales tienen una sola
+línea**, así que el reparto es la excepción y no la regla.
+
+##### Consecuencia para el presupuesto
+
+Con `1 BL = 1 crédito`, el consumo anual se calcula sobre **embarques**, no
+sobre líneas de orden. Partiendo de 117 OCs internacionales rastreables y una
+rotación de 2,64 vueltas al año (lead time medido de 138 días):
+
+| Escenario | Créditos/año | Costo |
+|---|---|---|
+| Piso — 1 BL por orden | 309 | 619 USD |
+| **Base** — +10 % órdenes partidas, +10 % merma | **374** | **749 USD** |
+| Techo — +25 % partidas, +15 % merma | 446 | 891 USD |
+
+La **merma** no es teórica: ShipsGo cobra por referencias que no puede resolver
+—medido con `XXXX0000000`— y los HAWB que entrega el agente de carga se cuelan
+hasta que Logística exija el MAWB. El validador local de `US-32` la reduce, no
+la elimina.
+
+---
+
+### Conclusión: **VIABLE — ShipsGo para las dos vías**
 
 **`ShipsGo` para las dos vías: go.** Probado con tres embarques marítimos de dos
 navieras y una guía aérea real. Entrega todo lo que `US-45` y `US-46` necesitan,
@@ -1407,9 +1477,19 @@ más el transbordo que `US-30` iba a capturar a mano.
 **`TrackingMore` queda descartado.** Su catálogo no tiene aerolíneas y con el
 mismo MAWB se quedó en `pending` bajo un courier que no podía resolverlo.
 
-**Costo:** pendiente de cotización. El trial no lo revela, ShipsGo no expone
-saldo por API, y **el trial gratuito son 3 altas**. Es el único punto que sigue
-sin respuesta antes de comprometer presupuesto.
+**Costo:** **2 USD por crédito**, y los créditos **vencen un año después de la
+compra** (cotización del 14/09). El trial gratuito son **3 altas por cuenta** y
+ShipsGo no expone saldo por API: el consumo se sigue por el listado de
+embarques.
+
+Con `1 BL = 1 crédito` confirmado y el volumen estimado desde el Z-tracking
+—117 de 119 OCs internacionales rastreables, lead time de 138 días, 2,64 vueltas
+al año— el consumo ronda los **374 créditos anuales (~750 USD)**, en un rango de
+309 a 446.
+
+**El vencimiento anual desaconseja comprar antes del arranque:** la ventana corre
+desde la compra, y con producción prevista para diciembre se perderían ~2,6 meses
+(92 créditos, 185 USD, si se comprasen 400 de golpe hoy).
 
 ---
 

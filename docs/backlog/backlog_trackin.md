@@ -55,7 +55,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-02` | Habilitar PostGIS y columna geometrica WGS 84 ✅ | Task | OE4 | **Must** | Sprint 3 | 4h | SRS 8.6 / RNF-20 |
 | `TASK-03` | Adaptador de ingesta de pedidos con datos semilla ✅ | Task | OE2 | **Must** | Sprint 3 | 8h | Habilitador de RF-01 |
 | ~~`TASK-27`~~ | ~~Spike: suscripcion por MMSI y limite del plan gratuito de AISStream~~ ❌ **CANCELADA** (Plan A, 04/09) | Task | OE2 | — | — | ~~4h~~ 0h | Riesgo R1 |
-| `TASK-28` | Spike de **validación** de ShipsGo (marítimo y aéreo) y TrackingMore (aéreo) | Task | OE2 | **Must** | Sprint 3 | 6h | ✅ **Decidido 14/09: ShipsGo para las dos vías.** Solo queda la cotización de costo |
+| `TASK-28` | Spike de **validación** de ShipsGo (marítimo y aéreo) y TrackingMore (aéreo) ✅ | Task | OE2 | **Must** | Sprint 3 | 6h | Cerrada 14/09: **ShipsGo para las dos vías**, US$2/crédito, ~US$750/año. Los seis criterios cumplidos |
 | `TASK-29` | Modelar maestro_paises y normalizar país, vía, incoterm y temperatura en la ingesta ✅ | Task | OE1 | **Must** | Sprint 3 | 6h | Muestra Z-tracking 03/09 (texto libre sucio) / RF-02 |
 | `TASK-30` | Especificar las columnas de referencia (contenedor y MAWB) que Planeación añade al Excel ✅ | Task | OE1 | **Must** | Sprint 3 | ~~3h~~ 2h | Reunión Planeación 04/09 · las entrega el archivo, no una pantalla |
 | `TASK-31` | Reponer `maestro_destinos` con los cuatro destinos reales y sus geocercas ✅ | Task | OE1 | **Must** | Sprint 3 | 4h | Reunión Planeación 04/09 (revierte «destino único» del 03/09) |
