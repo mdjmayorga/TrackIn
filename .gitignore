@@ -165,3 +165,8 @@ logs/
 *.log
 tmp/
 .cache/
+
+# Spike TASK-28: referencias reales de embarques de Gutis y respuestas crudas
+# de los proveedores. La evidencia versionada guarda solo resúmenes enmascarados.
+backend/scripts/spikes/referencias.json
+backend/scripts/spikes/**/output/raw/

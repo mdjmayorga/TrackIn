@@ -1,0 +1,47 @@
+{
+  "_instrucciones": [
+    "Copiar a referencias.json (ignorado por git) y reemplazar los <...> por referencias reales.",
+    "via: MARITIMO o AEREO. tipo: CONTENEDOR, BL o BOOKING en maritimo; MAWB o HAWB en aereo.",
+    "destino (MOIN, LIMON, CALDERA, SJO) y transportista son opcionales, pero ayudan a leer la evidencia.",
+    "transportista: el SCAC de 4 letras de la naviera si se conoce (MAEU, MSCU, CMDU...). Si no, dejarlo vacio y el proveedor lo detecta.",
+    "Las entradas que sigan con <...> se ignoran, asi que se puede llenar de a poco."
+  ],
+  "referencias": [
+    {
+      "alias": "mar-moin-1",
+      "via": "MARITIMO",
+      "tipo": "CONTENEDOR",
+      "numero": "<CONTENEDOR>",
+      "destino": "MOIN",
+      "transportista": "",
+      "notas": ""
+    },
+    {
+      "alias": "mar-caldera-1",
+      "via": "MARITIMO",
+      "tipo": "CONTENEDOR",
+      "numero": "<CONTENEDOR>",
+      "destino": "CALDERA",
+      "transportista": "",
+      "notas": "Solo si hay algun embarque entrando por el Pacifico"
+    },
+    {
+      "alias": "aereo-sjo-1",
+      "via": "AEREO",
+      "tipo": "MAWB",
+      "numero": "<MAWB>",
+      "destino": "SJO",
+      "transportista": "",
+      "notas": ""
+    },
+    {
+      "alias": "aereo-hawb-1",
+      "via": "AEREO",
+      "tipo": "HAWB",
+      "numero": "<HAWB>",
+      "destino": "SJO",
+      "transportista": "",
+      "notas": "Para comprobar que el HAWB del agente no resuelve (tercer criterio de TASK-28)"
+    }
+  ]
+}
