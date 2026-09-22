@@ -72,6 +72,15 @@ jobs:
         run: mypy app
         continue-on-error: true # se vuelve bloqueante cuando existan modelos
 
+      # Las pruebas marcadas `integration` corren contra la base real, no contra
+      # un doble: verifican distancias de PostGIS y los CHECK que implementan
+      # RN-02, RN-10 y RN-13. Sin este paso el contenedor de Postgres arranca
+      # vacío y todas fallan con `relation "..." does not exist`.
+      # `0001` crea las extensiones y `0002`-`0004` siembran países, destinos y
+      # parámetros, así que `upgrade head` deja la base lista por sí solo.
+      - name: Migraciones (alembic)
+        run: alembic upgrade head
+
       - name: Tests
         run: pytest
 
