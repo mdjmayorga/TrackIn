@@ -5,11 +5,18 @@
     python scripts/cargar_semilla.py --limpiar  # borra los pedidos antes de cargar
 
 `TASK-03`. La fuente sale de `INGESTA_ADAPTADOR` del `.env`, así que este mismo
-script cargará el Z-tracking real cuando `US-31` registre su adaptador: no
-menciona la semilla en ninguna parte salvo en su nombre.
+script carga el Z-tracking real desde que `US-31` registró su adaptador
+(`INGESTA_ADAPTADOR=ztracking` más `ZTRACKING_RUTA`): no menciona la semilla en
+ninguna parte salvo en su nombre, que conviene cambiar cuando toque.
 
 **Es idempotente.** La clave natural es `(oc_numero, posicion_oc)` y una línea
-ya presente se omite. Correrlo dos veces seguidas no duplica nada.
+ya presente se **actualiza** con lo que traiga el archivo, sin tocar el estado
+calculado ni lo confirmado a mano. Correrlo dos veces seguidas no duplica nada
+y la segunda vez no cambia nada.
+
+Lo que estaba en la base y no vino en el archivo se marca para revisión y **no
+se borra** (`US-31`). `--sin-ausentes` desactiva esa marca para cargas
+parciales, donde el archivo no es el universo completo de pedidos vivos.
 
 `--limpiar` existe para dejar la base en un estado conocido antes de una
 demostración. Borra `pedidos_transito` y `elementos_rastreados`; **no toca los
@@ -71,6 +78,27 @@ def _silenciar_eco_sql() -> None:
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 
+def _resumir_rechazos(rechazadas, tope: int = 15) -> list[str]:
+    """Agrupa por motivo y lista un puñado de ejemplos de cada uno.
+
+    Contra el archivo real los rechazos se cuentan por centenares —la mayoría
+    de las líneas no traen vía de transporte—, y volcarlos uno por uno tapa el
+    resto del informe. El motivo con su cuenta es lo accionable; los ejemplos
+    solo sirven para ir a buscar la línea.
+    """
+    por_motivo: dict[str, list[str]] = {}
+    for linea in rechazadas:
+        por_motivo.setdefault(linea.motivo, []).append(str(linea))
+
+    salida: list[str] = []
+    for motivo, lineas in sorted(por_motivo.items(), key=lambda par: -len(par[1])):
+        salida.append(f"{motivo}: {len(lineas)} líneas")
+        salida.extend(f"    {linea}" for linea in lineas[:tope])
+        if len(lineas) > tope:
+            salida.append(f"    … y {len(lineas) - tope} más")
+    return salida
+
+
 async def _mostrar_estado(sesion) -> None:
     """Qué hay hoy en la base, por vía y por etapa."""
     total = await sesion.scalar(select(func.count()).select_from(PedidoTransito))
@@ -123,7 +151,7 @@ async def _mostrar_pedidos(sesion) -> None:
         )
 
 
-async def principal(*, limpiar: bool, solo_resumen: bool) -> int:
+async def principal(*, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool) -> int:
     """Todo el trabajo, y el cierre del pool, dentro del **mismo** event loop.
 
     Una conexión de asyncpg queda atada al loop donde se abrió. Cerrar el pool
@@ -132,12 +160,14 @@ async def principal(*, limpiar: bool, solo_resumen: bool) -> int:
     que `tests/conftest.py` ya documenta para las fixtures.
     """
     try:
-        return await _ejecutar(limpiar=limpiar, solo_resumen=solo_resumen)
+        return await _ejecutar(
+            limpiar=limpiar, solo_resumen=solo_resumen, senalar_ausentes=senalar_ausentes
+        )
     finally:
         await dispose_engine()
 
 
-async def _ejecutar(*, limpiar: bool, solo_resumen: bool) -> int:
+async def _ejecutar(*, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool) -> int:
     fuente = obtener_fuente()
     if fuente is None:
         print(
@@ -166,15 +196,25 @@ async def _ejecutar(*, limpiar: bool, solo_resumen: bool) -> int:
             await sesion.execute(delete(ElementoRastreado))
             print(f"\n--limpiar: {borrados.rowcount} pedidos eliminados.")
 
-        resultado = await cargar(sesion, fuente)
+        resultado = await cargar(sesion, fuente, señalar_ausentes=senalar_ausentes)
         await sesion.commit()
 
+        # Los cuatro números del tercer criterio de US-31, más lo que el propio
+        # archivo no dejó ni llegar a línea.
         print(
-            f"\nLeídas {resultado.leidas} líneas: "
-            f"{resultado.cargados} cargadas, "
-            f"{resultado.omitidos} ya estaban, "
-            f"{len(resultado.rechazadas)} rechazadas."
+            f"\n  Recibidas    : {resultado.leidas}"
+            f"\n  Insertadas   : {resultado.cargados}"
+            f"\n  Actualizadas : {resultado.actualizados}"
+            f"\n  Sin cambios  : {resultado.sin_cambios}"
+            f"\n  Rechazadas   : {len(resultado.rechazadas)}"
         )
+        if resultado.reaparecidos:
+            print(f"  Reaparecidas : {resultado.reaparecidos} (estaban marcadas ausentes)")
+        if resultado.cerrados_omitidos:
+            print(
+                f"  Cerradas     : {resultado.cerrados_omitidos} "
+                "(volvieron al archivo; se dejan intactas, revisar a mano)"
+            )
 
         if resultado.cargados:
             print(
@@ -183,12 +223,30 @@ async def _ejecutar(*, limpiar: bool, solo_resumen: bool) -> int:
                 f"\n  Sin referencia (SIN_TRACKING)      : {resultado.sin_tracking}"
             )
 
+        # Filas que la fuente no pudo ni convertir en línea. No todas las
+        # fuentes las exponen: la semilla no tiene archivo que leer.
+        ilegibles = getattr(fuente, "ilegibles", [])
+        if ilegibles:
+            print(f"\nFilas ilegibles del archivo ({len(ilegibles)}) — no llegaron a línea:")
+            for fila in ilegibles:
+                print(f"  · {fila}")
+
         if resultado.rechazadas:
             # Se listan siempre: una línea que no entró y nadie ve es peor que
             # una carga que falla (RN-17).
             print("\nLíneas rechazadas — RN-17: la carga sigue, pero quedan a la vista:")
-            for linea in resultado.rechazadas:
+            for linea in _resumir_rechazos(resultado.rechazadas):
                 print(f"  · {linea}")
+
+        if resultado.ausentes:
+            print(
+                f"\nDejaron de figurar en el archivo ({len(resultado.ausentes)}) — "
+                "marcadas para revisión manual, NO borradas:"
+            )
+            for oc, posicion in resultado.ausentes[:20]:
+                print(f"  · {oc}-{posicion}")
+            if len(resultado.ausentes) > 20:
+                print(f"  … y {len(resultado.ausentes) - 20} más")
 
         await _mostrar_estado(sesion)
         await _mostrar_pedidos(sesion)
@@ -210,11 +268,25 @@ def main() -> int:
         action="store_true",
         help="Solo muestra lo que hay en la base, sin escribir nada.",
     )
+    analizador.add_argument(
+        "--sin-ausentes",
+        action="store_true",
+        help=(
+            "No marca como ausentes los pedidos que no vengan en el archivo. "
+            "Para cargas parciales, donde el archivo no es el universo completo."
+        ),
+    )
     argumentos = analizador.parse_args()
     _forzar_salida_utf8()
     _silenciar_eco_sql()
 
-    return asyncio.run(principal(limpiar=argumentos.limpiar, solo_resumen=argumentos.resumen))
+    return asyncio.run(
+        principal(
+            limpiar=argumentos.limpiar,
+            solo_resumen=argumentos.resumen,
+            senalar_ausentes=not argumentos.sin_ausentes,
+        )
+    )
 
 
 if __name__ == "__main__":

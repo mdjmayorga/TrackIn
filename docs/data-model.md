@@ -118,6 +118,8 @@ erDiagram
         timestamptz fecha_recepcion_planta         "RF-25"
         numeric     cantidad_recibida              "RN-10"
         varchar     motivo_cierre                  "CHECK NULL, RN-13"
+        timestamptz fecha_ultima_carga             "US-31"
+        timestamptz ausente_desde                  "NULL = presente, US-31"
         timestamptz creado_en
         timestamptz actualizado_en
     }
@@ -363,6 +365,24 @@ explícitamente no proyecta.
 | `fecha_recepcion_planta` | `TIMESTAMPTZ` | sí | §8.2 |
 | `cantidad_recibida` | `NUMERIC(14,3)` | sí | §8.2 |
 | `motivo_cierre` | `VARCHAR(25)` | sí | §8.2 |
+
+#### Presencia en la carga (`US-31`)
+
+| Campo | Tipo | Nulo | Origen |
+|---|---|---|---|
+| `fecha_ultima_carga` | `TIMESTAMPTZ` | sí | `US-31` |
+| `ausente_desde` | `TIMESTAMPTZ` | sí | `US-31` |
+
+El segundo criterio de `US-31` pide **señalar para revisión manual** la línea que
+deja de figurar en el archivo, y **no eliminarla**. Hacen falta dos columnas y no
+un booleano: «falta desde ayer» —un archivo recortado por error— y «falta desde
+hace tres semanas» son la diferencia entre investigar y archivar, y un `true` no
+distingue las dos.
+
+No se borra porque un pedido que desaparece del archivo casi nunca dejó de
+existir: es una línea cerrada en SAP, una exportación con otro filtro o una hoja
+recortada. Borrarlo destruiría su `historial_tracking`, que es inmutable por
+RNF-13, y haría indistinguible un cierre legítimo de un error de exportación.
 
 #### Auditoría de fila
 

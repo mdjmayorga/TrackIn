@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # app/core/config.py -> app/core -> app -> backend/
@@ -68,13 +68,26 @@ class Settings(BaseSettings):
     OPENSKY_USERNAME: str | None = None
     OPENSKY_PASSWORD: str | None = None
 
-    # --- Ingesta de pedidos (TASK-03) ---------------------------------------
+    # --- Ingesta de pedidos (TASK-03 / US-31) -------------------------------
     # Fuente desde la que entran las líneas de orden de compra.
-    #   semilla → datos de ejemplo en memoria, para desarrollo y demostración.
-    #   ninguno → sin fuente. Es un valor válido, no un error: el sistema
-    #             arranca igual y lo reporta en el healthcheck.
-    # `US-31` añadirá `ztracking` cuando exista la carga del archivo.
-    INGESTA_ADAPTADOR: Literal["semilla", "ninguno"] = "semilla"
+    #   ztracking → el archivo de Logística. Vía **oficial** desde el 03/09/2026
+    #               (RF-31). Exige ZTRACKING_RUTA.
+    #   semilla   → datos de ejemplo en memoria, para desarrollo y demostración.
+    #   ninguno   → sin fuente. Es un valor válido, no un error: el sistema
+    #               arranca igual y lo reporta en el healthcheck.
+    #
+    # **Este `Literal` es la autoridad sobre qué nombres existen** (decisión del
+    # 22/09/2026, que resuelve la contradicción detectada el 08/09 entre esta
+    # validación y las ramas defensivas de `ingesta.registro`). Una errata en la
+    # variable de entorno **impide arrancar**, en vez de degradar en silencio a
+    # «sin fuente»: un sistema que arranca sin fuente de pedidos por un typo
+    # parece sano y no lo está, y el healthcheck reportaría «sin fuente» como si
+    # fuera la configuración deseada.
+    INGESTA_ADAPTADOR: Literal["ztracking", "semilla", "ninguno"] = "semilla"
+
+    # Ruta del archivo Z-tracking. Obligatoria si INGESTA_ADAPTADOR=ztracking,
+    # por el mismo criterio: la configuración incompleta se detiene al arrancar.
+    ZTRACKING_RUTA: Path | None = None
 
     # --- Derivados ----------------------------------------------------------
     @computed_field  # type: ignore[prop-decorator]
@@ -98,6 +111,22 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
+
+    # --- Validación cruzada -------------------------------------------------
+    @model_validator(mode="after")
+    def _ztracking_exige_ruta(self) -> Settings:
+        """`ztracking` sin ruta es configuración incompleta, no un arranque degradado.
+
+        Mismo criterio que el `Literal` de `INGESTA_ADAPTADOR`: la configuración
+        que no se puede cumplir detiene el arranque en vez de dejar el sistema
+        en pie sin fuente de pedidos, que es un fallo silencioso.
+        """
+        if self.INGESTA_ADAPTADOR == "ztracking" and self.ZTRACKING_RUTA is None:
+            raise ValueError(
+                "INGESTA_ADAPTADOR='ztracking' exige ZTRACKING_RUTA: "
+                "indique la ruta del archivo Z-tracking de Logística."
+            )
+        return self
 
 
 @lru_cache

@@ -181,6 +181,17 @@ class PedidoTransito(Base, TimestampMixin):
     cantidad_recibida: Mapped[Decimal | None] = mapped_column(Numeric(14, 3), nullable=True)
     motivo_cierre: Mapped[str | None] = mapped_column(String(25), nullable=True)
 
+    # --- Presencia en la carga (US-31) --------------------------------------
+    #: Cuándo se vio por última vez en un archivo, y desde cuándo dejó de venir.
+    #: `ausente_desde IS NULL` significa presente; el segundo criterio de
+    #: `US-31` exige señalar la ausencia, nunca borrar la línea.
+    fecha_ultima_carga: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ausente_desde: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # --- Relaciones ---------------------------------------------------------
     proveedor: Mapped[Proveedor] = relationship()  # noqa: F821
     material: Mapped[Material] = relationship()  # noqa: F821

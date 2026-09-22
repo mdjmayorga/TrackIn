@@ -67,8 +67,10 @@ línea, no la orden: ver [`data-model.md` §1.1](data-model.md).
 | 23 | `fecha_recepcion_planta` | `TIMESTAMPTZ` | sí | | Instante UTC | Ingreso efectivo a planta o almacén (RF-25). Obligatorio cuando `motivo_cierre = 'RECEPCION_CONFORME'`. |
 | 24 | `cantidad_recibida` | `NUMERIC(14,3)` | sí | | `>= 0` (`ck_pedidos_transito_cantidad_recibida`) | Cantidad efectivamente recibida. RN-10 la compara con `cantidad_pedida` dentro del margen de tolerancia, que **no** está en el esquema sino en `parametros_sistema`. |
 | 25 | `motivo_cierre` | `VARCHAR(25)` | sí | | `RECEPCION_CONFORME` · `CIERRE_FORZADO` · `CANCELACION`, o `NULL` (`ck_pedidos_transito_motivo_cierre`) | Causa del estado terminal según RN-13. `NULL` equivale a pedido vivo, y es la condición que usan los índices parciales del dashboard. |
-| 26 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. Metadato técnico: **no** sustituye a la auditoría de RF-14. |
-| 27 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación de la fila. Metadato técnico. |
+| 26 | `fecha_ultima_carga` | `TIMESTAMPTZ` | sí | | Instante UTC | Última vez que la línea vino en un archivo de carga (`US-31`). `NULL` distingue «nunca entró por una carga» de «entró alguna vez», y es lo que impide que `marcar_ausentes` toque filas que no son de esa fuente. |
+| 27 | `ausente_desde` | `TIMESTAMPTZ` | sí | | Instante UTC | Desde cuándo dejó de figurar en el archivo; `NULL` significa presente. Es la marca de revisión manual del segundo criterio de `US-31`, y la condición del índice parcial `ix_pedidos_transito_ausentes`. No se reescribe en cargas sucesivas: perder *desde cuándo* falta sería perder lo único accionable. |
+| 28 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. Metadato técnico: **no** sustituye a la auditoría de RF-14. |
+| 29 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación de la fila. Metadato técnico. |
 
 ### 1.2 Restricciones de tabla
 

@@ -2,21 +2,28 @@
 
 Este módulo es el único que conoce las implementaciones concretas de
 `FuentePedidos`; todo lo demás depende del puerto. Es también el patrón sobre el
-que van a montarse las fuentes de rastreo (`US-45` Vizion, `US-46` Portcast),
+que van a montarse las fuentes de rastreo (`US-45` y `US-46`, ambas ShipsGo),
 así que conviene fijar su contrato por pruebas antes de replicarlo.
 
-**Ojo con dónde vive la validación.** `Settings.INGESTA_ADAPTADOR` es un
-`Literal["semilla", "ninguno"]`: pydantic rechaza cualquier otro valor al
-construir el objeto, de modo que las ramas defensivas de `obtener_fuente`
-—nombre desconocido, mayúsculas, cadena vacía— **no son alcanzables** por la vía
-normal. Se prueban igual con un doble, porque siguen siendo el contrato del
-módulo y `US-31` va a ampliar el `Literal` con `ztracking`.
+**Dónde vive la validación — decidido el 22/09/2026: manda el `Literal`.**
+`Settings.INGESTA_ADAPTADOR` es un `Literal["ztracking", "semilla", "ninguno"]`
+y pydantic rechaza cualquier otro valor al construir el objeto, de modo que las
+ramas defensivas de `obtener_fuente` —nombre desconocido, mayúsculas, cadena
+vacía— **no son alcanzables** por la vía normal. Se prueban igual con un doble,
+porque siguen siendo el contrato del módulo cuando se le pasa una configuración
+construida a mano.
+
+La razón de que mande el `Literal`: «sin fuente» es un estado legítimo, y por
+eso mismo no puede ser también lo que produce un typo. Si `ztraking` degradara,
+el healthcheck diría lo mismo que una instalación configurada a propósito sin
+fuente.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 
@@ -24,11 +31,23 @@ from app.core.config import Settings
 from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.registro import _FUENTES, obtener_fuente
 from app.services.ingesta.semilla import FuenteSemilla
+from app.services.ingesta.ztracking import FuenteZTracking
+
+#: Ruta cualquiera: construir la fuente no abre el archivo, solo lo recuerda.
+_RUTA_ZT = Path("docs/analisis/2026-Agosto-WK36.xlsx")
 
 
-def _config(adaptador: str = "semilla", entorno: str = "development") -> Settings:
+def _config(
+    adaptador: str = "semilla",
+    entorno: str = "development",
+    ruta: Path | None = None,
+) -> Settings:
     """Settings aislado, sin depender del `.env` de la máquina."""
-    return Settings(INGESTA_ADAPTADOR=adaptador, ENVIRONMENT=entorno)
+    return Settings(
+        INGESTA_ADAPTADOR=adaptador,
+        ENVIRONMENT=entorno,
+        ZTRACKING_RUTA=ruta or (_RUTA_ZT if adaptador == "ztracking" else None),
+    )
 
 
 @dataclass
@@ -41,6 +60,7 @@ class _ConfigLibre:
 
     INGESTA_ADAPTADOR: str
     is_production: bool = False
+    ZTRACKING_RUTA: Path | None = None
 
 
 # --- El contrato real, el que se alcanza vía Settings ----------------------
@@ -70,15 +90,47 @@ def test_cada_llamada_construye_una_instancia_nueva() -> None:
 def test_todo_lo_registrado_construye_una_fuente_valida() -> None:
     """Invariante del registro: ninguna entrada puede estar rota."""
     for nombre, constructor in _FUENTES.items():
-        assert isinstance(constructor(), FuentePedidos), f"{nombre} no cumple el puerto"
+        fuente = constructor(_config(nombre))
+        assert isinstance(fuente, FuentePedidos), f"{nombre} no cumple el puerto"
+
+
+def test_cada_nombre_registrado_existe_en_el_literal() -> None:
+    """El `Literal` es la autoridad: registrar una fuente sin declararla ahí la
+    vuelve inalcanzable, y el error aparecería como «adaptador desconocido»."""
+    admitidos = set(Settings.model_fields["INGESTA_ADAPTADOR"].annotation.__args__)  # type: ignore[union-attr]
+    assert set(_FUENTES) <= admitidos
+
+
+# --- La fuente del archivo (US-31) -----------------------------------------
+
+
+def test_devuelve_la_fuente_ztracking() -> None:
+    fuente = obtener_fuente(_config("ztracking"))
+    assert isinstance(fuente, FuenteZTracking)
+    assert fuente.ruta == _RUTA_ZT
+
+
+def test_ztracking_sin_ruta_no_arranca() -> None:
+    """Configuración incompleta detiene el arranque, igual que una errata.
+
+    Un `ztracking` sin archivo que leer no es una instalación «sin fuente»: es
+    una instalación mal configurada, y el healthcheck no debe confundirlas.
+    """
+    with pytest.raises(ValueError, match="ZTRACKING_RUTA"):
+        Settings(INGESTA_ADAPTADOR="ztracking", ZTRACKING_RUTA=None)
+
+
+def test_la_ruta_sobra_si_el_adaptador_es_otro() -> None:
+    """Dejarla puesta al volver a la semilla no es un error."""
+    assert isinstance(obtener_fuente(_config("semilla", ruta=_RUTA_ZT)), FuenteSemilla)
 
 
 @pytest.mark.parametrize("invalido", ["ztraking", "SEMILLA", "", "none", "inexistente"])
 def test_settings_rechaza_los_adaptadores_que_no_existen(invalido: str) -> None:
     """La errata se detiene en la configuración, no en el registro.
 
-    Documenta el comportamiento real: un valor mal escrito **impide arrancar**,
-    en lugar de degradar a «sin fuente» como sugiere el docstring del módulo.
+    Decisión del 22/09/2026: manda el `Literal`. Un valor mal escrito **impide
+    arrancar** en vez de degradar a «sin fuente», que es un fallo silencioso.
     """
     with pytest.raises(ValueError):
         _config(invalido)

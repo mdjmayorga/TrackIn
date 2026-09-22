@@ -11,6 +11,7 @@ La propiedad central es la de RN-17: **una línea mala no aborta el lote**.
 from __future__ import annotations
 
 import datetime as dt
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import delete, select
@@ -91,13 +92,34 @@ def test_el_tracking_interno_cabe_en_la_columna() -> None:
 def test_el_resultado_cuadra_las_cuentas() -> None:
     resultado = ResultadoCarga(
         cargados=6,
-        omitidos=1,
+        sin_cambios=1,
         rechazadas=[LineaRechazada("450", 10, RECHAZO_SIN_VIA, "sin vía")],
         rastreables=0,
         sin_rastreo_hoy=4,
     )
     assert resultado.leidas == 8
     assert resultado.sin_tracking == 2
+    assert resultado.omitidos == 1
+
+
+def test_las_recibidas_suman_todos_los_destinos_posibles() -> None:
+    """`US-31`, tercer criterio: ninguna línea del archivo puede perderse entre
+    las categorías del informe."""
+    resultado = ResultadoCarga(
+        cargados=3,
+        actualizados=2,
+        sin_cambios=4,
+        cerrados_omitidos=1,
+        rechazadas=[LineaRechazada("450", 10, RECHAZO_SIN_VIA, "sin vía")],
+    )
+    assert resultado.leidas == 11
+
+
+def test_el_resumen_trae_los_cuatro_numeros_del_criterio() -> None:
+    resultado = ResultadoCarga(cargados=3, actualizados=2, ausentes=[("450", 10)])
+    resumen = resultado.resumen()
+    for parte in ("5 recibidas", "3 insertadas", "2 actualizadas", "0 rechazadas", "1 ausentes"):
+        assert parte in resumen
 
 
 def test_la_linea_rechazada_se_lee_sola() -> None:
@@ -205,12 +227,17 @@ class TestCargarPedido:
         )
         assert len(proveedores) == 1
 
-    async def test_una_linea_ya_cargada_se_omite(self, sesion) -> None:
-        """Idempotencia por clave natural: correr el cargador dos veces es seguro."""
+    async def test_una_linea_ya_cargada_no_se_duplica(self, sesion) -> None:
+        """Idempotencia por clave natural: correr el cargador dos veces es seguro.
+
+        Desde `US-31` el estado es `sin_cambios` y no `omitido`: la línea **sí**
+        se vuelve a evaluar contra el archivo, y resulta que no cambia nada.
+        Distinguirlo de `actualizado` es lo que informa el tercer criterio.
+        """
         await cargar_pedido(sesion, _crudo())
         pedido, estado, _ = await cargar_pedido(sesion, _crudo())
 
-        assert estado == "omitido"
+        assert estado == "sin_cambios"
         assert pedido is not None
 
     async def test_sin_via_se_rechaza_con_motivo(self, sesion) -> None:
@@ -351,3 +378,187 @@ class TestCargarLote:
         assert resultado.cargados == 1
         assert resultado.rastreables == 1
         assert resultado.sin_rastreo_hoy == 0
+
+
+# --- Actualización de lo existente — US-31, primer criterio -----------------
+
+
+@pytest.mark.integration
+class TestActualizar:
+    """*«Los pedidos nuevos se insertan y los existentes se actualizan por OC
+    y posición»*. Lo delicado no es actualizar, es **no** actualizar de más."""
+
+    async def test_lo_que_el_archivo_manda_se_actualiza(self, sesion, sin_pedidos) -> None:
+        await cargar(sesion, FuenteFalsa([_crudo(cantidad=100.0)]), señalar_ausentes=False)
+
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(cantidad=250.0, fecha_entrega_pedido=dt.date(2026, 12, 1))]),
+            señalar_ausentes=False,
+        )
+
+        assert resultado.cargados == 0
+        assert resultado.actualizados == 1
+        pedido = await sesion.scalar(select(PedidoTransito))
+        assert pedido.cantidad_pedida == Decimal("250.000")
+        assert pedido.fecha_entrega_pedido == dt.date(2026, 12, 1)
+
+    async def test_recargar_lo_mismo_no_cuenta_como_actualizacion(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Distinguir «actualizado» de «sin cambios» es lo que permite ver de un
+        vistazo si una carga movió algo."""
+        await cargar(sesion, FuenteFalsa([_crudo()]), señalar_ausentes=False)
+        resultado = await cargar(sesion, FuenteFalsa([_crudo()]), señalar_ausentes=False)
+
+        assert resultado.actualizados == 0
+        assert resultado.sin_cambios == 1
+
+    async def test_no_pisa_el_estado_calculado_ni_lo_confirmado_a_mano(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """El archivo no sabe nada del motor de cálculo ni de lo que confirmó
+        una persona. Un `INSERT ... ON CONFLICT DO UPDATE` ingenuo lo borraría.
+
+        La línea lleva referencia porque RN-02 lo exige: sin elemento rastreado,
+        `ck_pedidos_transito_sin_tracking` prohíbe salir de `SIN_TRACKING`.
+        """
+        con_referencia = _crudo(tipo_referencia="MMSI", numero_referencia="311001711")
+        await cargar(sesion, FuenteFalsa([con_referencia]), señalar_ausentes=False)
+        pedido = await sesion.scalar(select(PedidoTransito))
+        pedido.etapa_viaje = "EN_TRANSITO"
+        pedido.estado_calculado = "EN_RIESGO"
+        pedido.ata_confirmada = dt.datetime(2026, 9, 1, tzinfo=dt.UTC)
+        pedido.ajuste_manual_dias = 3
+        await sesion.flush()
+        elemento_antes = pedido.id_elemento_rastreado
+
+        await cargar(
+            sesion,
+            FuenteFalsa([_crudo(cantidad=999.0)]),  # el archivo ya no trae la referencia
+            señalar_ausentes=False,
+        )
+
+        await sesion.refresh(pedido)
+        assert pedido.cantidad_pedida == Decimal("999.000")  # sí cambió
+        assert pedido.etapa_viaje == "EN_TRANSITO"
+        assert pedido.estado_calculado == "EN_RIESGO"
+        assert pedido.ata_confirmada is not None
+        assert pedido.ajuste_manual_dias == 3
+        # Que el archivo deje de traer la referencia no desasocia el rastreo.
+        assert pedido.id_elemento_rastreado == elemento_antes
+
+    async def test_un_pedido_cerrado_se_deja_intacto(self, sesion, sin_pedidos) -> None:
+        """RN-13. Que reaparezca en el archivo se revisa a mano: el cargador no
+        reabre nada por su cuenta."""
+        await cargar(sesion, FuenteFalsa([_crudo()]), señalar_ausentes=False)
+        pedido = await sesion.scalar(select(PedidoTransito))
+        pedido.motivo_cierre = "CIERRE_FORZADO"
+        pedido.estado_calculado = "CERRADO"
+        await sesion.flush()
+
+        resultado = await cargar(
+            sesion, FuenteFalsa([_crudo(cantidad=999.0)]), señalar_ausentes=False
+        )
+
+        assert resultado.cerrados_omitidos == 1
+        assert resultado.actualizados == 0
+        await sesion.refresh(pedido)
+        assert pedido.cantidad_pedida != Decimal("999.000")
+
+    async def test_la_carga_deja_fecha_de_ultima_carga(self, sesion, sin_pedidos) -> None:
+        await cargar(sesion, FuenteFalsa([_crudo()]), señalar_ausentes=False)
+        pedido = await sesion.scalar(select(PedidoTransito))
+        assert pedido.fecha_ultima_carga is not None
+        assert pedido.ausente_desde is None
+
+
+# --- Ausencias — US-31, segundo criterio -----------------------------------
+
+
+@pytest.mark.integration
+class TestAusentes:
+    """*«Un pedido que ya no figura en el archivo se señala para revisión
+    manual y NO se elimina»*."""
+
+    async def test_lo_que_no_viene_se_marca_y_no_se_borra(self, sesion, sin_pedidos) -> None:
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)]))
+
+        resultado = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+
+        assert resultado.ausentes == [("4599999999", 20)]
+        # Sigue existiendo: lo que se pierde al borrar es su historial (RNF-13).
+        sobreviviente = await sesion.scalar(
+            select(PedidoTransito).where(PedidoTransito.posicion_oc == 20)
+        )
+        assert sobreviviente is not None
+        assert sobreviviente.ausente_desde is not None
+
+    async def test_la_marca_no_se_reescribe_en_cada_carga(self, sesion, sin_pedidos) -> None:
+        """Si se reescribiera, se perdería *desde cuándo* falta — que es la
+        diferencia entre investigar y archivar."""
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)]))
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+        pedido = await sesion.scalar(select(PedidoTransito).where(PedidoTransito.posicion_oc == 20))
+        primera_marca = pedido.ausente_desde
+
+        segunda = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+
+        assert segunda.ausentes == []
+        await sesion.refresh(pedido)
+        assert pedido.ausente_desde == primera_marca
+
+    async def test_si_vuelve_a_aparecer_se_limpia_la_marca(self, sesion, sin_pedidos) -> None:
+        """Una línea que va y viene es un síntoma del archivo, no del pedido."""
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)]))
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+
+        resultado = await cargar(
+            sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)])
+        )
+
+        assert resultado.reaparecidos == 1
+        pedido = await sesion.scalar(select(PedidoTransito).where(PedidoTransito.posicion_oc == 20))
+        assert pedido.ausente_desde is None
+
+    async def test_un_cerrado_que_falta_no_se_marca(self, sesion, sin_pedidos) -> None:
+        """Ya no se le espera en el archivo: marcarlo sería ruido en la bandeja."""
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)]))
+        cerrado = await sesion.scalar(
+            select(PedidoTransito).where(PedidoTransito.posicion_oc == 20)
+        )
+        cerrado.motivo_cierre = "RECEPCION_CONFORME"
+        cerrado.estado_calculado = "CERRADO"
+        cerrado.fecha_recepcion_planta = dt.datetime(2026, 9, 1, tzinfo=dt.UTC)
+        cerrado.cantidad_recibida = Decimal("100.000")
+        await sesion.flush()
+
+        resultado = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+
+        assert resultado.ausentes == []
+        await sesion.refresh(cerrado)
+        assert cerrado.ausente_desde is None
+
+    async def test_se_puede_desactivar_para_cargas_parciales(self, sesion, sin_pedidos) -> None:
+        """Un archivo que no es el universo completo marcaría media base."""
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)]))
+
+        resultado = await cargar(
+            sesion, FuenteFalsa([_crudo(posicion_oc=10)]), señalar_ausentes=False
+        )
+
+        assert resultado.ausentes == []
+
+    async def test_una_linea_rechazada_no_marca_ausente_lo_que_si_vino(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """La línea estaba en el archivo aunque no se pudiera persistir: es un
+        rechazo, no una ausencia, y confundirlos duplicaría el aviso."""
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+
+        resultado = await cargar(
+            sesion, FuenteFalsa([_crudo(posicion_oc=10, via_transporte="PENDIENTE")])
+        )
+
+        assert len(resultado.rechazadas) == 1
+        assert resultado.ausentes == [("4599999999", 10)]

@@ -16,11 +16,14 @@ from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.dto import PedidoCrudo
 from app.services.ingesta.registro import obtener_fuente
 from app.services.ingesta.semilla import PEDIDOS_SEMILLA, FuenteSemilla
+from app.services.ingesta.ztracking import FuenteZTracking, LineaIlegible
 
 __all__ = [
     "PEDIDOS_SEMILLA",
     "FuentePedidos",
     "FuenteSemilla",
+    "FuenteZTracking",
+    "LineaIlegible",
     "PedidoCrudo",
     "obtener_fuente",
 ]

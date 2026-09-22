@@ -85,6 +85,19 @@ Los endpoints de `api/` no deben contener reglas de negocio: delegan en
 | `python scripts/cargar_semilla.py` | Carga en la base los pedidos de la fuente configurada |
 | `python scripts/cargar_semilla.py --resumen` | Muestra qué hay en la base, sin escribir |
 | `python scripts/cargar_semilla.py --limpiar` | Deja la base en un estado conocido y recarga |
+| `python scripts/cargar_semilla.py --sin-ausentes` | Carga sin marcar como ausente lo que no venga (carga parcial) |
+
+La fuente sale de `INGESTA_ADAPTADOR`. Para cargar el archivo real de Logística
+(`US-31`), en `backend/.env`:
+
+```
+INGESTA_ADAPTADOR=ztracking
+ZTRACKING_RUTA=../docs/analisis/2026-Agosto-WK36.xlsx
+```
+
+Una errata en `INGESTA_ADAPTADOR`, o `ztracking` sin `ZTRACKING_RUTA`, **impiden
+arrancar**: la configuración que no se puede cumplir se detiene en el arranque
+en vez de dejar el sistema en pie sin fuente de pedidos.
 | `pytest` | Tests con cobertura |
 | `pytest -m "not integration"` | Solo lo que no necesita base de datos |
 | `pytest --no-cov -q` | Rápido, sin cobertura |
