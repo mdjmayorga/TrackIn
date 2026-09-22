@@ -139,11 +139,16 @@ Origen en el SRS: RF-07 / spike TG-11
 MoSCoW: Must","Highest","Sprint 4","OE2-Backend","backend,opensky","8h","mamayorga"
 "Story","US-07 Planificar las consultas periodicas con frecuencia parametrizable","Como administrador, quiero configurar la frecuencia de consulta por via de transporte, para ajustar el consumo de cuota sin tocar el codigo.
 
+REESPECIFICADA el 22/09/2026 al cerrar TASK-28. El criterio de cuota estaba escrito sobre un supuesto que la fase 3 midio falso: que CONSULTAR gasta cuota. En ShipsGo la cuota se gasta en el ALTA del embarque, no en el sondeo. Y aparece un tercer estado de respuesta que el planificador tiene que distinguir.
+
 Criterios de aceptacion (Gherkin):
 - Dado el parametro de frecuencia aerea, cuando lo modifico, entonces el planificador aplica el nuevo intervalo sin reiniciar el servicio
 - Dado el rastreo aereo por ventana activa, cuando estoy dentro de la ventana, entonces consulto al intervalo configurado y fuera de ella suspendo el sondeo
-- Dado el rastreo maritimo, cuando lo configuro, entonces se gestiona como suscripcion persistente y no como sondeo periodico
-- Dada la cuota diaria, cuando el consumo proyectado la excederia, entonces el planificador lo advierte en el log
+- Dado el rastreo maritimo POR AIS (US-02, respaldo del mapa), cuando lo configuro, entonces se gestiona como suscripcion persistente y no como sondeo periodico
+- ANULADO: 'Dada la cuota diaria, cuando el consumo proyectado la excederia, entonces el planificador lo advierte en el log'. REEMPLAZADO POR: dado que en ShipsGo el credito se consume en el ALTA y no en la consulta, cuando el planificador sondea, entonces no vigila cuota sino rate limit; lo que se contabiliza y se advierte es el NUMERO DE ALTAS, que es lo que cuesta dinero
+- Dado un embarque dado de alta pero sin datos todavia (~90 s de maduracion: status NEW, route null, containers vacio), cuando lo encuentro, entonces lo reprogramo a corto plazo y NO lo cuento como fallo ni como respuesta vacia definitiva: son tres casos distintos, no dos
+- Dado un embarque DELIVERED y auto-archivado por ShipsGo, cuando lo detecto, entonces lo saco del ciclo de sondeo en vez de reintentarlo
+- Dado un elemento rastreado sin pedidos activos, cuando cierro su arribo, entonces el planificador deja de consultarlo (decision B7 del 01/09)
 
 Definition of Done:
 - Codigo con pruebas unitarias (cobertura minima 70%)
@@ -151,7 +156,7 @@ Definition of Done:
 - Revision con supervisor (Greivin) cuando aplique
 - Merge a rama principal sin errores de CI
 
-Origen en el SRS: RF-08 (reformulado)
+Origen en el SRS: RF-08 (reformulado). Reespecificada el 22/09 por TASK-28.
 MoSCoW: Must","Highest","Sprint 4","OE2-Backend","backend,scheduler","8h","mamayorga"
 "Story","US-08 Estimar la ETA a partir de la posicion y la velocidad del buque","Como usuario de Compras, quiero que el sistema estime la ETA desde la posicion actual, para no depender del campo de texto libre que declara la tripulacion.
 
@@ -201,13 +206,21 @@ Definition of Done:
 
 Origen en el SRS: RF-11 / RN-02 a RN-11
 MoSCoW: Must","Highest","Sprint 4","OE2-Backend","backend,calculo,nucleo","12h","mamayorga"
-"Story","US-11 Inferir el arribo a destino por geocerca de proximidad","Como usuario de Logistica, quiero que el sistema asuma el arribo cuando el buque entra en el radio del puerto, para no depender de que la fuente externa reporte la llegada.
+"Story","US-11 Determinar el arribo a destino por hito, con la geocerca como verificacion","Como usuario de Logistica, quiero que el sistema determine el arribo a destino, para no depender de que una persona lo registre a mano.
+
+REESPECIFICADA el 22/09/2026 al cerrar TASK-28. Los criterios originales presuponian AIS gratuito con velocidad, y el 14/09 se midio que NO hay cobertura AIS en ningun destino de Gutis (ni Caribe ni Pacifico) y que ShipsGo no entrega velocidad ni rumbo. La inferencia por geocerca deja de ser el mecanismo principal: el arribo lo dicen los hitos.
 
 Criterios de aceptacion (Gherkin):
-- Dado un buque a menos del radio configurado (50 km por defecto) del destino, cuando evaluo su estado, entonces lo clasifico como 'En destino' conforme a RN-05
-- Dado un buque dentro del radio pero con velocidad superior al umbral configurado, cuando evaluo, entonces NO lo doy por arribado, para descartar el trafico en transito hacia el Canal de Panama
-- Dado el radio y el umbral de velocidad, cuando los modifico en la tabla de parametros, entonces se aplican sin desplegar codigo
-- Dado un arribo inferido, cuando lo registro, entonces queda marcado como inferido y no como confirmado por la fuente
+- Dado un hito DISC o ARRV de ShipsGo (RCF en la via aerea), cuando lo recibo, entonces clasifico el pedido como 'En destino' conforme a RN-05. Es el mecanismo primario y reemplaza a la geocerca
+- Dado un embarque CON posicion (geojson current poblado, que no esta garantizado), cuando cae a menos del radio configurado (50 km por defecto) del destino, entonces lo uso como VERIFICACION SECUNDARIA del arribo, nunca como unica senal
+- ANULADO: 'Dado un buque dentro del radio pero con velocidad superior al umbral configurado, cuando evaluo, entonces NO lo doy por arribado'. ShipsGo no entrega velocidad y sin AIS no hay de donde sacarla. El falso positivo del trafico hacia el Canal de Panama se evita con el hito, que es explicito
+- Dado el radio, cuando lo modifico en la tabla de parametros, entonces se aplica sin desplegar codigo
+- Dado un elemento aereo, cuando evaluo su arribo, entonces uso el hito RCF de ShipsGo Air (o el indicador on_ground de OpenSky si es la unica fuente disponible) y NO la geocerca, porque 50 km alrededor de un aeropuerto capturan trafico en sobrevuelo (decision del 25/08)
+- Dado un destino con radio_geocerca_km propio, cuando evaluo la proximidad, entonces ese valor tiene precedencia sobre el parametro global
+- Dado un arribo, cuando lo registro, entonces distingo CONFIRMADO POR HITO de INFERIDO POR GEOCERCA, y solo el segundo queda marcado como inferido
+- Dado un elemento rastreado cuyos pedidos han arribado todos, cuando cierro el arribo, entonces lo marco activo = false y el planificador deja de consultarlo (decision B7 del 01/09)
+
+DEPENDENCIA NUEVA: al pasar el arribo a depender de los hitos, US-11 deja de ser autonoma y necesita US-45 construida antes. En el orden del sprint va despues.
 
 Definition of Done:
 - Codigo con pruebas unitarias (cobertura minima 70%)
@@ -215,8 +228,9 @@ Definition of Done:
 - Revision con supervisor (Greivin) cuando aplique
 - Merge a rama principal sin errores de CI
 
-Origen en el SRS: RN-05 (revisada, Greivin)
-MoSCoW: Must","Highest","Sprint 4","OE2-Backend","backend,calculo,regla-nueva","8h","mamayorga"
+Origen en el SRS: RN-05 (revisada, Greivin). Reespecificada el 22/09 por TASK-28.
+Estimacion: 4 h (simplificada el 04/09, era 8 h).
+MoSCoW: Must","Highest","Sprint 4","OE2-Backend","backend,calculo,regla-nueva","4h","mamayorga"
 "Story","US-12 Recalcular fecha y estado ante cualquier cambio de insumo","Como sistema, quiero recalcular automaticamente cuando cambie un insumo, para que el dashboard nunca muestre un estado obsoleto.
 
 Criterios de aceptacion (Gherkin):
@@ -694,23 +708,66 @@ Criterios de aceptacion (Gherkin):
 - Dado el contrato, cuando se entrega, entonces Logistica puede anadir las columnas al Z-tracking y US-32 puede validar el formato
 
 Origen: reunion con Logistica 03/09/2026. El Z-tracking no contiene ninguna referencia legible por maquina en sus 429 lineas.","Highest","Sprint 3","OE2-Backend","analisis,ingesta,referencia,prerrequisito","3h","mamayorga"
-"Story","US-45 Integrar la fuente comercial de rastreo maritimo por contenedor o BL","Como sistema, quiero consultar la fuente comercial por contenedor o BL, para obtener los hitos y la posicion del envio sin depender del AIS gratuito.
+"Story","US-45 Integrar la fuente maritima por contenedor o BL - ShipsGo","Como sistema, quiero consultar ShipsGo por contenedor o BL, para obtener los hitos y la posicion del envio sin depender del AIS gratuito.
+
+REESPECIFICADA el 22/09/2026 al cerrar TASK-28. El proveedor paso de Vizion a ShipsGo (go medido el 14/09) y cambio el modelo de interaccion: no es consulta en frio, es create-then-poll.
 
 Criterios de aceptacion (Gherkin):
-- Dada una referencia maritima valida, cuando consulto la fuente, entonces obtengo los hitos normalizados y los mapeo a las etapas de RN-02 a RN-06
-- Dada la respuesta, cuando la persisto, entonces guardo el payload original en historial_tracking (RF-21 / RNF-13)
-- Dada una respuesta con buque, cuando la proceso, entonces relleno elementos_rastreados con nombre, IMO y MMSI
+
+-- Alta del embarque --
+- Dada una referencia maritima sin registrar, cuando la proceso, entonces la doy de alta con POST /ocean/shipments (booking_number o container_number) y guardo el id devuelto: la consulta en frio no existe, /ocean/shipments lista los embarques DE LA CUENTA
+- Dado un BL, cuando lo doy de alta, entonces no enumero sus contenedores: ShipsGo los resuelve solo y el cobro es 1 BL = 1 credito sin importar cuantos ampare
+- Dada una referencia ya registrada, cuando el alta responde 409 ALREADY_EXISTS, entonces lo trato como exito y tomo el id del cuerpo: no crea nada, no descuenta credito y reintentar un alta cortada por timeout es seguro y gratis
+- Dado que el alta queda registrada como intervencion, cuando la ejecuto, entonces uso ASOCIACION_TRACKING de TIPOS_INTERVENCION (RF-14)
+
+-- Lectura: tercer estado y dos endpoints --
+- Dado un embarque recien dado de alta, cuando lo consulto antes de que madure (~90 s: status NEW, route null, containers vacio), entonces lo marco 'dado de alta, sin datos todavia' y reintento: no es fallo ni respuesta vacia definitiva
+- Dado un embarque maduro, cuando lo leo, entonces consulto los DOS endpoints: GET /ocean/shipments/{id} (ruta, puertos, ETA, hitos, buque por tramo) y GET /ocean/shipments/{id}/geojson (posicion actual y trayecto); la posicion solo vive en el segundo
+- Dados los hitos de containers[].movements[], cuando los mapeo a RN-02..RN-06, entonces distingo ACT de EST, que es la separacion que RN-14 necesita
+- Dada la ETA, cuando la tomo, entonces uso route.port_of_discharge.date_of_discharge_predicted, y route.port_of_loading.date_of_loading para el ETD/ATD de US-43
+- Dada una respuesta con buque, cuando la proceso, entonces relleno elementos_rastreados con nombre e IMO; el MMSI no llega y queda nulo, igual que velocidad y rumbo
+- Dado un cambio de vessel entre tramos, cuando lo detecto, entonces registro el transbordo (se midieron hasta tres naves en un envio): insumo de US-30
+
+-- Lo que el adaptador tiene que tolerar --
+- Dado un embarque sin posicion (geojson current null, medido en el BL de COSCO), cuando lo proceso, entonces funciono igual: los hitos son obligatorios, la posicion es opcional y el mapa cae al respaldo de US-02
+- Dado un embarque DELIVERED, cuando lo releo, entonces contemplo que ShipsGo lo auto-archiva (discarded_at poblado en la misma respuesta) y puede dejar de ser consultable
+- Dada la respuesta, cuando la persisto, entonces guardo el payload original en historial_tracking (RF-21 / RNF-13): el auto-archivado lo vuelve obligatorio
 - Dado un envio con posicion, cuando la registro, entonces alimenta el mapa maritimo con su antiguedad (RF-20)
 - Dada la fuente caida, cuando falla, entonces conservo la ultima lectura y senalo la antiguedad, sin degradar el dashboard (RF-09)
 
-SOLO EN PLAN A: sujeta al resultado de TASK-28.","Highest","Sprint 4","OE2-Backend","backend,tracking,api-pago,plan-a","12h","mamayorga"
-"Story","US-46 Integrar el rastreo aereo por guia aerea (MAWB)","Como sistema, quiero consultar los hitos de carga aerea por MAWB, para conocer el estado real del envio y no solo la posicion de la aeronave.
+-- Como se verifica --
+- Dado que NO quedan creditos (los dos trials de 3 se agotaron el 14/09 y la compra se difiere al arranque porque vencen al ano), cuando desarrollo esta historia, entonces la verifico contra los payloads reales grabados en backend/scripts/spikes/task28/output/ (06_payload_personal.json, 07_pendientes_personal.json); la verificacion en vivo queda sujeta a la compra
+
+Definition of Done:
+- Codigo con pruebas unitarias (cobertura minima 70%)
+- Documentacion tecnica actualizada
+- Revision con supervisor (Greivin) cuando aplique
+- Merge a rama principal sin errores de CI
+
+Origen: TASK-28 cerrada el 14/09 (go ShipsGo). Reespecificada el 22/09.
+MoSCoW: Must","Highest","Sprint 4","OE2-Backend","backend,tracking,api-pago,shipsgo","12h","mamayorga"
+"Story","US-46 Integrar el rastreo aereo por guia aerea (MAWB) - ShipsGo Air","Como sistema, quiero consultar los hitos de carga aerea por MAWB, para conocer el estado real del envio y no solo la posicion de la aeronave.
+
+REESPECIFICADA el 22/09/2026 al cerrar TASK-28. La bifurcacion ShipsGo Air / TrackingMore se resolvio el 14/09: TrackingMore queda FUERA (catalogo de 1505 couriers sin una sola aerolinea, y con el MAWB real se quedo en 'pending' bajo un courier que no podia resolverlo). Hereda de US-45 el modelo create-then-poll y el tercer estado.
 
 Criterios de aceptacion (Gherkin):
-- Dado un MAWB valido, cuando consulto la fuente, entonces obtengo los hitos de carga y los mapeo a las etapas del semaforo
+- Dado un MAWB sin registrar, cuando lo proceso, entonces lo doy de alta con POST /air/shipments (awb_number) y guardo el id, con el mismo tratamiento de 409 ALREADY_EXISTS y del estado 'dado de alta, sin datos todavia' que US-45
+- Dado el prefijo de aerolinea del MAWB, cuando lo valido ANTES de gastar el credito, entonces lo contrasto contra GET /air/airlines (207 aerolineas, 22 de 22 prefijos de Gutis cubiertos), que es consulta gratuita y es la unica forma de verificar cobertura sin pagar
+- Dado un MAWB valido, cuando lo consulto, entonces obtengo los hitos IATA CIMP (RCS, DEP, MAN, ARR, RCF, DLV) y los mapeo a RN-02..RN-06
 - Dados los hitos, cuando los proceso, entonces extraigo ETD y ATD para la vista completa de US-43
+- Dada una conexion (cambio de vuelo en el tramo, LH8431 -> LH518 en Francfort), cuando la detecto, entonces la trato igual que el transbordo maritimo de US-45: es el mismo fenomeno
 - Dado un envio partido en varias entregas, cuando lo rastreo, entonces la etapa refleja el estado de cada parte y no solo de la primera
-- Dado un HAWB en vez de un MAWB, cuando la consulta no resuelve, entonces lo senalo para revision con un motivo claro
+- Dado un HAWB en vez de un MAWB, cuando la consulta no resuelve, entonces lo senalo para revision con un motivo claro; y si el prefijo no esta en el catalogo, lo detengo ANTES del alta para no consumir credito
 - Dada la via aerea, cuando la presento, entonces uso una linea de tiempo de hitos; la posicion de la aeronave es opcional y no bloquea
+- Dado un embarque DELIVERED, cuando lo releo, entonces contemplo el auto-archivado (discarded_at): el caso medido llego entregado y archivado en la misma respuesta
+- Dado que no quedan creditos, cuando desarrollo esta historia, entonces la verifico contra el payload grabado en backend/scripts/spikes/task28/output/07_pendientes_personal.json (MAWB 020-50685434, PEK-FRA-SJO, 10 hitos)
 
-SOLO EN PLAN A: sujeta al resultado de TASK-28.","Highest","Sprint 4","OE2-Backend","backend,tracking,aereo,awb,plan-a","10h","mamayorga"
+Definition of Done:
+- Codigo con pruebas unitarias (cobertura minima 70%)
+- Documentacion tecnica actualizada
+- Revision con supervisor (Greivin) cuando aplique
+- Merge a rama principal sin errores de CI
+
+Origen: TASK-28 cerrada el 14/09 (go ShipsGo Air). Reespecificada el 22/09.
+Estimacion: 10 h, ~6 h si se hace despues de US-45, que construye el cliente compartido.
+MoSCoW: Must","Highest","Sprint 4","OE2-Backend","backend,tracking,aereo,awb,shipsgo","10h","mamayorga"

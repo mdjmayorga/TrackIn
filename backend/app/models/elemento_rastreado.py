@@ -8,7 +8,8 @@ externo, la ETA y la última posición del pedido individual.
 
 **Ampliado el 04/09/2026** con los tipos de referencia del contrato de captura
 (`TASK-30`): `CONTENEDOR`, `BL`, `BOOKING` y `MAWB` son las claves con que se
-consulta a Vizion y a Portcast. Sin una de ellas el pedido queda `SIN_TRACKING`.
+consulta a **ShipsGo** —Vizion y Portcast quedaron fuera el 14/09/2026 por no
+responder—. Sin una de ellas el pedido queda `SIN_TRACKING`.
 
 `posicion_actual` y `velocidad_actual` están desnormalizadas a propósito: el
 motor de estados las necesita en cada recálculo y consultar `historial_tracking`

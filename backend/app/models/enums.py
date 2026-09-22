@@ -23,8 +23,8 @@ def check_in(columna: str, valores: tuple[str, ...]) -> str:
 
 # --- Vía de transporte ------------------------------------------------------
 # TERRESTRE se incorpora el 03/09/2026: el Z-tracking real lo trae en las
-# compras regionales (Guatemala, México). No es rastreable por Vizion ni
-# Portcast, pero el dato existe y el modelo debe poder representarlo (RN-17).
+# compras regionales (Guatemala, México). No es rastreable por ShipsGo, pero el
+# dato existe y el modelo debe poder representarlo (RN-17).
 VIAS_TRANSPORTE: Final[tuple[str, ...]] = ("AEREO", "MARITIMO", "TERRESTRE")
 
 # --- Estado: dos dimensiones (data-model §1.4) ------------------------------
@@ -58,7 +58,8 @@ MOTIVOS_CIERRE: Final[tuple[str, ...]] = (
 
 # --- Referencia de rastreo externo ------------------------------------------
 # Ampliado el 04/09/2026 con los tipos del contrato de captura (TASK-30):
-# lo que Vizion y Portcast admiten como clave de consulta.
+# lo que ShipsGo admite como clave de alta — `booking_number` y
+# `container_number` en /ocean/shipments, `awb_number` en /air/shipments.
 TIPOS_TRACKING: Final[tuple[str, ...]] = (
     "MMSI",
     "IMO",

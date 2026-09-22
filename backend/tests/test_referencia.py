@@ -137,24 +137,26 @@ def test_fuentes_gratuitas_si_rastrean(tipo: str, numero: str) -> None:
 @pytest.mark.parametrize(
     ("tipo", "numero"),
     [
-        ("CONTENEDOR", "MSCU1234567"),  # Vizion
-        ("BL", "BL-0001"),  # Vizion
-        ("BOOKING", "BKG0001"),  # Vizion
-        ("MAWB", "020-12345675"),  # Portcast
+        ("CONTENEDOR", "MSCU1234567"),  # ShipsGo Ocean
+        ("BL", "BL-0001"),  # ShipsGo Ocean
+        ("BOOKING", "BKG0001"),  # ShipsGo Ocean
+        ("MAWB", "020-12345675"),  # ShipsGo Air
     ],
 )
 def test_fuentes_de_pago_se_aceptan_pero_no_rastrean_todavia(tipo: str, numero: str) -> None:
-    """Vizion y Portcast están **aprobadas pero no contratadas**.
+    """ShipsGo está **validada pero sin créditos**.
 
     El tercer criterio de `US-01`: la referencia se guarda igual y el motivo
-    explica por qué el pedido sigue sin rastreo automático. Cuando cierre
-    `TASK-28` hay que mover esas fuentes a `_FUENTES_DISPONIBLES` y esta prueba
-    va a fallar — es el recordatorio.
+    explica por qué el pedido sigue sin rastreo automático. `TASK-28` cerró el
+    14/09 con un go, pero los dos trials de 3 altas se agotaron y la compra se
+    difiere al arranque. Cuando se compren los créditos hay que mover `shipsgo`
+    a `_FUENTES_DISPONIBLES` y esta prueba va a fallar — es el recordatorio.
     """
     resultado = validar_referencia(tipo, numero)
     assert resultado.valida, resultado.motivo
     assert not resultado.rastreable
-    assert "TASK-28" in resultado.motivo
+    assert "shipsgo" in resultado.motivo
+    assert "créditos" in resultado.motivo
 
 
 def test_buque_se_acepta_pero_ninguna_fuente_lo_sigue() -> None:
@@ -171,12 +173,12 @@ def test_buque_se_acepta_pero_ninguna_fuente_lo_sigue() -> None:
 @pytest.mark.parametrize(
     ("tipo", "esperado"),
     [
-        ("CONTENEDOR", "vizion"),
-        ("MAWB", "portcast"),
+        ("CONTENEDOR", "shipsgo"),
+        ("MAWB", "shipsgo"),
         ("MMSI", "aisstream"),
         ("VUELO", "opensky"),
         ("BUQUE", "ninguna"),
-        ("  contenedor  ", "vizion"),  # normaliza igual que validar_referencia
+        ("  contenedor  ", "shipsgo"),  # normaliza igual que validar_referencia
         ("INVENTADO", None),
         (None, None),
         ("", None),

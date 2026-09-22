@@ -71,7 +71,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-08` | Estimar la ETA a partir de la posicion y la velocidad del buque | Story | OE2 | **Could** | Sprint 4 | 12h | RN-16 · **se mantiene `Could`**: la fase 3 midió que ShipsGo entrega la ETA ya calculada (14/09) |
 | `US-09` | Calcular la fecha proyectada de disponibilidad | Story | OE2 | **Must** | Sprint 4 | 6h | RF-10 / RN-01 |
 | `US-10` | Determinar el estado logistico bajo el esquema de semaforo | Story | OE2 | **Must** | Sprint 4 | 12h | RF-11 / RN-02 a RN-11 |
-| `US-11` | Inferir el arribo a destino por geocerca de proximidad | Story | OE2 | **Must** | Sprint 4 | ~~8h~~ 4h | RN-05 · simplificada por Plan A (04/09) |
+| `US-11` | Determinar el arribo a destino por hito, con la geocerca como verificación | Story | OE2 | **Must** | Sprint 4 | ~~8h~~ 4h | RN-05 · simplificada por Plan A (04/09) · reespecificada 22/09: sin cobertura AIS, manda el hito |
 | `US-31` | Cargar los pedidos en transito desde el archivo Z-tracking | Story | OE2 | **Must** | Sprint 4 | 14h | RF-31 carga manual (03/09) / RF-01 / CU-01 |
 | `US-32` | Validar y normalizar los datos del Z-tracking antes de persistirlos | Story | OE2 | **Must** | Sprint 4 | 10h | RF-02 / RN-17 |
 | `US-45` | Integrar la fuente marítima por contenedor o BL — **ShipsGo** | Story | OE2 | **Must** | Sprint 4 | 12h | ✅ **GO** 14/09: probado con contenedor real, entrega posición, ETA, hitos, buque, IMO y transbordo |
@@ -1024,7 +1024,34 @@ Como estudiante practicante, quiero consolidar los entregables de OE1 (SRS, mode
 
 ### Sprint 4 (21 sep - 2 oct 2026)
 
-**7 items · 64 h estimadas · capacidad 65 h — dentro de capacidad**
+**11 items · 106 h estimadas · capacidad 65 h — ⚠️ sobrecargado en 41 h, por decisión.**
+
+> **Decidido con Greivin el 22/09/2026:** el Sprint 4 **se mantiene a 106 h** y el Sprint 5
+> queda como estaba. Es el sprint pesado del proyecto, asumido a conciencia. Se deja
+> constancia de la aritmética: 106 h caen sobre **9 días hábiles** —el sprint arrancó el
+> 21/09 y la decisión se toma el 22— y la entrega del **Informe 1 del 25/09 no está contada**
+> dentro de esas 106 h.
+>
+> **Orden de ejecución acordado**, por cuánto bloquea aguas abajo. Si algo no entra, se cae
+> por el final de esta lista:
+>
+> | # | Ítem | h | Acum. |
+> |---|---|---|---|
+> | 1 | `US-31` + `US-32` — la ingesta del archivo | 24 | 24 |
+> | 2 | `US-09` + `US-10` — el motor de cálculo | 18 | 42 |
+> | 3 | `US-45` — cliente ShipsGo marítimo | 12 | 54 |
+> | 4 | `US-46` — aéreo, reutiliza el cliente | ~6 | 60 |
+> | 5 | `US-11` — arribo por hito | 4 | 64 |
+> | 6 | `US-07` — planificador | 8 | 72 |
+> | 7 | `US-05` + `US-06` — OpenSky | 18 | 90 |
+> | 8 | `US-08` — ETA estimada (sigue `Could`) | 12 | 102 |
+>
+> Hacer `US-46` después de `US-45` ahorra 4 h reales, así que la cola son **102 h**.
+>
+> **Los cuatro ítems del Sprint 4 que `TASK-28` dejó «reabiertos» quedaron reespecificados
+> el 22/09** —`US-45`, `US-46`, `US-07` y `US-11`—, que era el requisito pendiente para
+> poder aprobar el sprint. Los detalles de `US-31`, `US-32`, `US-45` y `US-46` no viven en
+> esta sección sino en «Riesgo R2» y «Cambios de la reunión con Logística», más abajo.
 
 #### US-05 — Consumir posiciones ADS-B desde OpenSky con OAuth2
 
@@ -1071,10 +1098,18 @@ Como administrador, quiero configurar la frecuencia de consulta por vía de tran
 
 **Criterios de aceptación**
 
+> **Reespecificada el 22/09/2026, al cerrar `TASK-28`.** El criterio de cuota estaba escrito
+> sobre un supuesto que la fase 3 midió falso: que **consultar** gasta cuota. En ShipsGo la
+> cuota se gasta en el **alta** del embarque, no en el sondeo. Y aparece un tercer estado de
+> respuesta que el planificador tiene que saber distinguir.
+
 - Dado el parámetro de frecuencia aerea, cuando lo modifico, entonces el planificador aplica el nuevo intervalo sin reiniciar el servicio
 - Dado el rastreo aéreo por ventana activa, cuando estoy dentro de la ventana, entonces consulto al intervalo configurado y fuera de ella suspendo el sondeo
-- Dado el rastreo marítimo, cuando lo configuro, entonces se gestiona como suscripcion persistente y no como sondeo periodico
-- Dada la cuota diaria, cuando el consumo proyectado la excederia, entonces el planificador lo advierte en el log
+- Dado el rastreo marítimo **por AIS** (`US-02`, respaldo del mapa), cuando lo configuro, entonces se gestiona como suscripción persistente y no como sondeo periódico
+- ~~Dada la cuota diaria, cuando el consumo proyectado la excedería, entonces el planificador lo advierte en el log~~ **Reemplazado:** dado que en ShipsGo **el crédito se consume en el alta y no en la consulta**, cuando el planificador sondea, entonces no vigila cuota sino **rate limit**; lo que se contabiliza y se advierte es el **número de altas**, que es lo que cuesta dinero
+- Dado un embarque **dado de alta pero sin datos todavía** (~90 s de maduración: `status: NEW`, `route: null`, `containers: []`), cuando lo encuentro, entonces lo reprogramo a corto plazo y **no** lo cuento como fallo ni como respuesta vacía definitiva — son tres casos distintos, no dos
+- Dado un embarque `DELIVERED` y auto-archivado por ShipsGo, cuando lo detecto, entonces lo saco del ciclo de sondeo en vez de reintentarlo
+- Dado un elemento rastreado sin pedidos activos, cuando cierro su arribo, entonces el planificador deja de consultarlo (decisión B7 del 01/09)
 
 | | |
 |---|---|
@@ -1082,7 +1117,7 @@ Como administrador, quiero configurar la frecuencia de consulta por vía de tran
 | Objetivo específico | OE2 |
 | MoSCoW | **Must** |
 | Estimacion | 8 h |
-| Origen en el SRS | RF-08 (reformulado) |
+| Origen en el SRS | RF-08 (reformulado) · reespecificada 22/09 por `TASK-28` |
 | Etiquetas | `backend,scheduler` |
 
 #### US-08 — Estimar la ETA a partir de la posición y la velocidad del buque
@@ -1150,28 +1185,39 @@ Como usuario de Compras, quiero que cada pedido tenga su estado calculado automa
 > 3. ~~**`EN_DESTINO` dura `duracion_en_destino_minutos` (30 por defecto)** y luego pasa a `EN_PROCESO_ADUANAL`.~~ **ANULADA el 04/09.** Planeación confirmó que el paso a proceso aduanal **es manual** en la operación real. No hay transición por tiempo: la dispara la confirmación de `US-14`. El parámetro `duracion_en_destino_minutos` se elimina y el tic de `US-07` deja de barrer esa transición.
 | Etiquetas | `backend,calculo,nucleo` |
 
-#### US-11 — Inferir el arribo a destino por geocerca de proximidad
+#### US-11 — Determinar el arribo a destino por hito, con la geocerca como verificación
 
-Como usuario de Logística, quiero que el sistema asuma el arribo cuando el buque entra en el radio del puerto, para no depender de que la fuente externa reporte la llegada.
+Como usuario de Logística, quiero que el sistema determine el arribo a destino, para no depender de que una persona lo registre a mano.
 
 **Criterios de aceptación**
 
-- Dado un buque a menos del radio configurado (50 km por defecto) del destino, cuando evaluo su estado, entonces lo clasifico como 'En destino' conforme a RN-05
-- Dado un buque dentro del radio pero con velocidad superior al umbral configurado, cuando evaluo, entonces NO lo doy por arribado, para descartar el trafico en transito hacia el Canal de Panama
-- Dado el radio y el umbral de velocidad, cuando los modifico en la tabla de parámetros, entonces se aplican sin desplegar codigo
-- Dado un elemento **aereo**, cuando evaluo su arribo, entonces uso el indicador `on_ground` de la fuente y no la geocerca, porque 50 km alrededor de un aeropuerto capturan trafico en sobrevuelo (decision del 25/08)
+> **Reespecificada el 22/09/2026, al cerrar `TASK-28`.** Los dos primeros criterios
+> presuponían AIS gratuito con velocidad, y el 14/09 se midió que **no hay cobertura AIS en
+> ningún destino de Gutis** —ni en el Caribe ni en el Pacífico—, y que **ShipsGo no entrega
+> velocidad ni rumbo**. La inferencia por geocerca deja de ser el mecanismo principal: el
+> arribo lo dicen los hitos. La geocerca sobrevive como verificación secundaria para los
+> casos en que sí hay posición.
+
+- **Dado un hito `DISC` o `ARRV` de ShipsGo (`RCF` en la vía aérea), cuando lo recibo, entonces clasifico el pedido como 'En destino' conforme a RN-05** — es el mecanismo primario, y reemplaza a la geocerca
+- Dado un embarque **con** posición (`geojson … current` poblado, que no está garantizado), cuando cae a menos del radio configurado (50 km por defecto) del destino, entonces lo uso como **verificación secundaria** del arribo, nunca como única señal
+- ~~Dado un buque dentro del radio pero con velocidad superior al umbral configurado, cuando evaluo, entonces NO lo doy por arribado~~ **Anulado:** ShipsGo no entrega velocidad, y sin AIS no hay de dónde sacarla. El falso positivo del tráfico hacia el Canal de Panamá se evita con el hito, que es explícito
+- Dado el radio, cuando lo modifico en la tabla de parámetros, entonces se aplica sin desplegar código
+- Dado un elemento **aereo**, cuando evaluo su arribo, entonces uso el hito `RCF` de ShipsGo Air —o el indicador `on_ground` de OpenSky si es la única fuente disponible— y **no** la geocerca, porque 50 km alrededor de un aeropuerto capturan tráfico en sobrevuelo (decisión del 25/08)
 - Dado un destino con `radio_geocerca_km` propio, cuando evaluo la proximidad, entonces ese valor tiene precedencia sobre el parametro global
-- Dado un arribo inferido, cuando lo registro, entonces queda marcado como inferido y no como confirmado por la fuente
-- Dado un elemento rastreado cuyos pedidos han arribado todos, cuando cierro el arribo, entonces lo marco `activo = false` y el planificador deja de consultarlo (decision B7 del 01/09): la nave zarpa hacia otro puerto y su posicion deja de representar la carga, ademas de gastar cuota del plan gratuito
+- Dado un arribo, cuando lo registro, entonces distingo **confirmado por hito** de **inferido por geocerca**, y solo el segundo queda marcado como inferido
+- Dado un elemento rastreado cuyos pedidos han arribado todos, cuando cierro el arribo, entonces lo marco `activo = false` y el planificador deja de consultarlo (decision B7 del 01/09): la nave zarpa hacia otro puerto y su posicion deja de representar la carga
 
 | | |
 |---|---|
 | Tipo | Story |
 | Objetivo específico | OE2 |
 | MoSCoW | **Must** |
-| Estimacion | 8 h |
-| Origen en el SRS | RN-05 (revisada, Greivin) |
+| Estimacion | ~~8 h~~ **4 h** (simplificada el 04/09) |
+| Origen en el SRS | RN-05 (revisada, Greivin) · reespecificada 22/09 por `TASK-28` |
 | Etiquetas | `backend,calculo,regla-nueva` |
+
+> **Dependencia nueva:** al pasar el arribo a depender de los hitos, `US-11` deja de ser
+> autónoma y **necesita `US-45` construida antes**. En el orden del sprint va después.
 
 ---
 
@@ -1933,49 +1979,86 @@ validarla. **Es el prerrequisito de todo el rastreo: sin referencia, ninguna API
 > los comentarios del comprador dicen «BL recibido»: el dato existe en el proceso y se pierde
 > por falta de un campo. Esta tarea cierra ese hueco.
 
-### `US-45` — Integrar la fuente comercial de rastreo marítimo 🔀
+### `US-45` — Integrar la fuente marítima por contenedor o BL — **ShipsGo**
 
-Como sistema, quiero consultar la fuente comercial por contenedor o BL, para obtener los hitos
-y la posición del envío sin depender del AIS gratuito.
+Como sistema, quiero consultar ShipsGo por contenedor o BL, para obtener los hitos y la
+posición del envío sin depender del AIS gratuito.
+
+> **Reespecificada el 22/09/2026, al cerrar `TASK-28`.** El proveedor pasó de Vizion a
+> **ShipsGo** (go medido el 14/09) y, sobre todo, cambió el **modelo de interacción**: no
+> es consulta en frío, es *create-then-poll*. Los criterios de abajo incorporan lo que la
+> fase 3 del spike midió; la marca «solo en Plan A» desaparece porque el Plan A es el plan.
 
 **Criterios de aceptación**
 
-- Dada una referencia marítima válida, cuando consulto la fuente, entonces obtengo los hitos normalizados y los mapeo a las etapas de RN-02 a RN-06
-- Dada la respuesta, cuando la persisto, entonces guardo el **payload original** en `historial_tracking` (RF-21 / RNF-13)
-- Dada una respuesta con buque, cuando la proceso, entonces relleno `elementos_rastreados` con nombre, IMO y MMSI
+*Alta del embarque — el paso que no existía*
+
+- Dada una referencia marítima sin registrar, cuando la proceso, entonces la doy de alta con `POST /ocean/shipments` (`booking_number` o `container_number`) y guardo el `id` devuelto: **la consulta en frío no existe**, `/ocean/shipments` lista los embarques *de la cuenta*, no el universo de contenedores
+- Dado un BL, cuando lo doy de alta, entonces **no enumero sus contenedores**: ShipsGo los resuelve solo y el cobro es `1 BL = 1 crédito` sin importar cuántos ampare
+- Dada una referencia ya registrada, cuando el alta responde `409 ALREADY_EXISTS`, entonces **lo trato como éxito** y tomo el `id` del cuerpo — no crea nada y no descuenta crédito, así que **reintentar un alta cortada por *timeout* es seguro y gratis**
+- Dado que el alta queda registrada como intervención, cuando la ejecuto, entonces uso `ASOCIACION_TRACKING` de `TIPOS_INTERVENCION` (RF-14)
+
+*Lectura — hay un tercer estado y dos endpoints*
+
+- Dado un embarque recién dado de alta, cuando lo consulto antes de que madure (~90 s: `status: NEW`, `route: null`, `containers: []`), entonces lo marco **«dado de alta, sin datos todavía»** y reintento: no es fallo ni respuesta vacía definitiva, y tratarlo como cualquiera de las dos da un falso negativo
+- Dado un embarque maduro, cuando lo leo, entonces consulto **los dos endpoints**: `GET /ocean/shipments/{id}` (ruta, puertos, ETA, hitos, buque por tramo) y `GET /ocean/shipments/{id}/geojson` (posición actual y trayecto) — la posición **solo** vive en el segundo
+- Dados los hitos de `containers[].movements[]`, cuando los mapeo a RN-02…RN-06, entonces **distingo `ACT` de `EST`**, que es la separación que RN-14 necesita entre lo ocurrido y lo estimado
+- Dada la ETA, cuando la tomo, entonces uso `route.port_of_discharge.date_of_discharge_predicted`, y `route.port_of_loading.date_of_loading` para el ETD/ATD que pide `US-43`
+- Dada una respuesta con buque, cuando la proceso, entonces relleno `elementos_rastreados` con **nombre e IMO**; el **MMSI no llega** y queda nulo, igual que **velocidad y rumbo**, que ShipsGo no entrega
+- Dado un cambio de `vessel` entre tramos, cuando lo detecto, entonces registro el **transbordo** (se midieron hasta tres naves en un envío) — insumo de `US-30`
+
+*Lo que el adaptador tiene que tolerar*
+
+- Dado un embarque **sin posición** (`geojson … current: null`, medido en el BL de COSCO), cuando lo proceso, entonces funciono igual: **los hitos son obligatorios, la posición es opcional** y el mapa cae al respaldo de `US-02`
+- Dado un embarque `DELIVERED`, cuando lo releo, entonces contemplo que ShipsGo **lo auto-archiva** (`discarded_at` poblado en la misma respuesta) y puede dejar de ser consultable
+- Dada la respuesta, cuando la persisto, entonces guardo el **payload original** en `historial_tracking` (RF-21 / RNF-13) — el auto-archivado lo vuelve obligatorio, no recomendable
 - Dado un envío con posición, cuando la registro, entonces alimenta el mapa marítimo con su antigüedad (RF-20)
 - Dada la fuente caída, cuando falla, entonces conservo la última lectura y señalo la antigüedad, sin degradar el dashboard (RF-09)
+
+*Cómo se verifica esta historia*
+
+- Dado que **no quedan créditos** —los dos trials de 3 se agotaron el 14/09 y la compra se difiere al arranque porque vencen al año—, cuando desarrollo esta historia, entonces la verifico contra los **payloads reales grabados** en `backend/scripts/spikes/task28/output/` (`06_payload_personal.json`, `07_pendientes_personal.json`); la verificación en vivo queda sujeta a la compra
 
 | | |
 |---|---|
 | Tipo | Story |
 | Objetivo específico | OE2 |
-| MoSCoW | **Must** (solo en Plan A) |
+| MoSCoW | **Must** |
 | Estimacion | 12 h |
-| Origen | Plan A de `TASK-28`, reunión 03/09 |
-| Etiquetas | `backend,tracking,api-pago,plan-a` |
+| Origen | `TASK-28` cerrada el 14/09 — **go ShipsGo**; reespecificada el 22/09 |
+| Etiquetas | `backend,tracking,api-pago,shipsgo` |
 
-### `US-46` — Integrar el rastreo aéreo por guía aérea (MAWB) 🔀
+### `US-46` — Integrar el rastreo aéreo por guía aérea (MAWB) — **ShipsGo Air**
 
 Como sistema, quiero consultar los hitos de carga aérea por MAWB, para conocer el estado real
 del envío y no solo la posición de la aeronave.
 
+> **Reespecificada el 22/09/2026, al cerrar `TASK-28`.** La bifurcación ShipsGo Air /
+> TrackingMore se resolvió el 14/09: **TrackingMore queda fuera** —catálogo de 1505 couriers
+> sin una sola aerolínea, y con el MAWB real se quedó en `pending` bajo un courier que no
+> podía resolverlo—. Hereda de `US-45` el modelo *create-then-poll* y el tercer estado.
+
 **Criterios de aceptación**
 
-- Dado un MAWB válido, cuando consulto la fuente, entonces obtengo los hitos de carga y los mapeo a las etapas del semáforo
+- Dado un MAWB sin registrar, cuando lo proceso, entonces lo doy de alta con `POST /air/shipments` (`awb_number`) y guardo el `id`, con el mismo tratamiento de `409 ALREADY_EXISTS` y del estado **«dado de alta, sin datos todavía»** que `US-45`
+- Dado el prefijo de aerolínea del MAWB, cuando lo valido **antes de gastar el crédito**, entonces lo contrasto contra `GET /air/airlines` — 207 aerolíneas, **22 de 22 prefijos de Gutis cubiertos**—, que es consulta gratuita y es la única forma de verificar cobertura sin pagar
+- Dado un MAWB válido, cuando lo consulto, entonces obtengo los hitos **IATA CIMP** (`RCS`, `DEP`, `MAN`, `ARR`, `RCF`, `DLV`) y los mapeo a RN-02…RN-06
 - Dados los hitos, cuando los proceso, entonces extraigo **ETD y ATD** para la vista completa de `US-43`
+- Dada una **conexión** —cambio de vuelo en el tramo, `LH8431` → `LH518` en Fráncfort—, cuando la detecto, entonces la trato igual que el transbordo marítimo de `US-45`: es el mismo fenómeno
 - Dado un envío partido en varias entregas, cuando lo rastreo, entonces la etapa refleja el estado de cada parte y no solo de la primera
-- Dado un HAWB en vez de un MAWB, cuando la consulta no resuelve, entonces lo señalo para revisión con un motivo claro
+- Dado un HAWB en vez de un MAWB, cuando la consulta no resuelve, entonces lo señalo para revisión con un motivo claro — y, si el prefijo no está en el catálogo, **lo detengo antes del alta** para no consumir crédito
 - Dada la vía aérea, cuando la presento, entonces uso una **línea de tiempo de hitos**; la posición de la aeronave es opcional y no bloquea
+- Dado un embarque `DELIVERED`, cuando lo releo, entonces contemplo el auto-archivado (`discarded_at`): el caso medido llegó entregado y archivado en la misma respuesta
+- Dado que no quedan créditos, cuando desarrollo esta historia, entonces la verifico contra el payload grabado en `backend/scripts/spikes/task28/output/07_pendientes_personal.json` (MAWB `020-50685434`, PEK→FRA→SJO, 10 hitos)
 
 | | |
 |---|---|
 | Tipo | Story |
 | Objetivo específico | OE2 |
-| MoSCoW | **Must** (solo en Plan A) |
-| Estimacion | 10 h |
-| Origen | Plan A de `TASK-28`, reunión 03/09 |
-| Etiquetas | `backend,tracking,aereo,awb,plan-a` |
+| MoSCoW | **Must** |
+| Estimacion | 10 h — **~6 h si se hace después de `US-45`**, que construye el cliente compartido |
+| Origen | `TASK-28` cerrada el 14/09 — **go ShipsGo Air**; reespecificada el 22/09 |
+| Etiquetas | `backend,tracking,aereo,awb,shipsgo` |
 
 ---
 

@@ -44,20 +44,28 @@ _PATRONES: Final[dict[str, re.Pattern[str] | None]] = {
 }
 
 #: Qué fuente seguiría cada tipo de referencia.
+#:
+#: Vizion y Portcast salieron el 14/09/2026: ninguno de los dos proveedores
+#: respondió a la solicitud. `TASK-28` cerró con **ShipsGo para las dos vías**,
+#: marítima (`/ocean/shipments`) y aérea (`/air/shipments`).
 _FUENTE_POR_TIPO: Final[dict[str, str]] = {
-    "CONTENEDOR": "vizion",
-    "BL": "vizion",
-    "BOOKING": "vizion",
-    "MAWB": "portcast",
+    "CONTENEDOR": "shipsgo",
+    "BL": "shipsgo",
+    "BOOKING": "shipsgo",
+    "MAWB": "shipsgo",
     "MMSI": "aisstream",
     "IMO": "aisstream",
     "VUELO": "opensky",
     "BUQUE": "ninguna",
 }
 
-#: Fuentes efectivamente conectadas hoy. Vizion y Portcast están **aprobadas
-#: pero no contratadas**: el spike `TASK-28` sigue a la espera de credenciales.
-#: Mientras eso no cambie, sus referencias se guardan pero no se siguen.
+#: Fuentes efectivamente conectadas hoy.
+#:
+#: ShipsGo está **validada pero sin créditos**: los dos trials de 3 altas se
+#: agotaron el 14/09 y la compra se difiere al arranque de producción, porque
+#: los créditos vencen un año después de comprarse. Hasta que se compren, sus
+#: referencias se guardan y se validan, pero no se siguen — que es exactamente
+#: la distinción que documenta el encabezado de este módulo.
 _FUENTES_DISPONIBLES: Final[frozenset[str]] = frozenset({"aisstream", "opensky"})
 
 
@@ -149,9 +157,9 @@ def validar_referencia(tipo: str | None, numero: str | None) -> ResultadoReferen
             numero=num_norm,
             rastreable=False,
             motivo=(
-                f"Se acepta, pero la fuente que la sigue ({fuente}) todavía no "
-                "está contratada. El pedido queda sin rastreo automático hasta "
-                "que cierre TASK-28."
+                f"Se acepta, pero la fuente que la sigue ({fuente}) no tiene "
+                "créditos disponibles. El pedido queda sin rastreo automático "
+                "hasta que se compren."
             ),
         )
 
