@@ -14,6 +14,7 @@ concreta: cambiar de semilla a archivo, o a un servicio, no los toca.
 
 from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.dto import PedidoCrudo
+from app.services.ingesta.informe import InformeValidacion, construir_informe
 from app.services.ingesta.registro import obtener_fuente
 from app.services.ingesta.semilla import PEDIDOS_SEMILLA, FuenteSemilla
 from app.services.ingesta.ztracking import FuenteZTracking, LineaIlegible
@@ -23,7 +24,9 @@ __all__ = [
     "FuentePedidos",
     "FuenteSemilla",
     "FuenteZTracking",
+    "InformeValidacion",
     "LineaIlegible",
     "PedidoCrudo",
+    "construir_informe",
     "obtener_fuente",
 ]

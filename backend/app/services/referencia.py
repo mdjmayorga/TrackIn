@@ -91,6 +91,76 @@ def normalizar_referencia(numero: str | None) -> str | None:
     return limpio or None
 
 
+#: Valor numérico de cada letra en ISO 6346. La serie salta los múltiplos de 11
+#: —no existen valores 11, 22 ni 33—, que es la razón de que `L` valga 23 y no
+#: 22. Copiar la tabla mal es el error clásico de esta implementación.
+_VALOR_LETRA_ISO6346: Final[dict[str, int]] = dict(
+    zip(
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        [v for v in range(10, 39) if v % 11 != 0],
+        strict=True,
+    )
+)
+
+
+def digito_control_contenedor(numero: str) -> int | None:
+    """Dígito verificador de un contenedor ISO 6346, o `None` si no aplica.
+
+    Cada uno de los diez primeros caracteres se multiplica por `2**posición`, se
+    suman, y el resto de dividir entre 11 es el dígito; un resto de 10 se escribe
+    como `0`.
+
+    **Por qué importa más de lo que parece.** El spike `TASK-28` midió que
+    ShipsGo **acepta y cobra cualquier cosa**: un `POST` con el contenedor
+    inventado `XXXX0000000` devolvió `200 SUCCESS` y creó el embarque. A 2 USD
+    el crédito, una referencia mal transcrita cuesta dinero y luego devuelve
+    vacío, indistinguible de una sin cobertura. Esta comprobación es local,
+    gratuita e instantánea, y es lo único que separa una errata de una factura.
+    """
+    if len(numero) != 11:
+        return None
+    cuerpo, _ = numero[:10], numero[10]
+    total = 0
+    for posicion, caracter in enumerate(cuerpo):
+        if caracter.isdigit():
+            valor = int(caracter)
+        else:
+            valor = _VALOR_LETRA_ISO6346.get(caracter, -1)
+            if valor < 0:
+                return None
+        total += valor * (2**posicion)
+    return (total % 11) % 10
+
+
+def digito_control_mawb(numero: str) -> int | None:
+    """Dígito verificador de una guía aérea madre, o `None` si no aplica.
+
+    El MAWB son tres dígitos de prefijo de aerolínea más ocho de serie, y el
+    último de la serie es el resto de dividir los siete anteriores entre 7.
+    Misma economía que el contenedor: verificarlo acá cuesta cero y evita gastar
+    un crédito de ShipsGo Air en un número mal copiado.
+    """
+    solo_digitos = numero.replace("-", "")
+    if len(solo_digitos) != 11 or not solo_digitos.isdigit():
+        return None
+    return int(solo_digitos[3:10]) % 7
+
+
+def _verificar_digito(tipo: str, numero: str) -> tuple[int | None, int | None]:
+    """El dígito que corresponde y el que trae, para los tipos que lo llevan.
+
+    Devuelve `(None, None)` para los tipos sin dígito verificador —`BL`,
+    `BOOKING`, `MMSI`, `IMO`, `VUELO`, `BUQUE`—, donde no hay nada que
+    comprobar sin salir a la red.
+    """
+    if tipo == "CONTENEDOR":
+        return digito_control_contenedor(numero), int(numero[10])
+    if tipo == "MAWB":
+        solo_digitos = numero.replace("-", "")
+        return digito_control_mawb(numero), int(solo_digitos[10])
+    return None, None
+
+
 def validar_referencia(tipo: str | None, numero: str | None) -> ResultadoReferencia:
     """Valida el par tipo/número y dice si hoy se puede seguir.
 
@@ -134,6 +204,25 @@ def validar_referencia(tipo: str | None, numero: str | None) -> ResultadoReferen
             numero=num_norm,
             rastreable=False,
             motivo=f"{num_norm!r} no tiene el formato de un {tipo_norm}.{pista}",
+        )
+
+    # El formato sí cuadra: queda comprobar el dígito verificador, que es lo que
+    # distingue un número bien transcrito de uno plausible pero equivocado. Un
+    # dígito malo **no aborta el lote** (RN-17): la línea entra, la referencia
+    # queda registrada y el pedido se queda en `SIN_TRACKING` hasta que alguien
+    # la corrija. Lo que no pasa es que se gaste un crédito en ella.
+    esperado, declarado = _verificar_digito(tipo_norm, num_norm)
+    if esperado is not None and declarado is not None and esperado != declarado:
+        return ResultadoReferencia(
+            valida=False,
+            tipo=tipo_norm,
+            numero=num_norm,
+            rastreable=False,
+            motivo=(
+                f"{num_norm!r} tiene el formato de un {tipo_norm} pero su dígito "
+                f"verificador no cuadra: declara {declarado} y le corresponde "
+                f"{esperado}. Probablemente esté mal transcrito."
+            ),
         )
 
     fuente = _FUENTE_POR_TIPO.get(tipo_norm, "ninguna")

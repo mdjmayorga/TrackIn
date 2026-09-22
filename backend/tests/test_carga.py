@@ -21,6 +21,7 @@ from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.services.ingesta.carga import (
+    RECHAZO_REFERENCIA_INVALIDA,
     RECHAZO_SIN_DESTINO,
     RECHAZO_SIN_VIA,
     LineaRechazada,
@@ -31,6 +32,7 @@ from app.services.ingesta.carga import (
     resolver_destino,
 )
 from app.services.ingesta.dto import PedidoCrudo
+from app.services.ingesta.informe import construir_informe
 from app.services.ingesta.semilla import PEDIDOS_SEMILLA, FuenteSemilla
 
 
@@ -562,3 +564,87 @@ class TestAusentes:
 
         assert len(resultado.rechazadas) == 1
         assert resultado.ausentes == [("4599999999", 10)]
+
+
+# --- Referencias inválidas — US-32, quinto y sexto criterio ----------------
+
+
+@pytest.mark.integration
+class TestReferenciaInvalida:
+    """Una referencia mala **no** impide que el pedido entre (RN-17), pero
+    tampoco puede desaparecer del informe: hasta `US-32` no se contaba en
+    ninguna parte."""
+
+    async def test_el_pedido_entra_aunque_la_referencia_no_sirva(self, sesion, sin_pedidos) -> None:
+        resultado = await cargar(
+            sesion,
+            # `MSCU1234567`: formato correcto, dígito verificador equivocado.
+            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234567")]),
+            señalar_ausentes=False,
+        )
+
+        assert resultado.cargados == 1
+        assert len(resultado.rechazadas) == 0  # la línea no se rechaza
+        pedido = await sesion.scalar(select(PedidoTransito))
+        assert pedido is not None
+        assert pedido.etapa_viaje == "SIN_TRACKING"  # RN-02: no se asoció nada
+        assert pedido.id_elemento_rastreado is None
+
+    async def test_la_referencia_mala_queda_en_el_informe_con_su_clave(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Lo que se gana: el número mal transcrito se puede ir a corregir."""
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234567")]),
+            señalar_ausentes=False,
+        )
+
+        (invalida,) = resultado.referencias_invalidas
+        assert (invalida.oc_numero, invalida.posicion_oc) == ("4599999999", 10)
+        assert invalida.motivo == RECHAZO_REFERENCIA_INVALIDA
+        assert "dígito verificador" in invalida.detalle
+
+    async def test_no_se_cuenta_ni_como_rastreable_ni_como_sin_rastreo_hoy(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Son tres cosas distintas: se sigue hoy, se seguiría con créditos, y
+        no se seguirá nunca porque el número está mal."""
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234567")]),
+            señalar_ausentes=False,
+        )
+
+        assert resultado.rastreables == 0
+        assert resultado.sin_rastreo_hoy == 0
+        assert len(resultado.referencias_invalidas) == 1
+
+    async def test_un_contenedor_bien_transcrito_si_se_asocia(self, sesion, sin_pedidos) -> None:
+        """El contraste: mismo tipo, mismo formato, dígito correcto."""
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234566")]),
+            señalar_ausentes=False,
+        )
+
+        assert resultado.referencias_invalidas == []
+        # ShipsGo aún no tiene créditos: válida, pero no rastreable hoy.
+        assert resultado.sin_rastreo_hoy == 1
+        pedido = await sesion.scalar(select(PedidoTransito))
+        assert pedido is not None
+        assert pedido.id_elemento_rastreado is not None
+
+    async def test_el_informe_la_marca_como_entro_sin_rastreo(self, sesion, sin_pedidos) -> None:
+        """La distinción que necesita quien lee: hay un pedido en la base, lo
+        que falta es poder seguirlo."""
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234567")]),
+            señalar_ausentes=False,
+        )
+
+        informe = construir_informe("prueba", resultado)
+
+        assert informe.no_entraron == 0
+        assert informe.entraron_sin_rastreo == 1

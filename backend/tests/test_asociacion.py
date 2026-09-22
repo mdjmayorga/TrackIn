@@ -98,8 +98,8 @@ async def test_reutiliza_el_elemento_activo_con_la_misma_referencia(sesion) -> N
     Duplicar el elemento multiplicaría las consultas a una fuente que se cobra
     por envío rastreado, sin aportar nada.
     """
-    primero = await obtener_o_crear_elemento(sesion, "CONTENEDOR", "MSCU1000002", "MARITIMO")
-    segundo = await obtener_o_crear_elemento(sesion, "CONTENEDOR", "MSCU1000002", "MARITIMO")
+    primero = await obtener_o_crear_elemento(sesion, "CONTENEDOR", "MSCU1000017", "MARITIMO")
+    segundo = await obtener_o_crear_elemento(sesion, "CONTENEDOR", "MSCU1000017", "MARITIMO")
     assert primero.id == segundo.id
 
 
@@ -129,7 +129,7 @@ async def test_distinto_tipo_es_distinto_elemento(sesion) -> None:
 async def test_asociar_vincula_y_mueve_la_etapa(sesion) -> None:
     """El `CHECK` de RN-02 exige que la etapa deje de ser `SIN_TRACKING`."""
     pedido = await _crear_pedido(sesion)
-    resultado = await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU2000001")
+    resultado = await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU2000006")
 
     assert resultado.valida
     assert pedido.id_elemento_rastreado is not None
@@ -140,20 +140,20 @@ async def test_asociar_vincula_y_mueve_la_etapa(sesion) -> None:
 
 async def test_asociar_persiste_la_referencia_normalizada(sesion) -> None:
     pedido = await _crear_pedido(sesion)
-    await asociar_referencia(sesion, pedido, " contenedor ", " mscu 2000002 ")
+    await asociar_referencia(sesion, pedido, " contenedor ", " mscu 2000011 ")
     await sesion.flush()
 
     elemento = await sesion.get(ElementoRastreado, pedido.id_elemento_rastreado)
     assert elemento is not None
     assert elemento.tipo_tracking_externo == "CONTENEDOR"
-    assert elemento.tracking_externo == "MSCU2000002"
+    assert elemento.tracking_externo == "MSCU2000011"
 
 
 async def test_dos_pedidos_del_mismo_contenedor_comparten_elemento(sesion) -> None:
     uno = await _crear_pedido(sesion)
     otro = await _crear_pedido(sesion)
-    await asociar_referencia(sesion, uno, "CONTENEDOR", "MSCU2000003")
-    await asociar_referencia(sesion, otro, "CONTENEDOR", "MSCU2000003")
+    await asociar_referencia(sesion, uno, "CONTENEDOR", "MSCU2000027")
+    await asociar_referencia(sesion, otro, "CONTENEDOR", "MSCU2000027")
     await sesion.flush()
 
     assert uno.id_elemento_rastreado == otro.id_elemento_rastreado
@@ -166,7 +166,7 @@ async def test_una_referencia_valida_pero_no_rastreable_se_asocia_igual(sesion) 
     dato vale igual: mañana hay fuente y hoy le sirve a quien consulta a mano.
     """
     pedido = await _crear_pedido(sesion)
-    resultado = await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU2000004")
+    resultado = await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU2000032")
 
     assert resultado.valida and not resultado.rastreable
     assert pedido.id_elemento_rastreado is not None  # se asoció igual
@@ -181,7 +181,7 @@ async def test_una_referencia_valida_pero_no_rastreable_se_asocia_igual(sesion) 
         ("CONTENEDOR", "NO-ES-UN-CONTENEDOR"),
         ("MAWB", "ABC-12345678"),  # HAWB del agente de carga
         ("TIPO_INVENTADO", "123"),
-        (None, "MSCU2000005"),
+        (None, "MSCU2000048"),
         ("CONTENEDOR", None),
     ],
 )
@@ -209,7 +209,7 @@ async def test_referencia_invalida_no_crea_elementos_huerfanos(sesion) -> None:
 async def test_con_usuario_deja_rastro_de_auditoria(sesion) -> None:
     usuario = await _crear_usuario(sesion)
     pedido = await _crear_pedido(sesion)
-    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000001", id_usuario=usuario.id)
+    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000000", id_usuario=usuario.id)
     await sesion.flush()
 
     registro = await sesion.scalar(
@@ -218,7 +218,7 @@ async def test_con_usuario_deja_rastro_de_auditoria(sesion) -> None:
     assert registro is not None
     assert registro.tipo_intervencion == "ASOCIACION_TRACKING"
     assert registro.campo_afectado == "id_elemento_rastreado"
-    assert registro.valor_nuevo == "CONTENEDOR:MSCU3000001"
+    assert registro.valor_nuevo == "CONTENEDOR:MSCU3000000"
     assert registro.valor_anterior is None  # no tenía elemento previo
 
 
@@ -229,7 +229,7 @@ async def test_sin_usuario_no_audita(sesion) -> None:
     forzarlo rompería la carga automática, que no tiene detrás a una persona.
     """
     pedido = await _crear_pedido(sesion)
-    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000002")
+    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000016")
     await sesion.flush()
 
     registro = await sesion.scalar(
@@ -243,11 +243,11 @@ async def test_reasociar_registra_el_valor_anterior(sesion) -> None:
     usuario = await _crear_usuario(sesion)
     pedido = await _crear_pedido(sesion)
 
-    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000003")
+    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000021")
     await sesion.flush()
     primero = pedido.id_elemento_rastreado
 
-    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000004", id_usuario=usuario.id)
+    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000037", id_usuario=usuario.id)
     await sesion.flush()
 
     assert pedido.id_elemento_rastreado != primero
@@ -263,11 +263,11 @@ async def test_reasociar_registra_el_valor_anterior(sesion) -> None:
 
 async def test_asociar_dos_veces_la_misma_referencia_es_idempotente(sesion) -> None:
     pedido = await _crear_pedido(sesion)
-    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000005")
+    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000042")
     await sesion.flush()
     primero = pedido.id_elemento_rastreado
 
-    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000005")
+    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000042")
     await sesion.flush()
 
     assert pedido.id_elemento_rastreado == primero
@@ -276,10 +276,10 @@ async def test_asociar_dos_veces_la_misma_referencia_es_idempotente(sesion) -> N
 async def test_no_degrada_una_etapa_ya_avanzada(sesion) -> None:
     """Si el pedido ya zarpó, asociar no debe devolverlo a `EN_ORIGEN`."""
     pedido = await _crear_pedido(sesion)
-    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000006")
+    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000058")
     pedido.etapa_viaje = "EN_TRANSITO"
     pedido.estado_calculado = "EN_TRANSITO"
     await sesion.flush()
 
-    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000007")
+    await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000063")
     assert pedido.etapa_viaje == "EN_TRANSITO"

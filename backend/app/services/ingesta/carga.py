@@ -98,6 +98,11 @@ ETAPA_INICIAL = "SIN_TRACKING"
 RECHAZO_SIN_VIA = "sin_via_transporte"
 RECHAZO_SIN_DESTINO = "sin_destino_resoluble"
 
+#: La línea **sí** entró; lo que no sirve es su referencia de embarque. No es
+#: un rechazo de la línea sino de su rastreo: el pedido queda `SIN_TRACKING`
+#: (RN-02) hasta que alguien corrija el número (`US-32`).
+RECHAZO_REFERENCIA_INVALIDA = "referencia_invalida"
+
 
 @dataclass(frozen=True, slots=True)
 class LineaRechazada:
@@ -138,6 +143,9 @@ class ResultadoCarga:
     #: borrados (segundo criterio de `US-31`).
     ausentes: list[tuple[str, int]] = field(default_factory=list)
     rechazadas: list[LineaRechazada] = field(default_factory=list)
+    #: Líneas que **sí** entraron pero cuya referencia no sirve. Van aparte de
+    #: `rechazadas` porque el pedido está en la base: lo que falta es su rastreo.
+    referencias_invalidas: list[LineaRechazada] = field(default_factory=list)
     #: De los cargados, cuántos quedaron con rastreo automático posible hoy.
     rastreables: int = 0
     #: Cargados con referencia válida pero que **ninguna API sigue todavía**.
@@ -536,6 +544,20 @@ async def cargar(
                 resultado.rastreables += 1
             elif veredicto.valida:
                 resultado.sin_rastreo_hoy += 1
+            else:
+                # Hasta `US-32` este caso no se contaba en ninguna parte: el
+                # pedido entraba y la referencia mala desaparecía del informe.
+                # Con el dígito verificador en marcha el silencio importa, y es
+                # justo lo que pide el sexto criterio.
+                resultado.referencias_invalidas.append(
+                    LineaRechazada(
+                        oc_numero=crudo.oc_numero,
+                        posicion_oc=crudo.posicion_oc,
+                        motivo=RECHAZO_REFERENCIA_INVALIDA,
+                        detalle=veredicto.motivo,
+                    )
+                )
+                logger.warning("Carga: referencia de %s inválida — %s", crudo, veredicto.motivo)
 
     if señalar_ausentes:
         resultado.ausentes = await marcar_ausentes(sesion, presentes, instante=ahora)

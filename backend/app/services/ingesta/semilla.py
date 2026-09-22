@@ -51,7 +51,7 @@ PEDIDOS_SEMILLA: tuple[PedidoCrudo, ...] = (
         tipo_proveedor="INTERNACIONAL",
         fabricante="Fabricante 0001",
         tipo_referencia="CONTENEDOR",
-        numero_referencia="MSKU1234567",
+        numero_referencia="MSKU1234565",
         transportista="MAERSK",
     ),
     # --- Marítimo por el Pacífico: verifica que Caldera se distinga ---------
@@ -95,7 +95,7 @@ PEDIDOS_SEMILLA: tuple[PedidoCrudo, ...] = (
         tipo_proveedor="INTERNACIONAL",
         fabricante="Fabricante 0003",
         tipo_referencia="MAWB",
-        numero_referencia="176-12345678",
+        numero_referencia="176-12345675",
         transportista="EMIRATES SKYCARGO",
     ),
     # --- Aéreo en riesgo: la fecha comprometida está dentro del umbral ------
@@ -117,7 +117,7 @@ PEDIDOS_SEMILLA: tuple[PedidoCrudo, ...] = (
         tipo_proveedor="INTERNACIONAL",
         fabricante="Fabricante 0004",
         tipo_referencia="MAWB",
-        numero_referencia="020-87654321",
+        numero_referencia="020-87654324",
         transportista="LUFTHANSA CARGO",
     ),
     # --- SIN TRACKING: el caso mayoritario en la muestra real ---------------

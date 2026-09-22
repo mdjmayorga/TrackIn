@@ -45,6 +45,7 @@ from app.models.maestro_destino import MaestroDestino  # noqa: E402
 from app.models.pedido_transito import PedidoTransito  # noqa: E402
 from app.services.ingesta import obtener_fuente  # noqa: E402
 from app.services.ingesta.carga import cargar  # noqa: E402
+from app.services.ingesta.informe import construir_informe  # noqa: E402
 
 SEP = "=" * 72
 
@@ -76,27 +77,6 @@ def _silenciar_eco_sql() -> None:
     """
     engine.echo = False
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-
-
-def _resumir_rechazos(rechazadas, tope: int = 15) -> list[str]:
-    """Agrupa por motivo y lista un puñado de ejemplos de cada uno.
-
-    Contra el archivo real los rechazos se cuentan por centenares —la mayoría
-    de las líneas no traen vía de transporte—, y volcarlos uno por uno tapa el
-    resto del informe. El motivo con su cuenta es lo accionable; los ejemplos
-    solo sirven para ir a buscar la línea.
-    """
-    por_motivo: dict[str, list[str]] = {}
-    for linea in rechazadas:
-        por_motivo.setdefault(linea.motivo, []).append(str(linea))
-
-    salida: list[str] = []
-    for motivo, lineas in sorted(por_motivo.items(), key=lambda par: -len(par[1])):
-        salida.append(f"{motivo}: {len(lineas)} líneas")
-        salida.extend(f"    {linea}" for linea in lineas[:tope])
-        if len(lineas) > tope:
-            salida.append(f"    … y {len(lineas) - tope} más")
-    return salida
 
 
 async def _mostrar_estado(sesion) -> None:
@@ -199,17 +179,15 @@ async def _ejecutar(*, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool
         resultado = await cargar(sesion, fuente, señalar_ausentes=senalar_ausentes)
         await sesion.commit()
 
-        # Los cuatro números del tercer criterio de US-31, más lo que el propio
-        # archivo no dejó ni llegar a línea.
-        print(
-            f"\n  Recibidas    : {resultado.leidas}"
-            f"\n  Insertadas   : {resultado.cargados}"
-            f"\n  Actualizadas : {resultado.actualizados}"
-            f"\n  Sin cambios  : {resultado.sin_cambios}"
-            f"\n  Rechazadas   : {len(resultado.rechazadas)}"
-        )
+        # El informe único de `US-32`: junta las filas que no llegaron a línea,
+        # las líneas que no se pudieron persistir y las que entraron con una
+        # referencia inservible, cada una con su clave de origen.
+        informe = construir_informe(fuente.nombre, resultado, getattr(fuente, "ilegibles", None))
+        print()
+        print(informe.como_texto())
+
         if resultado.reaparecidos:
-            print(f"  Reaparecidas : {resultado.reaparecidos} (estaban marcadas ausentes)")
+            print(f"\n  Reaparecidas : {resultado.reaparecidos} (estaban marcadas ausentes)")
         if resultado.cerrados_omitidos:
             print(
                 f"  Cerradas     : {resultado.cerrados_omitidos} "
@@ -222,21 +200,6 @@ async def _ejecutar(*, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool
                 f"\n  Con referencia, sin API que la siga: {resultado.sin_rastreo_hoy}"
                 f"\n  Sin referencia (SIN_TRACKING)      : {resultado.sin_tracking}"
             )
-
-        # Filas que la fuente no pudo ni convertir en línea. No todas las
-        # fuentes las exponen: la semilla no tiene archivo que leer.
-        ilegibles = getattr(fuente, "ilegibles", [])
-        if ilegibles:
-            print(f"\nFilas ilegibles del archivo ({len(ilegibles)}) — no llegaron a línea:")
-            for fila in ilegibles:
-                print(f"  · {fila}")
-
-        if resultado.rechazadas:
-            # Se listan siempre: una línea que no entró y nadie ve es peor que
-            # una carga que falla (RN-17).
-            print("\nLíneas rechazadas — RN-17: la carga sigue, pero quedan a la vista:")
-            for linea in _resumir_rechazos(resultado.rechazadas):
-                print(f"  · {linea}")
 
         if resultado.ausentes:
             print(
