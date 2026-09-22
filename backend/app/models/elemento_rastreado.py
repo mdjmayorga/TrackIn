@@ -28,6 +28,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Index,
+    Integer,
     Numeric,
     String,
     text,
@@ -64,6 +65,12 @@ class ElementoRastreado(Base, TimestampMixin):
     tipo_tracking_externo: Mapped[str] = mapped_column(String(20), nullable=False)
     tracking_externo: Mapped[str] = mapped_column(String(50), nullable=False)
     via_transporte: Mapped[str] = mapped_column(String(10), nullable=False)
+
+    #: Identidad de la nave según la fuente (`US-45`; cierra la deuda que
+    #: `US-02` dejó escrita el 08/09). Los consumen el mapa (`US-27`) y el
+    #: detalle del pedido (`US-44`).
+    nombre: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    imo: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     #: ETA y ATA tal como las reporta la fuente externa. Se distinguen de la
     #: inferida por el sistema y de la confirmada a mano (RN-05).

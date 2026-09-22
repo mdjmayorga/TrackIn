@@ -151,6 +151,9 @@ class PedidoTransito(Base, TimestampMixin):
     ajuste_manual_dias: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text("0")
     )
+    #: La ETA tal como la declara el archivo (`US-09`). Es la última de la
+    #: precedencia de RN-14: la escribe una persona y no se actualiza sola.
+    eta_declarada: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
     eta_utilizada: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

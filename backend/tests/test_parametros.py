@@ -62,10 +62,12 @@ async def test_leer_una_clave_no_declarada_es_un_error(sesion) -> None:
 
 
 async def test_la_migracion_sembro_los_parametros(sesion) -> None:
-    """`0003` los siembra para que sean descubribles por quien administra."""
+    """Las siembran `0003`, `0004` y `0008`, para que quien administra las
+    descubra sin leer el código. La prueba recorre `CATALOGO` entero, así que
+    un parámetro nuevo sin migración la rompe."""
     for clave in parametros.CATALOGO:
         fila = await sesion.get(ParametroSistema, clave)
-        assert fila is not None, f"{clave} no quedó sembrado por la migración 0003"
+        assert fila is not None, f"{clave} no quedó sembrado por ninguna migración"
 
 
 async def test_la_fila_sobreescribe_el_defecto(sesion) -> None:
@@ -140,4 +142,4 @@ async def test_los_valores_sembrados_coinciden_con_los_defectos(sesion) -> None:
     for clave, definicion in parametros.CATALOGO.items():
         assert (
             await parametros.obtener(sesion, clave) == definicion.defecto
-        ), f"{clave}: la fila sembrada por 0003 no coincide con CATALOGO"
+        ), f"{clave}: la fila sembrada no coincide con CATALOGO"

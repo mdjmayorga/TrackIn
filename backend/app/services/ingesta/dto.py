@@ -48,6 +48,10 @@ class PedidoCrudo:
     tipo_proveedor: str | None = None
     fabricante: str | None = None
 
+    #: ETA declarada en el archivo (columna `ETA CR`). Llega casi siempre
+    #: vacía: 18 fechas usables en las 429 líneas de la muestra del 03/09.
+    eta_declarada: dt.date | None = None
+
     # --- Referencia de embarque (contrato de TASK-30) -----------------------
     #: Habitualmente vacíos. En la muestra real del Z-tracking **ninguna** de
     #: las 429 líneas traía referencia: es la razón de ser del estado

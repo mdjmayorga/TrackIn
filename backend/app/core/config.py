@@ -65,8 +65,13 @@ class Settings(BaseSettings):
 
     # --- APIs externas (se consumen a partir de sprints posteriores) --------
     AISSTREAM_API_KEY: str | None = None
-    OPENSKY_USERNAME: str | None = None
-    OPENSKY_PASSWORD: str | None = None
+    # OpenSky retiró la autenticación Basic: hoy es OAuth2 `client_credentials`.
+    # TG-11 lo descubrió el 19/08/2026 y renombró las claves en `.env.example`,
+    # pero **este archivo se quedó con los nombres viejos** hasta `US-05`. Los
+    # valores guardados ya eran las credenciales OAuth2; no hubo que
+    # regenerarlas, solo llamarlas por su nombre.
+    OPENSKY_CLIENT_ID: str | None = None
+    OPENSKY_CLIENT_SECRET: str | None = None
 
     # --- Ingesta de pedidos (TASK-03 / US-31) -------------------------------
     # Fuente desde la que entran las líneas de orden de compra.

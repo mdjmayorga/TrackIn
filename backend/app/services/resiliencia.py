@@ -50,6 +50,13 @@ class ClaseFallo(str, Enum):
     TRANSITORIO = "transitorio"
     #: No mejora reintentando: credencial, permiso, referencia inexistente.
     PERMANENTE = "permanente"
+    #: Permanente **para esa referencia**, pero accionable: no es «no reintentar
+    #: nunca», es «hay que dar de alta el embarque primero». Lo descubrió
+    #: `TASK-28` el 14/09: las fuentes comerciales son *create-then-poll* y
+    #: ninguna responde «¿dónde está el contenedor X?» en frío. Tratarlo como
+    #: permanente dejaría la referencia muerta; como transitorio, reintentando
+    #: en vano contra un embarque que nadie registró.
+    REQUIERE_ALTA = "requiere_alta"
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,13 +128,30 @@ class EstadoFuente:
             logger.debug("Fuente %s: contacto correcto sin datos nuevos.", self.nombre)
 
     def registrar_fallo(self, *, instante: dt.datetime, clase: ClaseFallo, motivo: str) -> None:
-        """Anota el fallo. Un permanente degrada la fuente de inmediato."""
+        """Anota el fallo. Un permanente degrada la fuente de inmediato.
+
+        `REQUIERE_ALTA` es la excepción: se anota pero **no degrada nada**, por
+        la razón que explica el cuerpo.
+        """
         if clase is ClaseFallo.NINGUNO:
             raise ValueError("Un fallo no puede ser de clase NINGUNO.")
 
         self.ultimo_fallo = instante
         self.clase_ultimo_fallo = clase
         self.motivo_ultimo_fallo = motivo
+
+        if clase is ClaseFallo.REQUIERE_ALTA:
+            # La fuente **contestó bien**: el problema es de esta referencia, no
+            # del proveedor. No cuenta contra los fallos consecutivos ni degrada
+            # la fuente, porque degradarla apagaría el rastreo de todos los
+            # demás embarques por culpa de uno sin registrar.
+            logger.info(
+                "Fuente %s: la referencia exige alta previa — %s. No degrada la fuente.",
+                self.nombre,
+                motivo,
+            )
+            return
+
         self.fallos_consecutivos += 1
 
         if clase is ClaseFallo.PERMANENTE:
@@ -162,6 +186,11 @@ class EstadoFuente:
         queden: es el segundo principio.
         """
         if self.clase_ultimo_fallo is ClaseFallo.PERMANENTE:
+            return False
+        if self.clase_ultimo_fallo is ClaseFallo.REQUIERE_ALTA:
+            # Repetir la **misma** consulta volvería a fallar: lo que desbloquea
+            # es el alta, no la espera. Quien llama tiene que darla de alta y
+            # volver por otro camino.
             return False
         if self.clase_ultimo_fallo is ClaseFallo.NINGUNO:
             return True
@@ -214,6 +243,17 @@ MOTIVOS_PERMANENTES: Final[frozenset[str]] = frozenset(
     }
 )
 
+#: Motivos que exigen **dar de alta el embarque** antes de poder consultarlo.
+#: Es el tercer caso que `US-03` dejó pendiente al cerrarse el 08/09 —*«el mapeo
+#: de los errores concretos de cada proveedor»*— y que la fase 2 de `TASK-28`
+#: midió el 14/09.
+MOTIVOS_REQUIERE_ALTA: Final[frozenset[str]] = frozenset(
+    {
+        "referencia_sin_alta",  # TrackingMore lo dice con su código 4102
+        "embarque_no_registrado",  # ShipsGo: la cuenta no tiene ese embarque
+    }
+)
+
 
 def clasificar(motivo: str) -> ClaseFallo:
     """Clase del fallo a partir de su motivo normalizado.
@@ -223,15 +263,17 @@ def clasificar(motivo: str) -> ClaseFallo:
     apaga una fuente que funcionaba. El primer error es más barato, y el tope de
     intentos lo acota igual.
     """
-    return (
-        ClaseFallo.PERMANENTE
-        if motivo.strip().lower() in MOTIVOS_PERMANENTES
-        else ClaseFallo.TRANSITORIO
-    )
+    normalizado = motivo.strip().lower()
+    if normalizado in MOTIVOS_REQUIERE_ALTA:
+        return ClaseFallo.REQUIERE_ALTA
+    if normalizado in MOTIVOS_PERMANENTES:
+        return ClaseFallo.PERMANENTE
+    return ClaseFallo.TRANSITORIO
 
 
 __all__ = [
     "MOTIVOS_PERMANENTES",
+    "MOTIVOS_REQUIERE_ALTA",
     "ClaseFallo",
     "EstadoFuente",
     "PoliticaReintento",

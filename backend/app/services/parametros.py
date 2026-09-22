@@ -105,6 +105,66 @@ CATALOGO: Final[dict[str, Parametro]] = {
             "Logística."
         ),
     ),
+    # --- Planificación de las consultas (`US-07`, RF-08) --------------------
+    # El primer criterio de la historia exige que la frecuencia se cambie **sin
+    # reiniciar el servicio**, así que el planificador relee estos valores en
+    # cada tic en vez de capturarlos al arrancar.
+    "frecuencia_aerea_min": Parametro(
+        clave="frecuencia_aerea_min",
+        defecto=60,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Minutos entre consultas de un envío aéreo, dentro de la ventana "
+            "activa. **Provisional**: el valor bueno depende del ritmo al que "
+            "ShipsGo Air refresca los hitos CIMP, que no se ha medido."
+        ),
+    ),
+    "frecuencia_maritima_min": Parametro(
+        clave="frecuencia_maritima_min",
+        defecto=360,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Minutos entre consultas de un envío marítimo. Seis horas por "
+            "defecto: un buque tarda semanas y los hitos son escasos. Consultar "
+            "**no cuesta crédito** (el crédito se gasta en el alta), así que el "
+            "límite real es el de tasa, no el presupuesto."
+        ),
+    ),
+    "ventana_aerea_inicio_h": Parametro(
+        clave="ventana_aerea_inicio_h",
+        defecto=6,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Hora local a la que arranca la ventana activa del sondeo aéreo "
+            "(segundo criterio de `US-07`). Fuera de la ventana se suspende."
+        ),
+    ),
+    "ventana_aerea_fin_h": Parametro(
+        clave="ventana_aerea_fin_h",
+        defecto=22,
+        tipo_dato="ENTERO",
+        descripcion="Hora local a la que termina la ventana activa del sondeo aéreo.",
+    ),
+    "maduracion_reintento_s": Parametro(
+        clave="maduracion_reintento_s",
+        defecto=120,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Segundos antes de reconsultar un embarque **dado de alta pero sin "
+            "datos todavía**. `TASK-28` midió que a los 45 s devolvía `NEW` y a "
+            "los ~90 s estaba completo; 120 s da margen sin desperdiciar el tic."
+        ),
+    ),
+    "altas_maximas_dia": Parametro(
+        clave="altas_maximas_dia",
+        defecto=20,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Altas diarias por encima de las cuales el planificador avisa. Es "
+            "**lo que cuesta dinero**: a 2 USD el crédito y ~374 al año, veinte "
+            "en un día es señal de que algo se está dando de alta en bucle."
+        ),
+    ),
     # --- Resiliencia de las fuentes externas (`US-03`, RF-09 / RNF-12) ------
     # Los cinco describen la misma política de espera creciente, y son
     # parámetros y no constantes por el sexto criterio de la historia: los

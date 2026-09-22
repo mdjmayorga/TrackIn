@@ -340,6 +340,7 @@ def _campos_del_archivo(crudo: PedidoCrudo, resuelto: _Resuelto) -> dict[str, ob
         "cantidad_pedida": Decimal(str(crudo.cantidad)),
         "unidad_medida": crudo.unidad_medida,
         "fecha_entrega_pedido": crudo.fecha_entrega_pedido,
+        "eta_declarada": crudo.eta_declarada,
         "incoterm": normalizacion.normalizar_incoterm(crudo.incoterm),
         "temperatura": normalizacion.normalizar_temperatura(crudo.temperatura),
         "tipo_proveedor": normalizacion.normalizar_texto(crudo.tipo_proveedor),

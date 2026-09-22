@@ -86,6 +86,10 @@ COLUMNAS: Final[dict[str, tuple[int, str]]] = {
     "temperatura": (34, "Temperatura"),
     "pais_origen": (35, "Pais de Origen"),
     "via_transporte": (36, "Tipo de transporte"),
+    # Llega casi siempre vacía o con `PENDIENTE`: 18 fechas usables en
+    # las 429 líneas de la muestra. Se ingesta igual, porque es la única
+    # ETA que el archivo ofrece y `US-09` la usa como último recurso.
+    "eta_declarada": (37, "ETA CR"),
 }
 
 #: Cuántos rótulos reconocibles bastan para dar la hoja por válida. No se exigen
@@ -383,6 +387,9 @@ class FuenteZTracking:
             destino_codigo=None,
             # Todo lo de abajo va **sin normalizar**, a propósito (RN-17).
             via_transporte=_a_texto(celda("via_transporte")),
+            # Aquí sí se convierte, porque `PENDIENTE` y `N/A` no son fechas y
+            # `_a_fecha` ya los descarta: no hay decisión de negocio que tomar.
+            eta_declarada=_a_fecha(celda("eta_declarada")),
             pais_origen=_a_texto(celda("pais_origen")),
             incoterm=_a_texto(celda("incoterm")),
             temperatura=_a_texto(celda("temperatura")),

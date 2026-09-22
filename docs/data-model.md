@@ -107,6 +107,7 @@ erDiagram
         date        fecha_entrega_pedido           "compromiso comercial"
         integer     lead_time_destino_dias         "snapshot, RN-01"
         integer     ajuste_manual_dias             "RN-01"
+        date        eta_declarada                  "del archivo, US-09"
         timestamptz eta_utilizada                  "snapshot, RN-16"
         timestamptz ata_confirmada                 "manual, RN-14"
         timestamptz ata_inferida                   "geocerca u on_ground, RN-05"
@@ -144,6 +145,8 @@ erDiagram
         varchar     tipo_tracking_externo    UK "unico solo si activo"
         varchar     tracking_externo         UK "MMSI, IMO o icao24"
         varchar     via_transporte              "CHECK"
+        varchar     nombre                      "nave, US-45"
+        integer     imo                         "OMI, US-45"
         timestamptz eta_api                     "informativa, RN-16"
         timestamptz ata_api                     "RN-14"
         geography   posicion_actual             "Point 4326, desnormalizada"
@@ -323,6 +326,7 @@ rastreable automáticamente. Se refuerza con un `CHECK` (§1.5).
 |---|---|---|---|
 | `lead_time_destino_dias` | `INTEGER` | no | §8.2 |
 | `ajuste_manual_dias` | `INTEGER` | no, *default* 0 | `TASK-12` |
+| `eta_declarada` | `DATE` | sí | `US-09` |
 | `eta_utilizada` | `TIMESTAMPTZ` | sí | `TASK-12` |
 | `ata_confirmada` | `TIMESTAMPTZ` | sí | §8.2 |
 | `ata_inferida` | `TIMESTAMPTZ` | sí | `TASK-12` (26/08) |
@@ -336,6 +340,14 @@ produjo la fecha proyectada»*. Si el lead time se leyera siempre por join,
 editar el maestro reescribiría retroactivamente el desglose de todos los
 pedidos ya calculados. La columna guarda **el valor usado en el recálculo**;
 `US-12` la refresca cuando corresponde.
+
+`eta_declarada` es la ETA que trae el archivo (columna `ETA CR`), y es la
+**última** de la precedencia de RN-14: la mantiene una persona a mano y no se
+actualiza sola. No cabía en ninguna de las otras columnas —`eta_api` cuelga del
+elemento rastreado y un pedido `SIN_TRACKING` no tiene ninguno, y `eta_utilizada`
+es la instantánea de la que *se usó*—. Medido sobre la muestra del 03/09: trae
+fecha usable en **18 de 429 líneas**; el resto viene vacía, con `PENDIENTE` o con
+`N/A`. La columna existe y se audita; lo que falta es el dato.
 
 `ata_inferida` guarda **el instante en que el sistema determinó el arribo** por
 geocerca o por `on_ground`, que no es lo mismo que el reportado por la fuente
@@ -1070,6 +1082,8 @@ línea de pedido.
 | `tipo_tracking_externo` | `VARCHAR(20)` | no | §8.5 |
 | `tracking_externo` | `VARCHAR(50)` | no | §8.5 |
 | `via_transporte` | `VARCHAR(10)` | no | §8.5 |
+| `nombre` | `VARCHAR(120)` | sí | `US-45` |
+| `imo` | `INTEGER` | sí | `US-45` |
 | `eta_api` | `TIMESTAMPTZ` | sí | §8.5 |
 | `ata_api` | `TIMESTAMPTZ` | sí | §8.5 |
 | `posicion_actual` | `GEOGRAPHY(Point,4326)` | sí | §8.5, tipo corregido |
