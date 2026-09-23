@@ -49,6 +49,7 @@ from app.models.elemento_rastreado import ElementoRastreado
 from app.models.maestro_destino import MaestroDestino
 from app.models.pedido_transito import PedidoTransito
 from app.services import estado as estado_mod
+from app.services import eta_estimada as eta_mod
 from app.services import parametros, proyeccion
 
 logger = logging.getLogger(__name__)
@@ -122,10 +123,19 @@ async def recalcular(
     destino = await sesion.get(MaestroDestino, pedido.id_destino)
     lead_time = destino.lead_time_dias if destino is not None else None
 
+    # `US-08` solo produce algo con AIS —ShipsGo no entrega velocidad— y solo
+    # se consulta si hace falta: si la fuente ya dio su ETA, la estimada no
+    # cambiaría el resultado y calcularla sería una consulta PostGIS de balde.
+    eta_fuente = await _eta_de_la_fuente(sesion, pedido)
+    estimada = None
+    if eta_fuente is None and pedido.ata_confirmada is None and pedido.ata_inferida is None:
+        estimada = (await eta_mod.estimar(sesion, pedido)).eta
+
     resultado = proyeccion.calcular(
         ata_confirmada=pedido.ata_confirmada,
         ata_inferida=pedido.ata_inferida,
-        eta_fuente=await _eta_de_la_fuente(sesion, pedido),
+        eta_fuente=eta_fuente,
+        eta_estimada=estimada,
         eta_declarada=pedido.eta_declarada,
         lead_time_dias=lead_time,
         ajuste_manual_dias=pedido.ajuste_manual_dias,

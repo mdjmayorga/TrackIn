@@ -86,6 +86,44 @@ Los endpoints de `api/` no deben contener reglas de negocio: delegan en
 | `python scripts/cargar_semilla.py --resumen` | Muestra qué hay en la base, sin escribir |
 | `python scripts/cargar_semilla.py --limpiar` | Deja la base en un estado conocido y recarga |
 | `python scripts/cargar_semilla.py --sin-ausentes` | Carga sin marcar como ausente lo que no venga (carga parcial) |
+| `pytest` | Tests con cobertura |
+| `pytest -m "not integration"` | Solo lo que no necesita base de datos |
+| `pytest --no-cov -q` | Rápido, sin cobertura |
+| `ruff check app tests` | Lint |
+| `ruff check --fix app tests` | Lint con autofix |
+| `black app tests` | Formatea |
+| `mypy app` | Tipos |
+
+Los tests marcados `integration` requieren PostgreSQL levantado; sin él se
+saltan solos en vez de fallar.
+
+### Encender el rastreo en vivo
+
+Las tres fuentes REST hablan con el mundo a través de `rastreo.transporte_http`.
+Para una corrida real basta el token y un cliente compartido:
+
+```python
+from app.services.rastreo import transporte_http
+
+async with transporte_http.crear_cliente_http() as http:
+    shipsgo = transporte_http.crear_cliente_shipsgo(http, token=settings.SHIPSGO_API_TOKEN)
+    opensky = transporte_http.crear_cliente_opensky(
+        http, settings.OPENSKY_CLIENT_ID, settings.OPENSKY_CLIENT_SECRET
+    )
+```
+
+**Cada alta en ShipsGo cuesta un crédito (~2 USD).** Las consultas no cuestan
+nada: el cobro es por embarque registrado. Antes de la primera corrida conviene
+bajar el umbral de aviso al presupuesto que haya:
+
+```sql
+UPDATE parametros_sistema SET valor = '5' WHERE clave = 'altas_maximas_dia';
+```
+
+Sin `SHIPSGO_API_TOKEN` el sistema arranca igual y el rastreo comercial queda
+inactivo, que es la situación mientras no haya créditos comprados.
+
+### Cargar el archivo de Logística
 
 La fuente sale de `INGESTA_ADAPTADOR`. Para cargar el archivo real de Logística
 (`US-31`), en `backend/.env`:
@@ -98,16 +136,6 @@ ZTRACKING_RUTA=../docs/analisis/2026-Agosto-WK36.xlsx
 Una errata en `INGESTA_ADAPTADOR`, o `ztracking` sin `ZTRACKING_RUTA`, **impiden
 arrancar**: la configuración que no se puede cumplir se detiene en el arranque
 en vez de dejar el sistema en pie sin fuente de pedidos.
-| `pytest` | Tests con cobertura |
-| `pytest -m "not integration"` | Solo lo que no necesita base de datos |
-| `pytest --no-cov -q` | Rápido, sin cobertura |
-| `ruff check app tests` | Lint |
-| `ruff check --fix app tests` | Lint con autofix |
-| `black app tests` | Formatea |
-| `mypy app` | Tipos |
-
-Los tests marcados `integration` requieren PostgreSQL levantado; sin él se
-saltan solos en vez de fallar.
 
 ## Migraciones (Alembic)
 

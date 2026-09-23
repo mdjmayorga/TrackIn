@@ -73,6 +73,12 @@ class Settings(BaseSettings):
     OPENSKY_CLIENT_ID: str | None = None
     OPENSKY_CLIENT_SECRET: str | None = None
 
+    # ShipsGo, la fuente comercial de las dos vías (`TASK-28`, go del 14/09).
+    # Viaja en la cabecera `X-Shipsgo-User-Token`. Sin token el sistema arranca
+    # igual: el rastreo comercial queda inactivo y todo lo demás funciona, que
+    # es exactamente la situación mientras no haya créditos comprados.
+    SHIPSGO_API_TOKEN: str | None = None
+
     # --- Ingesta de pedidos (TASK-03 / US-31) -------------------------------
     # Fuente desde la que entran las líneas de orden de compra.
     #   ztracking → el archivo de Logística. Vía **oficial** desde el 03/09/2026

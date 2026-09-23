@@ -170,3 +170,7 @@ tmp/
 # de los proveedores. La evidencia versionada guarda solo resúmenes enmascarados.
 backend/scripts/spikes/referencias.json
 backend/scripts/spikes/**/output/raw/
+
+# Archivos temporales de Word (se crean al abrir un .docx)
+~$*
+~WRL*.tmp

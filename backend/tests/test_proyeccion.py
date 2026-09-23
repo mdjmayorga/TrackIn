@@ -16,6 +16,7 @@ from app.services.proyeccion import (
     ORIGEN_ATA_CONFIRMADA,
     ORIGEN_ATA_INFERIDA,
     ORIGEN_ETA_DECLARADA,
+    ORIGEN_ETA_ESTIMADA,
     ORIGEN_ETA_FUENTE,
     PRECEDENCIA,
     calcular,
@@ -111,6 +112,7 @@ def test_la_precedencia_declarada_es_la_que_se_aplica() -> None:
         ORIGEN_ATA_CONFIRMADA,
         ORIGEN_ATA_INFERIDA,
         ORIGEN_ETA_FUENTE,
+        ORIGEN_ETA_ESTIMADA,
         ORIGEN_ETA_DECLARADA,
     )
 
@@ -199,3 +201,43 @@ def test_la_proyeccion_no_se_retoca() -> None:
     resultado = calcular(eta_fuente=ETA, lead_time_dias=5)
     with pytest.raises(AttributeError):
         resultado.fecha = dt.date(2030, 1, 1)  # type: ignore[misc]
+
+
+# --- La ETA estimada de `US-08` --------------------------------------------
+
+
+def test_la_eta_de_la_fuente_gana_a_la_estimada() -> None:
+    """Contra el criterio literal de `US-08`, y a propósito.
+
+    Ese criterio se escribió cuando «la fuente» era AIS, donde la ETA la teclea
+    la tripulación. La de ShipsGo es la predicción de la naviera sobre su propia
+    operación: ganarle con una división de distancia entre velocidad sería peor
+    información con más aire de certeza.
+    """
+    resultado = calcular(
+        eta_fuente=dt.date(2026, 9, 10),
+        eta_estimada=dt.date(2026, 9, 12),
+        lead_time_dias=5,
+    )
+
+    assert resultado.origen == ORIGEN_ETA_FUENTE
+
+
+def test_la_estimada_gana_a_la_del_archivo() -> None:
+    """Un cálculo sobre posición real vale más que una columna mantenida a mano."""
+    resultado = calcular(
+        eta_estimada=dt.date(2026, 9, 12),
+        eta_declarada=dt.date(2026, 9, 15),
+        lead_time_dias=5,
+    )
+
+    assert resultado.origen == ORIGEN_ETA_ESTIMADA
+    assert resultado.fecha == dt.date(2026, 9, 17)
+
+
+def test_la_estimada_tapa_el_hueco_cuando_la_fuente_no_trae_eta() -> None:
+    """El caso medido: en uno de los dos embarques del spike,
+    `date_of_discharge_predicted` vino vacío."""
+    resultado = calcular(eta_fuente=None, eta_estimada=dt.date(2026, 9, 12), lead_time_dias=5)
+
+    assert resultado.origen == ORIGEN_ETA_ESTIMADA
