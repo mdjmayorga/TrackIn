@@ -1,15 +1,15 @@
 # Contrato de captura de la referencia de embarque
 
 **`TASK-30` · Sprint 3 · 5 de septiembre de 2026**
+**Revisado el 23/09/2026:** proveedor (ShipsGo), ejemplos con dígito verificador válido y conteo por líneas.
 Destinatario: **Planeación y Logística** · Autor: Mariano Mayorga
 
 ---
 
 ## Por qué esto va primero
 
-TrackIn rastrea los pedidos consultando a **Vizion** (marítimo) y **Portcast** (aéreo). Ambas
-fuentes buscan un envío por su **número de referencia**. Sin ese número no devuelven nada, por
-buenas que sean.
+TrackIn rastrea los pedidos consultando a **ShipsGo**, para las dos vías. La fuente busca un
+envío por su **número de referencia**. Sin ese número no devuelve nada, por buena que sea.
 
 Hoy el archivo de seguimiento **no tiene ninguno** en sus 429 líneas. Pero sí aparece en los
 comentarios del comprador:
@@ -20,8 +20,9 @@ comentarios del comprador:
 O sea: **el dato existe y alguien lo conoce**, solo que se escribe en prosa y se pierde. Este
 documento define dónde ponerlo para que el sistema lo pueda usar.
 
-> **Cuanto antes se empiece, mejor.** La integración estará lista a finales de octubre; cada
-> semana que se capture desde ya es una semana de histórico con la que arrancar.
+> **La integración ya está lista** (23/09/2026): el sistema carga el archivo, consulta a ShipsGo,
+> detecta el arribo y calcula el semáforo. Lo único que le falta son las referencias. Cada semana
+> que se capture desde ya es una semana de histórico con la que arrancar.
 
 ---
 
@@ -32,7 +33,7 @@ Se agregan al final del archivo de seguimiento, en las hojas **PRODUCCION** e **
 | Columna | Contenido | Ejemplo |
 |---|---|---|
 | `Tipo de referencia` | Uno de: `CONTENEDOR`, `BL`, `BOOKING`, `MAWB` | `CONTENEDOR` |
-| `Número de referencia` | El número, sin espacios | `MSKU1234567` |
+| `Número de referencia` | El número, sin espacios | `MSKU1234565` |
 | `Transportista` | Naviera o aerolínea | `MAERSK` |
 
 Y una cuarta, muy recomendable:
@@ -48,7 +49,9 @@ Y una cuarta, muy recomendable:
 ### Marítimo — cualquiera de los tres, en este orden de preferencia
 
 1. **Número de contenedor** — el que mejor funciona.
-   Formato: **4 letras + 7 dígitos**. Ejemplo: `MSKU1234567`, `TGHU7654321`.
+   Formato: **4 letras + 7 dígitos**. Ejemplo: `MSKU1234565`, `TGHU7654320`.
+   El último dígito es un **verificador**: se calcula desde los diez anteriores, y el sistema
+   lo comprueba antes de enviar nada.
 2. **BL máster (MBL)** — el conocimiento de embarque del transportista.
 3. **Booking** — sirve desde antes de que zarpe.
 
@@ -56,7 +59,8 @@ Si un embarque trae **varios contenedores**, se puede poner el BL una sola vez: 
 
 ### Aéreo — el MAWB, y solo el MAWB
 
-Formato: **11 dígitos**, con prefijo de 3 de la aerolínea. Ejemplo: `176-12345678`.
+Formato: **11 dígitos**, con prefijo de 3 de la aerolínea. Ejemplo: `176-12345675`.
+El último dígito también es verificador.
 
 > ### ⚠️ Cuidado con el HAWB
 >
@@ -86,6 +90,24 @@ todas las referencias que ya maneja. Él las tiene todas: es su negocio.
 
 ---
 
+## Lo que se midió después de escribir esto
+
+El spike `TASK-28` cerró el 14/09/2026 con **ShipsGo** para las dos vías, y midió tres cosas que
+cambian cómo hay que capturar la referencia:
+
+- **ShipsGo cobra las referencias que no puede resolver.** Se probó con un contenedor inventado:
+  devolvió éxito, creó el embarque y descontó el crédito igual. Un número mal transcrito cuesta
+  **2 USD** y después devuelve vacío, indistinguible de un envío sin novedades. Por eso el sistema
+  comprueba el dígito verificador **antes** de enviar nada.
+- **En la vía aérea se puede verificar la cobertura gratis.** ShipsGo publica su catálogo de 207
+  aerolíneas, y los **22 prefijos** que usa Gutis están todos cubiertos. Si el prefijo de una guía
+  no aparece ahí, el sistema se detiene antes de gastar el crédito.
+- **El presupuesto arranca en 50 créditos** (50 embarques), con 150 más en diciembre. Un BL cuesta
+  un crédito sin importar cuántos contenedores ampare, y consultarlo después es gratis: **el cobro
+  es por embarque registrado, no por consulta**.
+
+---
+
 ## Reglas de validación que aplicará el sistema
 
 Cuando se cargue el archivo (`US-32`), el sistema revisará:
@@ -107,9 +129,14 @@ rastreo** hasta que aparezca la referencia.
 
 Aparte de las columnas nuevas, hay un hueco que ya existe:
 
-- **La vía de transporte está vacía en 165 órdenes.** Sin ella el sistema no sabe a qué fuente
-  preguntar —Vizion o Portcast— ni cuántos envíos cotizar de cada tipo. Completarla es tan
-  importante como la referencia misma.
+- **La vía de transporte falta o no se puede resolver en 290 de las 424 líneas** (165 órdenes).
+  Son 259 en blanco, 15 con `PENDIENTE`, 12 con `N/A`, 3 que dicen `INDIA` —un país en la
+  columna de la vía— y una que dice `AEREO` y `MARITIMO` a la vez. Sin vía el sistema no sabe
+  a qué fuente preguntar ni cuántos envíos cotizar de cada tipo. **Es el escalón que tira el
+  68 % del archivo**, y completarla es tan importante como la referencia misma.
+
+  > El conteo por **líneas** es el que refleja lo que pierde el sistema: una orden tiene varias
+  > líneas y cada una se rastrea por separado.
 
 ---
 
@@ -121,4 +148,4 @@ Aparte de las columnas nuevas, hay un hueco que ya existe:
 3. **Pedirle el reporte al agente de carga** — es la forma más rápida de llenar lo existente.
 4. **En las compras CIF y CIP hay que exigirle la referencia al proveedor**, porque hoy llega
    tarde o no llega.
-5. **Completar la vía de transporte** en las 165 órdenes donde falta.
+5. **Completar la vía de transporte**: falta en 290 de las 424 líneas (165 órdenes).
