@@ -61,12 +61,16 @@ _FUENTE_POR_TIPO: Final[dict[str, str]] = {
 
 #: Fuentes efectivamente conectadas hoy.
 #:
-#: ShipsGo está **validada pero sin créditos**: los dos trials de 3 altas se
-#: agotaron el 14/09 y la compra se difiere al arranque de producción, porque
-#: los créditos vencen un año después de comprarse. Hasta que se compren, sus
-#: referencias se guardan y se validan, pero no se siguen — que es exactamente
-#: la distinción que documenta el encabezado de este módulo.
-_FUENTES_DISPONIBLES: Final[frozenset[str]] = frozenset({"aisstream", "opensky"})
+#: `shipsgo` entra el 23/09/2026: Planificación compró **50 créditos**, con 150
+#: más previstos para diciembre, y el token quedó configurado. Hasta esa fecha
+#: sus referencias se guardaban y se validaban pero no se seguían, porque los
+#: dos trials de 3 altas se habían agotado el 14/09.
+#:
+#: Estar en esta lista **no** significa presupuesto infinito: cada alta cuesta
+#: un crédito (~2 USD) y el planificador avisa al pasar de `altas_maximas_dia`,
+#: hoy 5. Lo que significa es que una referencia marítima o aérea ya nace
+#: rastreable, que es lo que `US-01` promete.
+_FUENTES_DISPONIBLES: Final[frozenset[str]] = frozenset({"aisstream", "opensky", "shipsgo"})
 
 
 @dataclass(frozen=True, slots=True)

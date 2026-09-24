@@ -378,16 +378,20 @@ class TestCargarLote:
         assert resultado.cargados == 2
         assert len(resultado.rechazadas) == 1
 
-    async def test_ninguna_referencia_de_la_semilla_es_rastreable_hoy(
+    async def test_las_cuatro_referencias_de_la_semilla_son_rastreables(
         self, sesion, sin_pedidos
     ) -> None:
-        """Con Vizion y Portcast aprobados pero **sin contratar**, las cuatro
-        referencias son válidas y ninguna se puede seguir. Es el hallazgo que
-        `US-01` dejó anotado, y esta prueba lo fija hasta que se contraten."""
+        """Un contenedor, un BL y dos MAWB: las cuatro las sigue ShipsGo.
+
+        Hasta el 23/09/2026 ninguna lo era, porque los créditos no estaban
+        comprados, y esta prueba fijaba ese cero. Rastreable no quiere decir
+        dado de alta —eso cuesta un crédito y lo decide el planificador—, sino
+        que hay una fuente capaz de seguirla.
+        """
         resultado = await cargar(sesion, FuenteSemilla())
 
-        assert resultado.rastreables == 0
-        assert resultado.sin_rastreo_hoy == 4
+        assert resultado.rastreables == 4
+        assert resultado.sin_rastreo_hoy == 0
         assert resultado.sin_tracking == 2
 
     async def test_las_lineas_con_referencia_salen_de_sin_tracking(
@@ -684,8 +688,9 @@ class TestReferenciaInvalida:
         )
 
         assert resultado.referencias_invalidas == []
-        # ShipsGo aún no tiene créditos: válida, pero no rastreable hoy.
-        assert resultado.sin_rastreo_hoy == 1
+        # Con los créditos comprados (23/09/2026) un contenedor nace rastreable.
+        assert resultado.rastreables == 1
+        assert resultado.sin_rastreo_hoy == 0
         pedido = await sesion.scalar(select(PedidoTransito))
         assert pedido is not None
         assert pedido.id_elemento_rastreado is not None

@@ -144,20 +144,22 @@ def test_fuentes_gratuitas_si_rastrean(tipo: str, numero: str) -> None:
         ("MAWB", "020-12345675"),  # ShipsGo Air
     ],
 )
-def test_fuentes_de_pago_se_aceptan_pero_no_rastrean_todavia(tipo: str, numero: str) -> None:
-    """ShipsGo está **validada pero sin créditos**.
+def test_las_referencias_de_shipsgo_ya_nacen_rastreables(tipo: str, numero: str) -> None:
+    """Desde el 23/09/2026 hay 50 créditos comprados y token configurado.
 
-    El tercer criterio de `US-01`: la referencia se guarda igual y el motivo
-    explica por qué el pedido sigue sin rastreo automático. `TASK-28` cerró el
-    14/09 con un go, pero los dos trials de 3 altas se agotaron y la compra se
-    difiere al arranque. Cuando se compren los créditos hay que mover `shipsgo`
-    a `_FUENTES_DISPONIBLES` y esta prueba va a fallar — es el recordatorio.
+    Esta prueba era su propio recordatorio: decía que al comprar los créditos
+    había que mover `shipsgo` a `_FUENTES_DISPONIBLES` y que entonces iba a
+    fallar. Falló en la corrida de punta a punta del 24/09, con el motivo
+    todavía diciendo «no tiene créditos disponibles».
+
+    Rastreable no quiere decir dado de alta: el alta cuesta un crédito y la
+    decide el planificador. Quiere decir que la fuente la puede seguir, que es
+    lo que distingue el tercer criterio de `US-01`.
     """
     resultado = validar_referencia(tipo, numero)
     assert resultado.valida, resultado.motivo
-    assert not resultado.rastreable
+    assert resultado.rastreable
     assert "shipsgo" in resultado.motivo
-    assert "créditos" in resultado.motivo
 
 
 def test_buque_se_acepta_pero_ninguna_fuente_lo_sigue() -> None:
@@ -221,7 +223,7 @@ def test_el_resultado_conserva_los_valores_normalizados() -> None:
         valida=True,
         tipo="CONTENEDOR",
         numero="MSCU1234566",
-        rastreable=False,
+        rastreable=True,
         motivo=resultado.motivo,
     )
 

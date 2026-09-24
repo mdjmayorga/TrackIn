@@ -162,11 +162,16 @@ async def test_dos_pedidos_del_mismo_contenedor_comparten_elemento(sesion) -> No
 async def test_una_referencia_valida_pero_no_rastreable_se_asocia_igual(sesion) -> None:
     """Tercer criterio de `US-01`: se guarda aunque hoy nadie la siga.
 
-    Un contenedor depende de Vizion, que está aprobada pero no contratada. El
-    dato vale igual: mañana hay fuente y hoy le sirve a quien consulta a mano.
+    El caso se ejerce con un **nombre de buque**, que ninguna API sabe
+    consultar. Antes se ejercía con un contenedor, pero desde que se compraron
+    los créditos de ShipsGo (23/09/2026) los contenedores nacen rastreables y
+    dejaron de servir de ejemplo.
+
+    El dato vale igual aunque nadie lo siga: le sirve a quien consulta a mano,
+    y mañana puede haber fuente.
     """
     pedido = await _crear_pedido(sesion)
-    resultado = await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU2000032")
+    resultado = await asociar_referencia(sesion, pedido, "BUQUE", "EVER GIVEN")
 
     assert resultado.valida and not resultado.rastreable
     assert pedido.id_elemento_rastreado is not None  # se asoció igual
