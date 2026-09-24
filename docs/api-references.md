@@ -1275,6 +1275,24 @@ Medido sobre `MRSU8507472` (Santos → Cartagena → Puerto Moín):
 **Los hitos distinguen `ACT` de `EST`**, que es exactamente la separación que
 RN-14 necesita entre lo ocurrido y lo estimado.
 
+#### ⚠️ `transit_time` cambia de unidad según la vía — medido el 23/09/2026
+
+El mismo nombre de campo, dos unidades distintas:
+
+| Embarque | ETD → ETA | `transit_time` | Unidad |
+|---|---|---|---|
+| Maersk `MRSU8507472` | 24 ago → 15 sep | `22` | **días** |
+| Maersk `MRSU8132490` | 24 ago → 18 sep | `25` | **días** |
+| COSCO `TGBU4872990` | 15 ago → 5 oct | `51` | **días** |
+| Lufthansa `020-50685434` | 4 sep 07:05 +08 → 5 sep 18:43 −06 | `50` | **horas** (~49,6 reales) |
+
+Usar el campo directamente sin mirar la vía da un error de **24×** en aéreo.
+TrackIn no lo consume —calcula la duración restando ETD de ETA, que no depende
+de la unidad— pero conviene tenerlo anotado antes de que alguien lo use para un
+indicador.
+
+---
+
 #### El transbordo viene gratis — `US-30`
 
 El primer contenedor cambió de `MAERSK CHACHAI` a `POLAR BRASIL` en Cartagena;

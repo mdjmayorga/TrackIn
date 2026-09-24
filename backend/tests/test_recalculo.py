@@ -95,8 +95,15 @@ async def umbral_dos(sesion):
 
 async def test_el_umbral_se_lee_de_parametros_sistema(sesion, umbral_dos) -> None:
     """Quinto criterio de `US-10`: cambiarlo **no** exige desplegar código."""
-    # Con umbral 2, una proyectada 3 días antes es A_TIEMPO.
-    pedido = await _pedido(sesion, eta_declarada=COMPROMETIDA - dt.timedelta(days=8))
+    # La base se calcula desde el lead time **del maestro** y no de un número
+    # cableado: cuando Planificación respondió que el tramo puerto→planta son 7
+    # días y no 5, esta prueba se cayó por medir contra el valor viejo.
+    destino = await _destino(sesion)
+    margen = 3  # mayor que el umbral de 2, así que A_TIEMPO
+    pedido = await _pedido(
+        sesion,
+        eta_declarada=COMPROMETIDA - dt.timedelta(days=destino.lead_time_dias + margen),
+    )
     resultado = await recalcular(sesion, pedido)
     assert resultado.estado_cumplimiento == A_TIEMPO
 
