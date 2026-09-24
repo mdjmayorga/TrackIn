@@ -130,12 +130,19 @@ La fuente sale de `INGESTA_ADAPTADOR`. Para cargar el archivo real de Logística
 
 ```
 INGESTA_ADAPTADOR=ztracking
-ZTRACKING_RUTA=../docs/analisis/2026-Agosto-WK36.xlsx
+ZTRACKING_RUTA="../docs/analisis/2026 - SEPTIEMBRE - WK38 MOD.xlsx"
 ```
 
 Una errata en `INGESTA_ADAPTADOR`, o `ztracking` sin `ZTRACKING_RUTA`, **impiden
 arrancar**: la configuración que no se puede cumplir se detiene en el arranque
 en vez de dejar el sistema en pie sin fuente de pedidos.
+
+**El lector busca las columnas por nombre, no por posición.** La entrega WK38
+(23/09/2026) insertó seis columnas en medio de `PRODUCCION` y le puso una banda
+de agrupación encima del encabezado; con el mapeo por posición original, el
+libro entero era ilegible. Hoy cualquiera de las dos entregas se lee sin tocar
+código, y una hoja a la que le falte una columna **obligatoria** se rechaza
+entera en vez de producir líneas plausibles y equivocadas.
 
 ## Migraciones (Alembic)
 

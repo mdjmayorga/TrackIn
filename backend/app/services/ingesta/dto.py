@@ -52,13 +52,31 @@ class PedidoCrudo:
     #: vacía: 18 fechas usables en las 429 líneas de la muestra del 03/09.
     eta_declarada: dt.date | None = None
 
+    #: Lo que Logística anotó a mano sobre si la carga llegó: `SI`, `NO`,
+    #: `PENDIENTE`, `N/A`. Sale de `Carga arribo a Costa Rica (SI - NO)`, que la
+    #: entrega WK38 del 23/09/2026 renombró a `ATA CR` sin cambiarle el
+    #: contenido —el nombre sugiere una fecha y no lo es—. **No es el ATA
+    #: confirmado de RN-05**: no tiene la trazabilidad de un hito de rastreo,
+    #: pero para una línea sin referencia es el único indicio de arribo que hay.
+    #: Va sin normalizar, como el resto del texto libre (RN-17).
+    arribo_declarado: str | None = None
+
     # --- Referencia de embarque (contrato de TASK-30) -----------------------
-    #: Habitualmente vacíos. En la muestra real del Z-tracking **ninguna** de
-    #: las 429 líneas traía referencia: es la razón de ser del estado
+    #: Habitualmente vacíos. La hoja `IDA` tiene las columnas desde WK38
+    #: (23/09/2026), pero ninguna de sus 96 líneas las trae llenas, y
+    #: `PRODUCCION` —donde viven las 109 líneas marítimas— todavía no las
+    #: tiene. Ausente es el caso normal: es la razón de ser del estado
     #: `SIN_TRACKING` (RN-02) y de la asociación manual de RF-03.
     tipo_referencia: str | None = None
     numero_referencia: str | None = None
     transportista: str | None = None
+
+    #: Cuándo obtuvo Logística la referencia. Planificación confirmó el
+    #: 23/09/2026 que lo normal es tenerla **al zarpe**; esta columna es lo que
+    #: permitirá medir si eso se cumple. Importa por presupuesto: cada alta en
+    #: ShipsGo cuesta un crédito, y darla de alta antes de que el embarque
+    #: exista gasta el crédito igual.
+    fecha_referencia: dt.date | None = None
 
     @property
     def clave(self) -> tuple[str, int]:

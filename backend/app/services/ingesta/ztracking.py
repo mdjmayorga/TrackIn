@@ -11,25 +11,52 @@ paso de `US-32` y quien escribe es `ingesta.carga`. Lo único que sí resuelve a
 es la **forma** del dato —serial de Excel a fecha, celda numérica a texto—,
 porque eso es un problema del formato del archivo y no una regla de negocio.
 
+Por qué el mapeo es por rótulo y no por posición
+-------------------------------------------------
+
+La primera versión mapeaba **por posición** y usaba el rótulo solo para
+verificar. La entrega del 23/09/2026 demostró que esa elección estaba mal:
+`WK38` insertó seis columnas en medio de `PRODUCCION`, movió otras cuatro y
+puso un renglón de agrupación encima del encabezado. Ninguna columna cambió de
+nombre, pero **todos** los índices se corrieron, y el lector —que hacía bien su
+trabajo— se negó a leer el libro entero.
+
+Ese archivo lo mantiene gente, a mano, cada semana. Que le agreguen una columna
+no es una anomalía: es lo que va a seguir pasando. Así que ahora las columnas se
+buscan **por nombre** en el encabezado, y la posición queda como respaldo para
+el único rótulo que se sabe roto.
+
 Lo que el archivo real obliga a tratar
 --------------------------------------
 
-Medido sobre la muestra del 03/09/2026 (`2026-Agosto-WK36.xlsx`, 429 líneas
-útiles en las dos hojas del alcance):
+Medido sobre las dos entregas reales (`2026-Agosto-WK36.xlsx`, 429 líneas, y
+`2026 - SEPTIEMBRE - WK38 MOD.xlsx`, 465):
 
+- **El encabezado no siempre está en la fila 1.** En WK38 `PRODUCCION` lo tiene
+  en la **fila 2**, debajo de una banda que agrupa las columnas por área
+  (`Compras`, `Planificación`). `IDA`, en el mismo libro, lo sigue teniendo en
+  la fila 1. Por eso el encabezado se **busca**, no se asume.
+- **Las dos hojas ya no tienen la misma forma.** `IDA` trae las cuatro columnas
+  de referencia del contrato de `TASK-30` y `PRODUCCION` no; `PRODUCCION`
+  renombró `Carga arribo a Costa Rica (SI - NO)` a `ATA CR` e `IDA` la dejó
+  como estaba. Buscar por nombre resuelve las dos con un solo mapa: lo que no
+  está, no se mapea, y el campo llega en `None`.
 - **Las fechas llegan en dos formatos a la vez.** `PRODUCCION` las trae como
-  `datetime` y `IDA` mezcla 49 `datetime` con 49 **seriales de Excel** (`45779`)
-  en la misma columna. Un lector que asuma uno de los dos pierde la mitad.
+  `datetime` e `IDA` mezcla `datetime` con **seriales de Excel** (`45779`) en la
+  misma columna. Un lector que asuma uno de los dos pierde la mitad.
 - **Los números llegan como texto o como número, sin criterio.** La orden de
-  compra es `str` en 269 filas de `PRODUCCION` y `int` en 59; en `IDA` es
-  siempre `int`. La clave natural tiene que salir igual de las dos.
-- **El encabezado de `PRODUCCION` está roto:** su primera celda contiene `81`,
-  un número, en vez del rótulo `Documento Compra` que sí trae `IDA`. Por eso el
-  mapeo va **por posición** y el encabezado solo se usa para verificar que la
-  hoja tenga la forma esperada.
-- **`Posición` aparece dos veces** —la de la orden y la de la solicitud—, lo que
-  vuelve ambiguo cualquier mapeo por nombre.
-- **Hay filas completamente vacías al final** de las dos hojas (12 y 10).
+  compra es `str` en 269 filas de `PRODUCCION` de WK36 e `int` en 59; en `IDA`
+  es siempre `int`. La clave natural tiene que salir igual de las dos.
+- **El encabezado de `PRODUCCION` vino roto en WK36:** su primera celda contenía
+  `81` en vez de `Documento Compra`. En WK38 ya está corregido, pero el respaldo
+  por posición se queda para poder seguir leyendo los archivos viejos.
+- **`Posición` aparece dos veces** —la de la orden y la de la solicitud—. Se
+  toma la primera, que es la de la orden; la segunda vive más a la derecha.
+- **Hay fechas que no son fechas.** WK38 trae un número de orden
+  (`4500018608`) en la celda `ETA CR` de una línea, y tres números de entrega
+  en celdas con formato de fecha. Una celda mal tecleada no puede tumbar la
+  carga: se descarta el valor, no la línea.
+- **Hay filas completamente vacías al final** de las dos hojas.
 
 Qué se descarta acá y qué se deja pasar
 ---------------------------------------
@@ -49,6 +76,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 from dataclasses import dataclass, field
+from itertools import chain, islice
 from pathlib import Path
 from typing import Any, Final
 
@@ -64,39 +92,94 @@ logger = logging.getLogger(__name__)
 #: compras de producción y quedan fuera.
 HOJAS_EN_ALCANCE: Final[tuple[str, ...]] = ("PRODUCCION", "IDA")
 
-#: Mapeo **por posición**, con el rótulo que se espera encontrar al lado.
-#: El rótulo no se usa para mapear —`PRODUCCION` trae `81` en la primera celda
-#: y `Posición` está repetida—, solo para verificar que la hoja no cambió de
-#: forma. Índices base 0.
-COLUMNAS: Final[dict[str, tuple[int, str]]] = {
-    "oc_numero": (0, "Documento Compra"),
-    "posicion_oc": (1, "Posición"),
-    "proveedor_codigo": (3, "Proveedor"),
-    "proveedor_nombre": (4, "Nombre del Proveedor"),
-    "material_codigo": (5, "Material"),
-    "material_descripcion": (6, "Texto breve Material"),
+
+@dataclass(frozen=True, slots=True)
+class Columna:
+    """Una columna del archivo y cómo encontrarla.
+
+    `rotulo` se compara sin tildes ni mayúsculas, primero exacto y después por
+    prefijo, porque varios rótulos arrastran un paréntesis explicativo:
+    `'Tipo de proveedor (LOCAL O INTERNACIONAL)'`. El orden importa —exacto
+    antes que prefijo— para que `Tipo de referencia`, `Tipo de transporte` y
+    `Tipo de proveedor` no se pisen entre sí.
+
+    `alias` son nombres anteriores de la **misma** columna. WK38 renombró
+    `Carga arribo a Costa Rica (SI - NO)` a `ATA CR` sin cambiarle el
+    contenido; los dos nombres tienen que llevar al mismo campo para que un
+    archivo viejo se siga leyendo completo.
+    """
+
+    campo: str
+    rotulo: str
+    alias: tuple[str, ...] = ()
+    #: Sin esta columna la hoja no se puede leer: todo `PedidoCrudo` la exige.
+    requerido: bool = False
+    #: Índice de respaldo cuando el rótulo no aparece. Solo para columnas que
+    #: **se sabe** que vienen rotas; poner uno "por si acaso" haría que una
+    #: columna ausente se leyera de otra, que es justo el fallo que hay que
+    #: evitar: datos plausibles y equivocados.
+    respaldo: int | None = None
+
+
+#: Las columnas que TrackIn necesita del archivo. Los índices aparecen solo en
+#: los respaldos; lo demás se resuelve por nombre contra el encabezado real.
+COLUMNAS: Final[tuple[Columna, ...]] = (
+    # `PRODUCCION` de WK36 traía `81` en esta celda en vez del rótulo. De ahí
+    # el respaldo: es la única columna con un defecto conocido y documentado.
+    Columna("oc_numero", "Documento Compra", requerido=True, respaldo=0),
+    Columna("posicion_oc", "Posición", requerido=True),
+    Columna("proveedor_codigo", "Proveedor", requerido=True),
+    Columna("proveedor_nombre", "Nombre del Proveedor"),
+    Columna("material_codigo", "Material", requerido=True),
+    Columna("material_descripcion", "Texto breve Material"),
     # Decisión de Planeación del 04/09/2026: la fecha comprometida es la de
     # entrega de la solicitud de pedido, no la del lead time de SAP.
-    "fecha_entrega_pedido": (10, "Fecha Entrega Solped"),
-    "cantidad": (12, "Cantidad reparto"),
-    "unidad_medida": (13, "UMP"),
-    "fabricante": (25, "Fabricante"),
-    "incoterm": (27, "Incoterm"),
-    "tipo_proveedor": (33, "Tipo de proveedor"),
-    "temperatura": (34, "Temperatura"),
-    "pais_origen": (35, "Pais de Origen"),
-    "via_transporte": (36, "Tipo de transporte"),
-    # Llega casi siempre vacía o con `PENDIENTE`: 18 fechas usables en
-    # las 429 líneas de la muestra. Se ingesta igual, porque es la única
-    # ETA que el archivo ofrece y `US-09` la usa como último recurso.
-    "eta_declarada": (37, "ETA CR"),
-}
+    Columna("fecha_entrega_pedido", "Fecha Entrega Solped", requerido=True),
+    Columna("cantidad", "Cantidad reparto", requerido=True),
+    Columna("unidad_medida", "UMP", requerido=True),
+    Columna("fabricante", "Fabricante"),
+    Columna("incoterm", "Incoterm"),
+    Columna("tipo_proveedor", "Tipo de proveedor"),
+    Columna("temperatura", "Temperatura"),
+    Columna("pais_origen", "Pais de Origen"),
+    Columna("via_transporte", "Tipo de transporte"),
+    # Llega casi siempre vacía o con `PENDIENTE`: 18 fechas usables en las 429
+    # líneas de WK36. Se ingesta igual, porque es la única ETA que el archivo
+    # ofrece y `US-09` la usa como último recurso.
+    Columna("eta_declarada", "ETA CR"),
+    # `ATA CR` **no es una fecha**, aunque el nombre lo sugiera: es la columna
+    # `Carga arribo a Costa Rica (SI - NO)` de WK36 renombrada, y sigue trayendo
+    # `NO` (143), `PENDIENTE` (67), `N/A` (12) y `SI` (10). Se ingesta como
+    # texto y sin normalizar, igual que la vía: decidir qué significa cada valor
+    # es RN-17. Para una línea sin referencia es el único indicio de arribo que
+    # existe, y no sustituye al ATA confirmado de RN-05.
+    Columna("arribo_declarado", "ATA CR", alias=("Carga arribo a Costa Rica",)),
+    # Las cuatro del contrato de `TASK-30`, pedidas a Planificación el
+    # 23/09/2026 y añadidas a `IDA` en WK38. Vienen vacías en las 96 líneas de
+    # esa entrega: la columna existe, el dato todavía no. Se mapean ya para que
+    # el día que Logística empiece a llenarlas no haya que tocar código.
+    Columna("tipo_referencia", "Tipo de referencia"),
+    Columna("numero_referencia", "Número de referencia"),
+    Columna("transportista", "Transportista"),
+    # Mide la antelación con que se consigue la referencia respecto al zarpe.
+    # Es lo que dirá si conviene dar de alta en ShipsGo apenas llega o esperar,
+    # que es una decisión de presupuesto: cada alta cuesta un crédito.
+    Columna("fecha_referencia", "Fecha de obtención de la referencia"),
+)
+
+#: Cuántas filas del principio se inspeccionan buscando el encabezado. WK38 lo
+#: tiene en la 2; el margen absorbe que mañana alguien agregue otro título.
+_FILAS_INSPECCIONADAS: Final[int] = 5
 
 #: Cuántos rótulos reconocibles bastan para dar la hoja por válida. No se exigen
-#: todos porque el archivo real ya demostró que uno puede venir roto; se exige
-#: una mayoría para que un libro con otra estructura falle en vez de leer
+#: todos —`ATA CR` y las de referencia viven en una sola hoja cada una—, pero sí
+#: una mayoría, para que un libro con otra estructura falle en vez de leer
 #: columnas equivocadas en silencio.
 _MINIMO_ROTULOS_RECONOCIDOS: Final[int] = 10
+
+#: Serial de Excel máximo que se acepta como fecha (≈ año 2173). Por encima de
+#: eso no hay fecha posible: es otro dato en la celda equivocada.
+_SERIAL_MAXIMO: Final[int] = 100_000
 
 #: Motivos por los que una línea no llega a existir.
 ILEGIBLE_SIN_CLAVE = "sin_clave_natural"
@@ -172,10 +255,18 @@ def _a_fecha(valor: Any) -> dt.date | None:
     """Celda a fecha, venga como fecha o como serial de Excel.
 
     El archivo real trae las dos cosas **en la misma columna**: `PRODUCCION` la
-    entrega como `datetime` y `IDA` mezcla mitad y mitad. La conversión del
+    entrega como `datetime` e `IDA` mezcla mitad y mitad. La conversión del
     serial se delega en `openpyxl`, que ya contempla la peculiaridad del
     calendario de Excel —el año 1900 bisiesto que nunca existió— en vez de
     reimplementarla acá con un `timedelta` y equivocarse por un día.
+
+    Un número fuera del rango de seriales plausibles **no es una fecha rara: es
+    otra cosa**. WK38 trae `4500018608` —una orden de compra— en una celda
+    `ETA CR` con formato de fecha. Ahí openpyxl avisa y devuelve un `time`, pero
+    si el mismo número llegara como celda numérica, `from_excel` levantaría
+    `OverflowError` y tumbaría la carga entera por una celda mal tecleada. Las
+    dos formas devuelven `None`: la línea sigue viva y sin ETA declarada, que es
+    exactamente lo que el dato significa.
     """
     if valor is None or isinstance(valor, bool):
         return None
@@ -184,13 +275,17 @@ def _a_fecha(valor: Any) -> dt.date | None:
     if isinstance(valor, dt.date):
         return valor
     if isinstance(valor, int | float):
-        # Un serial plausible: Excel cuenta desde 1899-12-30 y los seriales del
-        # archivo rondan los 45 000. Un 0 o un negativo no son una fecha.
-        if valor <= 0:
+        # Excel cuenta desde 1899-12-30 y los seriales del archivo rondan los
+        # 45 000. Un 0, un negativo o un número de orden no son una fecha.
+        if valor <= 0 or valor > _SERIAL_MAXIMO:
             return None
-        convertido = from_excel(valor)
+        try:
+            convertido = from_excel(valor)
+        except (ValueError, OverflowError, OSError):
+            return None
         if isinstance(convertido, dt.datetime):
             return convertido.date()
+        # Sobre una fracción `from_excel` devuelve una hora, que no es fecha.
         return convertido if isinstance(convertido, dt.date) else None
     texto = str(valor).strip()
     if not texto:
@@ -201,38 +296,69 @@ def _a_fecha(valor: Any) -> dt.date | None:
         return None
 
 
-def _rotulos_reconocidos(encabezado: tuple[Any, ...]) -> int:
-    """Cuántas columnas esperadas aparecen donde deberían.
-
-    La comparación es laxa a propósito —sin tildes ni mayúsculas, por prefijo—
-    porque los rótulos del archivo llevan saltos de línea y paréntesis
-    explicativos: `'Tipo de proveedor (LOCAL O INTERNACIONAL)'`.
-    """
-    aciertos = 0
-    for indice, esperado in COLUMNAS.values():
-        if indice >= len(encabezado):
-            continue
-        celda = encabezado[indice]
-        if not isinstance(celda, str):
-            continue
-        real = _sin_tildes(celda)
-        if real.startswith(_sin_tildes(esperado)):
-            aciertos += 1
-    return aciertos
-
-
 def _sin_tildes(texto: str) -> str:
-    """Minúsculas y vocales sin tilde, para comparar rótulos sin sorpresas."""
+    """Minúsculas, sin tildes y con los espacios colapsados.
+
+    Lo del espacio no es cosmético: WK38 trae rótulos con espacios dobles
+    (`'Diferencia Conversion  SOLED'`) y saltos de línea dentro de la celda.
+    """
     tabla = str.maketrans("áéíóúÁÉÍÓÚ", "aeiouAEIOU")
-    return texto.translate(tabla).strip().lower()
+    return " ".join(texto.translate(tabla).lower().split())
+
+
+def _resolver_columnas(encabezado: tuple[Any, ...]) -> dict[str, int]:
+    """Qué columna ocupa cada campo en este encabezado, buscando por nombre.
+
+    Solo por nombre: los respaldos por posición se aplican después, una vez
+    decidido cuál de las primeras filas es el encabezado. Mezclarlos acá haría
+    que cualquier fila con una celda en la posición 0 puntuara como encabezado.
+
+    Se toma la **primera** coincidencia, que es lo que desambigua la `Posición`
+    repetida: la de la orden está a la izquierda, la de la solicitud de pedido
+    mucho más a la derecha.
+    """
+    reales = [_sin_tildes(celda) if isinstance(celda, str) else None for celda in encabezado]
+    mapa: dict[str, int] = {}
+    for columna in COLUMNAS:
+        buscados = [_sin_tildes(r) for r in (columna.rotulo, *columna.alias)]
+        indice = next((i for i, real in enumerate(reales) if real in buscados), None)
+        if indice is None:
+            indice = next(
+                (
+                    i
+                    for i, real in enumerate(reales)
+                    if real is not None and any(real.startswith(b) for b in buscados)
+                ),
+                None,
+            )
+        if indice is not None:
+            mapa[columna.campo] = indice
+    return mapa
+
+
+def _localizar_encabezado(cabecera: list[tuple[Any, ...]]) -> tuple[int, dict[str, int]]:
+    """Cuál de las primeras filas es el encabezado, y qué columnas trae.
+
+    Gana la que reconozca más rótulos. En `PRODUCCION` de WK38 la fila 1 es una
+    banda de agrupación —`Compras`, `Planificación`— que no reconoce ninguno y
+    la 2 reconoce diecisiete; en `IDA` del mismo libro gana la 1. No hay que
+    decirle a cada hoja dónde mirar, ni mantener un mapa por hoja que habría
+    que corregir con cada entrega.
+    """
+    mejor_indice, mejor_mapa = 0, dict[str, int]()
+    for indice, fila in enumerate(cabecera):
+        mapa = _resolver_columnas(fila)
+        if len(mapa) > len(mejor_mapa):
+            mejor_indice, mejor_mapa = indice, mapa
+    return mejor_indice, mejor_mapa
 
 
 class HojaInesperada(ValueError):
     """El libro no tiene la forma del Z-tracking.
 
-    Es un error y no una línea rechazada: si el encabezado no coincide, todas
-    las columnas están desplazadas y seguir leyendo produciría datos plausibles
-    pero equivocados, que es la peor clase de fallo.
+    Es un error y no una línea rechazada: si no aparecen las columnas
+    obligatorias, seguir leyendo produciría datos plausibles pero equivocados,
+    que es la peor clase de fallo.
     """
 
 
@@ -291,35 +417,66 @@ class FuenteZTracking:
 
     def _leer_hoja(self, hoja: Any, nombre: str) -> list[PedidoCrudo]:
         filas = hoja.iter_rows(values_only=True)
-        try:
-            encabezado = next(filas)
-        except StopIteration:
+        # Se materializan solo las primeras filas: el iterador de `read_only`
+        # es de una pasada, así que hay que retener las candidatas a encabezado
+        # para poder volver sobre las que resulten ser datos.
+        cabecera = list(islice(filas, _FILAS_INSPECCIONADAS))
+        if not cabecera:
             logger.warning("Z-tracking: la hoja %r está vacía.", nombre)
             return []
 
-        reconocidos = _rotulos_reconocidos(encabezado)
-        if reconocidos < _MINIMO_ROTULOS_RECONOCIDOS:
+        indice_encabezado, mapa = _localizar_encabezado(cabecera)
+        encabezado = cabecera[indice_encabezado]
+        for columna in COLUMNAS:
+            if columna.campo in mapa or columna.respaldo is None:
+                continue
+            if columna.respaldo < len(encabezado):
+                mapa[columna.campo] = columna.respaldo
+                logger.info(
+                    "Z-tracking: %s!%d no trae el rótulo %r; se usa la columna %d.",
+                    nombre,
+                    indice_encabezado + 1,
+                    columna.rotulo,
+                    columna.respaldo,
+                )
+
+        faltantes = [c.rotulo for c in COLUMNAS if c.requerido and c.campo not in mapa]
+        if faltantes or len(mapa) < _MINIMO_ROTULOS_RECONOCIDOS:
+            detalle = f" y faltan las obligatorias {', '.join(faltantes)}" if faltantes else ""
             raise HojaInesperada(
-                f"La hoja {nombre!r} de {self.ruta.name} no parece un Z-tracking: "
-                f"solo {reconocidos} de {len(COLUMNAS)} rótulos esperados están en su sitio."
+                f"La hoja {nombre!r} de {self.ruta.name} no parece un Z-tracking: se "
+                f"reconocieron {len(mapa)} de {len(COLUMNAS)} columnas{detalle}."
             )
 
+        logger.debug(
+            "Z-tracking: %s — encabezado en la fila %d, %d columnas reconocidas.",
+            nombre,
+            indice_encabezado + 1,
+            len(mapa),
+        )
+
         leidas: list[PedidoCrudo] = []
-        # El encabezado es la fila 1, así que la primera de datos es la 2.
-        for numero, fila in enumerate(filas, start=2):
+        # La primera fila de datos es la siguiente al encabezado; las que
+        # quedaron en el buffer detrás de él son datos y hay que leerlas.
+        datos = chain(cabecera[indice_encabezado + 1 :], filas)
+        for numero, fila in enumerate(datos, start=indice_encabezado + 2):
             if all(celda is None for celda in fila):
                 continue  # cola de filas vacías; no es un error ni se reporta
-            linea = self._construir(fila, nombre, numero)
+            linea = self._construir(fila, mapa, nombre, numero)
             if linea is not None:
                 leidas.append(linea)
         return leidas
 
-    def _construir(self, fila: tuple[Any, ...], hoja: str, numero: int) -> PedidoCrudo | None:
+    def _construir(
+        self, fila: tuple[Any, ...], mapa: dict[str, int], hoja: str, numero: int
+    ) -> PedidoCrudo | None:
         """Una fila a `PedidoCrudo`, o `None` anotando por qué no se pudo."""
 
         def celda(campo: str) -> Any:
-            indice = COLUMNAS[campo][0]
-            return fila[indice] if indice < len(fila) else None
+            indice = mapa.get(campo)
+            if indice is None or indice >= len(fila):
+                return None
+            return fila[indice]
 
         oc_numero = _a_texto(celda("oc_numero"))
         posicion = _a_entero(celda("posicion_oc"))
@@ -381,27 +538,27 @@ class FuenteZTracking:
             cantidad=cantidad or 0.0,
             unidad_medida=unidad or "",
             fecha_entrega_pedido=fecha,
-            # El archivo no trae columna de destino. El contrato de `TASK-30`
-            # se lo pidió a Planeación y todavía no llega, así que hoy el
-            # destino se infiere de la vía en `carga.resolver_destino`.
+            # El archivo sigue sin traer columna de destino: el contrato de
+            # `TASK-30` se la pidió a Planificación y WK38 tampoco la trae, así
+            # que el destino se infiere de la vía en `carga.resolver_destino`.
             destino_codigo=None,
             # Todo lo de abajo va **sin normalizar**, a propósito (RN-17).
             via_transporte=_a_texto(celda("via_transporte")),
             # Aquí sí se convierte, porque `PENDIENTE` y `N/A` no son fechas y
             # `_a_fecha` ya los descarta: no hay decisión de negocio que tomar.
             eta_declarada=_a_fecha(celda("eta_declarada")),
+            arribo_declarado=_a_texto(celda("arribo_declarado")),
             pais_origen=_a_texto(celda("pais_origen")),
             incoterm=_a_texto(celda("incoterm")),
             temperatura=_a_texto(celda("temperatura")),
             tipo_proveedor=_a_texto(celda("tipo_proveedor")),
             fabricante=_a_texto(celda("fabricante")),
-            # El contrato de `TASK-30` define tres columnas de referencia que
-            # Planeación aún no añadió al archivo: en la muestra del 03/09
-            # **ninguna** de las 429 líneas la traía. Ausente es el caso normal,
-            # no un error, y el pedido nace `SIN_TRACKING` (RN-02).
-            tipo_referencia=None,
-            numero_referencia=None,
-            transportista=None,
+            # Existen como columna desde WK38 y llegan vacías: ausente sigue
+            # siendo el caso normal y el pedido nace `SIN_TRACKING` (RN-02).
+            tipo_referencia=_a_texto(celda("tipo_referencia")),
+            numero_referencia=_a_texto(celda("numero_referencia")),
+            transportista=_a_texto(celda("transportista")),
+            fecha_referencia=_a_fecha(celda("fecha_referencia")),
         )
 
     def _anotar(self, hoja: str, fila: int, motivo: str, detalle: str) -> None:
@@ -415,6 +572,7 @@ __all__ = [
     "ILEGIBLE_SIN_CLAVE",
     "ILEGIBLE_SIN_DATOS_MINIMOS",
     "ILEGIBLE_SIN_FECHA",
+    "Columna",
     "FuenteZTracking",
     "HojaInesperada",
     "LineaIlegible",
