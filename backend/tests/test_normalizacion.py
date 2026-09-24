@@ -14,6 +14,7 @@ import pytest
 from app.services.normalizacion import (
     INCOTERMS,
     VALORES_NO_DATO,
+    destino_nombrado_en_incoterm,
     normalizar_incoterm,
     normalizar_temperatura,
     normalizar_texto,
@@ -212,3 +213,65 @@ async def test_usa_y_estados_unidos_resuelven_al_mismo_pais(sesion) -> None:
 async def test_resolver_pais_no_resoluble(sesion, grafia: str | None) -> None:
     """`None` significa «revisar esta línea», no «abortar el lote» (RN-17)."""
     assert await resolver_pais(sesion, grafia) is None
+
+
+# --- destino_nombrado_en_incoterm ------------------------------------------
+
+#: Los tres puertos del maestro, como los ve la función: código y nombre.
+#: Se pasan explícitos para que estas pruebas no necesiten base de datos.
+_PUERTOS = [("CRMOB", "Moín"), ("CRLIO", "Puerto Limón"), ("CRCAL", "Puerto Caldera")]
+
+
+@pytest.mark.parametrize(
+    ("incoterm", "esperado"),
+    [
+        # Lo que Planificación confirmó el 23/09/2026, y lo que el archivo trae
+        # hoy en 18 de sus 110 líneas marítimas.
+        ("CIF LIMON", "CRLIO"),
+        # La tilde del maestro («Puerto Limón») no tiene que estar en el archivo.
+        ("CIF LIMÓN", "CRLIO"),
+        ("cif limon", "CRLIO"),
+        # El prefijo genérico sobra: se pacta el lugar, no el nombre completo.
+        ("CIF PUERTO LIMON", "CRLIO"),
+        # Ninguno de estos existe todavía en el archivo, y ya se resuelven.
+        ("FOB CALDERA", "CRCAL"),
+        ("CIF MOIN", "CRMOB"),
+        ("DAP MOÍN", "CRMOB"),
+        # Sin lugar no hay nada que resolver: son 89 de las 110 líneas.
+        ("EXW", None),
+        ("CIF", None),
+        ("FOB", None),
+        # Dos puertos es tan ambiguo como ninguno: Caldera es Pacífico.
+        ("CIF LIMON / CALDERA", None),
+        # Un lugar que no es ninguno de los destinos no inventa uno.
+        ("CIF SHANGHAI", None),
+        ("PENDIENTE", None),
+        ("N/A", None),
+        ("", None),
+        (None, None),
+    ],
+)
+def test_destino_nombrado_en_incoterm(incoterm: str | None, esperado: str | None) -> None:
+    assert destino_nombrado_en_incoterm(incoterm, _PUERTOS) == esperado
+
+
+def test_el_lugar_se_busca_por_palabra_entera() -> None:
+    """Sin límite de palabra, cualquier subcadena daría un falso positivo.
+
+    `LIMONAL` es un lugar de Costa Rica y no es Puerto Limón.
+    """
+    assert destino_nombrado_en_incoterm("CIF LIMONAL", _PUERTOS) is None
+
+
+def test_sin_candidatos_no_resuelve_nada() -> None:
+    """Una vía sin destinos activos en el maestro: no hay entre qué elegir."""
+    assert destino_nombrado_en_incoterm("CIF LIMON", []) is None
+
+
+def test_el_codigo_del_incoterm_nunca_es_un_lugar() -> None:
+    """Si un destino se llamara como un incoterm, el código no lo elegiría.
+
+    Rebuscado, pero es lo que separa «quién paga el flete» de «dónde atraca»:
+    la función mira el lugar, no el código.
+    """
+    assert destino_nombrado_en_incoterm("CIF", [("XXCIF", "CIF")]) is None

@@ -170,6 +170,10 @@ Notas:
 - Las tablas de sistema de PostGIS (`spatial_ref_sys`, `geometry_columns`,
   `geography_columns`) están excluidas del autogenerate; si no, Alembic propone
   borrarlas en cada migración.
+- **El `revision` no puede pasar de 32 caracteres.** `alembic_version.version_num`
+  es `varchar(32)`, y un identificador más largo no falla al escribir la
+  migración: falla al **aplicarla**, después de que el `upgrade()` ya corrió, y
+  se lleva la transacción entera por delante.
 - **Siempre revisar la migración generada antes de aplicarla.** El autogenerate
   acierta con las tablas y columnas, pero no con renombres ni con cambios de
   tipo que requieran conversión de datos.

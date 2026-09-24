@@ -158,6 +158,42 @@ class TestResolverDestino:
         assert destino is None
         assert "no se adivina" in motivo
 
+    async def test_el_lugar_del_incoterm_resuelve_el_puerto(self, sesion) -> None:
+        """`CIF LIMON` atraca en Puerto Limón (Planificación, 23/09/2026).
+
+        Es el único indicio de destino que el archivo ofrece: sin esto las 110
+        líneas marítimas de la entrega WK38 se rechazan en bloque.
+        """
+        destino, motivo = await resolver_destino(sesion, None, "MARITIMO", "CIF LIMON")
+        assert destino is not None and destino.codigo == "CRLIO"
+        assert "nombrado en el incoterm" in motivo
+
+    async def test_el_lugar_se_busca_en_el_maestro_no_en_una_lista(self, sesion) -> None:
+        """La regla no es «CIF LIMON»: es «el incoterm nombra un destino».
+
+        Nadie escribió `FOB CALDERA` todavía y ya se resuelve. El día que se dé
+        de alta otro puerto entra solo, sin tocar código.
+        """
+        destino, motivo = await resolver_destino(sesion, None, "MARITIMO", "FOB CALDERA")
+        assert destino is not None and destino.codigo == "CRCAL"
+        assert "nombrado en el incoterm" in motivo
+
+    async def test_un_incoterm_que_nombra_dos_puertos_no_resuelve(self, sesion) -> None:
+        """Dos nombres es tan ambiguo como ninguno, y por el mismo motivo."""
+        destino, motivo = await resolver_destino(sesion, None, "MARITIMO", "CIF LIMON / MOIN")
+        assert destino is None
+        assert "no se adivina" in motivo
+
+    async def test_el_incoterm_no_puede_sacar_el_destino_de_otra_via(self, sesion) -> None:
+        """Los candidatos ya vienen filtrados por vía, y el maestro manda.
+
+        Un `CIF CALDERA` en una línea aérea no pone la carga en un puerto: cae
+        en el aeropuerto, que es el único destino aéreo activo.
+        """
+        destino, motivo = await resolver_destino(sesion, None, "AEREO", "CIF CALDERA")
+        assert destino is not None and destino.via_transporte == "AEREO"
+        assert motivo == "inferido de la vía"
+
     async def test_una_via_sin_destinos_no_resuelve(self, sesion) -> None:
         destino, motivo = await resolver_destino(sesion, None, "TERRESTRE")
         assert destino is None
@@ -250,13 +286,32 @@ class TestCargarPedido:
         assert "no es una vía de transporte" in detalle
 
     async def test_sin_destino_resoluble_se_rechaza_con_motivo(self, sesion) -> None:
+        """Marítimo sin nada que desambigüe el puerto: se rechaza, no se elige.
+
+        El incoterm va sin lugar a propósito. `_crudo` trae `CIF LIMON`, que
+        desde la regla del 23/09/2026 **sí** resuelve; son las 66 líneas `EXW`
+        y las 15 `CIF` a secas de WK38 las que siguen sin destino posible.
+        """
         pedido, estado, detalle = await cargar_pedido(
-            sesion, _crudo(destino_codigo=None, via_transporte="MARITIMO")
+            sesion,
+            _crudo(destino_codigo=None, via_transporte="MARITIMO", incoterm="EXW"),
         )
 
         assert pedido is None
         assert estado == RECHAZO_SIN_DESTINO
         assert "no se adivina" in detalle
+
+    async def test_una_linea_maritima_con_puerto_en_el_incoterm_entra(self, sesion) -> None:
+        """El extremo opuesto, de punta a punta: la línea llega a la base."""
+        pedido, estado, _ = await cargar_pedido(
+            sesion,
+            _crudo(destino_codigo=None, via_transporte="MARITIMO", incoterm="CIF LIMON"),
+        )
+
+        limon, _ = await resolver_destino(sesion, "CRLIO", "MARITIMO")
+        assert pedido is not None and limon is not None
+        assert estado != RECHAZO_SIN_DESTINO
+        assert pedido.id_destino == limon.id
 
     async def test_el_maestro_manda_sobre_la_via_del_archivo(self, sesion) -> None:
         """El destino es dato verificado; la columna del archivo es texto libre."""

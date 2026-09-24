@@ -223,18 +223,27 @@ async def _obtener_o_crear_material(
 
 
 async def resolver_destino(
-    sesion: AsyncSession, codigo: str | None, via: str | None
+    sesion: AsyncSession, codigo: str | None, via: str | None, incoterm: str | None = None
 ) -> tuple[MaestroDestino | None, str]:
-    """Destino de la línea, por código o inferido de la vía.
+    """Destino de la línea: por código, por el lugar del incoterm, o por la vía.
 
-    La inferencia no es un atajo: el DTO la contempla —*«`None` si la fuente no
-    lo trae y hay que inferirlo de la vía de transporte»*— y solo se aplica
-    cuando es **inequívoca**, es decir cuando esa vía tiene un único destino
-    activo. Hoy solo `AEREO` lo cumple: hay un aeropuerto y tres puertos.
+    Las tres vías de resolución van de más a menos específica, y ninguna
+    adivina:
 
-    Adivinar entre Caldera, Limón y Moín sería peor que rechazar la línea: son
-    dos océanos distintos, y colocar un buque del Pacífico en el Caribe estropea
-    la geocerca de arribo y el ETA sin que nada falle de forma visible.
+    1. **El código**, cuando la fuente lo trae. Hoy ninguna lo hace: el archivo
+       sigue sin columna de destino y el contrato de `TASK-30` la pidió.
+    2. **El lugar convenido en el incoterm.** `CIF LIMON` atraca en Puerto
+       Limón, confirmado por Planificación el 23/09/2026. Es el único indicio
+       de destino que el archivo ofrece, y rescata las líneas marítimas que
+       antes se rechazaban en bloque.
+    3. **La vía**, cuando tiene un único destino activo. Solo `AEREO` lo
+       cumple: hay un aeropuerto y tres puertos.
+
+    Lo que **no** se hace es elegir entre Caldera, Limón y Moín cuando nada los
+    nombra. Sería peor que rechazar la línea: son dos océanos distintos, y
+    colocar un buque del Pacífico en el Caribe estropea la geocerca de arribo y
+    el ETA sin que nada falle de forma visible. Un incoterm que nombre dos
+    puertos se rechaza por el mismo motivo.
     """
     if codigo:
         encontrado = await sesion.scalar(
@@ -254,13 +263,29 @@ async def resolver_destino(
             )
         )
     )
-    if len(candidatos) == 1:
-        return candidatos[0], "inferido de la vía"
     if not candidatos:
         return None, f"sin destino y la vía {via} no tiene ninguno en el maestro"
+
+    # Se consulta antes que la inferencia por vía porque es más específico: el
+    # lugar lo escribió alguien para esta línea, la vía vale para todas.
+    nombrado = normalizacion.destino_nombrado_en_incoterm(
+        incoterm, [(d.codigo, d.nombre) for d in candidatos]
+    )
+    if nombrado is not None:
+        elegido = next(d for d in candidatos if d.codigo == nombrado)
+        return elegido, f"nombrado en el incoterm ({incoterm})"
+
+    if len(candidatos) == 1:
+        return candidatos[0], "inferido de la vía"
+
+    razon = (
+        f"y el incoterm {incoterm!r} no nombra ninguno"
+        if incoterm
+        else "y no hay incoterm que lo nombre"
+    )
     return (
         None,
-        f"sin destino y la vía {via} tiene {len(candidatos)} posibles: no se adivina",
+        f"sin destino y la vía {via} tiene {len(candidatos)} posibles {razon}: no se adivina",
     )
 
 
@@ -288,7 +313,7 @@ async def _resolver(sesion: AsyncSession, crudo: PedidoCrudo) -> tuple[_Resuelto
             f"la vía {crudo.via_transporte!r} no es una vía de transporte",
         )
 
-    destino, detalle = await resolver_destino(sesion, crudo.destino_codigo, via)
+    destino, detalle = await resolver_destino(sesion, crudo.destino_codigo, via, crudo.incoterm)
     if destino is None:
         return None, RECHAZO_SIN_DESTINO, detalle
 

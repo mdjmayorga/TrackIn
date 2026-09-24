@@ -157,12 +157,14 @@ CATALOGO: Final[dict[str, Parametro]] = {
     ),
     "altas_maximas_dia": Parametro(
         clave="altas_maximas_dia",
-        defecto=20,
+        defecto=5,
         tipo_dato="ENTERO",
         descripcion=(
             "Altas diarias por encima de las cuales el planificador avisa. Es "
-            "**lo que cuesta dinero**: a 2 USD el crédito y ~374 al año, veinte "
-            "en un día es señal de que algo se está dando de alta en bucle."
+            "**lo que cuesta dinero**: a 2 USD el crédito, cinco en un día son "
+            "el 10 % de los 50 créditos comprados el 23/09/2026. Bajó de 20, "
+            "que era una intuición de cuando no había presupuesto contra el "
+            "cual medirla (migración `0011`)."
         ),
     ),
     # --- Resiliencia de las fuentes externas (`US-03`, RF-09 / RNF-12) ------

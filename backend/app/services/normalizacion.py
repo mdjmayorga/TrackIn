@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Iterable
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,6 +82,61 @@ def normalizar_incoterm(valor: str | None) -> str | None:
         return None
     primera = texto.split(" ")[0]
     return primera if primera in INCOTERMS else None
+
+
+#: Prefijos genéricos del nombre de un destino que nadie escribe al convenir el
+#: lugar: se pacta `CIF LIMON`, no `CIF PUERTO LIMON`.
+_PREFIJOS_DESTINO: tuple[str, ...] = ("PUERTO ", "AEROPUERTO ")
+
+
+def _lugar_nombrado(nombre: str) -> str | None:
+    """La parte del nombre de un destino con la que se lo nombra en la práctica."""
+    texto = normalizar_texto(nombre)
+    if texto is None:
+        return None
+    for prefijo in _PREFIJOS_DESTINO:
+        if texto.startswith(prefijo):
+            texto = texto[len(prefijo) :]
+            break
+    return texto or None
+
+
+def destino_nombrado_en_incoterm(
+    valor: str | None, candidatos: Iterable[tuple[str, str]]
+) -> str | None:
+    """Código del destino que el incoterm nombra, si nombra exactamente uno.
+
+    `normalizar_incoterm` se queda con el código de tres letras y **descarta el
+    lugar**, porque para saber quién controla el flete el lugar sobra. Esta
+    función mira justo lo que aquella tira: Planificación confirmó el
+    23/09/2026 que `CIF LIMON` atraca en Puerto Limón, y ese es el único indicio
+    de destino que el archivo ofrece hoy.
+
+    La comparación es contra los **nombres del maestro**, no contra una lista de
+    incoterms conocidos. Eso vale más de lo que parece: el día que aparezca un
+    `FOB CALDERA` o un `CIF MOIN` se resuelven solos, y si mañana se da de alta
+    otro puerto basta con darlo de alta. Un `if incoterm == "CIF LIMON"` habría
+    que venir a tocarlo cada vez.
+
+    Devuelve `None` si el incoterm nombra **dos** destinos o ninguno. Dos es
+    ambiguo y adivinar entre Caldera y Limón es lo que hay que evitar: son dos
+    océanos, y poner un buque del Pacífico en el Caribe estropea la geocerca de
+    arribo sin que nada falle de forma visible.
+    """
+    texto = normalizar_texto(valor)
+    if texto is None:
+        return None
+    # `CIF` no nombra a nadie: lo que queda después del código es el lugar.
+    lugar = " ".join(palabra for palabra in texto.split(" ") if palabra not in INCOTERMS)
+    if not lugar:
+        return None
+
+    encontrados = {
+        codigo
+        for codigo, nombre in candidatos
+        if (buscado := _lugar_nombrado(nombre)) is not None and f" {buscado} " in f" {lugar} "
+    }
+    return encontrados.pop() if len(encontrados) == 1 else None
 
 
 def normalizar_temperatura(valor: str | None) -> str | None:
