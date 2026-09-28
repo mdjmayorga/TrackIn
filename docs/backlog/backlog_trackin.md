@@ -65,17 +65,17 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-04` | Registrar el historial de posiciones con el payload original ✅ | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
 | `TASK-19` | Diccionario de datos: usuarios ✅ | Task | OE1 | **Should** | Sprint 3 | 2h | Diseño OE1 / diccionario de datos |
 | `TASK-23` | Consolidar el material de OE1 para el Informe 1 | Task | OE1 | **Must** | Sprint 3 | 8h | Hito Informe 1 (25/09/2026) |
-| `US-05` | Consumir posiciones ADS-B desde OpenSky con OAuth2 | Story | OE2 | **Must** | Sprint 4 | 10h | RF-07 |
-| `US-06` | Resolver el icao24 de un vuelo como vinculo temporal del tramo | Story | OE2 | **Must** | Sprint 4 | 8h | RF-07 / spike TG-11 |
-| `US-07` | Planificar las consultas periodicas con frecuencia parametrizable | Story | OE2 | **Must** | Sprint 4 | 8h | RF-08 (reformulado) |
-| `US-08` | Estimar la ETA a partir de la posicion y la velocidad del buque | Story | OE2 | **Could** | Sprint 4 | 12h | RN-16 · **se mantiene `Could`**: la fase 3 midió que ShipsGo entrega la ETA ya calculada (14/09) |
-| `US-09` | Calcular la fecha proyectada de disponibilidad | Story | OE2 | **Must** | Sprint 4 | 6h | RF-10 / RN-01 |
-| `US-10` | Determinar el estado logistico bajo el esquema de semaforo | Story | OE2 | **Must** | Sprint 4 | 12h | RF-11 / RN-02 a RN-11 |
-| `US-11` | Determinar el arribo a destino por hito, con la geocerca como verificación | Story | OE2 | **Must** | Sprint 4 | ~~8h~~ 4h | RN-05 · simplificada por Plan A (04/09) · reespecificada 22/09: sin cobertura AIS, manda el hito |
-| `US-31` | Cargar los pedidos en transito desde el archivo Z-tracking | Story | OE2 | **Must** | Sprint 4 | 14h | RF-31 carga manual (03/09) / RF-01 / CU-01 |
-| `US-32` | Validar y normalizar los datos del Z-tracking antes de persistirlos | Story | OE2 | **Must** | Sprint 4 | 10h | RF-02 / RN-17 |
-| `US-45` | Integrar la fuente marítima por contenedor o BL — **ShipsGo** | Story | OE2 | **Must** | Sprint 4 | 12h | ✅ **GO** 14/09: probado con contenedor real, entrega posición, ETA, hitos, buque, IMO y transbordo |
-| `US-46` | Integrar la fuente aérea por guía aérea (MAWB) — **ShipsGo Air** | Story | OE2 | **Must** | Sprint 4 | 10h | ✅ **GO** 14/09: MAWB real resuelto (PEK→FRA→SJO, 10 hitos CIMP). TrackingMore descartado: no tiene aerolíneas |
+| `US-05` | Consumir posiciones ADS-B desde OpenSky con OAuth2 | Story | OE2 | **Must** | Sprint 4 | 10h | RF-07 · ✅ terminada 22/09 |
+| `US-06` | Resolver el icao24 de un vuelo como vinculo temporal del tramo | Story | OE2 | **Must** | Sprint 4 | 8h | RF-07 / spike TG-11 · ✅ terminada 22/09 |
+| `US-07` | Planificar las consultas periodicas con frecuencia parametrizable | Story | OE2 | **Must** | Sprint 4 | 8h | RF-08 (reformulado) · ✅ terminada 22/09 |
+| `US-08` | Estimar la ETA a partir de la posicion y la velocidad del buque | Story | OE2 | **Could** | Sprint 4 | 12h | RN-16 · **se mantiene `Could`**: la fase 3 midió que ShipsGo entrega la ETA ya calculada (14/09) · ✅ terminada 23/09 |
+| `US-09` | Calcular la fecha proyectada de disponibilidad | Story | OE2 | **Must** | Sprint 4 | 6h | RF-10 / RN-01 · ✅ terminada 22/09 |
+| `US-10` | Determinar el estado logistico bajo el esquema de semaforo | Story | OE2 | **Must** | Sprint 4 | 12h | RF-11 / RN-02 a RN-11 · ✅ terminada 22/09 |
+| `US-11` | Determinar el arribo a destino por hito, con la geocerca como verificación | Story | OE2 | **Must** | Sprint 4 | ~~8h~~ 4h | RN-05 · simplificada por Plan A (04/09) · reespecificada 22/09: sin cobertura AIS, manda el hito · ✅ terminada 22/09 |
+| `US-31` | Cargar los pedidos en transito desde el archivo Z-tracking | Story | OE2 | **Must** | Sprint 4 | 14h | RF-31 carga manual (03/09) / RF-01 / CU-01 · ✅ terminada 22/09 |
+| `US-32` | Validar y normalizar los datos del Z-tracking antes de persistirlos | Story | OE2 | **Must** | Sprint 4 | 10h | RF-02 / RN-17 · ✅ terminada 22/09 |
+| `US-45` | Integrar la fuente marítima por contenedor o BL — **ShipsGo** | Story | OE2 | **Must** | Sprint 4 | 12h | ✅ **GO** 14/09: probado con contenedor real, entrega posición, ETA, hitos, buque, IMO y transbordo · ✅ terminada 22/09 |
+| `US-46` | Integrar la fuente aérea por guía aérea (MAWB) — **ShipsGo Air** | Story | OE2 | **Must** | Sprint 4 | 10h | ✅ **GO** 14/09: MAWB real resuelto (PEK→FRA→SJO, 10 hitos CIMP). TrackingMore descartado: no tiene aerolíneas · ✅ terminada 22/09 |
 | `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 |
 | `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 |
 | `US-14` | Confirmar el desembarco y **disparar el paso manual a proceso aduanal** | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 · RN-06 revisada 04/09 |
@@ -1055,6 +1055,24 @@ Como estudiante practicante, quiero consolidar los entregables de OE1 (SRS, mode
 > el 22/09** —`US-45`, `US-46`, `US-07` y `US-11`—, que era el requisito pendiente para
 > poder aprobar el sprint. Los detalles de `US-31`, `US-32`, `US-45` y `US-46` no viven en
 > esta sección sino en «Riesgo R2» y «Cambios de la reunión con Logística», más abajo.
+
+> **Cierre técnico — 28/09/2026.** Las 11 historias comprometidas quedaron terminadas entre
+> el 22 y el 23/09 (106 h estimadas, `US-08` incluida aunque es `Could`), y con el margen
+> se sumaron tres del mismo día 28/09, que salieron de hallazgos del sprint:
+>
+> | Historia | h | Origen |
+> |---|---|---|
+> | `US-49` — guías hijas por TICA | 6 | La empresa recibe HAWB y ninguna fuente comercial las rastrea |
+> | `US-50` — worker de rastreo | 6 | Nadie llamaba al planificador: el rastreo solo corría por script |
+> | `US-51` — salud de las fuentes en la base | 3 | `/health` no veía al worker, que corre en otro proceso |
+>
+> **14 historias · 121 h estimadas terminadas**, contra 106 comprometidas y 65 de capacidad.
+> Como en los sprints anteriores, son horas estimadas y no registradas. Arrastraron además
+> una corrección de `US-09`: la ATA reportada por la fuente (`ATA_FUENTE`) faltaba en la
+> precedencia de RN-14. Suite: 974 pruebas, cobertura 97 %, CI en verde.
+>
+> Queda para el cierre formal del 02/10: la revisión con Greivin y el paso de las historias a
+> terminadas en Jira.
 
 #### US-05 — Consumir posiciones ADS-B desde OpenSky con OAuth2
 
