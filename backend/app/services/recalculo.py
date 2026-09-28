@@ -74,16 +74,20 @@ class ResultadoRecalculo:
         return self.proyeccion.desglose
 
 
-async def _eta_de_la_fuente(sesion: AsyncSession, pedido: PedidoTransito) -> dt.datetime | None:
-    """La ETA del elemento rastreado, si el pedido tiene uno.
+async def _fechas_de_la_fuente(
+    sesion: AsyncSession, pedido: PedidoTransito
+) -> tuple[dt.datetime | None, dt.datetime | None]:
+    """La ETA y la ATA del elemento rastreado, si el pedido tiene uno.
 
     Un pedido `SIN_TRACKING` no lo tiene —es la definición de RN-02—, que es
     exactamente el caso de las líneas que hoy entran desde el archivo.
     """
     if pedido.id_elemento_rastreado is None:
-        return None
+        return None, None
     elemento = await sesion.get(ElementoRastreado, pedido.id_elemento_rastreado)
-    return elemento.eta_api if elemento is not None else None
+    if elemento is None:
+        return None, None
+    return elemento.eta_api, elemento.ata_api
 
 
 async def recalcular(
@@ -126,13 +130,15 @@ async def recalcular(
     # `US-08` solo produce algo con AIS —ShipsGo no entrega velocidad— y solo
     # se consulta si hace falta: si la fuente ya dio su ETA, la estimada no
     # cambiaría el resultado y calcularla sería una consulta PostGIS de balde.
-    eta_fuente = await _eta_de_la_fuente(sesion, pedido)
+    eta_fuente, ata_fuente = await _fechas_de_la_fuente(sesion, pedido)
     estimada = None
-    if eta_fuente is None and pedido.ata_confirmada is None and pedido.ata_inferida is None:
+    arribos = (pedido.ata_confirmada, ata_fuente, pedido.ata_inferida)
+    if eta_fuente is None and all(fecha is None for fecha in arribos):
         estimada = (await eta_mod.estimar(sesion, pedido)).eta
 
     resultado = proyeccion.calcular(
         ata_confirmada=pedido.ata_confirmada,
+        ata_fuente=ata_fuente,
         ata_inferida=pedido.ata_inferida,
         eta_fuente=eta_fuente,
         eta_estimada=estimada,

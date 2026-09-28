@@ -240,6 +240,11 @@ MOTIVOS_PERMANENTES: Final[frozenset[str]] = frozenset(
         "referencia_inexistente",  # 404 sobre un contenedor o un MAWB
         "referencia_mal_formada",
         "cuota_agotada",  # el plan no da para más; insistir no lo cambia
+        # TICA (`US-49`): el sitio está detrás de Akamai. Un bloqueo no se
+        # esquiva ni se insiste; se degrada la fuente y se deja el motivo.
+        "acceso_bloqueado",
+        # TICA cambió su página: reintentar no la arregla, hay que mirar.
+        "formato_inesperado",
     }
 )
 

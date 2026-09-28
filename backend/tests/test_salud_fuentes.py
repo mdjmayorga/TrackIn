@@ -304,3 +304,91 @@ def test_los_defectos_del_catalogo_son_los_de_la_politica() -> None:
     assert catalogo["resiliencia_espera_maxima_s"].defecto == defecto.espera_maxima_s
     assert catalogo["resiliencia_intentos_maximos"].defecto == defecto.intentos_maximos
     assert catalogo["resiliencia_ruido_espera"].defecto == Decimal(str(defecto.ruido))
+
+
+# --- La foto compartida entre procesos (`US-51`) ----------------------------
+
+
+def test_las_clases_del_check_son_las_de_la_politica() -> None:
+    """El modelo repite los valores para no depender de los servicios; si
+    alguien agrega una clase a `ClaseFallo`, el CHECK tiene que enterarse."""
+    from app.models.salud_fuente import CLASES_FALLO
+
+    assert set(CLASES_FALLO) == {clase.value for clase in ClaseFallo}
+
+
+@pytest.mark.integration
+async def test_guardar_publica_cada_fuente_del_registro(sesion) -> None:
+    from app.models.salud_fuente import SaludFuente
+    from app.services.salud_fuentes import guardar, leer_resumen
+
+    await sesion.execute(delete(SaludFuente))
+    registro = RegistroSalud()
+    registro.estado("tica").registrar_fallo(
+        instante=_en(0), clase=ClaseFallo.PERMANENTE, motivo="acceso_bloqueado"
+    )
+    registro.estado("shipsgo").registrar_exito(instante=_en(0))
+
+    publicadas = await guardar(sesion, registro.estados(), instante=_en(5))
+    await sesion.flush()
+
+    assert publicadas == 2
+    shipsgo, tica = await leer_resumen(sesion, ahora=_en(60))
+    assert tica["fuente"] == "tica"
+    assert tica["degradada"] is True
+    assert tica["clase_ultimo_fallo"] == "permanente"
+    assert tica["motivo_ultimo_fallo"] == "acceso_bloqueado"
+    assert shipsgo["degradada"] is False
+    assert shipsgo["reportado_en"] == _en(5).isoformat()
+
+
+@pytest.mark.integration
+async def test_guardar_sobrescribe_la_fila_en_vez_de_acumular(sesion) -> None:
+    """Interesa el estado actual, no la historia de fallos."""
+    from app.models.salud_fuente import SaludFuente
+    from app.services.salud_fuentes import guardar, leer_resumen
+
+    await sesion.execute(delete(SaludFuente))
+    estado = RegistroSalud().estado("tica")
+    estado.registrar_fallo(instante=_en(0), clase=ClaseFallo.TRANSITORIO, motivo="tiempo_agotado")
+    await guardar(sesion, [estado], instante=_en(0))
+    estado.registrar_exito(instante=_en(90))
+    await guardar(sesion, [estado], instante=_en(90))
+    await sesion.flush()
+
+    (fila,) = await leer_resumen(sesion, ahora=_en(90))
+    assert fila["fallos_consecutivos"] == 0
+    assert fila["clase_ultimo_fallo"] == "ninguno"
+    assert fila["motivo_ultimo_fallo"] is None
+
+
+@pytest.mark.integration
+async def test_la_antiguedad_se_calcula_al_leer(sesion) -> None:
+    """Si el worker se detiene, la antigüedad tiene que seguir creciendo: es lo
+    que RNF-12 quiere que se vea, y una cifra guardada al escribir se congelaría."""
+    from app.models.salud_fuente import SaludFuente
+    from app.services.salud_fuentes import guardar, leer_resumen
+
+    await sesion.execute(delete(SaludFuente))
+    estado = RegistroSalud().estado("shipsgo")
+    estado.registrar_exito(instante=_en(0))
+    await guardar(sesion, [estado], instante=_en(0))
+    await sesion.flush()
+
+    (una_hora_despues,) = await leer_resumen(sesion, ahora=_en(3600))
+    assert una_hora_despues["antiguedad_s"] == 3600
+
+
+@pytest.mark.integration
+async def test_un_motivo_largo_no_rompe_la_publicacion(sesion) -> None:
+    from app.models.salud_fuente import SaludFuente
+    from app.services.salud_fuentes import guardar, leer_resumen
+
+    await sesion.execute(delete(SaludFuente))
+    estado = RegistroSalud().estado("tica")
+    estado.registrar_fallo(instante=_en(0), clase=ClaseFallo.TRANSITORIO, motivo="x" * 200)
+    await guardar(sesion, [estado], instante=_en(0))
+    await sesion.flush()
+
+    (fila,) = await leer_resumen(sesion, ahora=_en(0))
+    assert fila["motivo_ultimo_fallo"] == "x" * 60

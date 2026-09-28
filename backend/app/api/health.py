@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.db.session import get_db
 from app.services.ingesta import obtener_fuente
+from app.services.salud_fuentes import leer_resumen
 from app.services.salud_fuentes import registro as registro_salud
 
 logger = logging.getLogger(__name__)
@@ -44,11 +45,12 @@ class HealthResponse(BaseModel):
     fuentes: list[dict[str, Any]] = Field(
         default_factory=list,
         description=(
-            "Salud de cada fuente externa de rastreo: si está degradada, el "
-            "motivo del último fallo y la **antigüedad** del último dato bueno "
-            "(RNF-12). La lista vacía significa que ninguna fuente se ha "
-            "consultado todavía, que es el estado normal mientras los "
-            "adaptadores esperan a TASK-28."
+            "Salud de cada fuente externa de rastreo, tal como la publicó el "
+            "worker en `salud_fuentes` (US-51): si está degradada, el motivo "
+            "del último fallo, la **antigüedad** del último dato bueno (RNF-12) "
+            "y `reportado_en`, cuándo escribió el worker por última vez. La "
+            "lista vacía significa que el worker todavía no ha consultado "
+            "ninguna fuente."
         ),
     )
     detail: str | None = Field(
@@ -77,6 +79,10 @@ async def health_check(db: Annotated[AsyncSession, Depends(get_db)]) -> HealthRe
     # base y no de la fuente, así que una API caída no puede degradar el
     # servicio. Lo que sí tiene que verse es cuál falló y de cuándo es su último
     # dato bueno, que es lo que exige RNF-12.
+    #
+    # Se lee de `salud_fuentes`, que escribe el worker (`US-51`): las fuentes
+    # las consulta otro proceso, y la memoria de este no las ve nunca. La
+    # memoria local solo queda como respaldo si la base no responde.
     fuentes_externas = registro_salud.resumen()
 
     try:
@@ -96,6 +102,14 @@ async def health_check(db: Annotated[AsyncSession, Depends(get_db)]) -> HealthRe
             fuentes=fuentes_externas,
             detail=f"{type(exc).__name__}: {exc}",
         )
+
+    # Aparte del chequeo de la base: que falte la tabla —una migración sin
+    # aplicar— no es que la base esté caída, y no puede reportarse como tal.
+    try:
+        fuentes_externas = await leer_resumen(db)
+    except Exception as exc:
+        logger.warning("Health check: no se pudo leer salud_fuentes: %s", exc)
+        await db.rollback()
 
     return HealthResponse(
         status="ok",

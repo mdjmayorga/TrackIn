@@ -16,6 +16,7 @@ modelo y este archivo se corrige.
 | `usuarios` | `TASK-19` | ✅ 08/09/2026 |
 | `maestro_paises`, `alias_paises` | `TASK-29` | ✅ 08/09/2026 |
 | `auditoria_intervenciones`, `parametros_sistema`, `pedido_elemento_rastreado` | `TASK-26` | ✅ 25/08/2026 |
+| `salud_fuentes` | `US-51` | ✅ 28/09/2026 |
 
 ## Convenciones de lectura
 
@@ -217,19 +218,22 @@ la última posición del pedido individual. Modelo:
 | # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
 |---|---|---|---|---|---|---|
 | 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador del elemento rastreado. |
-| 2 | `tipo_tracking_externo` | `VARCHAR(20)` | no | `UK(1)` parcial | `MMSI` · `IMO` · `NOMBRE_BUQUE` · `VUELO` · `ICAO24` · `AWB` · `CONTENEDOR` · `BOOKING` (`ck_elementos_rastreados_tipo`) | Tipo del identificador externo. El dominio sale de RF-03, más `ICAO24`, que RF-03 no menciona pese a ser el que OpenSky devuelve y `US-06` resuelve. |
+| 2 | `tipo_tracking_externo` | `VARCHAR(20)` | no | `UK(1)` parcial | `MMSI` · `IMO` · `BUQUE` · `VUELO` · `CONTENEDOR` · `BL` · `BOOKING` · `MAWB` · `HAWB` (`ck_elementos_rastreados_tipo_tracking`) | Tipo del identificador externo. El dominio sale de RF-03, ampliado el 04/09 con las claves de ShipsGo (`TASK-30`) y el 28/09 con `HAWB`, la guía hija del agente de carga, que rastrea TICA (`US-49`, migración `0012`). |
 | 3 | `tracking_externo` | `VARCHAR(50)` | no | `UK(2)` parcial | Valor según el tipo | Valor del identificador externo: el MMSI de nueve dígitos para buques, el `icao24` hexadecimal para aeronaves. |
 | 4 | `via_transporte` | `VARCHAR(10)` | no | `UK(2)` de `uq_elementos_rastreados_id_via` | `AEREO` · `MARITIMO` (`ck_elementos_rastreados_via`) | Vía del elemento. Determina qué fuente lo consulta. |
 | 5 | `nombre` | `VARCHAR(120)` | sí | | Texto libre de la fuente | Nombre de la nave o del vuelo, tal como lo reporta la fuente. **Añadida por `US-45`**, que cierra la deuda escrita por `US-02` el 08/09 (*«no hay columna para el nombre del buque, ni para el IMO»*). La consumen el mapa (`US-27`) y el detalle del pedido (`US-44`). ShipsGo lo entrega en los tres embarques marítimos medidos. |
 | 6 | `imo` | `INTEGER` | sí | | Siete dígitos | Identificador OMI de la nave. Solo vía marítima. Entero y no texto porque ShipsGo ya lo entrega numérico (`9525388`) y porque tiene su propio dígito verificador. **Añadida por `US-45`**. |
 | 7 | `eta_api` | `TIMESTAMPTZ` | sí | | Instante UTC | ETA **declarada por la fuente**, con carácter informativo. Rara vez existe en la vía marítima: el spike TG-10 halló que la ETA solo viaja en mensajes `ShipStaticData`, presentes en ~12 % de las naves. La ETA que alimenta el cálculo es `pedidos_transito.eta_utilizada`. |
-| 8 | `ata_api` | `TIMESTAMPTZ` | sí | | Instante UTC | Llegada real reportada por la fuente, si existe. Distinta de `pedidos_transito.ata_confirmada`, que es la manual y prevalece por RN-14. |
+| 8 | `ata_api` | `TIMESTAMPTZ` | sí | | Instante UTC | Llegada real reportada por la fuente, si existe: el hito de arribo de ShipsGo en el destino o la fecha del manifiesto de TICA (`US-49`, medianoche de Costa Rica). Distinta de `pedidos_transito.ata_confirmada`, que es la manual y prevalece por RN-14; desde el 28/09 alimenta la proyección como `ATA_FUENTE`. |
 | 9 | `posicion_actual` | `GEOGRAPHY(Point,4326)` | sí | | Punto WGS 84 | Última posición conocida. **Desnormalizada a propósito**: es copia de la lectura más reciente del historial, y existe para que el dashboard no consulte una tabla de 25 millones de filas. Es lo que hace compatibles RNF-01 y RNF-22. El SRS §8.5 la tipa `GEOMETRY`; se corrige a `GEOGRAPHY` por la convención del repositorio. |
 | 10 | `velocidad_actual` | `NUMERIC(6,2)` | sí | | `>= 0` (`ck_elementos_rastreados_velocidad`) | Velocidad de la última lectura. Desnormalizada por la misma razón: RN-05 y RN-16 la consultan en cada recálculo. **No estaba en el SRS §8.5.** |
 | 11 | `ultima_actualizacion_api` | `TIMESTAMPTZ` | sí | | Instante UTC | Fecha y hora de la última consulta exitosa. Es el insumo del indicador de frescura de RF-20 y `US-23`. |
-| 12 | `activo` | `BOOLEAN` | no, *default* `true` | | `true` · `false` | Si el elemento sigue siendo objeto de rastreo automático. Participa en el índice único parcial: **un identificador externo puede repetirse en el histórico, pero solo uno puede estar activo**. |
-| 13 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. |
-| 14 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación, típicamente por una lectura nueva. |
+| 12 | `guia_madre` | `VARCHAR(25)` | sí | | Número de guía | Solo para `HAWB`: la guía madre que la ampara, según el manifiesto de TICA. Es el número que ShipsGo sí rastrea. **Añadida por `US-49`**. |
+| 13 | `manifiesto_aduana` | `VARCHAR(30)` | sí | | Número de manifiesto | Solo para `HAWB`: el manifiesto de carga en que entró la guía. **Añadida por `US-49`**. |
+| 14 | `payload_aduana` | `JSONB` | sí | | Objeto JSON | Filas crudas de TICA (RNF-13). No va a `historial_tracking`, que exige coordenadas, y TICA no las da. La fecha de arribo del manifiesto se copia a `ata_api`. **Añadida por `US-49`**. |
+| 15 | `activo` | `BOOLEAN` | no, *default* `true` | | `true` · `false` | Si el elemento sigue siendo objeto de rastreo automático. Participa en el índice único parcial: **un identificador externo puede repetirse en el histórico, pero solo uno puede estar activo**. |
+| 16 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. |
+| 17 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación, típicamente por una lectura nueva. |
 
 ### 4.2 Restricciones de tabla
 
@@ -572,3 +576,24 @@ La migración `0002_maestros_paises_destinos` siembra **15 países y 28 alias**,
 extraídos de los valores distintos que aparecen en la muestra del Z-tracking.
 No pretende ser un catálogo ISO completo: se amplía cuando aparezca un origen
 nuevo, y lo que no resuelve se marca para revisión sin abortar el lote (RN-17).
+
+## 12. `salud_fuentes`
+
+Salud de cada fuente externa de rastreo, escrita por el worker y leída por
+`/health`. Modelo: [`data-model.md` §8.5](data-model.md). Migración `0013`.
+
+### 12.1 Campos
+
+| # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
+|---|---|---|---|---|---|---|
+| 1 | `nombre` | `VARCHAR(40)` | no | `PK` | `shipsgo` · `tica` · … en minúsculas | Fuente externa. Una fila por fuente. |
+| 2 | `degradada` | `BOOLEAN` | no, *default* `false` | | `true` · `false` | Si el worker dejó de consultarla: fallo permanente o reintentos agotados (`US-03`). |
+| 3 | `clase_ultimo_fallo` | `VARCHAR(20)` | no, *default* `'ninguno'` | | `ninguno` · `transitorio` · `permanente` · `requiere_alta` (`ck_salud_fuentes_clase_ultimo_fallo`) | Clase del último fallo, de `resiliencia.ClaseFallo`. `ninguno` tras un contacto correcto. |
+| 4 | `motivo_ultimo_fallo` | `VARCHAR(60)` | sí | | Motivo normalizado | Por ejemplo `acceso_bloqueado` o `tiempo_agotado`. `NULL` tras un contacto correcto. |
+| 5 | `fallos_consecutivos` | `INTEGER` | no, *default* `0` | | `>= 0` (`ck_salud_fuentes_fallos_consecutivos`) | Fallos seguidos desde el último contacto correcto. |
+| 6 | `ultimo_contacto_ok` | `TIMESTAMPTZ` | sí | | Instante UTC | Último contacto correcto. La antigüedad del dato (RNF-12) se calcula desde aquí **al leer**. |
+| 7 | `ultimo_fallo` | `TIMESTAMPTZ` | sí | | Instante UTC | Último fallo registrado, de cualquier clase. |
+| 8 | `reportado_en` | `TIMESTAMPTZ` | no | | Instante UTC | Hora del ciclo del worker que escribió la fila. Si deja de avanzar, el worker no está corriendo. |
+| 9 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. |
+| 10 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última escritura. |
+

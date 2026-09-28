@@ -21,10 +21,17 @@ RN-14 la fija: **lo ocurrido manda sobre lo estimado**.
 | Orden | Fuente | Por qué va ahí |
 |---|---|---|
 | 1 | `ata_confirmada` | Una persona confirmó el arribo. Es un hecho, y además está auditado por RF-14 |
-| 2 | `ata_inferida` | El sistema dedujo el arribo por hito o geocerca (RN-05). Sigue siendo un hecho, pero deducido |
-| 3 | `eta_fuente` | La ETA de la fuente de rastreo — `elementos_rastreados.eta_api` |
-| 4 | `eta_estimada` | La que calcula `US-08` desde posición y velocidad |
-| 5 | `eta_declarada` | La que viene en el archivo. Es la más débil: la escribe una persona a mano y no se actualiza sola |
+| 2 | `ata_fuente` | La fuente **reportó** el arribo — `elementos_rastreados.ata_api`: el hito `DISC`/`RCF` de ShipsGo o el manifiesto de TICA |
+| 3 | `ata_inferida` | El sistema dedujo el arribo por geocerca (RN-05). Sigue siendo un hecho, pero deducido |
+| 4 | `eta_fuente` | La ETA de la fuente de rastreo — `elementos_rastreados.eta_api` |
+| 5 | `eta_estimada` | La que calcula `US-08` desde posición y velocidad |
+| 6 | `eta_declarada` | La que viene en el archivo. Es la más débil: la escribe una persona a mano y no se actualiza sola |
+
+**`ata_fuente` entra el 28/09/2026** (`US-49`). Faltaba desde que `US-11` puso
+`ata_api` como señal primaria del arribo: el pedido pasaba a `EN_DESTINO` pero
+la fecha proyectada seguía saliendo de la ETA, o de nada. Va entre la
+confirmada y la inferida por el mismo orden que `arribo` documenta para RN-05:
+lo confirmado a mano manda sobre lo reportado, y lo reportado sobre lo deducido.
 
 **Por qué la estimada va por debajo de la de la fuente**, contra lo que dice el
 criterio literal de `US-08`: ese criterio se escribió cuando «la fuente» era AIS,
@@ -62,6 +69,8 @@ from typing import Final
 
 #: De dónde salió la fecha base, en orden de precedencia (RN-14).
 ORIGEN_ATA_CONFIRMADA: Final = "ATA_CONFIRMADA"
+#: Reportada por la fuente: hito de ShipsGo o manifiesto de TICA (`US-49`).
+ORIGEN_ATA_FUENTE: Final = "ATA_FUENTE"
 ORIGEN_ATA_INFERIDA: Final = "ATA_INFERIDA"
 ORIGEN_ETA_FUENTE: Final = "ETA_FUENTE"
 #: Calculada por `US-08` desde posición y velocidad. Solo existe con AIS.
@@ -71,6 +80,7 @@ ORIGEN_ETA_DECLARADA: Final = "ETA_DECLARADA"
 #: Precedencia de RN-14, de mayor a menor. El orden **es** la regla.
 PRECEDENCIA: Final[tuple[str, ...]] = (
     ORIGEN_ATA_CONFIRMADA,
+    ORIGEN_ATA_FUENTE,
     ORIGEN_ATA_INFERIDA,
     ORIGEN_ETA_FUENTE,
     ORIGEN_ETA_ESTIMADA,
@@ -132,6 +142,7 @@ def _a_fecha(valor: dt.date | dt.datetime | None) -> dt.date | None:
 def calcular(
     *,
     ata_confirmada: dt.date | dt.datetime | None = None,
+    ata_fuente: dt.date | dt.datetime | None = None,
     ata_inferida: dt.date | dt.datetime | None = None,
     eta_fuente: dt.date | dt.datetime | None = None,
     eta_estimada: dt.date | dt.datetime | None = None,
@@ -147,6 +158,7 @@ def calcular(
     """
     candidatas: dict[str, dt.date | None] = {
         ORIGEN_ATA_CONFIRMADA: _a_fecha(ata_confirmada),
+        ORIGEN_ATA_FUENTE: _a_fecha(ata_fuente),
         ORIGEN_ATA_INFERIDA: _a_fecha(ata_inferida),
         ORIGEN_ETA_FUENTE: _a_fecha(eta_fuente),
         ORIGEN_ETA_ESTIMADA: _a_fecha(eta_estimada),
@@ -168,8 +180,8 @@ def calcular(
             lead_time_dias=lead_time_dias,
             ajuste_manual_dias=ajuste_manual_dias,
             motivo=(
-                "el pedido no tiene ATA confirmada ni inferida, ni ETA de la fuente "
-                "de rastreo, ni estimada, ni declarada en el archivo"
+                "el pedido no tiene ATA confirmada, reportada ni inferida, ni ETA de "
+                "la fuente de rastreo, ni estimada, ni declarada en el archivo"
             ),
         )
 
@@ -197,6 +209,7 @@ def calcular(
 
 __all__ = [
     "ORIGEN_ATA_CONFIRMADA",
+    "ORIGEN_ATA_FUENTE",
     "ORIGEN_ATA_INFERIDA",
     "ORIGEN_ETA_DECLARADA",
     "ORIGEN_ETA_ESTIMADA",

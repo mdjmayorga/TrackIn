@@ -424,6 +424,47 @@ async def test_por_debajo_del_umbral_no_avisa(sesion, limpio, usuario, caplog) -
     assert "altas hoy" not in caplog.text
 
 
+# --- Guías hijas por TICA (`US-49`) ----------------------------------------
+
+
+async def test_la_guia_hija_usa_la_frecuencia_de_tica(sesion, limpio) -> None:
+    """TICA es una página pública: a la hora de la aérea se la consultaría 16
+    veces al día por guía. La hija espera su propio intervalo, más largo."""
+    await _fijar(sesion, planificador.CLAVE_FRECUENCIA_AEREA, "60")
+    await _fijar(sesion, planificador.CLAVE_FRECUENCIA_TICA, "360")
+    hace_dos_horas = MEDIODIA - dt.timedelta(hours=2)
+
+    mawb = await _elemento(sesion, "020-12345675", via="AEREO", ultima=hace_dos_horas)
+    hawb = await _elemento(sesion, "ZIVHYD017", via="AEREO", ultima=hace_dos_horas)
+    hawb.tipo_tracking_externo = "HAWB"
+    await _pedido(sesion, mawb, "4500000901")
+    await _pedido(sesion, hawb, "4500000902")
+
+    plan = await planificador.planificar(sesion, MEDIODIA)
+
+    assert [t.tracking for t in plan.tareas] == ["020-12345675"]
+    [omitido] = plan.omitidos
+    assert omitido.tracking == "ZIVHYD017"
+    assert omitido.motivo == planificador.OMITIDO_SIN_VENCER
+
+
+async def test_la_tarea_lleva_el_tipo_para_elegir_la_fuente(sesion, limpio) -> None:
+    hawb = await _elemento(sesion, "ZIVHYD017", via="AEREO")
+    hawb.tipo_tracking_externo = "HAWB"
+    await _pedido(sesion, hawb, "4500000903")
+
+    [tarea] = (await planificador.planificar(sesion, MEDIODIA)).tareas
+
+    assert tarea.tipo == "HAWB"
+
+
+def test_el_intervalo_de_la_guia_hija_no_toca_el_de_la_madre() -> None:
+    politica = planificador.Politica(60, 360, 6, 22, 120, 5, frecuencia_tica_min=360)
+    assert politica.intervalo("AEREO") == dt.timedelta(minutes=60)
+    assert politica.intervalo("AEREO", "MAWB") == dt.timedelta(minutes=60)
+    assert politica.intervalo("AEREO", "HAWB") == dt.timedelta(minutes=360)
+
+
 # --- Invariantes -----------------------------------------------------------
 
 
@@ -436,6 +477,7 @@ def test_los_parametros_del_planificador_estan_declarados() -> None:
         planificador.CLAVE_VENTANA_FIN,
         planificador.CLAVE_MADURACION,
         planificador.CLAVE_ALTAS_MAXIMAS,
+        planificador.CLAVE_FRECUENCIA_TICA,
     ):
         assert clave in parametros.CATALOGO
 

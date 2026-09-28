@@ -96,6 +96,9 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-24` | Aplicar el semaforo de estados de forma consistente | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 |
 | `US-43` | Ofrecer dos vistas de la grilla: completa por rol y simple para la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | 10h | Reunión Logística 03/09 · mapa rol→vista corregido 04/09 |
 | `US-48` | Bandeja de arribos pendientes de gestión para Planificación | Story | OE3 | **Must** | Sprint 6 | 6h | RF-32 (nuevo, 04/09) · aviso interno, sin correo |
+| `US-49` | Rastrear guías hijas (HAWB) por el manifiesto de carga de TICA | Story | OE2 | **Must** | Sprint 4 | 6h | Hallazgo del 28/09 · ✅ terminada 28/09 con el margen del Sprint 4 |
+| `US-50` | Worker de rastreo: ciclo periódico que consulta, aplica, evalúa el arribo y recalcula | Story | OE2 | **Must** | Sprint 4 | 6h | `TASK-20` §1.4 · ✅ terminada 28/09 con el margen del Sprint 4 |
+| `US-51` | Publicar la salud de las fuentes en la base para que `/health` vea al worker | Story | OE2 | **Should** | Sprint 4 | 3h | RF-20 / RNF-12 · ✅ terminada 28/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
@@ -2692,6 +2695,96 @@ para registrar el paso a proceso aduanal sin tener que revisar la grilla pedido 
 
 > **Por qué no hay correo.** Se evaluó y se descartó: exigiría servidor SMTP y credenciales de
 > Gutis, una dependencia externa nueva para un aviso que el usuario ya ve al entrar al sistema.
+
+### `US-49` — Rastrear guías hijas (HAWB) por el manifiesto de carga de TICA
+
+Como usuario de Logística, quiero registrar la guía hija que me entrega el agente de carga y que
+el sistema confirme sola la llegada, para seguir los envíos aéreos sin tener que conseguir la
+guía madre de antemano.
+
+**Criterios de aceptación**
+
+- Dada una guía hija, cuando la asocio a un pedido aéreo como `HAWB`, entonces se acepta y queda rastreable vía TICA, sin exigirle formato de MAWB ni dígito verificador
+- Dada una guía que ya está en un manifiesto de carga, cuando se consulta TICA, entonces la fecha de arribo queda en `elementos_rastreados.ata_api`, junto con el manifiesto, la guía madre y el payload de la aduana
+- Dada esa llegada, cuando corren el arribo y el recálculo, entonces el pedido pasa a `EN_DESTINO` con origen `FUENTE` y la fecha proyectada sale de la ATA reportada (`ATA_FUENTE`, nueva en la precedencia de RN-14)
+- Dada una guía que todavía no aparece, cuando se consulta, entonces **no** cuenta como fallo: se anota la consulta y se reintenta al vencer `frecuencia_tica_min` (360 min por defecto)
+- Dada una guía madre resuelta, cuando su aerolínea está activa en el catálogo de ShipsGo, entonces se señala como rastreable, **sin darla de alta**: el crédito lo decide una persona
+- Dado un bloqueo del sitio (Akamai) o un cambio de su página, cuando ocurre, entonces se clasifica como fallo permanente (`acceso_bloqueado` / `formato_inesperado`) y **no se reintenta ni se esquiva**
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Must** · Sprint 4 · 6 h · ✅ terminada 28/09/2026 |
+| Origen | Hallazgo del 28/09/2026: la empresa recibe HAWB y ninguna fuente comercial las rastrea |
+| Etiquetas | `backend,tica,aduana,aereo` |
+
+> **Lo medido.** `ZIVHYD017` (OC 4500018603-10): el Z-tracking decía «ETA CR 8 SEP» y seguía
+> `PENDIENTE` el 28/09. TICA mostró que llegó el **18/09** (manifiesto 26017849, aduana de
+> Alajuela, agente Sparx Logistics), con guía madre **574-34927513** de Allied Air, inactiva en
+> ShipsGo: darla de alta habría cobrado un crédito para nada.
+>
+> **Lo que TICA no hace.** Seguir el tránsito: la guía aparece cuando se transmite el
+> manifiesto, cerca del arribo. Confirma la llegada; no reemplaza a ShipsGo.
+>
+> **Riesgo.** El sitio está detrás de Akamai Bot Manager. Se consulta con un `User-Agent` que
+> identifica a TrackIn, pausa entre peticiones y pocas consultas al día. Si lo bloquean, la salida
+> es formal: el usuario de TICA del agente aduanal o los servicios web de Hacienda.
+>
+> **Arrastró una corrección de `US-09`.** La precedencia de RN-14 no tenía la ATA reportada por
+> la fuente: un pedido pasaba a `EN_DESTINO` por un hito de ShipsGo y la fecha proyectada seguía
+> saliendo de la ETA. Ahora `ATA_FUENTE` va entre la confirmada y la inferida.
+
+### `US-50` — Worker de rastreo: el ciclo periódico
+
+Como usuario de Logística, quiero que el sistema consulte las fuentes solo y actualice los
+pedidos, para no depender de que alguien corra un script para ver una llegada.
+
+**Criterios de aceptación**
+
+- Dado el worker (`python -m app.workers`), cuando corre, entonces cada 60 s planifica con `US-07` y consulta solo los elementos a los que les venció su frecuencia
+- Dada una tarea, cuando se despacha, entonces va a ShipsGo (`CONTENEDOR`, `BL`, `BOOKING`, `MAWB`) o a TICA (`HAWB`); los demás tipos se omiten con su motivo
+- Dada una lectura aplicada, cuando termina, entonces se evalúa el arribo y **después** se recalcula cada pedido activo del elemento, y se confirma elemento por elemento (RNF-14)
+- Dado un elemento de ShipsGo sin alta en la cuenta, cuando le toca, entonces se omite con `sin_alta_en_shipsgo`: **el worker no da de alta**, porque cuesta un crédito
+- Dada una fuente que falla, cuando ocurre, entonces no se la vuelve a consultar en ese ciclo ni hasta que pase la espera de `US-03`; un fallo permanente la apaga hasta reiniciar, y las otras fuentes siguen
+- Dado un ciclo que falla entero (la base caída), cuando ocurre, entonces el worker lo registra y espera al siguiente, sin morir
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Must** · Sprint 4 · 6 h · ✅ terminada 28/09/2026 |
+| Origen | `TASK-20` (`architecture.md` §1.4): el rastreo corre en un worker aparte de la API |
+| Etiquetas | `backend,worker,scheduler` |
+
+> **Por qué hacía falta.** Todas las piezas existían y estaban probadas, pero nadie llamaba al
+> planificador: el rastreo solo corría si alguien lanzaba `asociar_referencia.py`.
+>
+> **Verificado en vivo el 28/09** con la OC 4500018603-10 y su guía hija `ZIVHYD017`: un ciclo
+> consultó TICA, registró la llegada del 18/09, pasó el pedido a `EN_DESTINO`, proyectó el 25/09
+> (`A_TIEMPO`) y apagó el elemento. El ciclo siguiente ya no lo consultó.
+>
+> **Pendiente.** El worker cubre las fuentes que alimentan el semáforo (ShipsGo y TICA). La
+> suscripción AIS (`US-02`) y OpenSky (`US-05`/`US-06`) son respaldo del mapa y entran como bucles
+> aparte en el mismo proceso cuando se retomen. La salud de las fuentes vivía en memoria del
+> worker y `/health` de la API no la veía: lo resolvió `US-51` el mismo día.
+
+### `US-51` — Publicar la salud de las fuentes en la base
+
+Como usuario, quiero que el encabezado del dashboard diga qué fuente de rastreo falló y de cuándo
+es su último dato bueno, aunque las fuentes las consulte otro proceso.
+
+**Criterios de aceptación**
+
+- Dado un ciclo del worker, cuando termina, entonces el estado de cada fuente consultada queda en `salud_fuentes` (una fila por fuente, sobrescrita)
+- Dado `/health`, cuando se consulta, entonces las fuentes salen de `salud_fuentes`, con la antigüedad calculada al leer y `reportado_en`
+- Dado que publicar la salud falla, cuando ocurre, entonces el ciclo sigue: las lecturas ya confirmadas no se pierden
+- Dado que la tabla no se puede leer (migración sin aplicar), cuando se consulta `/health`, entonces la base **no** se reporta como caída
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Should** · Sprint 4 · 3 h · ✅ terminada 28/09/2026 |
+| Origen | `US-50`: el worker corre aparte y `salud_fuentes.py` ya anticipaba moverla a la base |
+| Etiquetas | `backend,health,worker` |
+
+> **Verificado entre procesos el 28/09**: el worker consultó TICA; un proceso distinto, con la
+> memoria vacía, leyó `/health` y mostró `tica` con su último contacto y su antigüedad.
 
 ---
 

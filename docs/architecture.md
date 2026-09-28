@@ -214,7 +214,7 @@ Tres reglas que la implementación fija y conviene no perder:
 
 | # | Punto | Quién decide | Cuándo |
 |---|---|---|---|
-| 1 | ¿El worker es un proceso único con dos bucles, o un proceso por fuente? | Implementación | `US-02` / `US-05`, Sprint 3-4 |
+| 1 | ¿El worker es un proceso único con dos bucles, o un proceso por fuente? | Implementación | **Resuelto el 28/09/2026 (`US-50`)**: proceso único. `app.workers.rastreo` corre el ciclo de sondeo (ShipsGo y TICA); la suscripción AIS entrará como otro bucle del mismo proceso |
 | 2 | Cómo se supervisa el worker en producción (reinicio ante caída) | Centro de Competencias | `TASK-09`, cierre |
 | 3 | Si se compra una fuente AIS con cobertura de Moín, ¿reemplaza o convive con AISStream? | Greivin / Compras | Sin fecha |
 

@@ -123,6 +123,40 @@ UPDATE parametros_sistema SET valor = '5' WHERE clave = 'altas_maximas_dia';
 Sin `SHIPSGO_API_TOKEN` el sistema arranca igual y el rastreo comercial queda
 inactivo, que es la situación mientras no haya créditos comprados.
 
+### Worker de rastreo (`US-50`)
+
+El rastreo corre en un proceso aparte de la API (`docs/architecture.md` §1.4):
+
+```bash
+python -m app.workers              # ciclos cada 60 s, hasta Ctrl+C
+python -m app.workers --una-vez    # un solo ciclo, para verificar
+```
+
+Cada ciclo planifica, consulta ShipsGo o TICA según la referencia, aplica la
+lectura, evalúa el arribo y recalcula los pedidos. **No da de alta embarques**:
+un elemento sin alta en ShipsGo se omite con `sin_alta_en_shipsgo`, porque el
+alta cuesta un crédito y la decide una persona (`scripts/verificar_shipsgo.py`).
+
+### Guías hijas por TICA (`US-49`)
+
+La guía hija (HAWB) que entrega el agente de carga no la rastrea ninguna fuente
+comercial, pero TICA —la consulta pública de Hacienda— la encuentra en el
+manifiesto de carga con su fecha de arribo y su guía madre. No necesita token y
+es gratis. TICA usa **su propio** cliente HTTP, por las cookies de sesión:
+
+```python
+async with transporte_http.crear_cliente_http_tica() as http:
+    tica = transporte_http.crear_cliente_tica(http)
+```
+
+```bash
+python scripts/consultar_tica.py ZIVHYD017                      # solo consulta, sin base
+python scripts/asociar_referencia.py 4500018603-10 HAWB:ZIVHYD017 --ensayo
+```
+
+El sitio está detrás de Akamai: si responde con un bloqueo, la fuente se degrada
+y **no se reintenta**. Ver `docs/api-references.md`, sección TICA.
+
 ### Cargar el archivo de Logística
 
 La fuente sale de `INGESTA_ADAPTADOR`. Para cargar el archivo real de Logística

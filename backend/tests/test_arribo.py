@@ -477,9 +477,11 @@ async def test_el_riesgo_sigue_mandando_sobre_la_etapa_recien_puesta(sesion, sin
     """
     from app.services.recalculo import recalcular
 
-    elemento = await _elemento(sesion, ata_api=dt.datetime(2026, 9, 15, tzinfo=dt.UTC))
-    # Proyectada muy posterior a la comprometida (2026-10-10).
-    pedido = await _pedido(sesion, elemento, eta_declarada=dt.date(2026, 11, 20))
+    # La fuente reporta el arribo muy después de la comprometida (2026-10-10).
+    # Desde el 28/09 (`US-49`) esa llegada es la base de la proyección: antes la
+    # prueba ponía el atraso en la ETA declarada, que ya no gana a un arribo.
+    elemento = await _elemento(sesion, ata_api=dt.datetime(2026, 11, 20, tzinfo=dt.UTC))
+    pedido = await _pedido(sesion, elemento)
 
     await arribo.evaluar(sesion, pedido)
     resultado = await recalcular(sesion, pedido)

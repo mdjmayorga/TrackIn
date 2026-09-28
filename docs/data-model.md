@@ -1408,6 +1408,27 @@ articulado exige— más `pedido_elemento_rastreado`, aprobada el 25/08.
 > 70 h a 74 h; el supervisor decidió no recortar alcance todavía (ver C1 del
 > acta).
 
+### 8.5 `salud_fuentes` — la salud de las fuentes, compartida entre procesos
+
+**Añadida el 28/09/2026** (`US-51`, migración `0013`). No es una entidad de
+negocio: es la foto de la salud de cada fuente externa que el worker publica
+para que la API la sirva.
+
+Hacía falta desde `US-50`. El worker de rastreo es el que consulta ShipsGo y
+TICA y lleva el `EstadoFuente` de cada una en memoria; `/health` lo sirve la
+API, que es otro proceso y nunca veía esa memoria. RF-20 y `US-23` piden que el
+encabezado del dashboard diga qué fuente falló y de cuándo es su último dato
+bueno, y la base es el único estado compartido entre los dos procesos
+(`architecture.md` §1.4).
+
+| Decisión | Por qué |
+|---|---|
+| Una fila por fuente, que se sobrescribe | Interesa el estado actual, no la historia de fallos |
+| La memoria del worker sigue siendo la copia de trabajo | El worker decide con ella; la tabla solo la publica al final de cada ciclo |
+| La antigüedad **no** se guarda: se calcula al leer | Si el worker se detiene, tiene que seguir creciendo (RNF-12) |
+| `reportado_en` lo pone el worker con la hora del ciclo | Es lo que deja ver si el worker dejó de escribir |
+| Un reinicio del worker no la restaura | La primera consulta tras reiniciar se hace de una vez, que es lo deseable |
+
 ---
 
 ## 9. Puntos abiertos que deja `TASK-15`

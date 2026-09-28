@@ -14,6 +14,7 @@ import pytest
 
 from app.services.proyeccion import (
     ORIGEN_ATA_CONFIRMADA,
+    ORIGEN_ATA_FUENTE,
     ORIGEN_ATA_INFERIDA,
     ORIGEN_ETA_DECLARADA,
     ORIGEN_ETA_ESTIMADA,
@@ -81,6 +82,29 @@ def test_la_ata_inferida_gana_a_las_dos_eta() -> None:
     assert resultado.origen == ORIGEN_ATA_INFERIDA
 
 
+def test_la_ata_de_la_fuente_gana_a_la_inferida_y_a_las_eta() -> None:
+    """`US-49`: el manifiesto de TICA o el hito de ShipsGo son un dato, no una
+    deducción; ganan a la geocerca y a cualquier ETA."""
+    resultado = calcular(
+        ata_fuente=dt.datetime(2026, 9, 18, 6, 0, tzinfo=dt.UTC),
+        ata_inferida=dt.date(2026, 9, 20),
+        eta_fuente=dt.date(2026, 9, 8),
+        eta_declarada=dt.date(2026, 9, 8),
+        lead_time_dias=7,
+    )
+    assert resultado.origen == ORIGEN_ATA_FUENTE
+    assert resultado.fecha == dt.date(2026, 9, 25)
+
+
+def test_la_ata_confirmada_gana_a_la_de_la_fuente() -> None:
+    resultado = calcular(
+        ata_confirmada=dt.date(2026, 9, 19),
+        ata_fuente=dt.date(2026, 9, 18),
+        lead_time_dias=7,
+    )
+    assert resultado.origen == ORIGEN_ATA_CONFIRMADA
+
+
 def test_la_eta_de_la_fuente_gana_a_la_declarada() -> None:
     """La declarada la mantiene una persona a mano y no se actualiza sola.
 
@@ -110,6 +134,7 @@ def test_la_precedencia_declarada_es_la_que_se_aplica() -> None:
     """
     assert PRECEDENCIA == (
         ORIGEN_ATA_CONFIRMADA,
+        ORIGEN_ATA_FUENTE,
         ORIGEN_ATA_INFERIDA,
         ORIGEN_ETA_FUENTE,
         ORIGEN_ETA_ESTIMADA,
@@ -141,7 +166,7 @@ def test_sin_ninguna_fecha_base_no_se_proyecta() -> None:
     assert resultado.fecha is None
     assert resultado.origen is None
     assert bool(resultado) is False
-    assert "no tiene ATA confirmada ni inferida" in resultado.motivo
+    assert "no tiene ATA confirmada, reportada ni inferida" in resultado.motivo
 
 
 def test_sin_lead_time_no_se_proyecta_aunque_haya_eta() -> None:

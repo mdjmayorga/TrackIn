@@ -171,6 +171,34 @@ async def test_sin_fecha_base_deja_todo_nulo_y_lo_explica(sesion, umbral_dos) ->
     assert "no tiene ATA confirmada" in resultado.proyeccion.motivo
 
 
+async def test_la_llegada_reportada_por_la_fuente_manda_sobre_su_eta(sesion, umbral_dos) -> None:
+    """`US-49`: el manifiesto de TICA —o el hito de ShipsGo— dice que llegó. La
+    fecha proyectada sale de esa llegada, no de la ETA que se tenía antes."""
+    elemento = ElementoRastreado(
+        tipo_tracking_externo="CONTENEDOR",
+        tracking_externo="MSCU1234566",
+        via_transporte="MARITIMO",
+        eta_api=dt.datetime(2026, 9, 8, tzinfo=dt.UTC),
+        ata_api=dt.datetime(2026, 9, 18, 6, 0, tzinfo=dt.UTC),
+    )
+    sesion.add(elemento)
+    await sesion.flush()
+    pedido = await _pedido(
+        sesion,
+        id_elemento_rastreado=elemento.id,
+        etapa_viaje="EN_DESTINO",
+        estado_calculado="EN_DESTINO",
+    )
+
+    resultado = await recalcular(sesion, pedido)
+
+    destino = await _destino(sesion)
+    assert resultado.proyeccion.origen == proyeccion.ORIGEN_ATA_FUENTE
+    assert pedido.fecha_proyectada_disponible == dt.date(2026, 9, 18) + dt.timedelta(
+        days=destino.lead_time_dias
+    )
+
+
 async def test_refresca_la_instantanea_del_lead_time(sesion, umbral_dos) -> None:
     """RF-05: la columna guarda el valor **usado en este cálculo**."""
     destino = await _destino(sesion)

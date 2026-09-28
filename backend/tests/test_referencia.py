@@ -162,6 +162,22 @@ def test_las_referencias_de_shipsgo_ya_nacen_rastreables(tipo: str, numero: str)
     assert "shipsgo" in resultado.motivo
 
 
+def test_la_guia_hija_se_rastrea_por_tica() -> None:
+    """`US-49`: la guía que Gutis recibe del agente. La numeración es del agente
+    (`ZIVHYD017`), así que no se le exige forma de MAWB ni dígito verificador."""
+    resultado = validar_referencia("HAWB", "zivhyd017")
+    assert resultado.valida, resultado.motivo
+    assert resultado.numero == "ZIVHYD017"
+    assert resultado.rastreable
+    assert "tica" in resultado.motivo
+
+
+@pytest.mark.parametrize("numero", ["AB1", "X" * 26, "ZIV HYD/017"])
+def test_la_guia_hija_respeta_el_campo_de_tica(numero: str) -> None:
+    """Hasta 25 caracteres alfanuméricos: lo que admite la búsqueda de TICA."""
+    assert not validar_referencia("HAWB", numero).valida
+
+
 def test_buque_se_acepta_pero_ninguna_fuente_lo_sigue() -> None:
     """Un nombre de buque no es una clave de consulta en ninguna API."""
     resultado = validar_referencia("BUQUE", "EVER GIVEN")
@@ -180,6 +196,7 @@ def test_buque_se_acepta_pero_ninguna_fuente_lo_sigue() -> None:
         ("MAWB", "shipsgo"),
         ("MMSI", "aisstream"),
         ("VUELO", "opensky"),
+        ("HAWB", "tica"),
         ("BUQUE", "ninguna"),
         ("  contenedor  ", "shipsgo"),  # normaliza igual que validar_referencia
         ("INVENTADO", None),

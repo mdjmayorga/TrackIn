@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime as dt
 from decimal import Decimal
+from typing import Any
 
 from geoalchemy2 import Geography
 from sqlalchemy import (
@@ -33,6 +34,7 @@ from sqlalchemy import (
     String,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -85,6 +87,15 @@ class ElementoRastreado(Base, TimestampMixin):
     ultima_actualizacion_api: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+    #: Lo que la aduana declaró para una guía hija (`US-49`): la guía madre que
+    #: la ampara, el manifiesto en que entró y las filas crudas de TICA. La
+    #: fecha de arribo del manifiesto va a `ata_api`, como cualquier otra fuente.
+    guia_madre: Mapped[str | None] = mapped_column(String(25), nullable=True)
+    manifiesto_aduana: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    #: `historial_tracking` exige coordenadas y TICA no las da; sin esta columna
+    #: el payload de la aduana no tendría dónde guardarse (RNF-13).
+    payload_aduana: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     #: `US-11` lo pone en `false` al arribar, para no gastar cuota siguiendo
     #: naves que ya no llevan carga nuestra.

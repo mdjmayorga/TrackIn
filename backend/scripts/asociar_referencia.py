@@ -3,6 +3,7 @@
     python scripts/asociar_referencia.py --resumen
     python scripts/asociar_referencia.py TRK-4500016171-090 CONTENEDOR:MRSU8132490
     python scripts/asociar_referencia.py TRK-... BL:COSU123456789 --leer 6734887
+    python scripts/asociar_referencia.py 4500018603-10 HAWB:ZIVHYD017
 
 `asociar_referencia` existe como servicio desde `US-01`, pero hasta `US-16`
 (Sprint 5) no tiene endpoint. Este script es esa entrada mientras tanto, y de
@@ -27,6 +28,13 @@ La cadena entera, en el orden en que corre en producción:
 
 Es la única forma de comprobar que las piezas encajan. Cada una está probada
 por separado; que el conjunto funcione es otra afirmación.
+
+Guías hijas (`US-49`)
+---------------------
+
+Con una referencia `HAWB` el paso 2 consulta **TICA** en vez de ShipsGo, sin
+flag: es gratis. Si la guía ya está en un manifiesto, deja la llegada real y la
+guía madre en el elemento, y el paso 4 mueve el pedido a `EN_DESTINO`.
 """
 
 from __future__ import annotations
@@ -49,8 +57,14 @@ from app.db.session import AsyncSessionLocal, dispose_engine  # noqa: E402
 from app.models.elemento_rastreado import ElementoRastreado  # noqa: E402
 from app.models.pedido_transito import PedidoTransito  # noqa: E402
 from app.services import arribo, asociacion, recalculo  # noqa: E402
-from app.services.rastreo import colector_shipsgo, transporte_http  # noqa: E402
+from app.services.rastreo import (  # noqa: E402
+    colector_shipsgo,
+    colector_tica,
+    shipsgo_aerolineas,
+    transporte_http,
+)
 from app.services.rastreo.shipsgo_cliente import ErrorShipsGo  # noqa: E402
+from app.services.rastreo.tica_cliente import ErrorTICA  # noqa: E402
 
 SEP = "=" * 72
 
@@ -160,6 +174,41 @@ async def _leer_y_procesar(sesion, pedido: PedidoTransito, id_embarque: int, aer
     await sesion.flush()
 
 
+async def _consultar_tica(sesion, pedido: PedidoTransito) -> None:
+    """Busca la guía hija en el manifiesto de carga y corre el colector. Gratis."""
+    elemento = await sesion.get(ElementoRastreado, pedido.id_elemento_rastreado)
+    if elemento is None:
+        return
+
+    catalogo = None
+    if settings.SHIPSGO_API_TOKEN:
+        async with transporte_http.crear_cliente_http() as http:
+            cliente_sg = transporte_http.crear_cliente_shipsgo(http, settings.SHIPSGO_API_TOKEN)
+            try:
+                catalogo = await shipsgo_aerolineas.cargar(cliente_sg)
+            except ErrorShipsGo:
+                catalogo = None  # sin catálogo no se bloquea nada: solo no se informa
+
+    print(f"\n{SEP}\n2. CONSULTA A TICA (aduana, gratis)\n{SEP}")
+    async with transporte_http.crear_cliente_http_tica() as http:
+        cliente = transporte_http.crear_cliente_tica(http)
+        try:
+            resultado = await colector_tica.procesar(sesion, elemento, cliente, catalogo=catalogo)
+        except ErrorTICA as exc:
+            print(f"  FALLO: {exc.motivo} — {exc.detalle}")
+            return
+        print(f"  peticiones    : {cliente.peticiones}")
+
+    print(f"  aplicado      : {resultado.aplicada}")
+    print(f"  motivo        : {resultado.motivo}")
+    if resultado.aplicada:
+        print(f"  llegada (ATA) : {elemento.ata_api}")
+        print(f"  manifiesto    : {elemento.manifiesto_aduana}")
+        print(f"  guía madre    : {elemento.guia_madre or '—'}")
+        print(f"  en ShipsGo    : {'sí' if resultado.madre_rastreable_shipsgo else 'no'}")
+    await sesion.flush()
+
+
 async def principal(args: argparse.Namespace) -> int:
     async with AsyncSessionLocal() as sesion:
         if args.resumen:
@@ -192,22 +241,27 @@ async def principal(args: argparse.Namespace) -> int:
             return 1
         await sesion.flush()
 
-        if args.leer:
+        if resultado.tipo == colector_tica.TIPO_GUIA_HIJA:
+            await _consultar_tica(sesion, pedido)
+        elif args.leer:
             await _leer_y_procesar(sesion, pedido, args.leer, args.aereo)
 
-        print(f"\n{SEP}\n3. RECÁLCULO — RN-01 y semáforo\n{SEP}")
-        recalculado = await recalculo.recalcular(sesion, pedido)
-        print(f"  cambió        : {recalculado.cambio}")
-        print(f"  origen fecha  : {recalculado.proyeccion.origen or '—'}")
-        print(f"  motivo        : {recalculado.proyeccion.motivo or '—'}")
-
-        print(f"\n{SEP}\n4. ARRIBO — RN-05\n{SEP}")
+        # El arribo va antes del recálculo: mueve la etapa, y el estado
+        # calculado se deriva de la etapa (`US-10`). Al revés, el pedido
+        # quedaba `EN_DESTINO` con el estado todavía en `EN_ORIGEN`.
+        print(f"\n{SEP}\n3. ARRIBO — RN-05\n{SEP}")
         llegada = await arribo.evaluar(sesion, pedido)
         print(f"  arribado : {llegada.arribado}")
         print(f"  origen   : {llegada.origen or '—'}")
         print(f"  motivo   : {llegada.motivo or '—'}")
         if llegada.distancia_m is not None:
             print(f"  distancia: {llegada.distancia_m:.0f} m del destino")
+
+        print(f"\n{SEP}\n4. RECÁLCULO — RN-01 y semáforo\n{SEP}")
+        recalculado = await recalculo.recalcular(sesion, pedido)
+        print(f"  cambió        : {recalculado.cambio}")
+        print(f"  origen fecha  : {recalculado.proyeccion.origen or '—'}")
+        print(f"  desglose      : {recalculado.desglose}")
 
         _mostrar("DESPUÉS", pedido)
 

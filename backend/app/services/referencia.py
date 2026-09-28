@@ -36,6 +36,9 @@ _PATRONES: Final[dict[str, re.Pattern[str] | None]] = {
     "CONTENEDOR": re.compile(r"^[A-Z]{4}\d{7}$"),
     # Guía aérea madre: prefijo de tres dígitos de la aerolínea más ocho.
     "MAWB": re.compile(r"^\d{3}-?\d{8}$"),
+    # Guía hija: cada agente de carga numera a su manera (`ZIVHYD017`). Solo se
+    # exige lo que acepta el campo de TICA: hasta 25 caracteres alfanuméricos.
+    "HAWB": re.compile(r"^[A-Z0-9-]{4,25}$"),
     # El resto no tiene formato universal: cada naviera y aerolínea usa el suyo.
     "BL": None,
     "BOOKING": None,
@@ -53,6 +56,9 @@ _FUENTE_POR_TIPO: Final[dict[str, str]] = {
     "BL": "shipsgo",
     "BOOKING": "shipsgo",
     "MAWB": "shipsgo",
+    # `US-49`: la guía hija no la sigue ninguna fuente comercial. La encuentra
+    # la aduana cuando se transmite el manifiesto, cerca del arribo.
+    "HAWB": "tica",
     "MMSI": "aisstream",
     "IMO": "aisstream",
     "VUELO": "opensky",
@@ -70,7 +76,10 @@ _FUENTE_POR_TIPO: Final[dict[str, str]] = {
 #: un crédito (~2 USD) y el planificador avisa al pasar de `altas_maximas_dia`,
 #: hoy 5. Lo que significa es que una referencia marítima o aérea ya nace
 #: rastreable, que es lo que `US-01` promete.
-_FUENTES_DISPONIBLES: Final[frozenset[str]] = frozenset({"aisstream", "opensky", "shipsgo"})
+#:
+#: `tica` entra el 28/09/2026 (`US-49`): es una consulta pública de Hacienda, sin
+#: costo. Confirma la llegada y resuelve la guía madre; no sigue el tránsito.
+_FUENTES_DISPONIBLES: Final[frozenset[str]] = frozenset({"aisstream", "opensky", "shipsgo", "tica"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,7 +210,10 @@ def validar_referencia(tipo: str | None, numero: str | None) -> ResultadoReferen
         if tipo_norm == "MAWB":
             # El error más frecuente en la vía aérea, según el contrato de
             # TASK-30: el agente de carga entrega la guía hija.
-            pista = " Puede ser un HAWB del agente de carga; hace falta el MAWB."
+            pista = (
+                " Puede ser un HAWB del agente de carga: regístrelo como HAWB y "
+                "TICA resolverá el MAWB al arribo."
+            )
         return ResultadoReferencia(
             valida=False,
             tipo=tipo_norm,

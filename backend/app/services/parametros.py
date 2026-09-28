@@ -167,6 +167,28 @@ CATALOGO: Final[dict[str, Parametro]] = {
             "cual medirla (migración `0011`)."
         ),
     ),
+    # --- Aduana: guías hijas por TICA (`US-49`) -----------------------------
+    # TICA es una página pública detrás de Akamai, no una API. Se consulta poco
+    # y con pausa: la llegada se mide en días, no en minutos.
+    "frecuencia_tica_min": Parametro(
+        clave="frecuencia_tica_min",
+        defecto=360,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Minutos entre consultas a TICA de una misma guía hija. Cada consulta "
+            "son dos o tres peticiones; con 360 y la ventana de 6 a 22 h, una "
+            "guía genera unas nueve peticiones al día."
+        ),
+    ),
+    "ventana_tica_dias": Parametro(
+        clave="ventana_tica_dias",
+        defecto=60,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Días hacia atrás en que se busca el arribo de una guía en TICA. "
+            "Con 60 se probó el 28/09/2026 una guía que llegó diez días tarde."
+        ),
+    ),
     # --- Resiliencia de las fuentes externas (`US-03`, RF-09 / RNF-12) ------
     # Los cinco describen la misma política de espera creciente, y son
     # parámetros y no constantes por el sexto criterio de la historia: los

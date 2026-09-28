@@ -16,7 +16,7 @@ from typing import Any
 import httpx
 import pytest
 
-from app.services.rastreo import opensky_cliente, shipsgo_cliente, transporte_http
+from app.services.rastreo import opensky_cliente, shipsgo_cliente, tica_cliente, transporte_http
 from app.services.resiliencia import ClaseFallo, clasificar
 
 
@@ -275,6 +275,46 @@ async def test_opensky_convierte_un_corte_de_red_en_su_error() -> None:
 
 
 # --- La configuración del cliente compartido -------------------------------
+
+
+# --- TICA (`US-49`) ---------------------------------------------------------
+
+
+async def test_tica_manda_el_formulario_como_form_urlencoded() -> None:
+    """Es una página ASP.NET: el `POST` lleva los campos del formulario."""
+    vistos: list[httpx.Request] = []
+
+    def manejador(peticion: httpx.Request) -> httpx.Response:
+        vistos.append(peticion)
+        return httpx.Response(200, text="<html>ok</html>")
+
+    async with _cliente_con(manejador) as http:
+        transporte = transporte_http.TransporteTICAHTTP(http)
+        respuesta = await transporte(
+            "POST", tica_cliente.BASE + "hcgconocimientos.aspx", datos={"vCGNROCON": "ZIVHYD017"}
+        )
+
+    assert respuesta.estado == 200
+    assert respuesta.texto == "<html>ok</html>"
+    assert vistos[0].headers["content-type"] == "application/x-www-form-urlencoded"
+    assert b"vCGNROCON=ZIVHYD017" in vistos[0].content
+
+
+async def test_tica_convierte_un_corte_de_red_en_su_error() -> None:
+    async with _cliente_que_falla(httpx.ConnectTimeout("nada")) as http:
+        transporte = transporte_http.TransporteTICAHTTP(http)
+        with pytest.raises(tica_cliente.ErrorTICA) as error:
+            await transporte("GET", tica_cliente.BASE + "hcgconocimientos.aspx")
+    assert error.value.motivo == "tiempo_agotado"
+    assert error.value.clase is ClaseFallo.TRANSITORIO
+
+
+async def test_tica_dice_quien_pregunta_y_no_sigue_redirecciones() -> None:
+    """Con un sitio detrás de Akamai, una redirección es un desafío, no un
+    resultado; y el `User-Agent` deja ver de dónde vienen las consultas."""
+    async with transporte_http.crear_cliente_http_tica() as http:
+        assert http.headers["user-agent"] == tica_cliente.USER_AGENT
+        assert http.follow_redirects is False
 
 
 async def test_el_cliente_trae_los_tiempos_medidos() -> None:

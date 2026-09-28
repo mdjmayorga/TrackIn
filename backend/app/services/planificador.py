@@ -74,6 +74,11 @@ CLAVE_VENTANA_INICIO = "ventana_aerea_inicio_h"
 CLAVE_VENTANA_FIN = "ventana_aerea_fin_h"
 CLAVE_MADURACION = "maduracion_reintento_s"
 CLAVE_ALTAS_MAXIMAS = "altas_maximas_dia"
+CLAVE_FRECUENCIA_TICA = "frecuencia_tica_min"
+
+#: La guía hija se consulta en TICA y no en ShipsGo (`US-49`): una página
+#: pública, no una API, así que lleva su propio intervalo, mucho más largo.
+TIPO_GUIA_HIJA: Final = "HAWB"
 
 #: Por qué un elemento no toca consultarlo ahora.
 OMITIDO_FUERA_DE_VENTANA = "fuera_de_la_ventana_aerea"
@@ -100,8 +105,12 @@ class Politica:
     ventana_fin_h: int
     maduracion_reintento_s: int
     altas_maximas_dia: int
+    #: Con defecto para no romper a quien construye la política a mano.
+    frecuencia_tica_min: int = 360
 
-    def intervalo(self, via: str) -> dt.timedelta:
+    def intervalo(self, via: str, tipo: str | None = None) -> dt.timedelta:
+        if tipo == TIPO_GUIA_HIJA:
+            return dt.timedelta(minutes=self.frecuencia_tica_min)
         minutos = self.frecuencia_aerea_min if via == "AEREO" else self.frecuencia_maritima_min
         return dt.timedelta(minutes=minutos)
 
@@ -119,7 +128,7 @@ class Politica:
 
 
 async def politica_vigente(sesion: AsyncSession) -> Politica:
-    """Lee los seis parámetros. Un valor ilegible cae a su defecto (`US-17`)."""
+    """Lee los siete parámetros. Un valor ilegible cae a su defecto (`US-17`)."""
     return Politica(
         frecuencia_aerea_min=await parametros.obtener_entero(sesion, CLAVE_FRECUENCIA_AEREA),
         frecuencia_maritima_min=await parametros.obtener_entero(sesion, CLAVE_FRECUENCIA_MARITIMA),
@@ -127,6 +136,7 @@ async def politica_vigente(sesion: AsyncSession) -> Politica:
         ventana_fin_h=await parametros.obtener_entero(sesion, CLAVE_VENTANA_FIN),
         maduracion_reintento_s=await parametros.obtener_entero(sesion, CLAVE_MADURACION),
         altas_maximas_dia=await parametros.obtener_entero(sesion, CLAVE_ALTAS_MAXIMAS),
+        frecuencia_tica_min=await parametros.obtener_entero(sesion, CLAVE_FRECUENCIA_TICA),
     )
 
 
@@ -141,6 +151,8 @@ class Tarea:
     ultima: dt.datetime | None
     #: `True` si se reprograma pronto por estar madurando, no por el intervalo.
     madurando: bool = False
+    #: El tipo de referencia decide la fuente: `HAWB` va a TICA (`US-49`).
+    tipo: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -190,6 +202,7 @@ def _toca(
     via: str,
     ultima: dt.datetime | None,
     madurando: bool,
+    tipo: str | None = None,
 ) -> bool:
     """Si venció el intervalo de ese elemento.
 
@@ -202,7 +215,7 @@ def _toca(
     espera = (
         dt.timedelta(seconds=politica.maduracion_reintento_s)
         if madurando
-        else politica.intervalo(via)
+        else politica.intervalo(via, tipo)
     )
     return ahora - ultima >= espera
 
@@ -269,6 +282,7 @@ async def planificar(
             elemento.via_transporte,
             elemento.ultima_actualizacion_api,
             esta_madurando,
+            elemento.tipo_tracking_externo,
         ):
             plan.omitidos.append(
                 Omitido(elemento.id, elemento.tracking_externo, OMITIDO_SIN_VENCER)
@@ -282,6 +296,7 @@ async def planificar(
                 via=elemento.via_transporte,
                 ultima=elemento.ultima_actualizacion_api,
                 madurando=esta_madurando,
+                tipo=elemento.tipo_tracking_externo,
             )
         )
 

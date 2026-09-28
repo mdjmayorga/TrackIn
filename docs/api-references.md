@@ -1511,6 +1511,63 @@ desde la compra, y con producción prevista para diciembre se perderían ~2,6 me
 
 ---
 
+## TICA (Hacienda) — guías hijas por el manifiesto de carga
+
+**Añadida el 28/09/2026 (`US-49`).** Gutis recibe la **guía hija** (HAWB) del agente de carga.
+La aerolínea solo conoce la guía madre (MAWB), así que ninguna fuente comercial rastrea la hija:
+ShipsGo exige 11 dígitos con prefijo de aerolínea y TrackingMore no tiene aerolíneas.
+
+La aduana sí la conoce. Todo envío que entra a Costa Rica se declara en el manifiesto de carga,
+con la madre y sus hijas desconsolidadas, y TICA lo expone en una consulta pública:
+
+| | |
+|---|---|
+| Página | `https://ticaconsultas.hacienda.go.cr/Tica/hcgconocimientos.aspx` («Consulta por Conocimientos de Embarque») |
+| Acceso | Público, sin usuario. **Sin API**: página GeneXus sobre ASP.NET |
+| Entrada | Número de guía (hasta 25 caracteres) y rango de fechas de arribo |
+| Devuelve | Manifiesto, **fecha de arribo**, depósito, aduana de descarga, agente de carga (desconsolidador), puerto de embarque, estado y un enlace a la **guía madre** |
+| Costo | Gratis |
+| Implementación | `app/services/rastreo/tica_cliente.py` y `colector_tica.py`; `scripts/consultar_tica.py` |
+
+### Cómo se consulta
+
+Tres peticiones en la misma sesión (las cookies importan: el enlace a la madre va cifrado por sesión):
+
+1. `GET` del formulario → trae el estado de la página en el campo oculto `GXState`.
+2. `POST` del formulario con `_EventName = "EENTER."`, `vVFCH1`/`vVFCHF` (fechas `dd/mm/aaaa`) y
+   `vCGNROCON` (la guía). La grilla vuelve en el campo oculto `Grid2ContainerDataV` y los enlaces
+   en `Grid2ContainerData`.
+3. `GET` de `hcgconspadre.aspx?…` → la guía madre, con la aerolínea que la emitió.
+
+Si la guía no aparece, son dos peticiones: es lo normal antes del arribo.
+
+### Lo medido el 28/09/2026
+
+`ZIVHYD017` (OC 4500018603-10), guía hija de Sparx Logistics:
+
+| Dato | Z-tracking | TICA |
+|---|---|---|
+| Llegada | «ETA CR 8 SEP», `PENDIENTE` al 28/09 | **18/09/2026**, manifiesto 26017849, aduana 188AJU (Juan Santamaría) |
+| Guía madre | — | **574-34927513**, último tramo por TACA/Avianca desde Bogotá |
+
+El prefijo `574` es de **Allied Air**, inactiva en el catálogo de ShipsGo: darla de alta habría
+cobrado un crédito para nada. Por eso el colector **señala** si la madre es rastreable y no la da
+de alta.
+
+### Límites y riesgo
+
+- **No sigue el tránsito.** La guía entra a TICA con el manifiesto, cerca del arribo. Confirma la
+  llegada con fuente oficial; no reemplaza a ShipsGo.
+- **Akamai Bot Manager.** El sitio devuelve cookies `_abck` y `bm_sz`. Se consulta como una
+  persona: `User-Agent` que identifica a TrackIn, un segundo entre peticiones, cada 6 h por guía
+  dentro de la ventana de 6 a 22 h. Un 403, una redirección o una página sin formulario se
+  clasifican como `acceso_bloqueado` (permanente): **no se reintenta ni se esquiva**.
+- **Salida formal si lo bloquean:** el usuario de TICA del agente aduanal de Gutis o los servicios
+  web que Hacienda ofrece a usuarios registrados.
+- **La página puede cambiar.** Una grilla con otras columnas se clasifica como
+  `formato_inesperado` (permanente). Las respuestas grabadas en `scripts/spikes/tica/output/`
+  describen lo medido; `01_capturar_respuestas.py` vuelve a capturarlas.
+
 ## Otras fuentes evaluadas
 
 | Fuente | Estado | Nota |

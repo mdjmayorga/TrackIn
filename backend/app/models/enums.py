@@ -60,6 +60,9 @@ MOTIVOS_CIERRE: Final[tuple[str, ...]] = (
 # Ampliado el 04/09/2026 con los tipos del contrato de captura (TASK-30):
 # lo que ShipsGo admite como clave de alta — `booking_number` y
 # `container_number` en /ocean/shipments, `awb_number` en /air/shipments.
+# `HAWB` entra el 28/09/2026 (`US-49`): es la guía que Gutis recibe del agente
+# de carga. Ninguna fuente comercial la sigue, pero TICA la encuentra en el
+# manifiesto de carga y devuelve la llegada real y la guía madre.
 TIPOS_TRACKING: Final[tuple[str, ...]] = (
     "MMSI",
     "IMO",
@@ -69,6 +72,7 @@ TIPOS_TRACKING: Final[tuple[str, ...]] = (
     "BL",
     "BOOKING",
     "MAWB",
+    "HAWB",
 )
 
 # --- Roles (RNF-05) ---------------------------------------------------------

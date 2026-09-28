@@ -56,7 +56,7 @@ from typing import Any, Final
 
 import httpx
 
-from app.services.rastreo import opensky_cliente, shipsgo_cliente
+from app.services.rastreo import opensky_cliente, shipsgo_cliente, tica_cliente
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +202,49 @@ class TransporteOpenSkyHTTP:
         )
 
 
+class TransporteTICAHTTP:
+    """Implementa `tica_cliente.Transporte` sobre `httpx`.
+
+    TICA es una página, no una API: el cuerpo es HTML y el formulario va como
+    `form-urlencoded`. Y necesita **su propio** `AsyncClient`, por las cookies:
+    el enlace a la guía madre solo vale en la sesión ASP.NET que hizo la
+    búsqueda, y compartir el cliente de ShipsGo mezclaría cookies de dos sitios.
+    """
+
+    def __init__(self, cliente: httpx.AsyncClient) -> None:
+        self._cliente = cliente
+
+    async def __call__(
+        self, metodo: str, url: str, *, datos: dict[str, str] | None = None
+    ) -> tica_cliente.Respuesta:
+        try:
+            respuesta = await self._cliente.request(metodo, url, data=datos)
+        except Exception as exc:  # se clasifican todas, ninguna escapa sin motivo
+            motivo, explicacion = clasificar_error_de_red(exc)
+            logger.warning("TICA: %s %s — %s (%s)", metodo, url.split("?")[0], explicacion, motivo)
+            raise tica_cliente.ErrorTICA(motivo, explicacion) from exc
+        return tica_cliente.Respuesta(estado=respuesta.status_code, texto=respuesta.text)
+
+
+def crear_cliente_http_tica() -> httpx.AsyncClient:
+    """El `AsyncClient` propio de TICA, con el `User-Agent` que dice quién pregunta.
+
+    Sin redirecciones automáticas: el sitio no redirige al consultar, y seguir
+    una hacia una página de desafío la haría pasar por un resultado.
+    """
+    return httpx.AsyncClient(
+        timeout=_timeout(),
+        limits=httpx.Limits(max_connections=2),
+        follow_redirects=False,
+        headers={"User-Agent": tica_cliente.USER_AGENT},
+    )
+
+
+def crear_cliente_tica(cliente_http: httpx.AsyncClient) -> tica_cliente.ClienteTICA:
+    """El cliente de TICA listo para consultar el sitio real."""
+    return tica_cliente.ClienteTICA(TransporteTICAHTTP(cliente_http))
+
+
 def crear_cliente_shipsgo(
     cliente_http: httpx.AsyncClient, token: str
 ) -> shipsgo_cliente.ClienteShipsGo:
@@ -226,8 +269,11 @@ __all__ = [
     "TIMEOUT_LECTURA_S",
     "TransporteOpenSkyHTTP",
     "TransporteShipsGoHTTP",
+    "TransporteTICAHTTP",
     "clasificar_error_de_red",
     "crear_cliente_http",
+    "crear_cliente_http_tica",
     "crear_cliente_opensky",
     "crear_cliente_shipsgo",
+    "crear_cliente_tica",
 ]
