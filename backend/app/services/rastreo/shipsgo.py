@@ -493,7 +493,11 @@ def esta_maduro(shipment: dict[str, Any] | None) -> bool:
 
     **El tercer estado.** A los 45 s del alta los dos embarques medidos
     devolvían `status: NEW`, `route: null` y `containers: []`; a los ~90 s
-    estaban completos. No es un fallo ni una respuesta vacía definitiva, y
+    estaban completos. **No siempre es tan rápido:** el BL de COSCO dado de
+    alta el 28/09/2026 (`COSU6508789000`) siguió en `NEW`, con `checked_at:
+    null` —ShipsGo ni lo había consultado—, durante **31 minutos**. La espera
+    depende de la cola del proveedor y de la naviera, no de nosotros.
+    No es un fallo ni una respuesta vacía definitiva, y
     tratarlo como cualquiera de las dos da un falso negativo —por eso `US-07`
     tiene que contemplarlo al planificar.
     """

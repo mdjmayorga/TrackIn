@@ -17,6 +17,7 @@ import pytest
 from sqlalchemy import delete, select
 
 from app.models.elemento_rastreado import ElementoRastreado
+from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
@@ -708,3 +709,125 @@ class TestReferenciaInvalida:
 
         assert informe.no_entraron == 0
         assert informe.entraron_sin_rastreo == 1
+
+
+# --- El destino según la fuente de rastreo (`US-52`) -----------------------
+
+
+def _cif_sin_puerto(**kwargs) -> PedidoCrudo:
+    """La OC 4500016185-10 de WK38: «CIF» sin puerto y un BL en el comentario."""
+    base = {
+        "oc_numero": "4599916185",
+        "destino_codigo": None,
+        "incoterm": "CIF",
+        "tipo_referencia": "BL",
+        "numero_referencia": "COSU6508789000",
+        "referencia_desde_comentario": True,
+    }
+    return _crudo(**{**base, **kwargs})
+
+
+class ResolutorFalso:
+    """Responde un código fijo y anota a quién le preguntaron."""
+
+    def __init__(self, codigo: str | None = "CRCAL") -> None:
+        self.codigo = codigo
+        self.preguntas: list[tuple[str, str]] = []
+
+    async def __call__(self, tipo: str, numero: str) -> str | None:
+        self.preguntas.append((tipo, numero))
+        return self.codigo
+
+
+@pytest.mark.integration
+class TestDestinoDeLaFuente:
+    async def test_sin_resolutor_sigue_rechazada(self, sesion, sin_pedidos) -> None:
+        """Sin ShipsGo el comportamiento es el de siempre: no se adivina."""
+        resultado = await cargar(sesion, FuenteFalsa([_cif_sin_puerto()]))
+
+        assert resultado.cargados == 0
+        assert resultado.rechazadas[0].motivo == RECHAZO_SIN_DESTINO
+
+    async def test_con_resolutor_entra_con_el_puerto_de_la_naviera(
+        self, sesion, sin_pedidos
+    ) -> None:
+        resolutor = ResolutorFalso("CRCAL")
+
+        resultado = await cargar(
+            sesion, FuenteFalsa([_cif_sin_puerto()]), resolutor_destino=resolutor
+        )
+
+        assert resultado.cargados == 1
+        assert resolutor.preguntas == [("BL", "COSU6508789000")]
+        pedido = await sesion.scalar(
+            select(PedidoTransito).where(PedidoTransito.oc_numero == "4599916185")
+        )
+        destino = await sesion.get(MaestroDestino, pedido.id_destino)
+        assert destino.codigo == "CRCAL"
+        # La referencia del comentario también se asocia: el pedido ya es rastreable.
+        assert pedido.id_elemento_rastreado is not None
+        assert resultado.referencias_de_comentario == 1
+        (reportada,) = resultado.destinos_de_la_fuente
+        assert "según ShipsGo" in reportada.detalle and "CRCAL" in reportada.detalle
+
+    async def test_si_la_fuente_no_lo_sabe_sigue_rechazada(self, sesion, sin_pedidos) -> None:
+        resultado = await cargar(
+            sesion, FuenteFalsa([_cif_sin_puerto()]), resolutor_destino=ResolutorFalso(None)
+        )
+
+        assert resultado.rechazadas[0].motivo == RECHAZO_SIN_DESTINO
+
+    async def test_un_puerto_fuera_del_maestro_se_rechaza_con_el_codigo(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Mejor rechazada con el código a la vista que ubicada en otro puerto."""
+        resultado = await cargar(
+            sesion, FuenteFalsa([_cif_sin_puerto()]), resolutor_destino=ResolutorFalso("PAONX")
+        )
+
+        (rechazada,) = resultado.rechazadas
+        assert rechazada.motivo == RECHAZO_SIN_DESTINO
+        assert "PAONX" in rechazada.detalle
+
+    async def test_una_referencia_invalida_no_se_consulta(self, sesion, sin_pedidos) -> None:
+        """El contenedor con el dígito verificador malo no llega a ShipsGo."""
+        resolutor = ResolutorFalso()
+
+        await cargar(
+            sesion,
+            FuenteFalsa(
+                [_cif_sin_puerto(tipo_referencia="CONTENEDOR", numero_referencia="MRSU8132491")]
+            ),
+            resolutor_destino=resolutor,
+        )
+
+        assert resolutor.preguntas == []
+
+    async def test_si_el_archivo_lo_dice_no_se_pregunta(self, sesion, sin_pedidos) -> None:
+        """Lo que escribió Logística manda: `CIF LIMON` no necesita a ShipsGo."""
+        resolutor = ResolutorFalso("CRCAL")
+
+        await cargar(
+            sesion,
+            FuenteFalsa([_cif_sin_puerto(incoterm="CIF LIMON")]),
+            resolutor_destino=resolutor,
+        )
+
+        assert resolutor.preguntas == []
+
+    async def test_recargar_sin_la_fuente_conserva_el_destino_y_no_la_marca_ausente(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Si ShipsGo no está en la segunda carga, la línea no puede desaparecer."""
+        fuente = FuenteFalsa([_cif_sin_puerto()])
+        await cargar(sesion, fuente, resolutor_destino=ResolutorFalso("CRCAL"))
+
+        segunda = await cargar(sesion, fuente)
+
+        assert segunda.rechazadas == []
+        assert segunda.ausentes == []
+        pedido = await sesion.scalar(
+            select(PedidoTransito).where(PedidoTransito.oc_numero == "4599916185")
+        )
+        destino = await sesion.get(MaestroDestino, pedido.id_destino)
+        assert destino.codigo == "CRCAL"

@@ -83,6 +83,7 @@ from typing import Any, Final
 from openpyxl import load_workbook
 from openpyxl.utils.datetime import from_excel
 
+from app.services.ingesta.comentario import referencia_en_comentario
 from app.services.ingesta.dto import PedidoCrudo
 
 logger = logging.getLogger(__name__)
@@ -165,6 +166,9 @@ COLUMNAS: Final[tuple[Columna, ...]] = (
     # Es lo que dirá si conviene dar de alta en ShipsGo apenas llega o esperar,
     # que es una decisión de presupuesto: cada alta cuesta un crédito.
     Columna("fecha_referencia", "Fecha de obtención de la referencia"),
+    # `US-52`: mientras las columnas de arriba lleguen vacías, las referencias
+    # que Logística sí tiene están escritas a mano aquí («… BL COSU…»).
+    Columna("comentario", "Comentario comprador"),
 )
 
 #: Cuántas filas del principio se inspeccionan buscando el encabezado. WK38 lo
@@ -528,6 +532,16 @@ class FuenteZTracking:
             )
             return None
 
+        tipo_referencia = _a_texto(celda("tipo_referencia"))
+        numero_referencia = _a_texto(celda("numero_referencia"))
+        desde_comentario = False
+        if not (tipo_referencia and numero_referencia):
+            # La columna manda: el comentario solo se lee cuando está vacía.
+            hallada = referencia_en_comentario(_a_texto(celda("comentario")))
+            if hallada is not None:
+                tipo_referencia, numero_referencia = hallada
+                desde_comentario = True
+
         return PedidoCrudo(
             oc_numero=oc_numero,
             posicion_oc=posicion,
@@ -555,8 +569,10 @@ class FuenteZTracking:
             fabricante=_a_texto(celda("fabricante")),
             # Existen como columna desde WK38 y llegan vacías: ausente sigue
             # siendo el caso normal y el pedido nace `SIN_TRACKING` (RN-02).
-            tipo_referencia=_a_texto(celda("tipo_referencia")),
-            numero_referencia=_a_texto(celda("numero_referencia")),
+            # Si faltan, se busca la referencia en el comentario (`US-52`).
+            tipo_referencia=tipo_referencia,
+            numero_referencia=numero_referencia,
+            referencia_desde_comentario=desde_comentario,
             transportista=_a_texto(celda("transportista")),
             fecha_referencia=_a_fecha(celda("fecha_referencia")),
         )

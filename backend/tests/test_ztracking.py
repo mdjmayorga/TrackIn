@@ -87,6 +87,7 @@ _ROTULOS: Final[dict[str, str]] = {
     "numero_referencia": "Número de referencia",
     "transportista": "Transportista",
     "fecha_referencia": "Fecha de obtención de la referencia",
+    "comentario": "Comentario comprador",
 }
 
 
@@ -201,6 +202,8 @@ _WK38_PRODUCCION = Diseno(
         "via_transporte": 42,
         "eta_declarada": 43,
         "arribo_declarado": 44,
+        # La última columna de la hoja real; ahí escriben las referencias.
+        "comentario": 46,
     },
     rotulos={"arribo_declarado": "ATA CR"},
     banda={0: "Compras", 7: "Planificación", 11: "Compras"},
@@ -219,6 +222,7 @@ _WK38_IDA = Diseno(
         "via_transporte": 40,
         "eta_declarada": 41,
         "arribo_declarado": 42,
+        "comentario": 44,
     },
 )
 
@@ -632,6 +636,52 @@ async def test_la_referencia_de_ida_llega_cuando_el_archivo_la_trae(tmp_path: Pa
     assert pedido.numero_referencia == "MSKU1234565"
     assert pedido.transportista == "MAERSK"
     assert pedido.fecha_referencia == dt.date(2026, 9, 18)
+
+
+async def test_la_referencia_escrita_en_el_comentario_se_recupera(tmp_path: Path) -> None:
+    """`US-52`: el comentario real de la OC 4500016185-10 en WK38."""
+    hojas = {
+        "PRODUCCION": _WK38_PRODUCCION.hoja(
+            _WK38_PRODUCCION.linea(
+                oc_numero="4500016185",
+                posicion_oc="10",
+                incoterm="CIF",
+                comentario="ETA CR 03 OCT _ BL COSU6508789000 ",
+            )
+        )
+    }
+    [pedido] = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert (pedido.tipo_referencia, pedido.numero_referencia) == ("BL", "COSU6508789000")
+    assert pedido.referencia_desde_comentario
+
+
+async def test_la_columna_de_referencia_manda_sobre_el_comentario(tmp_path: Path) -> None:
+    hojas = {
+        "IDA": _WK38_IDA.hoja(
+            _WK38_IDA.linea(
+                tipo_referencia="MAWB",
+                numero_referencia="020-12345675",
+                comentario="AWB NO: ZIVHYD017",
+            )
+        )
+    }
+    [pedido] = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert (pedido.tipo_referencia, pedido.numero_referencia) == ("MAWB", "020-12345675")
+    assert not pedido.referencia_desde_comentario
+
+
+async def test_un_comentario_sin_numero_no_inventa_referencia(tmp_path: Path) -> None:
+    hojas = {
+        "PRODUCCION": _WK38_PRODUCCION.hoja(
+            _WK38_PRODUCCION.linea(comentario="COMPRA ANUAL 2026\nPendiente BL y ETA  SEP 25")
+        )
+    }
+    [pedido] = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert pedido.tipo_referencia is None
+    assert not pedido.referencia_desde_comentario
 
 
 async def test_la_referencia_llega_vacia_cuando_la_columna_no_esta(tmp_path: Path) -> None:

@@ -69,6 +69,10 @@ class PedidoCrudo:
     #: `SIN_TRACKING` (RN-02) y de la asociación manual de RF-03.
     tipo_referencia: str | None = None
     numero_referencia: str | None = None
+    #: `True` si la referencia no vino en su columna sino escrita a mano en
+    #: «Comentario comprador» (`US-52`). Se reporta aparte: es un dato menos
+    #: confiable, y es lo que dirá si Logística empezó a usar las columnas.
+    referencia_desde_comentario: bool = False
     transportista: str | None = None
 
     #: Cuándo obtuvo Logística la referencia. Planificación confirmó el

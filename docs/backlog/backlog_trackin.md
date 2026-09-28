@@ -99,6 +99,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-49` | Rastrear guías hijas (HAWB) por el manifiesto de carga de TICA | Story | OE2 | **Must** | Sprint 4 | 6h | Hallazgo del 28/09 · ✅ terminada 28/09 con el margen del Sprint 4 |
 | `US-50` | Worker de rastreo: ciclo periódico que consulta, aplica, evalúa el arribo y recalcula | Story | OE2 | **Must** | Sprint 4 | 6h | `TASK-20` §1.4 · ✅ terminada 28/09 con el margen del Sprint 4 |
 | `US-51` | Publicar la salud de las fuentes en la base para que `/health` vea al worker | Story | OE2 | **Should** | Sprint 4 | 3h | RF-20 / RNF-12 · ✅ terminada 28/09 |
+| `US-52` | Tomar de ShipsGo el puerto que el archivo no dice, y la referencia del comentario | Story | OE2 | **Should** | Sprint 4 | 5h | RF-01 / RN-17 · ✅ terminada 28/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
@@ -1066,10 +1067,22 @@ Como estudiante practicante, quiero consolidar los entregables de OE1 (SRS, mode
 > | `US-50` — worker de rastreo | 6 | Nadie llamaba al planificador: el rastreo solo corría por script |
 > | `US-51` — salud de las fuentes en la base | 3 | `/health` no veía al worker, que corre en otro proceso |
 >
-> **14 historias · 121 h estimadas terminadas**, contra 106 comprometidas y 65 de capacidad.
+> Más tarde el mismo día entró `US-52` (5 h): la OC 4500016185-10 no tenía puerto y su
+> embarque descargaba en Caldera.
+>
+> **15 historias · 126 h estimadas terminadas**, contra 106 comprometidas y 65 de capacidad.
 > Como en los sprints anteriores, son horas estimadas y no registradas. Arrastraron además
 > una corrección de `US-09`: la ATA reportada por la fuente (`ATA_FUENTE`) faltaba en la
 > precedencia de RN-14. Suite: 974 pruebas, cobertura 97 %, CI en verde.
+>
+> **Pruebas en vivo con ShipsGo (28/09).** Gratis: el worker leyó el contenedor Maersk
+> `MRSU8132490` (OC 4500016171-90), detectó la descarga del 18/09 con dos transbordos y dejó el
+> pedido en `EN_DESTINO`. **Un crédito** (a nombre de Mariano Mayorga, Planificación): alta del BL
+> COSCO `COSU6508789000` (OC 4500016185-10), embarque 6807142. Tardó **31 minutos** en tener
+> datos, no los ~90 s de `TASK-28`. Trae ETA 05/10 a **Puerto Caldera**, vía Chancay: el
+> incoterm decía solo «CIF» y la carga había rechazado la línea por no poder elegir entre tres
+> puertos. Adivinar el Caribe habría sido un error. La auditoría RF-14 del alta queda pendiente
+> hasta que la línea entre a la base (exige un pedido).
 >
 > Queda para el cierre formal del 02/10: la revisión con Greivin y el paso de las historias a
 > terminadas en Jira.
@@ -2803,6 +2816,36 @@ es su último dato bueno, aunque las fuentes las consulte otro proceso.
 
 > **Verificado entre procesos el 28/09**: el worker consultó TICA; un proceso distinto, con la
 > memoria vacía, leyó `/health` y mostró `tica` con su último contacto y su antigüedad.
+
+### `US-52` — El puerto que el archivo no dice, y la referencia del comentario
+
+Como usuario de Planificación, quiero que un pedido con incoterm sin puerto entre al sistema si
+su embarque ya está en ShipsGo, para no perder el seguimiento por un dato que la naviera ya declaró.
+
+**Criterios de aceptación**
+
+- Dada una línea sin referencia en sus columnas, cuando el comentario del comprador nombra un BL, un booking, una guía madre, una guía hija o un contenedor **con número**, entonces se toma como su referencia; «Pendiente BL» no es una referencia
+- Dada una línea cuyo destino el archivo no resuelve, cuando trae una referencia registrada en ShipsGo, entonces entra con el puerto de descarga de la naviera y el informe de carga lo muestra aparte
+- Dado que la referencia no está registrada, cuando se carga, entonces **no se da de alta** y la línea sigue rechazada con su motivo
+- Dado un puerto que el maestro no tiene, cuando ShipsGo lo reporta, entonces la línea se rechaza con el código a la vista (`CRPMN` → `CRMOB` y `SJO` → `MROC` se traducen explícitamente)
+- Dada una línea que ya entró así, cuando se recarga sin ShipsGo, entonces conserva su destino y **no** se marca ausente
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Should** · Sprint 4 · 5 h · ✅ terminada 28/09/2026 |
+| Origen | La OC 4500016185-10 («CIF», sin puerto): su BL COSCO descarga en **Caldera** |
+| Etiquetas | `backend,ingesta,shipsgo` |
+
+> **Verificado en vivo el 28/09.** La recarga del WK38 hizo entrar la 4500016185-10 con destino
+> `CRCAL` (una lectura gratuita a ShipsGo), asoció el BL leído del comentario y el worker proyectó
+> el 12/10, `A_TIEMPO`.
+>
+> **Hallazgo pendiente.** El pedido quedó en `EN_ORIGEN` aunque ShipsGo dice `SAILING`: nadie
+> aplica la etapa de la fuente al pedido; `arribo` solo mueve a `EN_DESTINO`.
+>
+> **Auditoría del alta.** El registro formal del BL a nombre de Mariano Mayorga (usuario 59) dice
+> «Ya estaba registrado (409): sin costo», que es cierto para esa llamada. El alta que sí costó
+> un crédito fue la de las 15:16 del mismo día, hecha antes de que la línea existiera.
 
 ---
 

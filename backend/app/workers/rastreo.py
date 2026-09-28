@@ -68,6 +68,7 @@ from app.models.elemento_rastreado import ElementoRastreado
 from app.models.pedido_transito import PedidoTransito
 from app.services import arribo, planificador, recalculo, salud_fuentes
 from app.services.rastreo import colector_shipsgo, colector_tica
+from app.services.rastreo.indice_shipsgo import clave_referencia, indice_shipsgo
 from app.services.rastreo.shipsgo_aerolineas import CatalogoAerolineas
 from app.services.rastreo.shipsgo_cliente import ClienteShipsGo, ErrorShipsGo
 from app.services.rastreo.tica_cliente import ClienteTICA, ErrorTICA
@@ -82,10 +83,6 @@ FUENTE_TICA: Final = "tica"
 #: Segundos entre ciclos. Es la resolución del planificador, no la frecuencia
 #: de consulta: esa la decide cada elemento con `frecuencia_*_min`.
 INTERVALO_S: Final = 60.0
-
-#: Páginas de la cuenta de ShipsGo que se leen como mucho por ciclo. Con 25 por
-#: página son 1 250 embarques, tres veces lo que Gutis tendría en un año.
-PAGINAS_MAXIMAS_SHIPSGO: Final = 50
 
 #: Motivos de omisión propios del ciclo, además de los del planificador.
 OMITIDO_SIN_FUENTE = "fuente_no_sondeada"
@@ -198,51 +195,6 @@ def _registrar_exito(
 ) -> None:
     _salud(fuente).registrar_exito(instante=ahora, con_datos=con_datos)
     estado.en_espera_hasta.pop(fuente, None)
-
-
-# --- El índice de embarques de ShipsGo --------------------------------------
-
-
-def _clave(numero: str | None) -> str | None:
-    """Mayúsculas y sin guiones: `020-12345675` y `02012345675` son la misma guía."""
-    if not numero:
-        return None
-    return str(numero).replace("-", "").replace(" ", "").upper() or None
-
-
-async def indice_shipsgo(cliente: ClienteShipsGo) -> dict[str, tuple[int, bool]]:
-    """Referencia → `(id del embarque, es aéreo)`, de lo registrado en la cuenta.
-
-    **Gratis**: listar no consume crédito. Pagina con `skip` porque `take` no
-    cambia el tamaño de página (medido en `TASK-28`: siempre 25).
-    """
-    indice: dict[str, tuple[int, bool]] = {}
-    for ruta, aereo, campos in (
-        ("/ocean/shipments", False, ("container_number", "booking_number")),
-        ("/air/shipments", True, ("awb_number",)),
-    ):
-        vistos = 0
-        for _ in range(PAGINAS_MAXIMAS_SHIPSGO):
-            cuerpo = await cliente.consultar(f"{ruta}?skip={vistos}")
-            lote = cuerpo.get("shipments") or []
-            for embarque in lote:
-                id_embarque = embarque.get("id")
-                if id_embarque is None:
-                    continue
-                for campo in campos:
-                    clave = _clave(embarque.get(campo))
-                    if clave:
-                        indice.setdefault(clave, (int(id_embarque), aereo))
-            vistos += len(lote)
-            if not lote or not (cuerpo.get("meta") or {}).get("more"):
-                break
-        else:
-            logger.warning(
-                "Worker: la cuenta de ShipsGo tiene más de %d páginas en %s; el índice queda parcial.",
-                PAGINAS_MAXIMAS_SHIPSGO,
-                ruta,
-            )
-    return indice
 
 
 # --- Una tarea --------------------------------------------------------------
@@ -358,7 +310,7 @@ async def ejecutar_ciclo(
 
         registrado: tuple[int, bool] | None = None
         if fuente == FUENTE_SHIPSGO:
-            registrado = indice.get(_clave(tarea.tracking) or "")
+            registrado = indice.get(clave_referencia(tarea.tracking) or "")
             if registrado is None:
                 # Leer es gratis, dar de alta no: eso lo decide una persona.
                 resumen.omitir(OMITIDO_SIN_ALTA)

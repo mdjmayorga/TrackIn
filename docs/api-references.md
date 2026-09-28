@@ -1268,7 +1268,7 @@ Medido sobre `MRSU8507472` (Santos → Cartagena → Puerto Moín):
 | Buque | ✅ | `movements[].vessel.name` |
 | IMO | ✅ | `geojson … properties.vessel.imo` → `9525388` |
 | **Transbordo** | ✅ | cambio de `vessel` entre tramos |
-| Puerto de destino | ✅ | `CRPMN` = Puerto Moín |
+| Puerto de destino | ✅ | `CRPMN` = Puerto Moín; en el maestro es `CRMOB` (`destino_shipsgo.EQUIVALENCIAS`, `US-52`) |
 | **Velocidad** | ❌ | no viene |
 | **Rumbo** | ❌ | no viene |
 

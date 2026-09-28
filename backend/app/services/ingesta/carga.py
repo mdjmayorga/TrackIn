@@ -21,6 +21,15 @@ son ellos: `via_transporte` e `id_destino` son **`NOT NULL`** en
 un pedido sin vía ni destino no es un pedido en tránsito. Todo lo demás —país,
 incoterm, temperatura, referencia— es anulable y la línea entra igual.
 
+**El destino, cuando el archivo no lo dice — `US-52`.** Con un incoterm «CIF»
+sin puerto la línea no se puede ubicar, y no se adivina. Pero si trae una
+referencia registrada en ShipsGo, la naviera ya declaró el puerto de descarga:
+quien llama puede pasar un `resolutor_destino` que lo consulte —solo lectura,
+nunca un alta—. La precedencia es: lo que dice el archivo, después lo que dice
+la fuente, y por último el destino que la línea ya tenía en la base. Lo último
+evita que una recarga sin ShipsGo rechace, y marque ausente, una línea que
+entró gracias a él.
+
 La carga es **idempotente**: la clave natural es `(oc_numero, posicion_oc)` y
 una línea ya presente se **actualiza** en vez de duplicarse. Correr el cargador
 dos veces seguidas es seguro, que es lo que uno quiere antes de una
@@ -71,6 +80,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
 
@@ -85,6 +95,7 @@ from app.services import normalizacion
 from app.services.asociacion import asociar_referencia
 from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.dto import PedidoCrudo
+from app.services.referencia import validar_referencia
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +108,10 @@ ETAPA_INICIAL = "SIN_TRACKING"
 #: resolver desde un archivo sucio.
 RECHAZO_SIN_VIA = "sin_via_transporte"
 RECHAZO_SIN_DESTINO = "sin_destino_resoluble"
+
+#: `(tipo, número) → código de destino` según una fuente de rastreo (`US-52`).
+#: Devuelve `None` cuando no lo sabe; nunca da de alta nada.
+ResolutorDestino = Callable[[str, str], Awaitable[str | None]]
 
 #: La línea **sí** entró; lo que no sirve es su referencia de embarque. No es
 #: un rechazo de la línea sino de su rastreo: el pedido queda `SIN_TRACKING`
@@ -150,6 +165,11 @@ class ResultadoCarga:
     rastreables: int = 0
     #: Cargados con referencia válida pero que **ninguna API sigue todavía**.
     sin_rastreo_hoy: int = 0
+    #: Líneas cuyo destino dio la fuente de rastreo y no el archivo (`US-52`),
+    #: con el porqué. Se reportan: son las que Logística debería completar.
+    destinos_de_la_fuente: list[LineaRechazada] = field(default_factory=list)
+    #: De los cargados, cuántos trajeron la referencia escrita en el comentario.
+    referencias_de_comentario: int = 0
 
     @property
     def leidas(self) -> int:
@@ -299,9 +319,36 @@ class _Resuelto:
     id_proveedor: int
     id_material: int
     detalle: str
+    #: `True` si el destino no salió del archivo sino de la fuente de rastreo.
+    destino_de_la_fuente: bool = False
 
 
-async def _resolver(sesion: AsyncSession, crudo: PedidoCrudo) -> tuple[_Resuelto | None, str, str]:
+async def _destino_por_referencia(
+    sesion: AsyncSession, crudo: PedidoCrudo, resolutor: ResolutorDestino
+) -> tuple[MaestroDestino | None, str]:
+    """El destino según la fuente de rastreo, si la línea trae una referencia."""
+    veredicto = validar_referencia(crudo.tipo_referencia, crudo.numero_referencia)
+    if not veredicto.valida or veredicto.tipo is None or veredicto.numero is None:
+        return None, ""
+    codigo = await resolutor(veredicto.tipo, veredicto.numero)
+    if not codigo:
+        return None, ""
+    destino = await sesion.scalar(
+        select(MaestroDestino).where(
+            MaestroDestino.codigo == codigo, MaestroDestino.activo.is_(True)
+        )
+    )
+    if destino is None:
+        return None, f"; ShipsGo dice que descarga en {codigo}, que no está en el maestro"
+    return destino, (f"según ShipsGo: el {veredicto.tipo} {veredicto.numero} descarga en {codigo}")
+
+
+async def _resolver(
+    sesion: AsyncSession,
+    crudo: PedidoCrudo,
+    resolutor: ResolutorDestino | None = None,
+    destino_actual: MaestroDestino | None = None,
+) -> tuple[_Resuelto | None, str, str]:
     """Normaliza y resuelve los maestros. Devuelve el porqué si no se puede."""
     # RN-17: se normaliza antes de decidir nada. `Terrestre` es TERRESTRE y
     # `PENDIENTE` no es una vía, es la ausencia de una.
@@ -314,6 +361,19 @@ async def _resolver(sesion: AsyncSession, crudo: PedidoCrudo) -> tuple[_Resuelto
         )
 
     destino, detalle = await resolver_destino(sesion, crudo.destino_codigo, via, crudo.incoterm)
+    de_la_fuente = False
+    if destino is None and resolutor is not None:
+        # `US-52`: el archivo no lo dice, pero la naviera sí.
+        destino, nota = await _destino_por_referencia(sesion, crudo, resolutor)
+        if destino is not None:
+            detalle, de_la_fuente = nota, True
+        else:
+            detalle += nota
+    if destino is None and destino_actual is not None:
+        # Ya tenía destino —probablemente de la fuente, en una carga anterior—:
+        # rechazarla ahora la marcaría ausente estando en el archivo.
+        destino = destino_actual
+        detalle = f"se conserva el destino ya asignado ({destino_actual.codigo}): {detalle}"
     if destino is None:
         return None, RECHAZO_SIN_DESTINO, detalle
 
@@ -344,6 +404,7 @@ async def _resolver(sesion: AsyncSession, crudo: PedidoCrudo) -> tuple[_Resuelto
             id_proveedor=proveedor.id,
             id_material=material.id,
             detalle=detalle,
+            destino_de_la_fuente=de_la_fuente,
         ),
         "",
         detalle,
@@ -374,7 +435,10 @@ def _campos_del_archivo(crudo: PedidoCrudo, resuelto: _Resuelto) -> dict[str, ob
 
 
 async def cargar_pedido(
-    sesion: AsyncSession, crudo: PedidoCrudo, instante: dt.datetime | None = None
+    sesion: AsyncSession,
+    crudo: PedidoCrudo,
+    instante: dt.datetime | None = None,
+    resolutor_destino: ResolutorDestino | None = None,
 ) -> tuple[PedidoTransito | None, str, str]:
     """Persiste una línea. Devuelve el pedido, qué pasó y por qué.
 
@@ -401,9 +465,15 @@ async def cargar_pedido(
             f"el pedido está cerrado ({ya_esta.motivo_cierre}) y volvió a venir en el archivo",
         )
 
-    resuelto, motivo, detalle = await _resolver(sesion, crudo)
+    destino_actual = (
+        await sesion.get(MaestroDestino, ya_esta.id_destino) if ya_esta is not None else None
+    )
+    resuelto, motivo, detalle = await _resolver(sesion, crudo, resolutor_destino, destino_actual)
     if resuelto is None:
         return None, motivo, detalle
+    if resuelto.destino_de_la_fuente:
+        # Se deja ver en el tercer elemento aunque la línea ya estuviera.
+        detalle = resuelto.detalle
 
     if ya_esta is not None:
         actualizado = _actualizar(ya_esta, crudo, resuelto, ahora)
@@ -507,7 +577,10 @@ async def marcar_ausentes(
 
 
 async def cargar(
-    sesion: AsyncSession, fuente: FuentePedidos, señalar_ausentes: bool = True
+    sesion: AsyncSession,
+    fuente: FuentePedidos,
+    señalar_ausentes: bool = True,
+    resolutor_destino: ResolutorDestino | None = None,
 ) -> ResultadoCarga:
     """Carga todo lo que entregue la fuente. **No hace commit**: es de quien llama.
 
@@ -527,7 +600,9 @@ async def cargar(
     presentes: set[tuple[str, int]] = set()
 
     for crudo in await fuente.obtener_pedidos():
-        pedido, estado, detalle = await cargar_pedido(sesion, crudo, instante=ahora)
+        pedido, estado, detalle = await cargar_pedido(
+            sesion, crudo, instante=ahora, resolutor_destino=resolutor_destino
+        )
 
         if pedido is None:
             resultado.rechazadas.append(
@@ -545,6 +620,11 @@ async def cargar(
         # marcaríamos ausente en la misma corrida que la vio.
         presentes.add(crudo.clave)
 
+        if detalle.startswith("según ShipsGo"):
+            resultado.destinos_de_la_fuente.append(
+                LineaRechazada(crudo.oc_numero, crudo.posicion_oc, "destino_de_la_fuente", detalle)
+            )
+
         if estado == "cerrado_omitido":
             resultado.cerrados_omitidos += 1
             logger.warning("Carga: línea %s — %s", crudo, detalle)
@@ -561,6 +641,8 @@ async def cargar(
             continue
 
         resultado.cargados += 1
+        if crudo.referencia_desde_comentario:
+            resultado.referencias_de_comentario += 1
 
         if crudo.tipo_referencia and crudo.numero_referencia:
             veredicto = await asociar_referencia(
@@ -597,6 +679,7 @@ __all__ = [
     "RECHAZO_SIN_DESTINO",
     "RECHAZO_SIN_VIA",
     "LineaRechazada",
+    "ResolutorDestino",
     "ResultadoCarga",
     "cargar",
     "cargar_pedido",

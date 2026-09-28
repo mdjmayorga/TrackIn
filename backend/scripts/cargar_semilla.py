@@ -18,6 +18,11 @@ Lo que estaba en la base y no vino en el archivo se marca para revisión y **no
 se borra** (`US-31`). `--sin-ausentes` desactiva esa marca para cargas
 parciales, donde el archivo no es el universo completo de pedidos vivos.
 
+**El destino que el archivo no dice** (`US-52`). Con `SHIPSGO_API_TOKEN`, a una
+línea sin destino resoluble —«CIF» sin puerto— se le pregunta a ShipsGo el
+puerto de descarga de su referencia, si está registrada. Solo lectura: nunca
+da de alta, así que **no gasta créditos**. `--sin-shipsgo` lo desactiva.
+
 `--limpiar` existe para dejar la base en un estado conocido antes de una
 demostración. Borra `pedidos_transito` y `elementos_rastreados`; **no toca los
 maestros** —destinos, países, parámetros— que vienen de las migraciones, ni
@@ -39,6 +44,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from sqlalchemy import delete, func, select  # noqa: E402
 
+from app.core.config import settings  # noqa: E402
 from app.db.session import AsyncSessionLocal, dispose_engine, engine  # noqa: E402
 from app.models.elemento_rastreado import ElementoRastreado  # noqa: E402
 from app.models.maestro_destino import MaestroDestino  # noqa: E402
@@ -46,6 +52,8 @@ from app.models.pedido_transito import PedidoTransito  # noqa: E402
 from app.services.ingesta import obtener_fuente  # noqa: E402
 from app.services.ingesta.carga import cargar  # noqa: E402
 from app.services.ingesta.informe import construir_informe  # noqa: E402
+from app.services.rastreo import transporte_http  # noqa: E402
+from app.services.rastreo.destino_shipsgo import ResolutorDestinoShipsGo  # noqa: E402
 
 SEP = "=" * 72
 
@@ -131,7 +139,9 @@ async def _mostrar_pedidos(sesion) -> None:
         )
 
 
-async def principal(*, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool) -> int:
+async def principal(
+    *, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool, con_shipsgo: bool = True
+) -> int:
     """Todo el trabajo, y el cierre del pool, dentro del **mismo** event loop.
 
     Una conexión de asyncpg queda atada al loop donde se abrió. Cerrar el pool
@@ -140,14 +150,31 @@ async def principal(*, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool
     que `tests/conftest.py` ya documenta para las fixtures.
     """
     try:
-        return await _ejecutar(
-            limpiar=limpiar, solo_resumen=solo_resumen, senalar_ausentes=senalar_ausentes
-        )
+        if not con_shipsgo or not settings.SHIPSGO_API_TOKEN:
+            return await _ejecutar(
+                limpiar=limpiar, solo_resumen=solo_resumen, senalar_ausentes=senalar_ausentes
+            )
+        async with transporte_http.crear_cliente_http() as http:
+            resolutor = ResolutorDestinoShipsGo(
+                transporte_http.crear_cliente_shipsgo(http, settings.SHIPSGO_API_TOKEN)
+            )
+            return await _ejecutar(
+                limpiar=limpiar,
+                solo_resumen=solo_resumen,
+                senalar_ausentes=senalar_ausentes,
+                resolutor=resolutor,
+            )
     finally:
         await dispose_engine()
 
 
-async def _ejecutar(*, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool) -> int:
+async def _ejecutar(
+    *,
+    limpiar: bool,
+    solo_resumen: bool,
+    senalar_ausentes: bool,
+    resolutor: ResolutorDestinoShipsGo | None = None,
+) -> int:
     fuente = obtener_fuente()
     if fuente is None:
         print(
@@ -176,7 +203,9 @@ async def _ejecutar(*, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool
             await sesion.execute(delete(ElementoRastreado))
             print(f"\n--limpiar: {borrados.rowcount} pedidos eliminados.")
 
-        resultado = await cargar(sesion, fuente, señalar_ausentes=senalar_ausentes)
+        resultado = await cargar(
+            sesion, fuente, señalar_ausentes=senalar_ausentes, resolutor_destino=resolutor
+        )
         await sesion.commit()
 
         # El informe único de `US-32`: junta las filas que no llegaron a línea,
@@ -185,6 +214,21 @@ async def _ejecutar(*, limpiar: bool, solo_resumen: bool, senalar_ausentes: bool
         informe = construir_informe(fuente.nombre, resultado, getattr(fuente, "ilegibles", None))
         print()
         print(informe.como_texto())
+
+        if resultado.destinos_de_la_fuente:
+            print(
+                f"\nDestino tomado de ShipsGo ({len(resultado.destinos_de_la_fuente)}) — "
+                "el archivo no lo dice; conviene que Logística lo complete:"
+            )
+            for linea in resultado.destinos_de_la_fuente:
+                print(f"  · {linea}")
+        if resolutor is not None:
+            print(f"  Lecturas a ShipsGo para resolver destinos: {resolutor.lecturas} (gratis)")
+        if resultado.referencias_de_comentario:
+            print(
+                f"  Referencias leídas del comentario del comprador: "
+                f"{resultado.referencias_de_comentario}"
+            )
 
         if resultado.reaparecidos:
             print(f"\n  Reaparecidas : {resultado.reaparecidos} (estaban marcadas ausentes)")
@@ -239,6 +283,11 @@ def main() -> int:
             "Para cargas parciales, donde el archivo no es el universo completo."
         ),
     )
+    analizador.add_argument(
+        "--sin-shipsgo",
+        action="store_true",
+        help="No pregunta a ShipsGo el destino de las líneas que el archivo no ubica.",
+    )
     argumentos = analizador.parse_args()
     _forzar_salida_utf8()
     _silenciar_eco_sql()
@@ -248,6 +297,7 @@ def main() -> int:
             limpiar=argumentos.limpiar,
             solo_resumen=argumentos.resumen,
             senalar_ausentes=not argumentos.sin_ausentes,
+            con_shipsgo=not argumentos.sin_shipsgo,
         )
     )
 
