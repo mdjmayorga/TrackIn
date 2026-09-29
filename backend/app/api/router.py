@@ -1,25 +1,24 @@
 """Router agregador de la API versionada.
 
-Los routers de dominio se van montando acá a medida que avanzan los sprints:
-
-    from app.api.routes import pedidos, tracking_maritimo, tracking_aereo
-
-    api_router.include_router(pedidos.router, prefix="/pedidos", tags=["pedidos"])
+Los routers de dominio se montan acá a medida que avanzan los sprints.
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.api.pedidos import router as pedidos_router
+
 api_router = APIRouter()
+api_router.include_router(pedidos_router)
 
 
 @api_router.get("/", tags=["meta"], summary="Índice de la API v1")
 async def api_index() -> dict[str, str]:
-    """Placeholder: se reemplaza cuando existan los primeros recursos."""
+    """Los recursos disponibles, para quien llega sin leer `/docs`."""
     return {
         "message": "TrackIn API v1",
-        "status": "sin recursos todavía — pendiente de Sprint 1",
+        "pedidos": "/pedidos",
     }
 
 

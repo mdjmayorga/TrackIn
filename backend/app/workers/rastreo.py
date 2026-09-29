@@ -215,13 +215,26 @@ async def _pedidos_activos(
 async def _arribo_y_recalculo(
     sesion: AsyncSession, elemento: ElementoRastreado, resumen: ResumenCiclo, ahora: dt.datetime
 ) -> None:
-    """El orden importa: el arribo mueve la etapa y el estado se deriva de ella."""
+    """El orden importa: el arribo mueve la etapa y el estado se deriva de ella.
+
+    Cada pedido va en su *savepoint* (`US-12`, RNF-14): si uno falla, se
+    deshace solo ese. Sin esto, el error revertía el elemento entero —la
+    lectura de la fuente y los demás pedidos del mismo contenedor—.
+    """
     for pedido in await _pedidos_activos(sesion, elemento):
+        nombre = pedido.tracking_interno
         etapa_antes = pedido.etapa_viaje
-        llegada = await arribo.evaluar(sesion, pedido, ahora)
+        try:
+            async with sesion.begin_nested():
+                llegada = await arribo.evaluar(sesion, pedido, ahora)
+                await recalculo.recalcular(sesion, pedido, instante=ahora)
+                await sesion.flush()
+        except Exception:
+            logger.exception("Worker: falló el recálculo de %s; se sigue.", nombre)
+            resumen.errores[f"pedido:{nombre}"] = "error_de_recalculo"
+            continue
         if llegada.arribado and etapa_antes != pedido.etapa_viaje:
             resumen.arribos += 1
-        await recalculo.recalcular(sesion, pedido, instante=ahora)
         resumen.recalculados += 1
 
 

@@ -24,7 +24,12 @@ from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.services import proyeccion
 from app.services.estado import A_TIEMPO, EN_RIESGO, RETRASADO, SIN_TRACKING
-from app.services.recalculo import CLAVE_UMBRAL, recalcular, recalcular_todos
+from app.services.recalculo import (
+    CLAVE_UMBRAL,
+    recalcular,
+    recalcular_destino,
+    recalcular_todos,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -356,3 +361,87 @@ async def test_recalcular_todos_salta_los_cerrados(sesion, sin_pedidos, umbral_d
     resumen = await recalcular_todos(sesion)
 
     assert resumen.evaluados == 0
+
+
+# --- US-12: recálculo por lote, por destino y aislado -----------------------
+
+
+async def test_un_pedido_que_falla_no_arrastra_al_lote(
+    sesion, sin_pedidos, umbral_dos, monkeypatch
+) -> None:
+    """Tercer criterio de `US-12` / RNF-14, con un fallo real de la base."""
+    import app.services.recalculo as modulo
+
+    sano = await _pedido(sesion, eta_declarada=dt.date(2026, 10, 1))
+    roto = await _pedido(
+        sesion,
+        posicion_oc=20,
+        tracking_interno="TRK-4577777777-020",
+        eta_declarada=dt.date(2026, 10, 1),
+    )
+    original = modulo.recalcular
+
+    async def recalcular(sesion, pedido, **kwargs):
+        resultado = await original(sesion, pedido, **kwargs)
+        if pedido.id == roto.id:
+            pedido.estado_calculado = "NO_EXISTE"  # lo rechaza el CHECK
+        return resultado
+
+    monkeypatch.setattr(modulo, "recalcular", recalcular)
+
+    resumen = await recalcular_todos(sesion)
+
+    assert resumen.evaluados == 1
+    assert resumen.fallidos == ["TRK-4577777777-020"]
+    assert "1 fallaron" in resumen.texto()
+    # La sesión sigue viva: el savepoint se llevó solo el error.
+    await sesion.refresh(sano)
+    await sesion.refresh(roto)
+    assert sano.fecha_proyectada_disponible is not None
+    assert roto.fecha_proyectada_disponible is None
+    assert roto.estado_calculado == SIN_TRACKING
+
+
+async def test_recalcular_por_ids_toca_solo_esos(sesion, sin_pedidos, umbral_dos) -> None:
+    uno = await _pedido(sesion, eta_declarada=dt.date(2026, 10, 1))
+    otro = await _pedido(
+        sesion,
+        posicion_oc=20,
+        tracking_interno="TRK-4577777777-020",
+        eta_declarada=dt.date(2026, 10, 1),
+    )
+
+    resumen = await recalcular_todos(sesion, ids=[uno.id])
+
+    assert resumen.evaluados == 1
+    assert uno.fecha_proyectada_disponible is not None
+    assert otro.fecha_proyectada_disponible is None
+    assert (await recalcular_todos(sesion, ids=[])).evaluados == 0
+
+
+async def test_recalcular_destino_refresca_la_instantanea_del_lead_time(
+    sesion, sin_pedidos, umbral_dos
+) -> None:
+    """Segundo criterio de `US-12`: el maestro cambió y los pedidos lo siguen."""
+    destino = await _destino(sesion)
+    caldera = await sesion.scalar(select(MaestroDestino).where(MaestroDestino.codigo == "CRCAL"))
+    assert caldera is not None
+    en_moin = await _pedido(sesion, eta_declarada=dt.date(2026, 10, 1))
+    en_caldera = await _pedido(
+        sesion,
+        posicion_oc=20,
+        tracking_interno="TRK-4577777777-020",
+        id_destino=caldera.id,
+        eta_declarada=dt.date(2026, 10, 1),
+    )
+    destino.lead_time_dias += 4
+    await sesion.flush()
+
+    resumen = await recalcular_destino(sesion, destino.id)
+
+    assert resumen.evaluados == 1
+    assert en_moin.lead_time_destino_dias == destino.lead_time_dias
+    assert en_moin.fecha_proyectada_disponible == dt.date(2026, 10, 1) + dt.timedelta(
+        days=destino.lead_time_dias
+    )
+    assert en_caldera.fecha_proyectada_disponible is None

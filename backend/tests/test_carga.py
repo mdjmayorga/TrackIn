@@ -504,9 +504,14 @@ class TestActualizar:
         await sesion.refresh(pedido)
         assert pedido.cantidad_pedida == Decimal("999.000")  # sí cambió
         assert pedido.etapa_viaje == "EN_TRANSITO"
-        assert pedido.estado_calculado == "EN_RIESGO"
         assert pedido.ata_confirmada is not None
         assert pedido.ajuste_manual_dias == 3
+        # Desde `US-12` la carga recalcula lo que cambió, así que el estado ya
+        # no queda como estaba: lo deriva el motor. Lo que importa es que lo
+        # derive **con** lo confirmado a mano, no con lo que diga el archivo.
+        assert pedido.fecha_proyectada_disponible == dt.date(2026, 9, 1) + dt.timedelta(
+            days=pedido.lead_time_destino_dias + 3
+        )
         # Que el archivo deje de traer la referencia no desasocia el rastreo.
         assert pedido.id_elemento_rastreado == elemento_antes
 
@@ -831,3 +836,69 @@ class TestDestinoDeLaFuente:
         )
         destino = await sesion.get(MaestroDestino, pedido.id_destino)
         assert destino.codigo == "CRCAL"
+
+
+# --- US-12: el archivo es un insumo del cálculo -----------------------------
+
+
+class TestRecalculoTrasLaCarga:
+    async def test_una_linea_nueva_entra_ya_proyectada(self, sesion, sin_pedidos) -> None:
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(eta_declarada=dt.date(2026, 9, 20))]),
+            señalar_ausentes=False,
+        )
+
+        pedido = await sesion.scalar(select(PedidoTransito))
+        assert resultado.recalculo is not None
+        assert resultado.recalculo.evaluados == 1
+        assert pedido.fecha_proyectada_disponible == dt.date(2026, 9, 20) + dt.timedelta(
+            days=pedido.lead_time_destino_dias
+        )
+        assert pedido.estado_cumplimiento is not None
+
+    async def test_una_eta_declarada_nueva_mueve_la_fecha(self, sesion, sin_pedidos) -> None:
+        await cargar(
+            sesion,
+            FuenteFalsa([_crudo(eta_declarada=dt.date(2026, 9, 20))]),
+            señalar_ausentes=False,
+        )
+        await cargar(
+            sesion,
+            FuenteFalsa([_crudo(eta_declarada=dt.date(2026, 9, 25))]),
+            señalar_ausentes=False,
+        )
+
+        pedido = await sesion.scalar(select(PedidoTransito))
+        await sesion.refresh(pedido)
+        assert pedido.fecha_proyectada_disponible == dt.date(2026, 9, 25) + dt.timedelta(
+            days=pedido.lead_time_destino_dias
+        )
+
+    async def test_una_fecha_comprometida_nueva_mueve_el_semaforo(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """La comprometida no mueve la fecha proyectada, pero sí el cumplimiento."""
+        eta = dt.date(2026, 9, 20)
+        await cargar(
+            sesion,
+            FuenteFalsa([_crudo(eta_declarada=eta, fecha_entrega_pedido=dt.date(2026, 12, 1))]),
+            señalar_ausentes=False,
+        )
+        await cargar(
+            sesion,
+            FuenteFalsa([_crudo(eta_declarada=eta, fecha_entrega_pedido=dt.date(2026, 9, 1))]),
+            señalar_ausentes=False,
+        )
+
+        pedido = await sesion.scalar(select(PedidoTransito))
+        await sesion.refresh(pedido)
+        assert pedido.estado_cumplimiento == "RETRASADO"
+
+    async def test_recargar_sin_cambios_no_recalcula(self, sesion, sin_pedidos) -> None:
+        linea = _crudo(eta_declarada=dt.date(2026, 9, 20))
+        await cargar(sesion, FuenteFalsa([linea]), señalar_ausentes=False)
+
+        segunda = await cargar(sesion, FuenteFalsa([linea]), señalar_ausentes=False)
+
+        assert segunda.recalculo is None

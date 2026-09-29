@@ -470,3 +470,64 @@ async def test_si_publicar_la_salud_falla_el_ciclo_sigue(
     )
 
     assert resumen.aplicados == 1
+
+
+# --- US-12: un pedido que falla no se lleva a los demás ---------------------
+
+
+async def test_un_pedido_que_falla_no_revierte_la_lectura_ni_a_sus_vecinos(
+    sesion, limpio, fabrica, monkeypatch
+) -> None:
+    """RNF-14 por pedido: dos líneas en el mismo contenedor, una rompe un CHECK.
+
+    Antes de `US-12` el error revertía el elemento entero: la ETA recién leída
+    de ShipsGo y el recálculo de la otra línea se perdían con él.
+    """
+    elemento, sano = await _seguido(sesion, "CONTENEDOR", CONTENEDOR, "MARITIMO", "4599900020")
+    roto = PedidoTransito(
+        **{
+            columna: getattr(sano, columna)
+            for columna in (
+                "id_proveedor",
+                "id_material",
+                "id_destino",
+                "via_transporte",
+                "cantidad_pedida",
+                "unidad_medida",
+                "fecha_entrega_pedido",
+                "lead_time_destino_dias",
+                "etapa_viaje",
+                "estado_calculado",
+                "id_elemento_rastreado",
+            )
+        },
+        oc_numero="4599900021",
+        posicion_oc=10,
+        tracking_interno="TRK-4599900021-010",
+    )
+    sesion.add(roto)
+    await sesion.flush()
+    original = rastreo.recalculo.recalcular
+
+    async def recalcular(sesion, pedido, **kwargs):
+        resultado = await original(sesion, pedido, **kwargs)
+        if pedido.oc_numero == "4599900021":
+            pedido.estado_calculado = "NO_EXISTE"  # lo rechaza ck_..._estado_calculado
+        return resultado
+
+    monkeypatch.setattr(rastreo.recalculo, "recalcular", recalcular)
+
+    resumen = await rastreo.ejecutar_ciclo(
+        fabrica, rastreo.Fuentes(shipsgo=ShipsGoFalso()), instante=MEDIODIA
+    )
+
+    assert resumen.aplicados == 1
+    assert resumen.recalculados == 1
+    assert resumen.errores == {"pedido:TRK-4599900021-010": "error_de_recalculo"}
+    await sesion.refresh(elemento)
+    await sesion.refresh(sano)
+    await sesion.refresh(roto)
+    assert elemento.eta_api is not None
+    assert sano.fecha_proyectada_disponible is not None
+    assert roto.estado_calculado == "EN_TRANSITO"
+    assert roto.fecha_proyectada_disponible is None

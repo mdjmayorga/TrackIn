@@ -76,11 +76,11 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-32` | Validar y normalizar los datos del Z-tracking antes de persistirlos | Story | OE2 | **Must** | Sprint 4 | 10h | RF-02 / RN-17 · ✅ terminada 22/09 |
 | `US-45` | Integrar la fuente marítima por contenedor o BL — **ShipsGo** | Story | OE2 | **Must** | Sprint 4 | 12h | ✅ **GO** 14/09: probado con contenedor real, entrega posición, ETA, hitos, buque, IMO y transbordo · ✅ terminada 22/09 |
 | `US-46` | Integrar la fuente aérea por guía aérea (MAWB) — **ShipsGo Air** | Story | OE2 | **Must** | Sprint 4 | 10h | ✅ **GO** 14/09: MAWB real resuelto (PEK→FRA→SJO, 10 hitos CIMP). TrackingMore descartado: no tiene aerolíneas · ✅ terminada 22/09 |
-| `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 |
+| `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 · ✅ terminada 29/09 |
 | `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 |
 | `US-14` | Confirmar el desembarco y **disparar el paso manual a proceso aduanal** | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 · RN-06 revisada 04/09 |
 | `US-15` | Auditar toda intervencion manual sobre un pedido | Story | OE4 | **Should** | Sprint 5 | 8h | RF-14 / RNF-06 |
-| `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) |
+| `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) · ✅ terminada 29/09 |
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 |
 | `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 |
 | `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada |
@@ -1297,6 +1297,28 @@ Como sistema, quiero recalcular automáticamente cuando cambie un insumo, para q
 | Origen en el SRS | RF-12 |
 | Etiquetas | `backend,calculo` |
 
+> **✅ Terminada el 29/09/2026, adelantada al Sprint 5.** Lo que había y lo que faltaba:
+>
+> | Criterio | Antes | Ahora |
+> |---|---|---|
+> | Una lectura nueva de ETA recalcula | ✅ El worker ya lo hacía (`US-50`) | Sin cambios |
+> | Un cambio de lead time en el maestro recalcula su destino | ❌ No había ningún camino | `destinos.cambiar_lead_time`: guarda y recalcula en la misma transacción. `US-13` lo usará desde su pantalla |
+> | Un pedido que falla no detiene a los demás (RNF-14) | ❌ En el worker, un pedido que fallaba revertía el elemento entero, incluida la lectura de ShipsGo; en `recalcular_todos`, abortaba el lote | Cada pedido va en su propio *savepoint*: se deshace solo el que falló, y queda en `fallidos` |
+>
+> **Un cuarto insumo que el criterio no nombraba: el archivo.** La carga cambiaba la ETA
+> declarada, la fecha comprometida o el destino y **no recalculaba**. Las líneas nuevas
+> entraban sin fecha proyectada hasta que otra cosa las tocara. Ahora la carga recalcula lo
+> que entró, cambió o reapareció; recargar el mismo archivo no recalcula nada.
+>
+> **Lo que queda por fuera de los tres caminos** —una migración que edita datos, un
+> parámetro cambiado a mano en `parametros_sistema`— se resuelve con
+> `scripts/recalcular.py`. Es lo que dejó viejas las fechas de la base de desarrollo: las
+> migraciones `0009` y `0010` movieron los lead time el 24/09, y un `--ensayo` muestra
+> **12 pedidos** que cambiarían. **No se ejecutó sobre la base**: correrlo es decisión de
+> quien la usa.
+>
+> Suite: 1056 pruebas (20 nuevas), 97 % de cobertura.
+
 #### US-13 — Mantener el maestro de destinos y sus lead times
 
 Como usuario de Logística, quiero administrar los destinos y su lead time en días, para que la fecha proyectada refleje la realidad de cada puerto.
@@ -1376,6 +1398,31 @@ Como frontend, quiero endpoints REST de listado y detalle de pedidos, para const
 | Estimacion | 10 h |
 | Origen en el SRS | RF-04 / RF-05 (backend) |
 | Etiquetas | `backend,api-rest` |
+
+> **✅ Terminada el 29/09/2026, adelantada al Sprint 5.** Dos endpoints en `app/api/pedidos.py`:
+>
+> - **`GET /api/v1/pedidos`**: los seis filtros de RF-19 (`oc` por prefijo, `proveedor`,
+>   `material`, `via`, `estado`, `destino`; los de lista se repiten en la URL). Ordena por las
+>   columnas de la grilla con `orden` (con `-` delante, descendente; las fechas nulas quedan al
+>   final en los dos sentidos) y pagina con `limite` (máx. 200, el volumen de RNF-01) y
+>   `desplazamiento`. Sin filtro de estado devuelve solo los activos, y los cerrados salen al
+>   pedir `CERRADO` o `CANCELADO` (`wireframes.md` §1.11). Cada fila trae `rastreable` y la
+>   antigüedad del último dato de la fuente (RNF-12).
+> - **`GET /api/v1/pedidos/{id}`**: maestros, rastreo con la última posición, los tres arribos
+>   de RN-05 y el desglose de RF-05. El 404 dice qué id no existe.
+>
+> **Una decisión que no estaba escrita: qué desglose se muestra.** El detalle explica la
+> fecha **guardada**, que es la que pinta la grilla, y además reproyecta sin persistir para
+> decir si esa fecha todavía sale de los insumos de hoy (`al_dia`). Si no, trae aparte lo
+> que darían (`desglose_actual`). El origen de RN-14 no tiene columna: solo se informa
+> cuando la reproyección coincide, porque si no, el origen de hoy no es el que produjo la
+> fecha. El caso salió de la base de desarrollo: la OC 4500018675 guarda el 31/08 con 2 d de
+> lead time, pero el maestro ya dice 7 y la ETA de entonces desapareció.
+>
+> La proyección se separó de la escritura en `recalculo.proyectar` para reutilizar la regla
+> sin duplicarla. Son 29 pruebas nuevas; la suite queda en 1036, con 97 % de cobertura.
+> `TASK-04` cumple de hecho sus dos criterios: los endpoints aparecen en `/docs` sin
+> escribir el esquema, y hay una prueba que lo verifica.
 
 #### US-17 — Mantener credenciales, umbrales y frecuencias fuera del código
 

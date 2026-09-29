@@ -10,9 +10,10 @@ script carga el Z-tracking real desde que `US-31` registró su adaptador
 ninguna parte salvo en su nombre, que conviene cambiar cuando toque.
 
 **Es idempotente.** La clave natural es `(oc_numero, posicion_oc)` y una línea
-ya presente se **actualiza** con lo que traiga el archivo, sin tocar el estado
-calculado ni lo confirmado a mano. Correrlo dos veces seguidas no duplica nada
-y la segunda vez no cambia nada.
+ya presente se **actualiza** con lo que traiga el archivo, sin tocar lo
+confirmado a mano. Las líneas que entraron o cambiaron se recalculan al final
+(`US-12`). Correrlo dos veces seguidas no duplica nada y la segunda vez no
+cambia ni recalcula nada.
 
 Lo que estaba en la base y no vino en el archivo se marca para revisión y **no
 se borra** (`US-31`). `--sin-ausentes` desactiva esa marca para cargas
@@ -244,6 +245,11 @@ async def _ejecutar(
                 f"\n  Con referencia, sin API que la siga: {resultado.sin_rastreo_hoy}"
                 f"\n  Sin referencia (SIN_TRACKING)      : {resultado.sin_tracking}"
             )
+
+        if resultado.recalculo is not None:
+            print(f"\n  Recalculadas (US-12): {resultado.recalculo.texto()}")
+            for nombre in resultado.recalculo.fallidos:
+                print(f"  · falló {nombre}: queda como estaba, ver el log")
 
         if resultado.ausentes:
             print(

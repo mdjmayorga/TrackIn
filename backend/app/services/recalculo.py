@@ -40,7 +40,8 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
-from dataclasses import dataclass
+from collections.abc import Collection, Iterable
+from dataclasses import dataclass, field
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -90,6 +91,36 @@ async def _fechas_de_la_fuente(
     return elemento.eta_api, elemento.ata_api
 
 
+async def proyectar(
+    sesion: AsyncSession, pedido: PedidoTransito, *, lead_time_dias: int | None
+) -> proyeccion.Proyeccion:
+    """RN-01 con los insumos actuales del pedido. **No persiste nada.**
+
+    El lead time lo decide quien llama: `recalcular` pasa el vigente del
+    maestro, y el detalle de `US-16` pasa la instantánea guardada, para saber si
+    lo que muestra la grilla sigue cuadrando con sus insumos.
+    """
+    # `US-08` solo produce algo con AIS —ShipsGo no entrega velocidad— y solo
+    # se consulta si hace falta: si la fuente ya dio su ETA, la estimada no
+    # cambiaría el resultado y calcularla sería una consulta PostGIS de balde.
+    eta_fuente, ata_fuente = await _fechas_de_la_fuente(sesion, pedido)
+    estimada = None
+    arribos = (pedido.ata_confirmada, ata_fuente, pedido.ata_inferida)
+    if eta_fuente is None and all(fecha is None for fecha in arribos):
+        estimada = (await eta_mod.estimar(sesion, pedido)).eta
+
+    return proyeccion.calcular(
+        ata_confirmada=pedido.ata_confirmada,
+        ata_fuente=ata_fuente,
+        ata_inferida=pedido.ata_inferida,
+        eta_fuente=eta_fuente,
+        eta_estimada=estimada,
+        eta_declarada=pedido.eta_declarada,
+        lead_time_dias=lead_time_dias,
+        ajuste_manual_dias=pedido.ajuste_manual_dias,
+    )
+
+
 async def recalcular(
     sesion: AsyncSession,
     pedido: PedidoTransito,
@@ -127,25 +158,7 @@ async def recalcular(
     destino = await sesion.get(MaestroDestino, pedido.id_destino)
     lead_time = destino.lead_time_dias if destino is not None else None
 
-    # `US-08` solo produce algo con AIS —ShipsGo no entrega velocidad— y solo
-    # se consulta si hace falta: si la fuente ya dio su ETA, la estimada no
-    # cambiaría el resultado y calcularla sería una consulta PostGIS de balde.
-    eta_fuente, ata_fuente = await _fechas_de_la_fuente(sesion, pedido)
-    estimada = None
-    arribos = (pedido.ata_confirmada, ata_fuente, pedido.ata_inferida)
-    if eta_fuente is None and all(fecha is None for fecha in arribos):
-        estimada = (await eta_mod.estimar(sesion, pedido)).eta
-
-    resultado = proyeccion.calcular(
-        ata_confirmada=pedido.ata_confirmada,
-        ata_fuente=ata_fuente,
-        ata_inferida=pedido.ata_inferida,
-        eta_fuente=eta_fuente,
-        eta_estimada=estimada,
-        eta_declarada=pedido.eta_declarada,
-        lead_time_dias=lead_time,
-        ajuste_manual_dias=pedido.ajuste_manual_dias,
-    )
+    resultado = await proyectar(sesion, pedido, lead_time_dias=lead_time)
 
     cumplimiento = estado_mod.clasificar_cumplimiento(
         resultado.fecha, pedido.fecha_entrega_pedido, umbral_dias
@@ -200,6 +213,8 @@ class ResumenRecalculo:
     cerrados_omitidos: int = 0
     por_estado: dict[str, int] | None = None
     por_motivo_sin_fecha: dict[str, int] | None = None
+    #: `tracking_interno` de los que fallaron. Quedan como estaban (RNF-14).
+    fallidos: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.por_estado is None:
@@ -207,14 +222,32 @@ class ResumenRecalculo:
         if self.por_motivo_sin_fecha is None:
             self.por_motivo_sin_fecha = {}
 
+    def texto(self) -> str:
+        texto = (
+            f"{self.evaluados} evaluados, {self.con_fecha} con fecha, "
+            f"{self.sin_fecha} sin fecha, {self.cambiados} cambiaron"
+        )
+        if self.fallidos:
+            texto += f", {len(self.fallidos)} fallaron"
+        return texto
 
-async def recalcular_todos(
-    sesion: AsyncSession, umbral_dias: int | None = None
+
+async def recalcular_lote(
+    sesion: AsyncSession,
+    pedidos: Iterable[PedidoTransito],
+    umbral_dias: int | None = None,
+    instante: dt.datetime | None = None,
 ) -> ResumenRecalculo:
-    """Recalcula los pedidos vivos. **No hace commit**: es de quien llama.
+    """Recalcula cada pedido en su propio *savepoint*. **No hace commit.**
 
-    Barre solo los no cerrados: un terminal de RN-13 no cambia y recorrerlo
-    sería gastar trabajo en confirmar que nada pasa.
+    Es el tercer criterio de `US-12` y RNF-14: si un pedido falla —un dato que
+    rompe un `CHECK`, un destino borrado—, se deshace **solo ese** y el resto
+    sigue. Sin el *savepoint*, el error dejaría la transacción entera abortada
+    y perdería también lo que ya se había recalculado bien.
+
+    Se vacía la sesión dentro de cada *savepoint* porque es en el `flush` donde
+    la base rechaza la fila; fuera de él, el error saltaría en el pedido
+    equivocado.
     """
     if umbral_dias is None:
         umbral_dias = await parametros.obtener_entero(sesion, CLAVE_UMBRAL)
@@ -223,11 +256,23 @@ async def recalcular_todos(
     assert resumen.por_estado is not None
     assert resumen.por_motivo_sin_fecha is not None
 
-    pedidos = await sesion.scalars(
-        select(PedidoTransito).where(PedidoTransito.motivo_cierre.is_(None))
-    )
     for pedido in pedidos:
-        resultado = await recalcular(sesion, pedido, umbral_dias=umbral_dias)
+        if pedido.motivo_cierre is not None:
+            resumen.cerrados_omitidos += 1
+            continue
+        # Se toma antes: si el savepoint se revierte, el objeto queda expirado.
+        nombre = pedido.tracking_interno
+        try:
+            async with sesion.begin_nested():
+                resultado = await recalcular(
+                    sesion, pedido, umbral_dias=umbral_dias, instante=instante
+                )
+                await sesion.flush()
+        except Exception:
+            logger.exception("Recálculo de %s falló; se sigue con los demás.", nombre)
+            resumen.fallidos.append(nombre)
+            continue
+
         resumen.evaluados += 1
         if resultado.fecha_proyectada is None:
             resumen.sin_fecha += 1
@@ -240,21 +285,52 @@ async def recalcular_todos(
         clave = resultado.estado_calculado
         resumen.por_estado[clave] = resumen.por_estado.get(clave, 0) + 1
 
-    await sesion.flush()
-    logger.info(
-        "Recálculo masivo: %d evaluados, %d con fecha, %d sin fecha, %d cambiaron.",
-        resumen.evaluados,
-        resumen.con_fecha,
-        resumen.sin_fecha,
-        resumen.cambiados,
-    )
+    logger.info("Recálculo: %s.", resumen.texto())
     return resumen
+
+
+async def recalcular_todos(
+    sesion: AsyncSession,
+    umbral_dias: int | None = None,
+    *,
+    id_destino: int | None = None,
+    ids: Collection[int] | None = None,
+    instante: dt.datetime | None = None,
+) -> ResumenRecalculo:
+    """Recalcula los pedidos vivos, o los de un destino, o los de una lista.
+
+    Barre solo los no cerrados: un terminal de RN-13 no cambia y recorrerlo
+    sería gastar trabajo en confirmar que nada pasa. **No hace commit.**
+    """
+    consulta = select(PedidoTransito).where(PedidoTransito.motivo_cierre.is_(None))
+    if id_destino is not None:
+        consulta = consulta.where(PedidoTransito.id_destino == id_destino)
+    if ids is not None:
+        if not ids:
+            return ResumenRecalculo()
+        consulta = consulta.where(PedidoTransito.id.in_(ids))
+    # Se materializa antes de recorrer: los savepoints emiten sentencias
+    # propias y no pueden intercalarse con un cursor todavía abierto.
+    pedidos = list(await sesion.scalars(consulta.order_by(PedidoTransito.id)))
+    return await recalcular_lote(sesion, pedidos, umbral_dias=umbral_dias, instante=instante)
+
+
+async def recalcular_destino(sesion: AsyncSession, id_destino: int) -> ResumenRecalculo:
+    """Segundo criterio de `US-12`: el lead time de un destino cambió.
+
+    Toma el valor **vigente** del maestro, que es lo que hace `recalcular`, y
+    con eso refresca la instantánea `lead_time_destino_dias` de cada pedido.
+    """
+    return await recalcular_todos(sesion, id_destino=id_destino)
 
 
 __all__ = [
     "CLAVE_UMBRAL",
     "ResultadoRecalculo",
     "ResumenRecalculo",
+    "proyectar",
     "recalcular",
+    "recalcular_destino",
+    "recalcular_lote",
     "recalcular_todos",
 ]

@@ -86,6 +86,9 @@ Los endpoints de `api/` no deben contener reglas de negocio: delegan en
 | `python scripts/cargar_semilla.py --resumen` | Muestra qué hay en la base, sin escribir |
 | `python scripts/cargar_semilla.py --limpiar` | Deja la base en un estado conocido y recarga |
 | `python scripts/cargar_semilla.py --sin-ausentes` | Carga sin marcar como ausente lo que no venga (carga parcial) |
+| `python scripts/recalcular.py` | Recalcula fecha y estado de todos los activos (tras una migración o un cambio de parámetro) |
+| `python scripts/recalcular.py --destino CRMOB --lead-time 5` | Cambia el lead time del maestro y recalcula ese destino, en una transacción |
+| `python scripts/recalcular.py --ensayo` | Muestra qué cambiaría, sin guardar |
 | `pytest` | Tests con cobertura |
 | `pytest -m "not integration"` | Solo lo que no necesita base de datos |
 | `pytest --no-cov -q` | Rápido, sin cobertura |
@@ -96,6 +99,23 @@ Los endpoints de `api/` no deben contener reglas de negocio: delegan en
 
 Los tests marcados `integration` requieren PostgreSQL levantado; sin él se
 saltan solos en vez de fallar.
+
+### API de pedidos (`US-16`)
+
+Con `uvicorn app.main:app --reload` levantado, el contrato completo está en
+`/docs`. Los dos recursos:
+
+| Endpoint | Qué devuelve |
+|---|---|
+| `GET /api/v1/pedidos` | Página de pedidos con su estado calculado. Filtros: `oc` (prefijo), `proveedor`, `material`, `via`, `estado`, `destino`; `orden` (`fecha_proyectada` por omisión, `-` delante para descendente); `limite` (≤ 200) y `desplazamiento` |
+| `GET /api/v1/pedidos/{id}` | Detalle con rastreo, última posición, los tres arribos y el desglose del cálculo |
+
+Ejemplo: `/api/v1/pedidos?via=MARITIMO&estado=EN_RIESGO&estado=RETRASADO&orden=-fecha_proyectada`.
+Sin filtro de `estado` solo salen los activos; los cerrados, al pedir `CERRADO`.
+
+La API **no consulta fuentes externas**: lee lo que dejó el worker. Si el
+worker no corre, las fechas envejecen, y el detalle lo avisa con
+`calculo.al_dia = false`.
 
 ### Encender el rastreo en vivo
 

@@ -50,7 +50,9 @@ fecha comprometida, incoterm, temperatura, país, fabricante, vía y destino.
 
 - `etapa_viaje`, `estado_cumplimiento`, `estado_calculado` y
   `fecha_proyectada_disponible`, que son del motor de cálculo (`US-09`,
-  `US-10`).
+  `US-10`). El archivo no los escribe; lo que sí hace la carga, desde
+  `US-12`, es **pedirle al motor** que recalcule las líneas que entraron o
+  cambiaron, con los insumos nuevos y lo que confirmó una persona.
 - `ata_confirmada`, `fecha_recepcion_planta`, `cantidad_recibida`,
   `motivo_cierre` y `ajuste_manual_dias`, que son intervenciones humanas
   auditadas por RF-14. Un archivo no puede deshacer lo que una persona
@@ -91,7 +93,7 @@ from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
-from app.services import normalizacion
+from app.services import normalizacion, recalculo
 from app.services.asociacion import asociar_referencia
 from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.dto import PedidoCrudo
@@ -170,6 +172,8 @@ class ResultadoCarga:
     destinos_de_la_fuente: list[LineaRechazada] = field(default_factory=list)
     #: De los cargados, cuántos trajeron la referencia escrita en el comentario.
     referencias_de_comentario: int = 0
+    #: El recálculo de lo que entró o cambió (`US-12`). `None` si no hubo nada.
+    recalculo: recalculo.ResumenRecalculo | None = None
 
     @property
     def leidas(self) -> int:
@@ -598,6 +602,8 @@ async def cargar(
     ahora = dt.datetime.now(dt.UTC)
     resultado = ResultadoCarga()
     presentes: set[tuple[str, int]] = set()
+    #: Lo que entró o cambió: sus insumos de RN-01 pueden ser otros (`US-12`).
+    a_recalcular: set[int] = set()
 
     for crudo in await fuente.obtener_pedidos():
         pedido, estado, detalle = await cargar_pedido(
@@ -632,6 +638,7 @@ async def cargar(
         if estado == "sin_cambios":
             resultado.sin_cambios += 1
             continue
+        a_recalcular.add(pedido.id)
         if estado == "actualizado":
             resultado.actualizados += 1
             continue
@@ -669,6 +676,17 @@ async def cargar(
 
     if señalar_ausentes:
         resultado.ausentes = await marcar_ausentes(sesion, presentes, instante=ahora)
+
+    # `US-12`: el archivo es un insumo. Una ETA declarada, una fecha
+    # comprometida o un destino nuevos cambian la fecha proyectada o el
+    # semáforo, y dejarlo para el próximo ciclo del worker haría que la grilla
+    # mostrara, entre tanto, un estado hecho con datos que ya no son. Las
+    # líneas nuevas lo necesitan igual: entran sin fecha. Un pedido sin
+    # cambios no se toca, así que recargar el mismo archivo no recalcula nada.
+    if a_recalcular:
+        resultado.recalculo = await recalculo.recalcular_todos(
+            sesion, ids=a_recalcular, instante=ahora
+        )
 
     logger.info("Carga desde %s: %s", fuente.nombre, resultado.resumen())
     return resultado
