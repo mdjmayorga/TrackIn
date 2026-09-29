@@ -378,6 +378,7 @@ async def test_un_pedido_sin_elemento_se_declara_no_rastreable(api, sesion, umbr
     assert cuerpo["calculo"]["fecha_proyectada"] is None
     assert cuerpo["calculo"]["al_dia"] is True
     assert cuerpo["calculo"]["desglose"].startswith("Sin fecha proyectada: ")
+    assert cuerpo["calculo"]["ventana_aduanal_dias"] is None
 
 
 @pytest.mark.integration
@@ -420,6 +421,8 @@ async def test_el_detalle_trae_rastreo_posicion_y_desglose(api, sesion, umbral_d
     assert calculo["al_dia"] is True
     assert calculo["desglose_actual"] is None
     assert calculo["margen_dias"] == 1
+    # `US-53`: llega a CR el 05/10 y a Gutis se espera lead time + 1 día después.
+    assert calculo["ventana_aduanal_dias"] == destino.lead_time_dias + 1
     assert calculo["umbral_riesgo_dias"] == 2
     assert calculo["desglose"] == (
         f"2026-10-05 (ETA_FUENTE) + {destino.lead_time_dias} d de lead time "

@@ -281,6 +281,13 @@ async def _calculo(sesion: AsyncSession, pedido: PedidoTransito) -> Calculo:
         ajuste_manual_dias=pedido.ajuste_manual_dias,
         fecha_proyectada=proyectada_fecha,
         fecha_comprometida=pedido.fecha_entrega_pedido,
+        # Compras, 29/09: la diferencia entre la llegada a CR y la fecha de
+        # entrega **es** el tiempo que su plan da al proceso aduanal (`US-53`).
+        ventana_aduanal_dias=(
+            (pedido.fecha_entrega_pedido - pedido.eta_utilizada.date()).days
+            if pedido.eta_utilizada is not None
+            else None
+        ),
         margen_dias=margen,
         umbral_riesgo_dias=await parametros.obtener_entero(sesion, recalculo.CLAVE_UMBRAL),
         desglose=desglose,

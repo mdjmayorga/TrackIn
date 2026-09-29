@@ -118,6 +118,9 @@ class EstadoWorker:
     madurando: set[int] = field(default_factory=set)
     #: Hasta cuándo no se consulta cada fuente tras un fallo transitorio.
     en_espera_hasta: dict[str, dt.datetime] = field(default_factory=dict)
+    #: Parámetros y lead times con que se recalculó todo por última vez.
+    #: `None` al arrancar: el primer ciclo siempre barre (`US-17`).
+    firma_calculo: recalculo.FirmaCalculo | None = None
 
 
 @dataclass(slots=True)
@@ -129,6 +132,8 @@ class ResumenCiclo:
     aplicados: int = 0
     arribos: int = 0
     recalculados: int = 0
+    #: Si hubo barrido global, por qué y qué movió.
+    recalculo_global: str | None = None
     omitidos: dict[str, int] = field(default_factory=dict)
     errores: dict[str, str] = field(default_factory=dict)
 
@@ -145,6 +150,8 @@ class ResumenCiclo:
             f"arribos {self.arribos}",
             f"recalculados {self.recalculados}",
         ]
+        if self.recalculo_global:
+            partes.append(f"recálculo global ({self.recalculo_global})")
         if self.omitidos:
             partes.append(f"omitidos {self.omitidos}")
         if self.errores:
@@ -267,6 +274,43 @@ async def _consultar_tica(
     return resultado.aplicada
 
 
+# --- El recálculo global ----------------------------------------------------
+
+
+async def _recalculo_global(
+    fabrica_sesion: FabricaSesion, estado: EstadoWorker, resumen: ResumenCiclo, ahora: dt.datetime
+) -> None:
+    """Recalcula todo si cambió un insumo global (`US-17`, segundo criterio).
+
+    El umbral de riesgo o un lead time editados en la base no llegan por
+    ninguna lectura: sin esto, un pedido sin rastreo —la mayoría, hoy— no
+    tendría nunca «el próximo recálculo» que los aplique. Al arrancar la firma
+    es `None` y el primer ciclo barre, lo que además pone al día lo que haya
+    cambiado con el worker apagado: una migración, un despliegue.
+
+    Si falla se registra y el ciclo sigue: la firma no se actualiza, así que
+    el próximo ciclo lo reintenta.
+    """
+    try:
+        async with fabrica_sesion() as sesion:
+            firma = await recalculo.firma_del_calculo(sesion)
+            if firma == estado.firma_calculo:
+                return
+            motivo = (
+                "arranque" if estado.firma_calculo is None else "cambió un parámetro o lead time"
+            )
+            barrido = await recalculo.recalcular_todos(sesion, instante=ahora)
+            await sesion.commit()
+    except Exception:
+        logger.exception("Worker: falló el recálculo global; se reintenta el próximo ciclo.")
+        resumen.errores["recalculo_global"] = "error_inesperado"
+        return
+    estado.firma_calculo = firma
+    resumen.recalculo_global = f"{motivo}: {barrido.texto()}"
+    for nombre in barrido.fallidos:
+        resumen.errores[f"pedido:{nombre}"] = "error_de_recalculo"
+
+
 # --- El ciclo ---------------------------------------------------------------
 
 
@@ -291,6 +335,9 @@ async def ejecutar_ciclo(
         await planificador.revisar_consumo(sesion, ahora)
     for omitido in plan.omitidos:
         resumen.omitir(omitido.motivo)
+
+    # Antes de las lecturas: así lo que recalculen ya usa los valores nuevos.
+    await _recalculo_global(fabrica_sesion, estado, resumen, ahora)
 
     tareas = [(tarea, fuente_de(tarea.tipo)) for tarea in plan.tareas]
 

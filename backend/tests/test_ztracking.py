@@ -72,7 +72,10 @@ _ROTULOS: Final[dict[str, str]] = {
     "proveedor_nombre": "Nombre del Proveedor",
     "material_codigo": "Material",
     "material_descripcion": "Texto breve Material",
-    "fecha_entrega_pedido": "Fecha Entrega Solped",
+    "fecha_entrega_pedido": "Fecha Entrega",
+    # No la lee nadie desde `US-53`: está para que el lector tenga dónde
+    # equivocarse, porque su rótulo empieza igual que el de la columna buena.
+    "fecha_entrega_solped": "Fecha Entrega Solped",
     "cantidad": "Cantidad reparto",
     "unidad_medida": "UMP",
     "fabricante": "Fabricante",
@@ -131,6 +134,7 @@ class Diseno:
             "material_codigo": "11000371",
             "material_descripcion": "Colágeno hidrolizado bovino",
             "fecha_entrega_pedido": dt.datetime(2026, 5, 29),
+            "fecha_entrega_solped": dt.datetime(2026, 7, 15),
             "cantidad": 6000000,
             "unidad_medida": "G",
             "incoterm": "CIF LIMON",
@@ -172,7 +176,8 @@ _WK36 = Diseno(
         "proveedor_nombre": 4,
         "material_codigo": 5,
         "material_descripcion": 6,
-        "fecha_entrega_pedido": 10,
+        "fecha_entrega_solped": 10,
+        "fecha_entrega_pedido": 15,
         "cantidad": 12,
         "unidad_medida": 13,
         "fabricante": 25,
@@ -194,6 +199,8 @@ _WK38_PRODUCCION = Diseno(
         **_WK36.columnas,
         "cantidad": 14,
         "unidad_medida": 15,
+        # R en el libro real: las seis columnas insertadas la corrieron de P.
+        "fecha_entrega_pedido": 17,
         "fabricante": 31,
         "incoterm": 33,
         "tipo_proveedor": 39,
@@ -765,12 +772,18 @@ async def test_la_clave_natural_sale_igual_de_las_dos_hojas(tmp_path: Path) -> N
 
 _ANALISIS = Path(__file__).resolve().parents[2] / "docs/analisis"
 
-#: Cifras medidas el 24/09/2026 sobre cada entrega: líneas leídas e ilegibles.
-#: Si un archivo cambia, la prueba se cae y hay que volver a medir — que es
-#: justo lo que uno quiere saber **antes** de una carga, no después.
+#: Cifras medidas sobre cada entrega: líneas leídas e ilegibles. Si un archivo
+#: cambia, la prueba se cae y hay que volver a medir — que es justo lo que uno
+#: quiere saber **antes** de una carga, no después.
+#:
+#: Remedidas el 29/09/2026 por `US-53`, al pasar de `Fecha Entrega Solped` (K)
+#: a `Fecha Entrega` (R). Antes eran 424/5 y 460/5. En `IDA` las dos columnas
+#: no están vacías en las mismas líneas: WK38 trae 5 con K vacía y R llena, que
+#: ahora se leen (0 ilegibles); WK36 trae 6 con R vacía —OC 4500018933 y
+#: 4500018945— que ahora son ilegibles, y 5 con K vacía que ahora entran.
 _MUESTRAS_REALES = [
-    ("2026-Agosto-WK36.xlsx", 424, 5),
-    ("2026 - SEPTIEMBRE - WK38 MOD.xlsx", 460, 5),
+    ("2026-Agosto-WK36.xlsx", 423, 6),
+    ("2026 - SEPTIEMBRE - WK38 MOD.xlsx", 465, 0),
 ]
 
 
@@ -789,6 +802,40 @@ async def test_contra_las_muestras_reales(nombre: str, leidas: int, ilegibles: i
 
     assert len(pedidos) == leidas
     assert len(fuente.ilegibles) == ilegibles
-    assert {i.motivo for i in fuente.ilegibles} == {ILEGIBLE_SIN_FECHA}
+    assert {i.motivo for i in fuente.ilegibles} <= {ILEGIBLE_SIN_FECHA}
     # La vía sucia llega entera hasta la normalización.
     assert {"PENDIENTE", "N/A"} <= {p.via_transporte for p in pedidos}
+
+
+# --- US-53: la fecha comprometida es la de llegada a Gutis ------------------
+
+
+@pytest.mark.parametrize(
+    ("hoja", "diseno"),
+    [("IDA", _WK36), ("PRODUCCION", _WK38_PRODUCCION), ("IDA", _WK38_IDA)],
+)
+async def test_la_fecha_comprometida_sale_de_fecha_entrega_y_no_de_la_solped(
+    tmp_path: Path, hoja: str, diseno: Diseno
+) -> None:
+    """Las dos columnas traen fechas distintas, como en el archivo real."""
+    hojas = {hoja: diseno.hoja(diseno.linea())}
+
+    pedidos = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert pedidos[0].fecha_entrega_pedido == dt.date(2026, 5, 29)  # R, no K (15/07)
+
+
+async def test_sin_la_columna_de_llegada_no_se_lee_la_solped_en_su_lugar(
+    tmp_path: Path,
+) -> None:
+    """`Fecha Entrega` es el principio de `Fecha Entrega Solped`.
+
+    Si la columna buena faltara, buscar por prefijo encontraría K y cargaría
+    una fecha comprometida plausible y equivocada. Tiene que fallar.
+    """
+    encabezado = _WK36.encabezado()
+    encabezado[_WK36.columnas["fecha_entrega_pedido"]] = "Otra fecha"
+    hojas = {"IDA": [encabezado, _WK36.linea()]}
+
+    with pytest.raises(HojaInesperada, match="Fecha Entrega"):
+        await _fuente(tmp_path, hojas).obtener_pedidos()

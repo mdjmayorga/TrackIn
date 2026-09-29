@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal
 
 from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,6 +13,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # app/core/config.py -> app/core -> app -> backend/
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 REPO_ROOT = BACKEND_DIR.parent
+
+#: La clave de desarrollo. Sirve en local; en producción es un secreto conocido.
+SECRET_KEY_DE_DESARROLLO: Final = "dev-only-insecure-key-change-me"
+#: La contraseña de la base que trae el código. Mismo razonamiento.
+PASSWORD_DE_DESARROLLO: Final = "trackin"
+#: Un valor copiado tal cual de `.env.example`: `<placeholder>`, `<generar-...>`.
+_MARCADOR_DE_PLANTILLA = re.compile(r"^<[^<>]+>$")
+#: Credenciales que solo sirven completas. Media pareja no autentica, y sin
+#: esta comprobación el fallo aparecería en la primera llamada, no al arrancar.
+_PAREJAS: Final = (("OPENSKY_CLIENT_ID", "OPENSKY_CLIENT_SECRET"),)
 
 
 class Settings(BaseSettings):
@@ -28,6 +39,9 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        # Sin esto, el error de arranque copia la configuración entera
+        # —credenciales incluidas— en `input_value`, y termina en un log.
+        hide_input_in_errors=True,
     )
 
     # --- Metadatos de la app ------------------------------------------------
@@ -44,7 +58,7 @@ class Settings(BaseSettings):
     # --- Seguridad ----------------------------------------------------------
     # Sin uso todavía (no hay autenticación en Sprint 0), pero se valida desde
     # ya para que el despliegue falle temprano si falta.
-    SECRET_KEY: str = "dev-only-insecure-key-change-me"
+    SECRET_KEY: str = SECRET_KEY_DE_DESARROLLO
 
     # --- CORS ---------------------------------------------------------------
     # Se declara como str (CSV), no como list[str], a propósito: ante un campo
@@ -55,7 +69,7 @@ class Settings(BaseSettings):
 
     # --- PostgreSQL ---------------------------------------------------------
     POSTGRES_USER: str = "trackin"
-    POSTGRES_PASSWORD: str = "trackin"
+    POSTGRES_PASSWORD: str = PASSWORD_DE_DESARROLLO
     POSTGRES_DB: str = "trackin_dev"
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
@@ -123,19 +137,66 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
 
-    # --- Validación cruzada -------------------------------------------------
-    @model_validator(mode="after")
-    def _ztracking_exige_ruta(self) -> Settings:
-        """`ztracking` sin ruta es configuración incompleta, no un arranque degradado.
+    # --- Validación cruzada (`US-17`, tercer criterio) -----------------------
+    def problemas(self) -> list[str]:
+        """Todo lo que impide arrancar, con el nombre de la variable y qué hacer.
 
-        Mismo criterio que el `Literal` de `INGESTA_ADAPTADOR`: la configuración
-        que no se puede cumplir detiene el arranque en vez de dejar el sistema
-        en pie sin fuente de pedidos, que es un fallo silencioso.
+        Se juntan **todos** antes de fallar: quien configura un servidor no
+        debería descubrir los faltantes de a uno, arrancando y volviendo a
+        arrancar. Nada de esto se revisa con la base: lo que falta en
+        `parametros_sistema` tiene su valor por defecto en el catálogo
+        (`services/parametros.py`), así que ahí no puede faltar nada.
         """
+        problemas: list[str] = []
+
+        # Un valor copiado de la plantilla parece configurado y no lo está: el
+        # token `<placeholder>` de ShipsGo encendería el rastreo con una
+        # credencial falsa, y el primer 401 llegaría en el primer ciclo.
+        for nombre, valor in self:
+            if isinstance(valor, str) and _MARCADOR_DE_PLANTILLA.match(valor.strip()):
+                problemas.append(
+                    f"{nombre} todavía tiene el valor de la plantilla ({valor}): "
+                    "complételo o bórrelo del .env."
+                )
+
+        for primera, segunda in _PAREJAS:
+            tiene_primera = bool(getattr(self, primera))
+            tiene_segunda = bool(getattr(self, segunda))
+            if tiene_primera != tiene_segunda:
+                falta = segunda if tiene_primera else primera
+                presente = primera if tiene_primera else segunda
+                problemas.append(f"{falta} falta: {presente} solo sirve con ella.")
+
         if self.INGESTA_ADAPTADOR == "ztracking" and self.ZTRACKING_RUTA is None:
+            # Mismo criterio que el `Literal` de `INGESTA_ADAPTADOR`: la
+            # configuración que no se puede cumplir detiene el arranque en vez
+            # de dejar el sistema en pie sin fuente de pedidos.
+            problemas.append(
+                "ZTRACKING_RUTA falta: INGESTA_ADAPTADOR='ztracking' exige "
+                "la ruta del archivo Z-tracking de Logística."
+            )
+
+        if self.is_production:
+            # En desarrollo los valores del código son cómodos; en producción
+            # son secretos publicados en el repositorio.
+            if self.SECRET_KEY == SECRET_KEY_DE_DESARROLLO:
+                problemas.append(
+                    "SECRET_KEY falta: en producción no se acepta la clave de desarrollo."
+                )
+            if not self.DATABASE_URL and self.POSTGRES_PASSWORD == PASSWORD_DE_DESARROLLO:
+                problemas.append(
+                    "POSTGRES_PASSWORD falta: en producción no se acepta la de "
+                    "desarrollo (o defina DATABASE_URL)."
+                )
+        return problemas
+
+    @model_validator(mode="after")
+    def _configuracion_completa(self) -> Settings:
+        problemas = self.problemas()
+        if problemas:
             raise ValueError(
-                "INGESTA_ADAPTADOR='ztracking' exige ZTRACKING_RUTA: "
-                "indique la ruta del archivo Z-tracking de Logística."
+                "Configuración incompleta; TrackIn no arranca hasta corregir:\n"
+                + "\n".join(f"  - {problema}" for problema in problemas)
             )
         return self
 

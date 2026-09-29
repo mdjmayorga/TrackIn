@@ -315,6 +315,34 @@ async def recalcular_todos(
     return await recalcular_lote(sesion, pedidos, umbral_dias=umbral_dias, instante=instante)
 
 
+#: Los parámetros que entran en el cálculo. Si uno cambia, cambian fechas o
+#: semáforos de pedidos que ninguna lectura nueva va a tocar (`US-17`).
+PARAMETROS_DEL_CALCULO: tuple[str, ...] = (CLAVE_UMBRAL, eta_mod.CLAVE_VELOCIDAD_MINIMA)
+
+FirmaCalculo = tuple[tuple[tuple[str, str], ...], tuple[tuple[int, int], ...]]
+
+
+async def firma_del_calculo(sesion: AsyncSession) -> FirmaCalculo:
+    """Los insumos globales de RN-01 y del semáforo, en una tupla comparable.
+
+    Son los que no pertenecen a ningún pedido: los parámetros del cálculo y el
+    lead time de cada destino. Si la firma cambia entre dos ciclos del worker,
+    alguien los editó —por la aplicación, por una migración o con un `UPDATE`
+    a mano— y hay que recalcular todo, porque el cambio no llega por ninguna
+    lectura. Compararla cuesta dos consultas pequeñas.
+    """
+    valores = tuple(
+        [(clave, str(await parametros.obtener(sesion, clave))) for clave in PARAMETROS_DEL_CALCULO]
+    )
+    lead_times = tuple(
+        (id_destino, dias)
+        for id_destino, dias in await sesion.execute(
+            select(MaestroDestino.id, MaestroDestino.lead_time_dias).order_by(MaestroDestino.id)
+        )
+    )
+    return valores, lead_times
+
+
 async def recalcular_destino(sesion: AsyncSession, id_destino: int) -> ResumenRecalculo:
     """Segundo criterio de `US-12`: el lead time de un destino cambió.
 
@@ -326,8 +354,11 @@ async def recalcular_destino(sesion: AsyncSession, id_destino: int) -> ResumenRe
 
 __all__ = [
     "CLAVE_UMBRAL",
+    "PARAMETROS_DEL_CALCULO",
+    "FirmaCalculo",
     "ResultadoRecalculo",
     "ResumenRecalculo",
+    "firma_del_calculo",
     "proyectar",
     "recalcular",
     "recalcular_destino",

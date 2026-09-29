@@ -143,3 +143,45 @@ async def test_los_valores_sembrados_coinciden_con_los_defectos(sesion) -> None:
         assert (
             await parametros.obtener(sesion, clave) == definicion.defecto
         ), f"{clave}: la fila sembrada no coincide con CATALOGO"
+
+
+# --- US-17: lo que está mal se dice al arrancar ----------------------------
+
+
+async def test_la_tabla_sembrada_no_tiene_problemas(sesion) -> None:
+    assert await parametros.revisar(sesion) == []
+
+
+async def test_revisar_senala_un_valor_ilegible_y_su_defecto(sesion) -> None:
+    await _fijar(sesion, "umbral_riesgo_dias", "dos")
+
+    problemas = await parametros.revisar(sesion)
+
+    assert problemas == [
+        "umbral_riesgo_dias = 'dos': no es un ENTERO válido; se usa el defecto (2)."
+    ]
+
+
+async def test_revisar_senala_una_clave_que_nadie_lee(sesion) -> None:
+    sesion.add(
+        ParametroSistema(
+            clave="umbral_riesgo_horas", valor="48", tipo_dato="ENTERO", descripcion="Errata"
+        )
+    )
+    await sesion.flush()
+
+    problemas = await parametros.revisar(sesion)
+
+    assert problemas == ["umbral_riesgo_horas: no está en el catálogo; ningún proceso la lee."]
+
+
+async def test_revisar_senala_un_tipo_distinto_del_catalogo(sesion) -> None:
+    await _fijar(sesion, "velocidad_minima_eta_nudos", "1.5")
+    fila = await sesion.get(ParametroSistema, "velocidad_minima_eta_nudos")
+    fila.tipo_dato = "ENTERO"
+    await sesion.flush()
+
+    problemas = await parametros.revisar(sesion)
+
+    assert len(problemas) == 1
+    assert problemas[0].startswith("velocidad_minima_eta_nudos: la fila dice ENTERO")

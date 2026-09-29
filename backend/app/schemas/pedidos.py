@@ -172,7 +172,17 @@ class Calculo(BaseModel):
     )
     ajuste_manual_dias: int
     fecha_proyectada: dt.date | None
-    fecha_comprometida: dt.date
+    fecha_comprometida: dt.date = Field(
+        description="Llegada a Gutis según Compras: `Fecha Entrega`, columna R (`US-53`)."
+    )
+    ventana_aduanal_dias: int | None = Field(
+        description=(
+            "Días entre la llegada a Costa Rica (la fecha base) y la comprometida: "
+            "lo que el plan de Compras le deja al proceso aduanal. Se lee junto a "
+            "`lead_time_dias`, que es lo que ese proceso suele tardar en el destino. "
+            "Nulo si no hay fecha base."
+        )
+    )
     margen_dias: int | None = Field(
         description="Comprometida menos proyectada. Negativo es atraso."
     )

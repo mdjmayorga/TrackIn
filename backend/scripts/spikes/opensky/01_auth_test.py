@@ -347,7 +347,10 @@ def main() -> int:
         "finished_utc": utc_now(),
         "network_profile": args.network,
         "token_request": token_diag,
-        "jwt_claims": {k: v for k, v in claims.items()
+        # `azp` y `clientId` son el client ID de OpenSky: se enmascaran igual
+        # que el token, porque esta salida se versiona (`US-17`, 29/09/2026).
+        "jwt_claims": {k: (mask(str(v)) if k in ("azp", "clientId") else v)
+                       for k, v in claims.items()
                        if k in ("iat", "exp", "azp", "clientId", "scope", "typ")},
         "token_ttl": ttl_info,
         "authenticated_call": auth_call,

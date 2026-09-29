@@ -120,6 +120,10 @@ class Columna:
     #: columna ausente se leyera de otra, que es justo el fallo que hay que
     #: evitar: datos plausibles y equivocados.
     respaldo: int | None = None
+    #: Solo el rótulo exacto. Para cuando el rótulo es el **principio** de otra
+    #: columna: `Fecha Entrega` lo es de `Fecha Entrega Solped`, y si R faltara
+    #: el prefijo leería K en silencio —una fecha plausible y equivocada—.
+    solo_exacto: bool = False
 
 
 #: Las columnas que TrackIn necesita del archivo. Los índices aparecen solo en
@@ -133,9 +137,11 @@ COLUMNAS: Final[tuple[Columna, ...]] = (
     Columna("proveedor_nombre", "Nombre del Proveedor"),
     Columna("material_codigo", "Material", requerido=True),
     Columna("material_descripcion", "Texto breve Material"),
-    # Decisión de Planeación del 04/09/2026: la fecha comprometida es la de
-    # entrega de la solicitud de pedido, no la del lead time de SAP.
-    Columna("fecha_entrega_pedido", "Fecha Entrega Solped", requerido=True),
+    # `US-53`, reunión con Compras del 29/09/2026: la fecha comprometida es
+    # `Fecha Entrega`, la de **llegada a Gutis** (R en `PRODUCCION` de WK38, P
+    # en `IDA`). Revierte la decisión de Planeación del 04/09, que usaba
+    # `Fecha Entrega Solped` (K): son fechas distintas en el archivo real.
+    Columna("fecha_entrega_pedido", "Fecha Entrega", requerido=True, solo_exacto=True),
     Columna("cantidad", "Cantidad reparto", requerido=True),
     Columna("unidad_medida", "UMP", requerido=True),
     Columna("fabricante", "Fabricante"),
@@ -326,7 +332,7 @@ def _resolver_columnas(encabezado: tuple[Any, ...]) -> dict[str, int]:
     for columna in COLUMNAS:
         buscados = [_sin_tildes(r) for r in (columna.rotulo, *columna.alias)]
         indice = next((i for i, real in enumerate(reales) if real in buscados), None)
-        if indice is None:
+        if indice is None and not columna.solo_exacto:
             indice = next(
                 (
                     i
@@ -520,14 +526,14 @@ class FuenteZTracking:
 
         fecha = _a_fecha(celda("fecha_entrega_pedido"))
         if fecha is None:
-            # Tres líneas de `IDA` la traen vacía en la muestra real. Es la
-            # fecha comprometida de RN-01: sin ella no hay contra qué comparar
-            # la proyectada, y el pedido no tiene estado que calcular.
+            # Seis líneas de `IDA` de WK36 la traen vacía; WK38 la trae en todas.
+            # Es la fecha comprometida de RN-07 a RN-09: sin ella no hay contra
+            # qué comparar la proyectada, y el pedido no tiene estado que calcular.
             self._anotar(
                 hoja,
                 numero,
                 ILEGIBLE_SIN_FECHA,
-                f"{oc_numero}-{posicion}: 'Fecha Entrega Solped' vacía o ilegible "
+                f"{oc_numero}-{posicion}: 'Fecha Entrega' (llegada a Gutis) vacía o ilegible "
                 f"({celda('fecha_entrega_pedido')!r})",
             )
             return None

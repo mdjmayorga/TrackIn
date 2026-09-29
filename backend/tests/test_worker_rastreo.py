@@ -17,17 +17,19 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 
 from app.models.auditoria_intervencion import AuditoriaIntervencion
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
+from app.models.parametro_sistema import ParametroSistema
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.services import salud_fuentes
 from app.services.rastreo.shipsgo_cliente import ErrorShipsGo
 from app.services.rastreo.tica_cliente import ClienteTICA, Respuesta
+from app.services.recalculo import CLAVE_UMBRAL
 from app.workers import rastreo
 
 _TICA = Path(__file__).resolve().parents[1] / "scripts/spikes/tica/output"
@@ -531,3 +533,124 @@ async def test_un_pedido_que_falla_no_revierte_la_lectura_ni_a_sus_vecinos(
     assert sano.fecha_proyectada_disponible is not None
     assert roto.estado_calculado == "EN_TRANSITO"
     assert roto.fecha_proyectada_disponible is None
+
+
+# --- US-17: un parámetro o un lead time editados en la base -----------------
+
+
+async def _umbral(sesion, dias: int) -> None:
+    await sesion.execute(delete(ParametroSistema).where(ParametroSistema.clave == CLAVE_UMBRAL))
+    sesion.add(
+        ParametroSistema(
+            clave=CLAVE_UMBRAL, valor=str(dias), tipo_dato="ENTERO", descripcion="Umbral de prueba"
+        )
+    )
+    await sesion.flush()
+
+
+async def _sin_rastreo(sesion) -> PedidoTransito:
+    """Un pedido del archivo, sin elemento: ninguna lectura lo va a tocar.
+
+    Tres días de margen entre la fecha proyectada y la comprometida.
+    """
+    _, plantilla = await _seguido(sesion, "HAWB", "PLANTILLA1", "AEREO", "4599900030")
+    destino = await sesion.get(MaestroDestino, plantilla.id_destino)
+    assert destino is not None
+    await sesion.delete(plantilla)
+    await sesion.flush()
+    eta = dt.date(2026, 10, 10)
+    pedido = PedidoTransito(
+        oc_numero="4599900031",
+        posicion_oc=10,
+        tracking_interno="TRK-4599900031-010",
+        id_proveedor=plantilla.id_proveedor,
+        id_material=plantilla.id_material,
+        id_destino=destino.id,
+        via_transporte="AEREO",
+        cantidad_pedida=Decimal("1.000"),
+        unidad_medida="KG",
+        eta_declarada=eta,
+        fecha_entrega_pedido=eta + dt.timedelta(days=destino.lead_time_dias + 3),
+        lead_time_destino_dias=destino.lead_time_dias,
+        etapa_viaje="SIN_TRACKING",
+        estado_calculado="SIN_TRACKING",
+    )
+    sesion.add(pedido)
+    await sesion.flush()
+    return pedido
+
+
+async def test_al_arrancar_se_recalcula_todo(sesion, limpio, fabrica) -> None:
+    """Lo que cambió con el worker apagado —una migración— se pone al día."""
+    await _umbral(sesion, 2)
+    pedido = await _sin_rastreo(sesion)
+
+    resumen = await rastreo.ejecutar_ciclo(fabrica, rastreo.Fuentes(), instante=MEDIODIA)
+
+    assert resumen.recalculo_global is not None
+    assert resumen.recalculo_global.startswith("arranque")
+    assert pedido.fecha_proyectada_disponible is not None
+    assert pedido.estado_cumplimiento == "A_TIEMPO"
+
+
+async def test_sin_cambios_no_se_vuelve_a_barrer(sesion, limpio, fabrica) -> None:
+    await _sin_rastreo(sesion)
+    estado = rastreo.EstadoWorker()
+    await rastreo.ejecutar_ciclo(fabrica, rastreo.Fuentes(), estado, MEDIODIA)
+
+    segundo = await rastreo.ejecutar_ciclo(fabrica, rastreo.Fuentes(), estado, MEDIODIA)
+
+    assert segundo.recalculo_global is None
+
+
+async def test_cambiar_el_umbral_en_la_tabla_se_aplica_al_siguiente_ciclo(
+    sesion, limpio, fabrica
+) -> None:
+    """Segundo criterio de `US-17`, con un pedido que ninguna lectura toca."""
+    await _umbral(sesion, 2)
+    pedido = await _sin_rastreo(sesion)
+    estado = rastreo.EstadoWorker()
+    await rastreo.ejecutar_ciclo(fabrica, rastreo.Fuentes(), estado, MEDIODIA)
+    assert pedido.estado_cumplimiento == "A_TIEMPO"
+
+    await _umbral(sesion, 5)  # tres días de margen ya no alcanzan
+    resumen = await rastreo.ejecutar_ciclo(fabrica, rastreo.Fuentes(), estado, MEDIODIA)
+
+    assert resumen.recalculo_global is not None
+    assert resumen.recalculo_global.startswith("cambió")
+    assert pedido.estado_cumplimiento == "EN_RIESGO"
+
+
+async def test_un_lead_time_editado_a_mano_tambien_se_detecta(sesion, limpio, fabrica) -> None:
+    """El caso de las migraciones `0009` y `0010`: nadie pasó por `cambiar_lead_time`."""
+    pedido = await _sin_rastreo(sesion)
+    estado = rastreo.EstadoWorker()
+    await rastreo.ejecutar_ciclo(fabrica, rastreo.Fuentes(), estado, MEDIODIA)
+    antes = pedido.fecha_proyectada_disponible
+    assert antes is not None
+
+    await sesion.execute(
+        update(MaestroDestino)
+        .where(MaestroDestino.id == pedido.id_destino)
+        .values(lead_time_dias=MaestroDestino.lead_time_dias + 4)
+    )
+    sesion.expire_all()
+    await rastreo.ejecutar_ciclo(fabrica, rastreo.Fuentes(), estado, MEDIODIA)
+
+    await sesion.refresh(pedido)
+    assert pedido.fecha_proyectada_disponible == antes + dt.timedelta(days=4)
+
+
+async def test_si_el_recalculo_global_falla_se_reintenta(
+    sesion, limpio, fabrica, monkeypatch
+) -> None:
+    async def rompe(sesion):
+        raise RuntimeError("base rara")
+
+    monkeypatch.setattr(rastreo.recalculo, "firma_del_calculo", rompe)
+    estado = rastreo.EstadoWorker()
+
+    resumen = await rastreo.ejecutar_ciclo(fabrica, rastreo.Fuentes(), estado, MEDIODIA)
+
+    assert resumen.errores == {"recalculo_global": "error_inesperado"}
+    assert estado.firma_calculo is None

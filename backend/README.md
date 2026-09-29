@@ -52,6 +52,15 @@ Dos detalles que no son obvios:
   valor del entorno *antes* de correr cualquier validador, y falla con un CSV.
   La lista ya parseada se expone en `settings.cors_origins`.
 
+**La configuración incompleta no arranca** (`US-17`). Al importar
+`app.core.config` se revisa todo y, si algo falta, el error lo lista entero:
+valores que quedaron como `<placeholder>` de la plantilla, credenciales a
+medias (`OPENSKY_CLIENT_ID` sin `OPENSKY_CLIENT_SECRET`), `ztracking` sin
+`ZTRACKING_RUTA` y, con `ENVIRONMENT=production`, la `SECRET_KEY` o la
+`POSTGRES_PASSWORD` de desarrollo. Lo que **no** impide arrancar es una fila
+mala de `parametros_sistema`: usa su valor por defecto, y el worker la reporta
+como error en el log al arrancar.
+
 ## Estructura
 
 ```

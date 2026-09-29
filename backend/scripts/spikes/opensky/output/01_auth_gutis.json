@@ -20,9 +20,9 @@
     "exp": 1787159239,
     "iat": 1787157439,
     "typ": "Bearer",
-    "azp": "mdjmayorga-api-client",
+    "azp": "mdjm...ient",
     "scope": "profile email",
-    "clientId": "mdjmayorga-api-client"
+    "clientId": "mdjm...ient"
   },
   "token_ttl": {
     "iat_utc": "2026-08-19T16:37:19+00:00",

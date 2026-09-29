@@ -25,6 +25,7 @@ import sys
 
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal, dispose_engine, engine
+from app.services import parametros
 from app.services.rastreo import shipsgo_aerolineas, transporte_http
 from app.services.rastreo.shipsgo_cliente import ErrorShipsGo
 from app.workers import rastreo
@@ -32,7 +33,21 @@ from app.workers import rastreo
 logger = logging.getLogger("app.workers")
 
 
+async def _revisar_parametros() -> None:
+    """Dice al arrancar qué filas de `parametros_sistema` no se pueden usar (`US-17`)."""
+    try:
+        async with AsyncSessionLocal() as sesion:
+            problemas = await parametros.revisar(sesion)
+    except Exception:
+        # Sin base el ciclo fallará igual y lo dirá; esto es solo un aviso.
+        logger.exception("Worker: no se pudo revisar parametros_sistema.")
+        return
+    for problema in problemas:
+        logger.error("Worker: parámetro mal configurado — %s", problema)
+
+
 async def principal(args: argparse.Namespace) -> int:
+    await _revisar_parametros()
     async with (
         transporte_http.crear_cliente_http() as http,
         transporte_http.crear_cliente_http_tica() as http_tica,

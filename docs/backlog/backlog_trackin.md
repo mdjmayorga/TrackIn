@@ -81,7 +81,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-14` | Confirmar el desembarco y **disparar el paso manual a proceso aduanal** | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 · RN-06 revisada 04/09 |
 | `US-15` | Auditar toda intervencion manual sobre un pedido | Story | OE4 | **Should** | Sprint 5 | 8h | RF-14 / RNF-06 |
 | `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) · ✅ terminada 29/09 |
-| `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 |
+| `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 · ✅ terminada 29/09 |
 | `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 |
 | `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada |
 | `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) |
@@ -100,6 +100,9 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-50` | Worker de rastreo: ciclo periódico que consulta, aplica, evalúa el arribo y recalcula | Story | OE2 | **Must** | Sprint 4 | 6h | `TASK-20` §1.4 · ✅ terminada 28/09 con el margen del Sprint 4 |
 | `US-51` | Publicar la salud de las fuentes en la base para que `/health` vea al worker | Story | OE2 | **Should** | Sprint 4 | 3h | RF-20 / RNF-12 · ✅ terminada 28/09 |
 | `US-52` | Tomar de ShipsGo el puerto que el archivo no dice, y la referencia del comentario | Story | OE2 | **Should** | Sprint 4 | 5h | RF-01 / RN-17 · ✅ terminada 28/09 |
+| `US-53` | Medir el cumplimiento contra la fecha de llegada a Gutis (columna R) | Story | OE2 | **Must** | Sprint 5 | 3h | Reunión con Compras 29/09 · revierte la decisión 2 del 04/09 · ✅ terminada 29/09 |
+| `US-54` | Tomar el puerto de llegada del API aunque el incoterm diga otro | Story | OE2 | **Should** | Sprint 5 | 3h | Reunión con Compras 29/09 · amplía `US-52` |
+| `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · hoy solo por script |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
@@ -1443,6 +1446,38 @@ Como administrador, quiero configurar credenciales y umbrales sin tocar el codig
 | Origen en el SRS | RF-24 / RNF-07 / RNF-15 |
 | Etiquetas | `backend,configuracion` |
 
+> **✅ Terminada el 29/09/2026, adelantada al Sprint 5.**
+>
+> **Credenciales fuera del repositorio — con un hallazgo.** Se buscaron los valores reales del
+> `.env` de desarrollo en todos los archivos versionados. Apareció uno: el **client ID de
+> OpenSky** (no el secreto), dentro de las salidas del spike `TG-11`
+> (`scripts/spikes/opensky/output/01_auth_*.json`), que guardaban los claims del JWT sin
+> enmascarar. Se enmascaró en los dos archivos y en el script que los escribe. Sigue en el
+> historial de los commits `47f7d30` y `02999b0`: sin el secreto no autentica, así que no se
+> reescribió la historia; si se quiere cerrar del todo, se rota la credencial en OpenSky.
+> Una prueba (`test_configuracion.py`) repite la búsqueda en cada corrida donde haya
+> credenciales configuradas, y otra fija que los `.env` reales están en `.gitignore`.
+>
+> **El umbral cambiado en la tabla se aplica — también a los pedidos sin rastreo.** El
+> «próximo recálculo» del criterio no existía para ellos: el worker solo recalculaba
+> elementos con una lectura nueva, y hoy son la mayoría. Ahora el worker compara en cada
+> ciclo una firma de los insumos globales —umbral de riesgo, velocidad mínima de ETA y el lead
+> time de cada destino— y si cambió, recalcula todo. Detecta también lo editado con un
+> `UPDATE` a mano o por una migración, y al arrancar siempre barre una vez.
+>
+> **La configuración incompleta no arranca, y dice todo lo que falta de una vez:** valores
+> copiados de la plantilla (`<placeholder>`), credenciales a medias (OpenSky necesita las
+> dos), `ztracking` sin ruta y, en producción, la `SECRET_KEY` o la contraseña de desarrollo.
+> El mensaje **no copia la configuración**: pydantic la incluía entera, credenciales
+> incluidas, y habría terminado en un log.
+>
+> **Lo que no se hizo fallar, a propósito:** una fila mala de `parametros_sistema`. Cada
+> parámetro tiene su defecto en el catálogo, y la decisión de que una errata no apague el
+> rastreo sigue en pie. Lo que cambió es que ya no se calla: el worker, al arrancar, registra
+> como error cada valor ilegible, cada clave que nadie lee y cada tipo distinto del catálogo.
+>
+> Suite: 1077 pruebas (21 nuevas), 97 % de cobertura.
+
 #### US-18 — Registrar la recepcion en planta (ya no cierra el pedido)
 
 Como usuario de Logística, quiero registrar la recepción efectiva en planta, para que el pedido deje de consumir cuota de API y quede a la espera de Control de Calidad.
@@ -2597,6 +2632,9 @@ está en SAP ni en el Z-tracking. Es el primer pendiente del correo a Planeació
 
 ### 2. La fecha comprometida es `Fecha entrega SolPed`
 
+> **Revertida el 29/09/2026 (`US-53`).** Tras la reunión con Compras, la fecha comprometida
+> pasa a ser `Fecha entrega` (R), la llegada a Gutis. Ver «Cambios de la reunión con Compras».
+
 Planeación confirmó la fórmula del estatus de SAP:
 
 ```
@@ -2718,6 +2756,118 @@ libera el material, para que «cerrado» signifique **disponible para producció
 | Tipo | Story · OE2 · **Must** · Sprint 5 · 8 h |
 | Origen | Reunión con Planeación, 04/09/2026 |
 | Etiquetas | `backend,calidad,cierre` |
+
+---
+
+## Cambios de la reunión con Compras (29/09/2026)
+
+Siete respuestas. Tres cambian el cálculo, dos cambian la autenticación y dos solo la
+presentación. Las decisiones sobre el cálculo las tomó Mariano el mismo día, después de la
+reunión.
+
+| # | Lo que dijo Compras | Efecto | Dónde |
+|---|---|---|---|
+| 1 | El BL **va a venir** en el Z-tracking final | El lector ya mapea `Tipo de referencia` y `Número de referencia` (`TASK-30`); falta una muestra del archivo final para confirmar los rótulos | `US-01`, `US-52` |
+| 2 | La grilla empieza por **OC y posición** | Presentación. La API ya las entrega por separado (`US-16`). Mariano corrige el Figma | `US-19` |
+| 3 | El material va con su **código** (columna F de `PRODUCCION`) y su nombre | El dato ya se lee: F es `Material` y G es `Texto breve Material`, y la API devuelve los dos. Solo cambia la grilla | `US-19` |
+| 4 | El incoterm lo escribe Compras en SAP; **el puerto puede salir del API** | El puerto de ShipsGo pasa a mandar sobre el del incoterm | `US-54` |
+| 5 | **No se da ETA**: se da la fecha de llegada a Gutis (columna R). La diferencia entre la llegada a CR del API y R es el proceso aduanal | R pasa a ser la fecha comprometida; la ETA a puerto sale del API | `US-53` |
+| 6 | **Hay presupuesto** para créditos, y las altas las autorizan **los usuarios de Compras** | Compras necesita poder dar de alta desde el sistema, no desde un script | `US-55`, `US-42` |
+| 7 | **Un solo usuario de Compras**, `compras@gutis.com`, con varias personas conectadas a la vez | La autenticación no puede cerrar la sesión anterior al abrir otra | `US-42` |
+
+### Decisiones del 29/09
+
+- **La fecha comprometida pasa de la columna K a la R.** K es `Fecha Entrega Solped` y R es
+  `Fecha Entrega`: son distintas en el archivo real —en la segunda línea de WK38, K dice 15/10
+  y R dice 23/09—, así que el semáforo va a cambiar en muchos pedidos. **Revierte la decisión
+  2 de la reunión con Planeación del 04/09**, y a Planeación hay que avisarle.
+
+  **Lo que conviene llevarle a Planeación.** Su estatus de SAP era `Diferencia Días = K − R`:
+  para ellos K es cuándo lo necesita producción y R cuándo va a llegar según el plan. Medir
+  contra R responde «¿llega cuando Compras dijo?», no «¿llega cuando producción lo
+  necesita?». Si Planeación quiere la segunda pregunta, K se puede guardar aparte y mostrar
+  su diferencia; hoy el lector ya no la lee.
+- **La columna AR (`ETA CR (fecha)`) se mantiene** como ETA declarada, el último recurso de
+  RN-14. Compras dijo que la ETA no se da, pero la columna existe y trae fechas; mientras
+  exista, sirve para no dejar sin fecha un pedido que no tiene referencia.
+- **El puerto del API manda sobre el del incoterm** cuando la referencia está registrada en
+  ShipsGo. El incoterm queda como respaldo para las líneas sin referencia.
+
+### `US-53` — Medir el cumplimiento contra la fecha de llegada a Gutis
+
+Como usuario de Compras, quiero que el semáforo compare contra la fecha de llegada a Gutis
+que yo manejo, para que «a tiempo» y «retrasado» signifiquen lo mismo para mí y para el sistema.
+
+**Criterios de aceptación**
+
+- Dado el Z-tracking, cuando se carga, entonces la fecha comprometida sale de la columna `Fecha Entrega` (R) y no de `Fecha Entrega Solped` (K)
+- Dado un pedido ya cargado, cuando se recarga con el lector nuevo, entonces su fecha comprometida cambia y se recalcula su estado (`US-12`)
+- Dado el detalle de un pedido, cuando reviso el cálculo, entonces el margen entre la llegada a CR y la fecha comprometida se lee como la ventana del proceso aduanal
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Must** · Sprint 5 · 3 h |
+| Origen | Reunión con Compras, 29/09/2026 |
+| Toca | `ztracking.COLUMNAS`, `data-dictionary.md`, el SRS (RN-07 a RN-09) |
+
+> **✅ Terminada el 29/09/2026.**
+>
+> - **Por nombre exacto.** «Fecha Entrega» es el principio de «Fecha Entrega Solped». Si la
+>   columna R faltara, la búsqueda por prefijo del lector habría encontrado K y cargado una
+>   fecha plausible y equivocada. La columna se marcó `solo_exacto`: sin R, la hoja no se lee
+>   y el error dice cuál falta.
+> - **No siempre es la columna R.** Es R en `PRODUCCION` de WK38, pero P en `IDA` y en todo
+>   WK36. El lector la busca por nombre, así que no importa.
+> - **Cambian las líneas legibles de las muestras reales.** En `IDA`, K y R no están vacías
+>   en las mismas líneas. WK38 pasa de 460 a **465** leídas: 5 líneas traían K vacía y R
+>   llena, y ahora entran. WK36 pasa de 424 a **423**: 6 líneas de las OC 4500018933 y
+>   4500018945 traen R vacía y ahora se rechazan con su motivo; otras 5 con K vacía entran.
+> - **El detalle del pedido muestra la ventana aduanal:** los días entre la llegada a CR y
+>   la fecha comprometida, junto al lead time del destino (`calculo.ventana_aduanal_dias`).
+> - **Para que se note en la base hay que recargar el archivo.** La recarga cambia la fecha
+>   comprometida de las líneas afectadas, y `US-12` las recalcula en la misma transacción.
+
+### `US-54` — El puerto de llegada del API manda sobre el incoterm
+
+Como usuario de Planificación, quiero que el puerto de un pedido rastreado sea el que declara
+la naviera, para que la fecha proyectada no dependa de lo que se escribió en SAP.
+
+**Criterios de aceptación**
+
+- Dada una línea cuya referencia está registrada en ShipsGo, cuando se carga, entonces el destino es el puerto de descarga del API, aunque el incoterm nombre otro
+- Dado que el API y el incoterm discrepan, cuando se carga, entonces el informe de carga lo muestra, para que Compras corrija SAP si quiere
+- Dada una línea sin referencia registrada, cuando se carga, entonces el destino sigue saliendo del incoterm, como hoy
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Should** · Sprint 5 · 3 h |
+| Origen | Reunión con Compras, 29/09/2026 · invierte la precedencia de `US-52` (archivo → fuente) |
+
+> Consultar el destino en ShipsGo es gratis, pero pasa a hacerse en **todas** las líneas con
+> referencia, no solo en las que el archivo no ubica: la carga tardará más.
+
+### `US-55` — Dar de alta un embarque desde el sistema, con el rol Compras
+
+Como usuario de Compras, quiero registrar en ShipsGo un embarque nuevo desde TrackIn, para
+empezar a rastrearlo sin pedírselo a Planificación.
+
+**Criterios de aceptación**
+
+- Dado un pedido con referencia no registrada, cuando lo doy de alta, entonces el sistema advierte que cuesta un crédito y pide confirmación
+- Dada el alta, cuando se confirma, entonces queda auditada conforme a RF-14, con el costo
+- Dado que se superan las altas diarias de `altas_maximas_dia`, cuando se intenta otra, entonces el sistema lo advierte
+- Dado un rol que no es Compras ni Administrador, cuando intenta dar de alta, entonces no puede
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Should** · Sprint 6 · 6 h |
+| Origen | Reunión con Compras, 29/09/2026: hay presupuesto y las altas las autorizan ellos |
+| Depende de | `US-42` (roles) |
+
+### Lo que cambia en `US-42`
+
+- **Una cuenta compartida:** `compras@gutis.com`, con **sesiones simultáneas**. Abrir una sesión no cierra las demás.
+- **Riesgo para la auditoría (RF-14, `US-15`):** con una cuenta compartida, la auditoría dirá «Compras» y no qué persona dio de alta o intervino un pedido. Si eso importa —y con altas que cuestan dinero, importa—, la acción podría pedir el nombre de quien la hace, junto con el motivo. **Decisión abierta.**
 
 ---
 

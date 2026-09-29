@@ -244,22 +244,31 @@ CATALOGO: Final[dict[str, Parametro]] = {
 }
 
 
-def _convertir(bruto: str, tipo_dato: str, clave: str) -> Any:
-    """Pasa el texto de la columna al tipo declarado.
-
-    Un valor mal escrito **no tumba nada**: se registra y se usa el defecto. Es
-    la misma lógica que el registro de fuentes: una errata en una fila de
-    configuración no debe dejar el sistema sin arrancar.
-    """
+def _parsear(bruto: str, tipo_dato: str) -> Any:
+    """El texto de la columna en su tipo. Lanza `ValueError` si no se puede."""
     try:
         if tipo_dato == "ENTERO":
             return int(bruto)
         if tipo_dato == "DECIMAL":
             return Decimal(bruto)
-        if tipo_dato == "BOOLEANO":
-            return bruto.strip().lower() in {"true", "t", "1", "si", "sí"}
-        return bruto
-    except (ValueError, InvalidOperation):
+    except InvalidOperation as exc:
+        raise ValueError(bruto) from exc
+    if tipo_dato == "BOOLEANO":
+        return bruto.strip().lower() in {"true", "t", "1", "si", "sí"}
+    return bruto
+
+
+def _convertir(bruto: str, tipo_dato: str, clave: str) -> Any:
+    """Pasa el texto de la columna al tipo declarado.
+
+    Un valor mal escrito **no tumba nada**: se registra y se usa el defecto. Es
+    la misma lógica que el registro de fuentes: una errata en una fila de
+    configuración no debe dejar el sistema sin arrancar. Lo que sí se hace es
+    decirlo **al arrancar** (`revisar`), no solo la primera vez que se lee.
+    """
+    try:
+        return _parsear(bruto, tipo_dato)
+    except ValueError:
         logger.warning(
             "Parámetro %r: %r no es un %s válido; se usa el valor por defecto.",
             clave,
@@ -285,6 +294,38 @@ async def obtener(sesion: AsyncSession, clave: str) -> Any:
     return _convertir(fila.valor, definicion.tipo_dato, clave)
 
 
+async def revisar(sesion: AsyncSession) -> list[str]:
+    """Lo que está mal en `parametros_sistema`, para decirlo al arrancar (`US-17`).
+
+    No falla: cada problema ya tiene su salida —el valor por defecto—, y un
+    `UPDATE` con una errata no debería poder apagar el rastreo. Pero tampoco se
+    calla: un umbral que se cree cambiado y en realidad corre con el defecto es
+    justo el error silencioso que el tercer criterio de la historia prohíbe.
+
+    Una clave del catálogo **sin fila** no es un problema: usa su defecto, que
+    es lo previsto (ver el encabezado de este módulo).
+    """
+    problemas: list[str] = []
+    for fila in await sesion.scalars(select(ParametroSistema).order_by(ParametroSistema.clave)):
+        definicion = CATALOGO.get(fila.clave)
+        if definicion is None:
+            problemas.append(f"{fila.clave}: no está en el catálogo; ningún proceso la lee.")
+            continue
+        if fila.tipo_dato != definicion.tipo_dato:
+            problemas.append(
+                f"{fila.clave}: la fila dice {fila.tipo_dato} y el catálogo "
+                f"{definicion.tipo_dato}; se lee como {definicion.tipo_dato}."
+            )
+        try:
+            _parsear(fila.valor, definicion.tipo_dato)
+        except ValueError:
+            problemas.append(
+                f"{fila.clave} = {fila.valor!r}: no es un {definicion.tipo_dato} válido; "
+                f"se usa el defecto ({definicion.defecto})."
+            )
+    return problemas
+
+
 async def obtener_entero(sesion: AsyncSession, clave: str) -> int:
     """`obtener` con el tipo estrechado, para quien necesita un `int`."""
     return int(await obtener(sesion, clave))
@@ -300,4 +341,5 @@ __all__ = [
     "obtener",
     "obtener_decimal",
     "obtener_entero",
+    "revisar",
 ]
