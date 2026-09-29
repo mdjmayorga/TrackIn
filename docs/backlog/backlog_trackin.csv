@@ -277,7 +277,7 @@ Definition of Done:
 - Merge a rama principal sin errores de CI
 
 Origen en el SRS: RF-13 / CU-05
-MoSCoW: Should","High","Sprint 5","OE2-Backend","backend,manual","8h","mamayorga"
+MoSCoW: Must","Highest","Sprint 5","OE2-Backend","backend,manual","8h","mamayorga"
 "Story","US-15 Auditar toda intervencion manual sobre un pedido","Como supervisor, quiero la traza de cada cambio manual, para saber quien alteró un dato calculado y por que.
 
 Criterios de aceptacion (Gherkin):

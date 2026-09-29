@@ -64,7 +64,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-03` | Política de resiliencia **independiente del transporte** ✅ | Story | OE2 | **Must** | Sprint 3 | 8h | RF-09 / RNF-12 · reespecificada 08/09 |
 | `US-04` | Registrar el historial de posiciones con el payload original ✅ | Story | OE4 | **Must** | Sprint 3 | 8h | RF-21 / RNF-13 |
 | `TASK-19` | Diccionario de datos: usuarios ✅ | Task | OE1 | **Should** | Sprint 3 | 2h | Diseño OE1 / diccionario de datos |
-| `TASK-23` | Consolidar el material de OE1 para el Informe 1 | Task | OE1 | **Must** | Sprint 3 | 8h | Hito Informe 1 (25/09/2026) |
+| `TASK-23` | Consolidar el material de OE1 para el Informe 1 ✅ | Task | OE1 | **Must** | Sprint 3 | 8h | Hito Informe 1 (25/09/2026) |
 | `US-05` | Consumir posiciones ADS-B desde OpenSky con OAuth2 | Story | OE2 | **Must** | Sprint 4 | 10h | RF-07 · ✅ terminada 22/09 |
 | `US-06` | Resolver el icao24 de un vuelo como vinculo temporal del tramo | Story | OE2 | **Must** | Sprint 4 | 8h | RF-07 / spike TG-11 · ✅ terminada 22/09 |
 | `US-07` | Planificar las consultas periodicas con frecuencia parametrizable | Story | OE2 | **Must** | Sprint 4 | 8h | RF-08 (reformulado) · ✅ terminada 22/09 |
@@ -1006,7 +1006,9 @@ Como desarrollador, quiero documentar el diccionario de datos de usuarios/roles,
 | Origen | Diseño OE1 / diccionario de datos (movida desde Sprint 2) |
 | Etiquetas | `diseno,diccionario` |
 
-#### TASK-23 — Consolidar el material de OE1 para el Informe 1
+#### TASK-23 — Consolidar el material de OE1 para el Informe 1 ✅ HECHA
+
+> **Entregada el 25/09/2026** con el Informe 1 (`docs/Informe1_TrackIn_MarianoMayorga.docx`).
 
 Como estudiante practicante, quiero consolidar los entregables de OE1 (SRS, modelo, diccionario, arquitectura y prototipos), para integrarlos al Primer Informe de Avance.
 
@@ -1028,7 +1030,7 @@ Como estudiante practicante, quiero consolidar los entregables de OE1 (SRS, mode
 
 ### Sprint 4 (21 sep - 2 oct 2026)
 
-**11 items · 106 h estimadas · capacidad 65 h — ⚠️ sobrecargado en 41 h, por decisión.**
+**11 items · 106 h estimadas · capacidad 65 h — ⚠️ sobrecargado en 41 h, por decisión.** · **✅ Cerrado el 29/09/2026 con 15 historias (126 h), aprobado por Greivin.**
 
 > **Decidido con Greivin el 22/09/2026:** el Sprint 4 **se mantiene a 106 h** y el Sprint 5
 > queda como estaba. Es el sprint pesado del proyecto, asumido a conciencia. Se deja
@@ -1084,8 +1086,25 @@ Como estudiante practicante, quiero consolidar los entregables de OE1 (SRS, mode
 > puertos. Adivinar el Caribe habría sido un error. La auditoría RF-14 del alta queda pendiente
 > hasta que la línea entre a la base (exige un pedido).
 >
-> Queda para el cierre formal del 02/10: la revisión con Greivin y el paso de las historias a
-> terminadas en Jira.
+> ~~Queda para el cierre formal del 02/10: la revisión con Greivin y el paso de las historias a
+> terminadas en Jira.~~
+
+> **✅ Sprint 4 cerrado — 29/09/2026.** La revisión con Greivin se hizo antes de lo previsto
+> y **aprobó todo**: las 15 historias (126 h), las cuatro que entraron con el margen
+> (`US-49` a `US-52`) y el gasto de un crédito de ShipsGo en la prueba en vivo.
+>
+> **Verificación de la Definition of Done, el mismo día:** con la base local migrada a
+> `0013_salud_fuentes`, **1007 pruebas en verde, cobertura 97 %**, `ruff` y `black` limpios.
+> Las 974 del 28/09 subieron a 1007 con las pruebas de ShipsGo del commit `96eb10a`.
+>
+> **Dos hallazgos quedan abiertos, sin historia asignada,** para triarlos en la
+> planificación del Sprint 5:
+>
+> - **La etapa de viaje que reporta la fuente no se aplica al pedido.** La OC 4500016185-10
+>   sigue en `EN_ORIGEN` aunque ShipsGo dice `SAILING`; `arribo` solo sabe mover a
+>   `EN_DESTINO` (ver `US-52`).
+> - **El alta con costo del 28/09 (15:16) no tiene registro RF-14**, porque se hizo antes de
+>   que existiera el pedido. El registro que sí quedó dice «409: sin costo».
 
 #### US-05 — Consumir posiciones ADS-B desde OpenSky con OAuth2
 
@@ -1257,7 +1276,7 @@ Como usuario de Logística, quiero que el sistema determine el arribo a destino,
 
 ### Sprint 5 (5-16 oct 2026)
 
-**9 items · 66 h estimadas · capacidad 65 h — al limite.** US-40 entro el 01/09 (decision B4).
+**11 items · 86 h estimadas · capacidad 65 h — sobrecargado en 21 h.** US-40 entro el 01/09 (decision B4); `US-47` (+8 h, reunión con Planeación del 04/09) y `US-42` (+12 h, reunión con Logística del 03/09) entraron después y el encabezado no se había recontado (corregido el 29/09).
 
 #### US-12 — Recalcular fecha y estado ante cualquier cambio de insumo
 
@@ -1313,12 +1332,12 @@ Como usuario de Logística, quiero registrar la llegada real de la carga, para c
 |---|---|
 | Tipo | Story |
 | Objetivo específico | OE2 |
-| MoSCoW | **Should** |
+| MoSCoW | **Must** |
 | Estimacion | 8 h |
 | Origen en el SRS | RF-13 / CU-05 |
+| Etiquetas | `backend,manual` |
 
 > **Sube de `Should` a `Must` el 01/09.** Confirmado que no se compran fuentes de datos de pago (B1), y el spike TG-10 probo que **no hay cobertura AIS gratuita en Moin**. Sin fuente satelital, el arribo al puerto de destino no se puede detectar automaticamente: esta historia deja de ser un respaldo del automatismo y pasa a ser el **unico mecanismo** que cierra ese paso del ciclo.
-| Etiquetas | `backend,manual` |
 
 #### US-15 — Auditar toda intervención manual sobre un pedido
 
