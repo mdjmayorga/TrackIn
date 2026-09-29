@@ -841,6 +841,7 @@ class TestDestinoDeLaFuente:
 # --- US-12: el archivo es un insumo del cálculo -----------------------------
 
 
+@pytest.mark.integration
 class TestRecalculoTrasLaCarga:
     async def test_una_linea_nueva_entra_ya_proyectada(self, sesion, sin_pedidos) -> None:
         resultado = await cargar(

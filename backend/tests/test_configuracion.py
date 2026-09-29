@@ -6,26 +6,36 @@ Dos cosas distintas, las dos del arranque:
   una vez;
 - que ninguna credencial viva en el repositorio.
 
-`Settings(_env_file=None)` aísla las pruebas del `.env` de la máquina: el de
-desarrollo trae credenciales reales, y una prueba de «falta X» no puede pasar o
-fallar según quién la corra.
+Las pruebas de arranque se aíslan de **las dos** fuentes de configuración de la
+máquina: el `.env` (`_env_file=None`) y las variables de entorno reales, que
+borra `_sin_entorno`. CI define `SECRET_KEY` y `POSTGRES_PASSWORD` en
+`ci.yml`, y sin borrarlas una prueba de «falta X» pasa o falla según dónde corra.
 """
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 
 import pytest
+from dotenv import dotenv_values
 from pydantic import ValidationError
 
 from app.core.config import (
+    BACKEND_DIR,
     PASSWORD_DE_DESARROLLO,
     REPO_ROOT,
     SECRET_KEY_DE_DESARROLLO,
     Settings,
-    settings,
 )
+
+
+@pytest.fixture(autouse=True)
+def _sin_entorno(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Borra de este proceso cada variable que `Settings` leería."""
+    for nombre in Settings.model_fields:
+        monkeypatch.delenv(nombre, raising=False)
 
 
 def _config(**valores) -> Settings:
@@ -113,29 +123,30 @@ def test_los_env_reales_estan_ignorados(ruta: str) -> None:
 
 @requiere_git
 def test_ninguna_credencial_configurada_aparece_en_un_archivo_versionado() -> None:
-    """Busca los valores **reales** de esta máquina en lo que git versiona.
+    """Busca los valores de los `.env` de esta máquina en lo que git versiona.
 
-    En CI no hay credenciales y la prueba no tiene nada que buscar; donde sí las
-    hay —la máquina de desarrollo— es justo donde se cuelan. Así se encontró el
-    29/09 el client ID de OpenSky en la salida de un spike.
+    Se leen **los archivos** y no `settings`: `settings` también toma las
+    variables de entorno, y en CI esas son los valores de prueba que `ci.yml`
+    declara —versionados a propósito—. Las credenciales reales viven solo en los
+    `.env`, que es donde se cuelan. Así se encontró el 29/09 el client ID de
+    OpenSky en la salida de un spike. En CI no hay `.env` y la prueba se salta.
     """
-    candidatos = {
-        "SHIPSGO_API_TOKEN": settings.SHIPSGO_API_TOKEN,
-        "AISSTREAM_API_KEY": settings.AISSTREAM_API_KEY,
-        "OPENSKY_CLIENT_ID": settings.OPENSKY_CLIENT_ID,
-        "OPENSKY_CLIENT_SECRET": settings.OPENSKY_CLIENT_SECRET,
-        "SECRET_KEY": settings.SECRET_KEY,
-        "POSTGRES_PASSWORD": settings.POSTGRES_PASSWORD,
-    }
+    configurados: dict[str, str | None] = {}
+    for archivo in (BACKEND_DIR / ".env", REPO_ROOT / ".env"):
+        if archivo.is_file():
+            configurados.update(dotenv_values(archivo))
     secretos = {
         nombre: valor.encode()
-        for nombre, valor in candidatos.items()
-        if valor and valor not in (SECRET_KEY_DE_DESARROLLO, PASSWORD_DE_DESARROLLO)
+        for nombre, valor in configurados.items()
+        if re.search(r"KEY|TOKEN|SECRET|PASSWORD|CLIENT_ID", nombre)
+        and valor
+        and valor not in (SECRET_KEY_DE_DESARROLLO, PASSWORD_DE_DESARROLLO)
+        and not valor.startswith("<")
         # Un valor corto aparecería por casualidad en cualquier binario.
         and len(valor) >= 12
     }
     if not secretos:
-        pytest.skip("esta máquina no tiene credenciales configuradas")
+        pytest.skip("esta máquina no tiene credenciales en sus .env")
 
     versionados = _git("ls-files", "-z").stdout.decode().split("\0")
     filtrados = []
