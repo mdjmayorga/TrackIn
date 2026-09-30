@@ -25,10 +25,16 @@ incoterm, temperatura, referencia— es anulable y la línea entra igual.
 sin puerto la línea no se puede ubicar, y no se adivina. Pero si trae una
 referencia registrada en ShipsGo, la naviera ya declaró el puerto de descarga:
 quien llama puede pasar un `resolutor_destino` que lo consulte —solo lectura,
-nunca un alta—. La precedencia es: lo que dice el archivo, después lo que dice
-la fuente, y por último el destino que la línea ya tenía en la base. Lo último
-evita que una recarga sin ShipsGo rechace, y marque ausente, una línea que
-entró gracias a él.
+nunca un alta—.
+
+**Y cuando el archivo dice otro — `US-54`.** Desde la reunión con Compras del
+29/09/2026, **la naviera manda sobre el incoterm**: Compras escribe el incoterm
+en SAP y puede traer otro puerto o ninguno. La precedencia es: lo que declara
+ShipsGo; si no responde, el destino guardado **si vino de ShipsGo**
+(`destino_segun_fuente`); después lo que dice el archivo; y por último el
+destino que la línea ya tenía, para que una recarga no rechace ni marque ausente
+una línea que sí vino. Las discrepancias se reportan aparte, para que Compras
+corrija SAP si quiere (`ResultadoCarga.destinos_discrepantes`).
 
 La carga es **idempotente**: la clave natural es `(oc_numero, posicion_oc)` y
 una línea ya presente se **actualiza** en vez de duplicarse. Correr el cargador
@@ -110,6 +116,12 @@ ETAPA_INICIAL = "SIN_TRACKING"
 #: resolver desde un archivo sucio.
 RECHAZO_SIN_VIA = "sin_via_transporte"
 RECHAZO_SIN_DESTINO = "sin_destino_resoluble"
+#: Cómo empieza el detalle de una línea cuyo destino dio la fuente (`US-52`):
+#: el archivo no lo decía. Se reporta para que Logística lo complete.
+PREFIJO_DESTINO_DE_LA_FUENTE = "según ShipsGo"
+#: Y el de una cuyo destino corrigió la fuente (`US-54`): el archivo decía otro.
+#: Se reporta para que Compras corrija SAP, si quiere.
+PREFIJO_DISCREPANCIA = "ShipsGo corrige el destino"
 
 #: `(tipo, número) → código de destino` según una fuente de rastreo (`US-52`).
 #: Devuelve `None` cuando no lo sabe; nunca da de alta nada.
@@ -170,6 +182,9 @@ class ResultadoCarga:
     #: Líneas cuyo destino dio la fuente de rastreo y no el archivo (`US-52`),
     #: con el porqué. Se reportan: son las que Logística debería completar.
     destinos_de_la_fuente: list[LineaRechazada] = field(default_factory=list)
+    #: Líneas cuyo incoterm nombra un puerto y ShipsGo declara otro (`US-54`).
+    #: Entra el de ShipsGo; se reportan para que Compras corrija SAP.
+    destinos_discrepantes: list[LineaRechazada] = field(default_factory=list)
     #: De los cargados, cuántos trajeron la referencia escrita en el comentario.
     referencias_de_comentario: int = 0
     #: El recálculo de lo que entró o cambió (`US-12`). `None` si no hubo nada.
@@ -344,7 +359,10 @@ async def _destino_por_referencia(
     )
     if destino is None:
         return None, f"; ShipsGo dice que descarga en {codigo}, que no está en el maestro"
-    return destino, (f"según ShipsGo: el {veredicto.tipo} {veredicto.numero} descarga en {codigo}")
+    return destino, (
+        f"{PREFIJO_DESTINO_DE_LA_FUENTE}: el {veredicto.tipo} {veredicto.numero} "
+        f"descarga en {codigo}"
+    )
 
 
 async def _resolver(
@@ -352,8 +370,22 @@ async def _resolver(
     crudo: PedidoCrudo,
     resolutor: ResolutorDestino | None = None,
     destino_actual: MaestroDestino | None = None,
+    actual_segun_fuente: bool = False,
 ) -> tuple[_Resuelto | None, str, str]:
-    """Normaliza y resuelve los maestros. Devuelve el porqué si no se puede."""
+    """Normaliza y resuelve los maestros. Devuelve el porqué si no se puede.
+
+    El destino, por precedencia (`US-54`, reunión con Compras del 29/09/2026):
+
+    1. **Lo que declara la naviera en ShipsGo**, si la referencia está
+       registrada. El incoterm lo escribe Compras en SAP y puede venir sin
+       puerto o con otro; el puerto de descarga de la naviera es el dato.
+    2. **El destino ya guardado, si vino de ShipsGo** y ahora ShipsGo no
+       respondió —carga sin token, caída, embarque madurando—. Sin esto, una
+       recarga sin ShipsGo devolvería el pedido al puerto del incoterm.
+    3. **Lo que dice el archivo**: el incoterm o la vía (`resolver_destino`).
+    4. **El destino ya guardado**, sea cual sea su origen, para no rechazar y
+       marcar ausente una línea que sí vino en el archivo.
+    """
     # RN-17: se normaliza antes de decidir nada. `Terrestre` es TERRESTRE y
     # `PENDIENTE` no es una vía, es la ausencia de una.
     via = normalizacion.normalizar_via(crudo.via_transporte)
@@ -364,22 +396,46 @@ async def _resolver(
             f"la vía {crudo.via_transporte!r} no es una vía de transporte",
         )
 
-    destino, detalle = await resolver_destino(sesion, crudo.destino_codigo, via, crudo.incoterm)
-    de_la_fuente = False
-    if destino is None and resolutor is not None:
-        # `US-52`: el archivo no lo dice, pero la naviera sí.
-        destino, nota = await _destino_por_referencia(sesion, crudo, resolutor)
-        if destino is not None:
-            detalle, de_la_fuente = nota, True
+    del_archivo, detalle_archivo = await resolver_destino(
+        sesion, crudo.destino_codigo, via, crudo.incoterm
+    )
+    de_la_fuente: MaestroDestino | None = None
+    nota_fuente = ""
+    if resolutor is not None:
+        de_la_fuente, nota_fuente = await _destino_por_referencia(sesion, crudo, resolutor)
+
+    destino: MaestroDestino
+    segun_fuente = False
+    if de_la_fuente is not None:
+        destino, segun_fuente = de_la_fuente, True
+        if del_archivo is None:
+            detalle = nota_fuente
+        elif del_archivo.id == de_la_fuente.id:
+            detalle = f"ShipsGo confirma el destino del archivo ({de_la_fuente.codigo})"
         else:
-            detalle += nota
-    if destino is None and destino_actual is not None:
-        # Ya tenía destino —probablemente de la fuente, en una carga anterior—:
-        # rechazarla ahora la marcaría ausente estando en el archivo.
+            declarado = nota_fuente.removeprefix(f"{PREFIJO_DESTINO_DE_LA_FUENTE}: ")
+            detalle = (
+                f"{PREFIJO_DISCREPANCIA}: {declarado}; "
+                f"el archivo decía {del_archivo.codigo} ({detalle_archivo})"
+            )
+    elif destino_actual is not None and actual_segun_fuente:
+        destino, segun_fuente = destino_actual, True
+        dice = del_archivo.codigo if del_archivo is not None else "ninguno"
+        detalle = (
+            f"se conserva el destino que declaró ShipsGo ({destino_actual.codigo}); "
+            f"el archivo dice {dice}"
+        )
+    elif del_archivo is not None:
+        destino, detalle = del_archivo, detalle_archivo + nota_fuente
+    elif destino_actual is not None:
+        # Rechazarla ahora la marcaría ausente estando en el archivo.
         destino = destino_actual
-        detalle = f"se conserva el destino ya asignado ({destino_actual.codigo}): {detalle}"
-    if destino is None:
-        return None, RECHAZO_SIN_DESTINO, detalle
+        detalle = (
+            f"se conserva el destino ya asignado ({destino_actual.codigo}): "
+            f"{detalle_archivo}{nota_fuente}"
+        )
+    else:
+        return None, RECHAZO_SIN_DESTINO, detalle_archivo + nota_fuente
 
     # La vía del destino manda sobre la de la línea cuando difieren: el maestro
     # es dato verificado y la columna del archivo es texto libre.
@@ -408,7 +464,7 @@ async def _resolver(
             id_proveedor=proveedor.id,
             id_material=material.id,
             detalle=detalle,
-            destino_de_la_fuente=de_la_fuente,
+            destino_de_la_fuente=segun_fuente,
         ),
         "",
         detalle,
@@ -425,6 +481,9 @@ def _campos_del_archivo(crudo: PedidoCrudo, resuelto: _Resuelto) -> dict[str, ob
         "id_proveedor": resuelto.id_proveedor,
         "id_material": resuelto.id_material,
         "id_destino": resuelto.destino.id,
+        # No lo escribe el archivo, pero se decide con él: es de dónde salió
+        # el destino en esta misma carga (`US-54`).
+        "destino_segun_fuente": resuelto.destino_de_la_fuente,
         "id_pais_origen": resuelto.id_pais,
         "via_transporte": resuelto.via,
         "cantidad_pedida": Decimal(str(crudo.cantidad)),
@@ -472,19 +531,28 @@ async def cargar_pedido(
     destino_actual = (
         await sesion.get(MaestroDestino, ya_esta.id_destino) if ya_esta is not None else None
     )
-    resuelto, motivo, detalle = await _resolver(sesion, crudo, resolutor_destino, destino_actual)
+    resuelto, motivo, detalle = await _resolver(
+        sesion,
+        crudo,
+        resolutor_destino,
+        destino_actual,
+        actual_segun_fuente=ya_esta is not None and ya_esta.destino_segun_fuente,
+    )
     if resuelto is None:
         return None, motivo, detalle
     if resuelto.destino_de_la_fuente:
-        # Se deja ver en el tercer elemento aunque la línea ya estuviera.
         detalle = resuelto.detalle
 
     if ya_esta is not None:
-        actualizado = _actualizar(ya_esta, crudo, resuelto, ahora)
+        pedido, estado, cambios = _actualizar(ya_esta, crudo, resuelto, ahora)
         # Se vacía igual que en el alta: sin esto el `UPDATE` queda pendiente y
         # quien llame vería el valor viejo hasta el siguiente *autoflush*.
         await sesion.flush()
-        return actualizado
+        if resuelto.destino_de_la_fuente:
+            # El origen del destino va primero: es lo que `cargar` reporta, y
+            # hasta `US-54` se perdía en las líneas que ya estaban.
+            return pedido, estado, f"{detalle} · {cambios}"
+        return pedido, estado, cambios
 
     pedido = PedidoTransito(
         oc_numero=crudo.oc_numero,
@@ -626,9 +694,13 @@ async def cargar(
         # marcaríamos ausente en la misma corrida que la vio.
         presentes.add(crudo.clave)
 
-        if detalle.startswith("según ShipsGo"):
+        if detalle.startswith(PREFIJO_DESTINO_DE_LA_FUENTE):
             resultado.destinos_de_la_fuente.append(
                 LineaRechazada(crudo.oc_numero, crudo.posicion_oc, "destino_de_la_fuente", detalle)
+            )
+        elif detalle.startswith(PREFIJO_DISCREPANCIA):
+            resultado.destinos_discrepantes.append(
+                LineaRechazada(crudo.oc_numero, crudo.posicion_oc, "destino_discrepante", detalle)
             )
 
         if estado == "cerrado_omitido":

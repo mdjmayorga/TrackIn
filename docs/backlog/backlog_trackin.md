@@ -101,8 +101,9 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-51` | Publicar la salud de las fuentes en la base para que `/health` vea al worker | Story | OE2 | **Should** | Sprint 4 | 3h | RF-20 / RNF-12 · ✅ terminada 28/09 |
 | `US-52` | Tomar de ShipsGo el puerto que el archivo no dice, y la referencia del comentario | Story | OE2 | **Should** | Sprint 4 | 5h | RF-01 / RN-17 · ✅ terminada 28/09 |
 | `US-53` | Medir el cumplimiento contra la fecha de llegada a Gutis (columna R) | Story | OE2 | **Must** | Sprint 5 | 3h | Reunión con Compras 29/09 · revierte la decisión 2 del 04/09 · ✅ terminada 29/09 |
-| `US-54` | Tomar el puerto de llegada del API aunque el incoterm diga otro | Story | OE2 | **Should** | Sprint 5 | 3h | Reunión con Compras 29/09 · amplía `US-52` |
+| `US-54` | Tomar el puerto de llegada del API aunque el incoterm diga otro | Story | OE2 | **Should** | Sprint 5 | 3h | Reunión con Compras 29/09 · amplía `US-52` · ✅ terminada 29/09 |
 | `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · hoy solo por script |
+| `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
@@ -2846,6 +2847,26 @@ la naviera, para que la fecha proyectada no dependa de lo que se escribió en SA
 > Consultar el destino en ShipsGo es gratis, pero pasa a hacerse en **todas** las líneas con
 > referencia, no solo en las que el archivo no ubica: la carga tardará más.
 
+> **✅ Terminada el 29/09/2026.** La precedencia del destino queda así: lo que declara
+> ShipsGo; si no responde, el destino guardado **si vino de ShipsGo**; después el archivo
+> (incoterm o vía); y por último el destino que la línea ya tenía.
+>
+> - **Una columna nueva, `destino_segun_fuente`** (migración `0014`). Sin ella, una recarga
+>   con `--sin-shipsgo`, con ShipsGo caído o con el embarque madurando habría devuelto el
+>   pedido al puerto del incoterm: nada registraba de dónde había salido el destino.
+> - **Las discrepancias se reportan aparte** (`destinos_discrepantes`), con los dos puertos:
+>   «ShipsGo corrige el destino: … descarga en CRCAL; el archivo decía CRLIO». El script de
+>   carga las imprime bajo «Puerto corregido por ShipsGo», para Compras.
+> - **Arreglo colateral.** En una línea que ya existía, la nota de que el destino venía de
+>   ShipsGo se perdía: el informe de `US-52` solo la mostraba en las líneas nuevas. Con
+>   `US-54` casi toda carga es una recarga, así que la discrepancia nunca habría llegado al
+>   informe.
+> - **Un código de la naviera que el maestro no tiene no gana.** Si el incoterm sí ubica la
+>   línea, entra por el incoterm y la nota queda en el detalle; si tampoco lo ubica, se
+>   rechaza con el código a la vista, como en `US-52`.
+> - Una prueba de `US-52` («si el archivo lo dice, no se pregunta») se reemplazó: es
+>   exactamente la regla que esta historia invierte. Suite: 1087 pruebas.
+
 ### `US-55` — Dar de alta un embarque desde el sistema, con el rol Compras
 
 Como usuario de Compras, quiero registrar en ShipsGo un embarque nuevo desde TrackIn, para
@@ -2863,6 +2884,49 @@ empezar a rastrearlo sin pedírselo a Planificación.
 | Tipo | Story · OE2 · **Should** · Sprint 6 · 6 h |
 | Origen | Reunión con Compras, 29/09/2026: hay presupuesto y las altas las autorizan ellos |
 | Depende de | `US-42` (roles) |
+
+### `TASK-32` — Spike: Parcels API como alternativa con licencia ✅ HECHA
+
+**Origen.** En la misma jornada, los usuarios clave pidieron una alternativa a ShipsGo con
+licencia —cuota fija mensual— en vez de pago por embarque. Hay que precisar la premisa:
+**ShipsGo no cobra por contenedor** sino por BL o guía madre (un BL con varios contenedores
+cuesta un crédito), y la estimación del 14/09 era de ~US$750 al año. De las alternativas
+revisadas, **Parcels** es la única con plan mensual, aéreo y marítimo en un mismo proveedor, y
+cuota muy por encima del volumen de Gutis (300 envíos por US$19 al mes).
+
+**Qué se probó**, con los tres envíos gratuitos: el MAWB de Lufthansa `020-25244995` (llegado
+el 10/09), el BL de COSCO `COSU6508789000` (en tránsito, ETA 05/10 a Caldera) y el contenedor
+Maersk `MRSU8132490` (descargado el 18/09 en Moín). Detalle y evidencia en
+`backend/scripts/spikes/parcels/README.md`.
+
+| | Aéreo | Marítimo |
+|---|---|---|
+| Resuelve la referencia | ✅ | ✅ COSCO; Maersk solo indicando el transportista |
+| Hitos y llegada real | ✅ coincide con TICA al minuto | ✅ coincide con ShipsGo |
+| Transbordos | ✅ por vuelo | ✅ por nave |
+| **ETA** | ✅ por tramo de vuelo | ❌ ninguna |
+| **Puerto de descarga** | Solo como texto | ❌ COSCO da «San José», no Caldera |
+| Posición de la nave | — | ❌ |
+
+**Veredicto: sirve para el aéreo, no para el marítimo.** El aéreo es el 83 % de los pedidos
+y Parcels lo resuelve completo. En el marítimo faltan la ETA (RN-14), el puerto de descarga
+(`US-54`) y la posición (`US-25`).
+
+**Lo que queda por decidir, con los usuarios clave:** Parcels para el aéreo con cuota fija y
+ShipsGo solo para el marítimo —pocos BL al mes, pocos créditos—, o seguir solo con ShipsGo.
+Si se elige la combinación, la integración es una fuente nueva con su cliente y su colector,
+como `US-46`, detrás de la misma política de resiliencia (`US-03`).
+
+**Dos cosas que conviene saber antes de decidir:**
+
+- La cuota de Parcels mide **embarques activos por mes**, no altas: un embarque cuenta en
+  cada ciclo en que se consulta. Con ~30 embarques nuevos al mes, 300 sobran.
+- Quedó sin probar un aéreo **en tránsito**: las dos guías aéreas del WK38 ya habían llegado.
+
+| | |
+|---|---|
+| Tipo | Task · OE2 · **Must** · Sprint 5 · 3 h · ✅ terminada 29/09/2026 |
+| Origen | Reunión con usuarios clave, 29/09/2026 |
 
 ### Lo que cambia en `US-42`
 

@@ -1,0 +1,41 @@
+{
+  "spike": "parcels",
+  "fase": "01-rastrear",
+  "timestamp_utc": "2026-09-29T21:07:10+00:00",
+  "red": "personal",
+  "alias": "arribado",
+  "oc": "4500016171-90",
+  "tipo": "CONTENEDOR",
+  "numero": "MRSU8132490",
+  "resumen": {
+    "estado_resultado": "completed",
+    "desde_cache": false,
+    "error": "NO_DATA",
+    "transportista": null,
+    "modo": null,
+    "estado": null,
+    "origen": null,
+    "destino": null,
+    "puerto_origen": null,
+    "puerto_destino": null,
+    "eventos": 0,
+    "primer_evento": null,
+    "ultimo_evento": null,
+    "tramos_de_vuelo": 0,
+    "eta_candidatos": [],
+    "atributos": [
+      {
+        "l": "tracking_id",
+        "val": "MRSU8132490",
+        "code": null
+      }
+    ],
+    "verdad_conocida": {
+      "fuente": "ShipsGo",
+      "estado": "DISCHARGED",
+      "puerto": "CRPMN",
+      "llegada": "2026-09-18",
+      "eta": "2026-09-18"
+    }
+  }
+}

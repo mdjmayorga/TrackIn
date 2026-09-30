@@ -1,0 +1,117 @@
+{
+  "spike": "parcels",
+  "fase": "01-rastrear",
+  "timestamp_utc": "2026-09-29T21:07:55+00:00",
+  "red": "personal",
+  "alias": "arribado",
+  "oc": "4500016171-90",
+  "tipo": "CONTENEDOR",
+  "numero": "MRSU8132490",
+  "carrier_hint": "maersk-line",
+  "resumen": {
+    "estado_resultado": "completed",
+    "desde_cache": false,
+    "error": null,
+    "transportista": "Maersk Line",
+    "modo": null,
+    "estado": "transit",
+    "origen": "Brasil",
+    "destino": "Costa Rica",
+    "puerto_origen": null,
+    "puerto_destino": null,
+    "eventos": 15,
+    "primer_evento": {
+      "location": "MAFRO Transportes LTDA Cubatao, Cubatao, Sao Paulo, Brazil",
+      "date": "2026-08-10T10:50:00Z",
+      "carrier": 0,
+      "status": "Gate out"
+    },
+    "ultimo_evento": {
+      "location": "TERMINAL DE CONTENEDORES DE MOIN, PUERTO MOIN, COSTA RICA",
+      "date": "2026-09-18T16:38:00Z",
+      "carrier": 0,
+      "status": "Discharge. Vessel: MAERSK MONTE PASCOAL. Vessel #: I1Q. Voyage #: 634S"
+    },
+    "tramos_de_vuelo": 0,
+    "eta_candidatos": [],
+    "atributos": [
+      {
+        "l": "tracking_id",
+        "val": "MRSU8132490",
+        "code": null
+      },
+      {
+        "l": "origin",
+        "val": "Brasil",
+        "code": "BR"
+      },
+      {
+        "l": "destination",
+        "val": "Costa Rica",
+        "code": "CR"
+      },
+      {
+        "l": "from",
+        "val": "BRASIL TERMINAL PORTUARIO, SANTOS, SP, BRAZIL",
+        "code": null
+      },
+      {
+        "l": "to",
+        "val": "TERMINAL DE CONTENEDORES DE MOIN, PUERTO MOIN, COSTA RICA",
+        "code": null
+      },
+      {
+        "l": "container",
+        "val": "MRSU8132490",
+        "code": null
+      },
+      {
+        "l": "container_size",
+        "val": "40 ft",
+        "code": null
+      },
+      {
+        "l": "container_type",
+        "val": "DRY",
+        "code": null
+      },
+      {
+        "l": "operator",
+        "val": "MAEU",
+        "code": null
+      },
+      {
+        "l": "attr",
+        "val": "CARTAGENA, CO",
+        "code": null
+      },
+      {
+        "l": "attr",
+        "val": "MAERSK CHACHAI / 633N -> MAERSK NACALA / 637N",
+        "code": null
+      },
+      {
+        "l": "attr",
+        "val": "MANZANILLO, PA",
+        "code": null
+      },
+      {
+        "l": "attr",
+        "val": "MAERSK NACALA / 635S -> MAERSK MONTE PASCOAL / 634S",
+        "code": null
+      },
+      {
+        "l": "days_transit",
+        "val": "50",
+        "code": null
+      }
+    ],
+    "verdad_conocida": {
+      "fuente": "ShipsGo",
+      "estado": "DISCHARGED",
+      "puerto": "CRPMN",
+      "llegada": "2026-09-18",
+      "eta": "2026-09-18"
+    }
+  }
+}

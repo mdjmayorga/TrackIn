@@ -121,6 +121,7 @@ erDiagram
         varchar     motivo_cierre                  "CHECK NULL, RN-13"
         timestamptz fecha_ultima_carga             "US-31"
         timestamptz ausente_desde                  "NULL = presente, US-31"
+        boolean     destino_segun_fuente           "US-54"
         timestamptz creado_en
         timestamptz actualizado_en
     }
@@ -384,6 +385,7 @@ explícitamente no proyecta.
 |---|---|---|---|
 | `fecha_ultima_carga` | `TIMESTAMPTZ` | sí | `US-31` |
 | `ausente_desde` | `TIMESTAMPTZ` | sí | `US-31` |
+| `destino_segun_fuente` | `BOOLEAN` | no | `US-54` |
 
 El segundo criterio de `US-31` pide **señalar para revisión manual** la línea que
 deja de figurar en el archivo, y **no eliminarla**. Hacen falta dos columnas y no

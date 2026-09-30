@@ -10,6 +10,11 @@ Pero si el embarque está registrado en ShipsGo, el destino no hay que
 adivinarlo: **ShipsGo lo sabe**. Este módulo se lo pregunta. No es una
 inferencia nuestra, es el puerto de descarga que declara la naviera.
 
+Desde `US-54` (29/09/2026) se le pregunta por **toda** línea con referencia, no
+solo por las que el archivo no ubica: el puerto de la naviera manda sobre el
+del incoterm. Sigue siendo gratis —una lectura por embarque, recordada durante
+el lote—, pero la carga tarda más.
+
 Lo que no hace: gastar
 -----------------------
 

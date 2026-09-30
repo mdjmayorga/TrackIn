@@ -1,0 +1,102 @@
+{
+  "spike": "parcels",
+  "fase": "01-rastrear",
+  "timestamp_utc": "2026-09-29T21:06:37+00:00",
+  "red": "personal",
+  "alias": "aereo",
+  "oc": "4500018062-10/20/30",
+  "tipo": "MAWB",
+  "numero": "020-25244995",
+  "resumen": {
+    "estado_resultado": "completed",
+    "desde_cache": false,
+    "error": null,
+    "transportista": "Lufthansa Cargo",
+    "modo": null,
+    "estado": "delivered",
+    "origen": "India",
+    "destino": "Costa Rica",
+    "puerto_origen": null,
+    "puerto_destino": null,
+    "eventos": 12,
+    "primer_evento": {
+      "date": "2026-09-08T04:13:49+05:30",
+      "event_code": "BKD",
+      "station": "BOM",
+      "timezone": "Asia/Kolkata",
+      "pieces": 1,
+      "weight": 3,
+      "volume": 0.01,
+      "location": "Chhatrapati Shivaji Intl (BOM), Bombay, India",
+      "carrier": 0,
+      "status": "Booked"
+    },
+    "ultimo_evento": {
+      "date": "2026-09-11T14:30:00-06:00",
+      "event_code": "DLV",
+      "station": "SJO",
+      "timezone": "America/Costa_Rica",
+      "pieces": 1,
+      "weight": 3,
+      "weight_unit": "kg",
+      "volume": 0,
+      "location": "Juan Santamaria Intl (SJO), San Jose, Costa Rica",
+      "carrier": 0,
+      "status": "Delivered"
+    },
+    "tramos_de_vuelo": 2,
+    "eta_candidatos": [
+      "flight_legs: BOM->FRA llegada programada 2026-09-09T08:05:00+02:00",
+      "flight_legs: FRA->SJO llegada programada 2026-09-10T17:35:00-06:00"
+    ],
+    "atributos": [
+      {
+        "l": "tracking_id",
+        "val": "020-25244995",
+        "code": null
+      },
+      {
+        "l": "origin",
+        "val": "India",
+        "code": "IN"
+      },
+      {
+        "l": "destination",
+        "val": "Costa Rica",
+        "code": "CR"
+      },
+      {
+        "l": "from",
+        "val": "Chhatrapati Shivaji Intl (BOM), Bombay",
+        "code": null
+      },
+      {
+        "l": "to",
+        "val": "Juan Santamaria Intl (SJO), San Jose",
+        "code": null
+      },
+      {
+        "l": "weight",
+        "val": "3",
+        "code": null
+      },
+      {
+        "l": "pieces",
+        "val": "1",
+        "code": null
+      },
+      {
+        "l": "days_transit",
+        "val": "3",
+        "code": null
+      }
+    ],
+    "verdad_conocida": {
+      "fuente": "TICA",
+      "estado": "arribada",
+      "puerto": "SJO",
+      "llegada": "2026-09-10",
+      "eta": null
+    }
+  }
+}

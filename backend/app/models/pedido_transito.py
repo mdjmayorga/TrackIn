@@ -16,6 +16,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -193,6 +194,12 @@ class PedidoTransito(Base, TimestampMixin):
     )
     ausente_desde: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    #: `US-54`: el destino es el puerto que declaró la naviera, no el del
+    #: incoterm. Mientras sea `true`, una carga que no puede preguntarle a la
+    #: fuente no lo reemplaza por lo que diga el archivo.
+    destino_segun_fuente: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
     )
 
     # --- Relaciones ---------------------------------------------------------

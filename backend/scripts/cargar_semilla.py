@@ -223,6 +223,13 @@ async def _ejecutar(
             )
             for linea in resultado.destinos_de_la_fuente:
                 print(f"  · {linea}")
+        if resultado.destinos_discrepantes:
+            print(
+                f"\nPuerto corregido por ShipsGo ({len(resultado.destinos_discrepantes)}) — "
+                "el incoterm nombra otro; entra el de la naviera (US-54). Para Compras:"
+            )
+            for linea in resultado.destinos_discrepantes:
+                print(f"  · {linea}")
         if resolutor is not None:
             print(f"  Lecturas a ShipsGo para resolver destinos: {resolutor.lecturas} (gratis)")
         if resultado.referencias_de_comentario:

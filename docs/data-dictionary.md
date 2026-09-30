@@ -71,8 +71,9 @@ línea, no la orden: ver [`data-model.md` §1.1](data-model.md).
 | 26 | `motivo_cierre` | `VARCHAR(25)` | sí | | `RECEPCION_CONFORME` · `CIERRE_FORZADO` · `CANCELACION`, o `NULL` (`ck_pedidos_transito_motivo_cierre`) | Causa del estado terminal según RN-13. `NULL` equivale a pedido vivo, y es la condición que usan los índices parciales del dashboard. |
 | 27 | `fecha_ultima_carga` | `TIMESTAMPTZ` | sí | | Instante UTC | Última vez que la línea vino en un archivo de carga (`US-31`). `NULL` distingue «nunca entró por una carga» de «entró alguna vez», y es lo que impide que `marcar_ausentes` toque filas que no son de esa fuente. |
 | 28 | `ausente_desde` | `TIMESTAMPTZ` | sí | | Instante UTC | Desde cuándo dejó de figurar en el archivo; `NULL` significa presente. Es la marca de revisión manual del segundo criterio de `US-31`, y la condición del índice parcial `ix_pedidos_transito_ausentes`. No se reescribe en cargas sucesivas: perder *desde cuándo* falta sería perder lo único accionable. |
-| 29 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. Metadato técnico: **no** sustituye a la auditoría de RF-14. |
-| 30 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación de la fila. Metadato técnico. |
+| 29 | `destino_segun_fuente` | `BOOLEAN` | no, *default* `false` | | `true` / `false` | `true` si el destino es el puerto de descarga que declaró la naviera en ShipsGo, y no el que se dedujo del incoterm (`US-54`, reunión con Compras del 29/09/2026). Mientras sea `true`, una carga que no puede consultar ShipsGo —sin token, con la fuente caída o con el embarque madurando— conserva el destino en vez de devolverlo al puerto del incoterm. |
+| 30 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. Metadato técnico: **no** sustituye a la auditoría de RF-14. |
+| 31 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación de la fila. Metadato técnico. |
 
 ### 1.2 Restricciones de tabla
 

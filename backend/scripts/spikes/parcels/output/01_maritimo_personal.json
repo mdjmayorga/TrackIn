@@ -1,0 +1,91 @@
+{
+  "spike": "parcels",
+  "fase": "01-rastrear",
+  "timestamp_utc": "2026-09-29T21:06:54+00:00",
+  "red": "personal",
+  "alias": "maritimo",
+  "oc": "4500016185-10",
+  "tipo": "BL",
+  "numero": "COSU6508789000",
+  "resumen": {
+    "estado_resultado": "completed",
+    "desde_cache": false,
+    "error": null,
+    "transportista": "COSCO Bill of Lading",
+    "modo": null,
+    "estado": "transit",
+    "origen": null,
+    "destino": null,
+    "puerto_origen": null,
+    "puerto_destino": null,
+    "eventos": 8,
+    "primer_evento": {
+      "date": "2026-08-15T12:22:00Z",
+      "location": "Ningbo",
+      "carrier": 0,
+      "status": "Loaded on vessel (YANTIAN 133E)"
+    },
+    "ultimo_evento": {
+      "location": "COSCO SHIPPING PORTS CHANCAY PERU",
+      "date": "2026-09-24T15:01:54Z",
+      "carrier": 1,
+      "status": "Vessel departure at T/S Port"
+    },
+    "tramos_de_vuelo": 0,
+    "eta_candidatos": [],
+    "atributos": [
+      {
+        "l": "tracking_id",
+        "val": "6508789000",
+        "code": null
+      },
+      {
+        "l": "from",
+        "val": "Ningbo,ZJ,Ningbo,China",
+        "code": null
+      },
+      {
+        "l": "to",
+        "val": "San Jose,Costa Rica",
+        "code": null
+      },
+      {
+        "l": "reference",
+        "val": "TGBU4872990",
+        "code": null
+      },
+      {
+        "l": "attr",
+        "val": "40HQ",
+        "code": null
+      },
+      {
+        "l": "attr",
+        "val": "Confirmed",
+        "code": null
+      },
+      {
+        "l": "SIZE/TYPE",
+        "val": "40HQ",
+        "code": null
+      },
+      {
+        "l": "Container",
+        "val": "TGBU4872990",
+        "code": null
+      },
+      {
+        "l": "days_transit",
+        "val": "45",
+        "code": null
+      }
+    ],
+    "verdad_conocida": {
+      "fuente": "ShipsGo",
+      "estado": "SAILING",
+      "puerto": "CRCAL",
+      "llegada": null,
+      "eta": "2026-10-05"
+    }
+  }
+}

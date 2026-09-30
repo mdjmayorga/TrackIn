@@ -22,6 +22,7 @@ from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.services.ingesta.carga import (
+    PREFIJO_DISCREPANCIA,
     RECHAZO_REFERENCIA_INVALIDA,
     RECHAZO_SIN_DESTINO,
     RECHAZO_SIN_VIA,
@@ -808,17 +809,107 @@ class TestDestinoDeLaFuente:
 
         assert resolutor.preguntas == []
 
-    async def test_si_el_archivo_lo_dice_no_se_pregunta(self, sesion, sin_pedidos) -> None:
-        """Lo que escribió Logística manda: `CIF LIMON` no necesita a ShipsGo."""
+    # --- US-54: el puerto de la naviera manda sobre el del incoterm --------
+
+    async def _destino_de(self, sesion) -> tuple[str, bool]:
+        pedido = await sesion.scalar(
+            select(PedidoTransito).where(PedidoTransito.oc_numero == "4599916185")
+        )
+        await sesion.refresh(pedido)
+        destino = await sesion.get(MaestroDestino, pedido.id_destino)
+        return destino.codigo, pedido.destino_segun_fuente
+
+    async def test_si_la_naviera_declara_otro_puerto_manda_la_naviera(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Hasta `US-54` el incoterm ganaba y ShipsGo ni se consultaba."""
         resolutor = ResolutorFalso("CRCAL")
 
-        await cargar(
+        resultado = await cargar(
             sesion,
             FuenteFalsa([_cif_sin_puerto(incoterm="CIF LIMON")]),
             resolutor_destino=resolutor,
         )
 
-        assert resolutor.preguntas == []
+        assert resolutor.preguntas == [("BL", "COSU6508789000")]
+        assert await self._destino_de(sesion) == ("CRCAL", True)
+        # Se reporta para que Compras corrija SAP, y no como «el archivo no lo dice».
+        assert resultado.destinos_de_la_fuente == []
+        (discrepante,) = resultado.destinos_discrepantes
+        assert discrepante.detalle.startswith(PREFIJO_DISCREPANCIA)
+        assert "CRCAL" in discrepante.detalle and "el archivo decía CRLIO" in discrepante.detalle
+
+    async def test_si_coinciden_no_hay_nada_que_reportar(self, sesion, sin_pedidos) -> None:
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_cif_sin_puerto(incoterm="CIF LIMON")]),
+            resolutor_destino=ResolutorFalso("CRLIO"),
+        )
+
+        assert await self._destino_de(sesion) == ("CRLIO", True)
+        assert resultado.destinos_discrepantes == []
+        assert resultado.destinos_de_la_fuente == []
+
+    async def test_sin_referencia_registrada_manda_el_incoterm(self, sesion, sin_pedidos) -> None:
+        """Tercer criterio: sin dato de la naviera, todo sigue como antes."""
+        await cargar(
+            sesion,
+            FuenteFalsa([_cif_sin_puerto(incoterm="CIF LIMON")]),
+            resolutor_destino=ResolutorFalso(None),
+        )
+
+        assert await self._destino_de(sesion) == ("CRLIO", False)
+
+    async def test_un_puerto_fuera_del_maestro_no_tumba_lo_que_dice_el_archivo(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Un código de la naviera que no conocemos no gana: entra el del incoterm."""
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_cif_sin_puerto(incoterm="CIF LIMON")]),
+            resolutor_destino=ResolutorFalso("PAONX"),
+        )
+
+        assert resultado.rechazadas == []
+        assert await self._destino_de(sesion) == ("CRLIO", False)
+
+    async def test_una_recarga_sin_shipsgo_no_devuelve_el_pedido_al_incoterm(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Sin `destino_segun_fuente`, la segunda carga lo mandaría a Limón."""
+        fuente = FuenteFalsa([_cif_sin_puerto(incoterm="CIF LIMON")])
+        await cargar(sesion, fuente, resolutor_destino=ResolutorFalso("CRCAL"))
+
+        await cargar(sesion, fuente)  # sin token, o con ShipsGo caído
+        assert await self._destino_de(sesion) == ("CRCAL", True)
+
+        await cargar(sesion, fuente, resolutor_destino=ResolutorFalso(None))
+        assert await self._destino_de(sesion) == ("CRCAL", True)
+
+    async def test_si_el_archivo_pierde_el_puerto_se_conserva_el_que_tenia(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Entró por el incoterm; si el incoterm se queda sin puerto, no desaparece."""
+        await cargar(sesion, FuenteFalsa([_cif_sin_puerto(incoterm="CIF LIMON")]))
+
+        segunda = await cargar(sesion, FuenteFalsa([_cif_sin_puerto(incoterm="CIF")]))
+
+        assert segunda.rechazadas == [] and segunda.ausentes == []
+        assert await self._destino_de(sesion) == ("CRLIO", False)
+
+    async def test_una_linea_que_ya_estaba_tambien_reporta_la_discrepancia(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Hasta `US-54` el origen del destino se perdía en las recargas."""
+        fuente = FuenteFalsa([_cif_sin_puerto(incoterm="CIF LIMON")])
+        await cargar(sesion, fuente)  # primera carga sin ShipsGo: entra a Limón
+        assert await self._destino_de(sesion) == ("CRLIO", False)
+
+        segunda = await cargar(sesion, fuente, resolutor_destino=ResolutorFalso("CRCAL"))
+
+        assert await self._destino_de(sesion) == ("CRCAL", True)
+        assert segunda.actualizados == 1
+        assert len(segunda.destinos_discrepantes) == 1
 
     async def test_recargar_sin_la_fuente_conserva_el_destino_y_no_la_marca_ausente(
         self, sesion, sin_pedidos
