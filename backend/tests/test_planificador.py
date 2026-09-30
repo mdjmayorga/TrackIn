@@ -27,6 +27,7 @@ from app.models.proveedor import Proveedor
 from app.models.usuario import Usuario
 from app.services import parametros, planificador
 from app.services.rastreo.registro_embarque import TIPO_INTERVENCION
+from conftest import vaciar_auditoria
 
 pytestmark = pytest.mark.integration
 
@@ -107,7 +108,7 @@ async def _pedido(sesion, elemento: ElementoRastreado, oc: str, **kwargs) -> Ped
 
 @pytest.fixture
 async def limpio(sesion):
-    await sesion.execute(delete(AuditoriaIntervencion))
+    await vaciar_auditoria(sesion)
     await sesion.execute(delete(PedidoTransito))
     await sesion.execute(delete(ElementoRastreado))
     await sesion.flush()

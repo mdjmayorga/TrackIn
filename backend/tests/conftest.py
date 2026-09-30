@@ -6,6 +6,7 @@ from collections.abc import AsyncGenerator, Callable, Iterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencias import Autenticado, usuario_actual
@@ -81,3 +82,20 @@ async def cliente_compras(client: AsyncClient, como_rol) -> AsyncClient:
     """El cliente HTTP con una sesión de Compras, sin base de datos."""
     como_rol("COMPRAS")
     return client
+
+
+async def vaciar_auditoria(sesion: AsyncSession) -> None:
+    """Borra la auditoría dentro de la transacción de la prueba (`US-15`).
+
+    La tabla es inmutable por disparador (migración `0017`). Las pruebas que
+    vacían pedidos necesitan borrarla antes —el FK es `RESTRICT`—, así que
+    desactivan el disparador **dentro de su transacción**: el `ALTER TABLE` es
+    transaccional en PostgreSQL y se revierte con el resto al terminar.
+    """
+    await sesion.execute(
+        text("ALTER TABLE auditoria_intervenciones DISABLE TRIGGER trg_auditoria_inmutable")
+    )
+    await sesion.execute(text("DELETE FROM auditoria_intervenciones"))
+    await sesion.execute(
+        text("ALTER TABLE auditoria_intervenciones ENABLE TRIGGER trg_auditoria_inmutable")
+    )

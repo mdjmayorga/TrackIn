@@ -19,7 +19,6 @@ from typing import Any
 import pytest
 from sqlalchemy import delete, select, update
 
-from app.models.auditoria_intervencion import AuditoriaIntervencion
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
@@ -31,6 +30,7 @@ from app.services.rastreo.shipsgo_cliente import ErrorShipsGo
 from app.services.rastreo.tica_cliente import ClienteTICA, Respuesta
 from app.services.recalculo import CLAVE_UMBRAL
 from app.workers import rastreo
+from conftest import vaciar_auditoria
 
 _TICA = Path(__file__).resolve().parents[1] / "scripts/spikes/tica/output"
 _SHIPSGO = Path(__file__).resolve().parents[1] / "scripts/spikes/task28/output"
@@ -152,7 +152,7 @@ def salud_limpia():
 
 @pytest.fixture
 async def limpio(sesion):
-    await sesion.execute(delete(AuditoriaIntervencion))
+    await vaciar_auditoria(sesion)
     await sesion.execute(delete(PedidoTransito))
     await sesion.execute(delete(ElementoRastreado))
     await sesion.flush()

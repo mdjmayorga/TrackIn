@@ -79,7 +79,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 · ✅ terminada 29/09 |
 | `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 · ✅ terminada 30/09 |
 | `US-14` | Confirmar el desembarco y **disparar el paso manual a proceso aduanal** | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 · RN-06 revisada 04/09 |
-| `US-15` | Auditar toda intervencion manual sobre un pedido | Story | OE4 | **Should** | Sprint 5 | 8h | RF-14 / RNF-06 |
+| `US-15` | Auditar toda intervencion manual sobre un pedido | Story | OE4 | **Should** | Sprint 5 | 8h | RF-14 / RNF-06 · ✅ terminada 30/09 |
 | `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) · ✅ terminada 29/09 |
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 · ✅ terminada 29/09 |
 | `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 |
@@ -1404,6 +1404,25 @@ Como supervisor, quiero la traza de cada cambio manual, para saber quien alteró
 | Estimacion | 8 h |
 | Origen en el SRS | RF-14 / RNF-06 |
 | Etiquetas | `backend,auditoria` |
+
+> **✅ Terminada el 30/09/2026, adelantada al Sprint 5.**
+>
+> | Criterio | Cómo se cumple |
+> |---|---|
+> | Se registra usuario, fecha, valores y motivo | Toda intervención pasa por `auditoria.registrar`, la única puerta a la tabla. El motivo es obligatorio (al menos 5 caracteres) y los valores se escriben siempre igual: fechas ISO, decimales sin ceros de sobra, «sí/no» |
+> | Un registro no se altera | Lo garantiza la base: disparadores que rechazan `UPDATE`, `DELETE` y `TRUNCATE` (migración `0017`), también desde una consulta a mano |
+> | La bitácora, en orden cronológico | `GET /api/v1/pedidos/{id}/bitacora`, con el autor, su rol y los valores de cada intervención. El autor sale de la sesión (`US-42`) |
+>
+> - **Los dos escritores que ya existían** —asociar una referencia (`US-01`) y dar de alta
+>   en ShipsGo (`US-45`)— pasan ahora por el servicio. Las cuatro intervenciones que quedan
+>   en el sprint (`US-14`, `US-18`, `US-40`, `US-47`) lo usarán igual.
+> - **Una corrección es otra intervención:** la bitácora conserva la original y la que la
+>   corrige.
+> - **Consecuencia para las pruebas:** comparten la base de desarrollo. Las que vacían
+>   pedidos tienen que borrar antes la auditoría, y para eso desactivan el disparador
+>   dentro de su propia transacción (`vaciar_auditoria` en `conftest.py`).
+>
+> Suite: 1139 pruebas (14 nuevas), 97 %.
 
 #### US-16 — Exponer los pedidos y su detalle por API REST
 

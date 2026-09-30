@@ -243,8 +243,23 @@ class PedidoDetalle(PedidoResumen):
     fecha_ultima_carga: dt.datetime | None
 
 
+class AsientoBitacora(BaseModel):
+    """Una intervención manual sobre el pedido (`US-15`, RF-14)."""
+
+    fecha_hora: dt.datetime
+    usuario: str = Field(description="Cuenta que la hizo. `compras@gutis.com` es compartida.")
+    nombre_usuario: str
+    rol: str
+    tipo: str = Field(description="CONFIRMACION_DESEMBARCO, AJUSTE_MANUAL, …")
+    campo: str | None
+    valor_anterior: str | None
+    valor_nuevo: str | None
+    motivo: str
+
+
 __all__ = [
     "Arribos",
+    "AsientoBitacora",
     "Calculo",
     "Cierre",
     "Cumplimiento",

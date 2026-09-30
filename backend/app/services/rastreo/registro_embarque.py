@@ -43,8 +43,8 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.auditoria_intervencion import AuditoriaIntervencion
 from app.models.pedido_transito import PedidoTransito
+from app.services import auditoria
 from app.services import referencia as referencia_mod
 from app.services.rastreo.shipsgo_aerolineas import CatalogoAerolineas
 from app.services.rastreo.shipsgo_cliente import ClienteShipsGo, ErrorShipsGo
@@ -122,23 +122,21 @@ async def registrar(
     # RF-14. Se registra **siempre**, haya costado o no: que un `409` saliera
     # gratis es justamente lo que alguien querrá poder comprobar después.
     if id_usuario is not None:
-        sesion.add(
-            AuditoriaIntervencion(
-                id_pedido=pedido.id,
-                id_usuario=id_usuario,
-                tipo_intervencion=TIPO_INTERVENCION,
-                campo_afectado="shipsgo_id_embarque",
-                valor_anterior=None,
-                valor_nuevo=str(alta.id_embarque),
-                motivo=(
-                    f"Alta en ShipsGo de {veredicto.tipo} {veredicto.numero}. "
-                    + (
-                        "Consumió un crédito (~2 USD)."
-                        if alta.consumio_credito
-                        else "Ya estaba registrado (409): sin costo."
-                    )
-                ),
-            )
+        auditoria.registrar(
+            sesion,
+            id_pedido=pedido.id,
+            id_usuario=id_usuario,
+            tipo=TIPO_INTERVENCION,
+            campo="shipsgo_id_embarque",
+            nuevo=alta.id_embarque,
+            motivo=(
+                f"Alta en ShipsGo de {veredicto.tipo} {veredicto.numero}. "
+                + (
+                    "Consumió un crédito (~2 USD)."
+                    if alta.consumio_credito
+                    else "Ya estaba registrado (409): sin costo."
+                )
+            ),
         )
     elif alta.consumio_credito:
         # Sin login todavía (`US-42`), pero el gasto no puede quedar mudo.

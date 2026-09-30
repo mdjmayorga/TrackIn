@@ -1,7 +1,10 @@
-"""Crea un usuario desde la consola — `US-42`.
+r"""Crea un usuario desde la consola — `US-42`.
 
-    python scripts/crear_usuario.py admin "Mariano Mayorga" ADMINISTRADOR
-    python scripts/crear_usuario.py compras@gutis.com "Compras" COMPRAS --correo compras@gutis.com
+    .venv\Scripts\python scripts\crear_usuario.py admin "Mariano Mayorga" ADMINISTRADOR
+    .venv\Scripts\python scripts\crear_usuario.py compras@gutis.com "Compras" COMPRAS --correo compras@gutis.com
+
+Se corre con el Python de `backend\.venv`, desde `backend`: el Python global de
+la máquina no tiene las dependencias del proyecto.
 
 Existe para el **primer Administrador**: las cuentas se mantienen desde la API,
 pero solo un Administrador puede crearlas, y sin este script nadie podría

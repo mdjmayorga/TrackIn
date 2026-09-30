@@ -345,6 +345,21 @@ Como `historial_tracking`, la tabla no se modifica ni se borra: una auditoría
 editable no es una auditoría. No lleva `actualizado_en`, y el rol de aplicación
 no debería recibir `UPDATE` ni `DELETE` sobre ella.
 
+**Garantizado en la base desde el 30/09/2026 (`US-15`, migración `0017`).** Dos
+disparadores rechazan `UPDATE`, `DELETE` y `TRUNCATE` con el error «auditoria_intervenciones
+es inmutable», vengan de la aplicación o de una consulta a mano:
+
+| Disparador | Cuándo | Qué rechaza |
+|---|---|---|
+| `trg_auditoria_inmutable` | `BEFORE UPDATE OR DELETE`, por fila | Editar o borrar un registro |
+| `trg_auditoria_sin_truncate` | `BEFORE TRUNCATE`, por sentencia | Vaciar la tabla |
+
+Una corrección se registra como **otra intervención**; la bitácora conserva las dos. Para
+una depuración autorizada hay que desactivar el disparador dentro de la transacción, lo que
+exige ser dueño de la tabla. Consecuencia práctica: con el FK `RESTRICT`, un pedido con
+intervenciones tampoco se puede borrar —`cargar_semilla.py --limpiar` fallará sobre una base
+con auditoría—.
+
 ---
 
 ## 8. `parametros_sistema`

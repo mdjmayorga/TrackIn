@@ -15,7 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencias import usuario_actual
 from app.db.session import get_db
+from app.models.pedido_transito import PedidoTransito
 from app.schemas.pedidos import (
+    AsientoBitacora,
     CumplimientoFiltro,
     EstadoCalculado,
     EtapaFiltro,
@@ -23,7 +25,7 @@ from app.schemas.pedidos import (
     PedidoDetalle,
     Via,
 )
-from app.services import consulta_pedidos
+from app.services import auditoria, consulta_pedidos
 from app.services.consulta_pedidos import ORDEN_POR_OMISION, PATRON_ORDEN, Filtros
 
 # Cualquier rol autenticado consulta pedidos (`US-42`).
@@ -115,6 +117,41 @@ async def detalle_pedido(
             detail=f"No existe el pedido {id_pedido}.",
         )
     return pedido
+
+
+@router.get(
+    "/{id_pedido}/bitacora",
+    response_model=list[AsientoBitacora],
+    summary="Bitácora de intervenciones de un pedido",
+    description=(
+        "Las intervenciones manuales sobre el pedido, de la más antigua a la más "
+        "reciente (RF-14). Es de solo lectura: la base rechaza editar o borrar "
+        "un registro."
+    ),
+    responses={404: {"description": "No existe un pedido con ese id."}},
+)
+async def bitacora_pedido(
+    id_pedido: int, db: Annotated[AsyncSession, Depends(get_db)]
+) -> list[AsientoBitacora]:
+    if await db.get(PedidoTransito, id_pedido) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No existe el pedido {id_pedido}.",
+        )
+    return [
+        AsientoBitacora(
+            fecha_hora=a.fila.fecha_hora,
+            usuario=a.usuario,
+            nombre_usuario=a.nombre_usuario,
+            rol=a.rol,
+            tipo=a.fila.tipo_intervencion,
+            campo=a.fila.campo_afectado,
+            valor_anterior=a.fila.valor_anterior,
+            valor_nuevo=a.fila.valor_nuevo,
+            motivo=a.fila.motivo,
+        )
+        for a in await auditoria.bitacora(db, id_pedido)
+    ]
 
 
 __all__ = ["router"]

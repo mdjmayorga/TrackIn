@@ -1387,6 +1387,12 @@ Append-only, como `historial_tracking` y por la misma razón.
 > **`ASOCIACION_TRACKING` se agregó el 01/09 (decisión B6).** Asociar un identificador de rastreo a un pedido (`US-01`, RF-03) es una intervención manual sobre un pedido y cae de lleno en RF-14, pero el dominio no la cubría. El hueco apareció al dibujar el estado vacío del detalle de pedido.
 >
 > **La autoría no está autenticada** (decisión B5). Al quedar la autenticación fuera del alcance de la práctica, `id_usuario` se llena con el usuario que se elige en el diálogo de cada intervención, sin que el sistema verifique su identidad. La auditoría registra quién *dijo* ser, no quién *era*: es una limitación conocida y el SRS v0.4 debe declararla.
+>
+> **Superado el 30/09/2026.** Con el login de `US-42`, `id_usuario` sale de la sesión
+> autenticada: la auditoría registra quién *era*. La excepción declarada es la cuenta
+> compartida de Compras, que la bitácora muestra como un solo usuario. Desde `US-15` la
+> tabla es inmutable por disparador (ver `data-dictionary.md` §7.3) y se escribe solo por
+> `app/services/auditoria.py`.
 
 ### 8.3 `parametros_sistema` — la citan RN-05 y RN-11
 

@@ -19,9 +19,9 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.auditoria_intervencion import AuditoriaIntervencion
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.pedido_transito import PedidoTransito
+from app.services import auditoria
 from app.services.referencia import ResultadoReferencia, validar_referencia
 
 logger = logging.getLogger(__name__)
@@ -98,19 +98,19 @@ async def asociar_referencia(
         if pedido.estado_calculado == "SIN_TRACKING":
             pedido.estado_calculado = ETAPA_AL_ASOCIAR
 
-    # RF-14: toda intervención manual queda registrada. Con login (US-42) el
-    # usuario vendrá de la sesión; hasta entonces puede no haberlo.
+    # RF-14: toda intervención manual queda registrada (`US-15`). La carga del
+    # archivo asocia sin usuario —no es una intervención manual—, y entonces
+    # no hay nada que auditar.
     if id_usuario is not None:
-        sesion.add(
-            AuditoriaIntervencion(
-                id_pedido=pedido.id,
-                id_usuario=id_usuario,
-                tipo_intervencion="ASOCIACION_TRACKING",
-                campo_afectado="id_elemento_rastreado",
-                valor_anterior=str(anterior) if anterior is not None else None,
-                valor_nuevo=f"{resultado.tipo}:{resultado.numero}",
-                motivo=motivo,
-            )
+        auditoria.registrar(
+            sesion,
+            id_pedido=pedido.id,
+            id_usuario=id_usuario,
+            tipo="ASOCIACION_TRACKING",
+            campo="id_elemento_rastreado",
+            anterior=anterior,
+            nuevo=f"{resultado.tipo}:{resultado.numero}",
+            motivo=motivo,
         )
 
     if not resultado.rastreable:

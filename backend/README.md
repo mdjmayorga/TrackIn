@@ -115,11 +115,12 @@ Todo `/api/v1` pide sesión, salvo `/auth/login`. Se entra con
 `POST /api/v1/auth/login` (`usuario`, `contrasena`, `recordar`) y el token que
 devuelve va en cada petición como `Authorization: Bearer <token>`.
 
-El primer Administrador se crea desde la consola; la contraseña se pide sin
+El primer Administrador se crea desde la consola, **con el Python de
+`.venv`** —el global no tiene las dependencias—; la contraseña se pide sin
 mostrarla:
 
 ```powershell
-python scripts/crear_usuario.py admin "Nombre Apellido" ADMINISTRADOR
+.venv\Scripts\python scripts\crear_usuario.py admin "Nombre Apellido" ADMINISTRADOR
 ```
 
 Después, las cuentas se mantienen con `/api/v1/usuarios` (solo Administrador).
