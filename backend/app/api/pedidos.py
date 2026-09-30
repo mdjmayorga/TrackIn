@@ -13,12 +13,21 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencias import usuario_actual
 from app.db.session import get_db
-from app.schemas.pedidos import EstadoCalculado, PaginaPedidos, PedidoDetalle, Via
+from app.schemas.pedidos import (
+    CumplimientoFiltro,
+    EstadoCalculado,
+    EtapaFiltro,
+    PaginaPedidos,
+    PedidoDetalle,
+    Via,
+)
 from app.services import consulta_pedidos
 from app.services.consulta_pedidos import ORDEN_POR_OMISION, PATRON_ORDEN, Filtros
 
-router = APIRouter(prefix="/pedidos", tags=["pedidos"])
+# Cualquier rol autenticado consulta pedidos (`US-42`).
+router = APIRouter(prefix="/pedidos", tags=["pedidos"], dependencies=[Depends(usuario_actual)])
 
 #: RNF-01 fija 200 pedidos activos como volumen de referencia: una página cabe.
 LIMITE_MAXIMO = 200
@@ -45,6 +54,19 @@ async def listar_pedidos(
         list[EstadoCalculado] | None, Query(description="El estado que pinta el semáforo.")
     ] = None,
     destino: Annotated[list[int] | None, Query(description="Id de destino.")] = None,
+    posicion: Annotated[list[int] | None, Query(description="Posición de la OC.")] = None,
+    etapa: Annotated[
+        list[EtapaFiltro] | None,
+        Query(description="Etapa del viaje; `CERRADO` y `CANCELADO` traen los terminales."),
+    ] = None,
+    cumplimiento: Annotated[
+        list[CumplimientoFiltro] | None,
+        Query(description="`SIN_PROYECCION` es el guion de la grilla: sin fecha proyectada."),
+    ] = None,
+    buscar_material: Annotated[
+        str | None,
+        Query(max_length=60, description="Texto en el código o la descripción del material."),
+    ] = None,
     orden: Annotated[
         str,
         Query(
@@ -62,6 +84,10 @@ async def listar_pedidos(
         vias=via or (),
         estados=estado or (),
         destinos=destino or (),
+        posiciones=posicion or (),
+        etapas=etapa or (),
+        cumplimientos=cumplimiento or (),
+        material_texto=buscar_material,
     )
     total, items = await consulta_pedidos.listar(
         db, filtros, orden=orden, limite=limite, desplazamiento=desplazamiento

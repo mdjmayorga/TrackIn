@@ -189,6 +189,44 @@ CATALOGO: Final[dict[str, Parametro]] = {
             "Con 60 se probó el 28/09/2026 una guía que llegó diez días tarde."
         ),
     ),
+    # --- Autenticación (`US-42`, RNF-05) ------------------------------------
+    # Las cuatro eran «decisiones abiertas» del wireframe del login (§0.4). Se
+    # fijan con valores razonables y quedan aquí para ajustarlas sin desplegar.
+    "login_intentos_maximos": Parametro(
+        clave="login_intentos_maximos",
+        defecto=5,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Intentos fallidos seguidos tras los cuales la cuenta se bloquea "
+            "unos minutos. Con la cuenta compartida de Compras, los errores de "
+            "todas las personas que la usan suman al mismo contador."
+        ),
+    ),
+    "login_bloqueo_min": Parametro(
+        clave="login_bloqueo_min",
+        defecto=15,
+        tipo_dato="ENTERO",
+        descripcion="Minutos que dura el bloqueo tras superar los intentos fallidos.",
+    ),
+    "sesion_inactividad_min": Parametro(
+        clave="sesion_inactividad_min",
+        defecto=30,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Minutos sin actividad tras los cuales la sesión se cierra. Cada "
+            "petición cuenta como actividad: la pantalla de planta, que se "
+            "refresca sola, no se cierra mientras esté encendida."
+        ),
+    ),
+    "sesion_recordada_dias": Parametro(
+        clave="sesion_recordada_dias",
+        defecto=30,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Duración de una sesión con «Recordar sesión». No cierra por "
+            "inactividad, sino al cumplir estos días desde que se abrió."
+        ),
+    ),
     # --- Resiliencia de las fuentes externas (`US-03`, RF-09 / RNF-12) ------
     # Los cinco describen la misma política de espera creciente, y son
     # parámetros y no constantes por el sexto criterio de la historia: los

@@ -124,6 +124,10 @@ markers = [
 [tool.coverage.run]
 source = ["app"]
 omit = ["app/__init__.py", "*/tests/*"]
+# SQLAlchemy async ejecuta el código de cada consulta dentro de un greenlet.
+# Sin esto, coverage pierde las líneas que siguen a un `await` sobre la base y
+# reporta como no cubierto código que las pruebas sí ejercitan (30/09/2026).
+concurrency = ["greenlet", "thread"]
 
 [tool.coverage.report]
 exclude_lines = [

@@ -109,6 +109,30 @@ Los endpoints de `api/` no deben contener reglas de negocio: delegan en
 Los tests marcados `integration` requieren PostgreSQL levantado; sin él se
 saltan solos en vez de fallar.
 
+### Autenticación (`US-42`)
+
+Todo `/api/v1` pide sesión, salvo `/auth/login`. Se entra con
+`POST /api/v1/auth/login` (`usuario`, `contrasena`, `recordar`) y el token que
+devuelve va en cada petición como `Authorization: Bearer <token>`.
+
+El primer Administrador se crea desde la consola; la contraseña se pide sin
+mostrarla:
+
+```powershell
+python scripts/crear_usuario.py admin "Nombre Apellido" ADMINISTRADOR
+```
+
+Después, las cuentas se mantienen con `/api/v1/usuarios` (solo Administrador).
+Los plazos de bloqueo e inactividad son parámetros de `parametros_sistema`.
+
+### API de destinos (`US-13`)
+
+`/api/v1/destinos` administra el maestro: `GET` lista (los inactivos, con
+`?incluir_inactivos=true`), `POST` da de alta y `PATCH /{id}` cambia solo lo que
+se envía. Cambiar `lead_time_dias` recalcula los pedidos activos del destino.
+Desactivar uno con pedidos activos responde 409 con cuántos son; se confirma
+repitiendo con `"confirmar": true`. El código y la vía no se editan.
+
 ### API de pedidos (`US-16`)
 
 Con `uvicorn app.main:app --reload` levantado, el contrato completo está en

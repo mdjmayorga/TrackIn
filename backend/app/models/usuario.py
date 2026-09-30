@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, String, text
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -30,6 +30,7 @@ class Usuario(Base, TimestampMixin):
     __tablename__ = "usuarios"
     __table_args__ = (
         CheckConstraint(check_in("rol", ROLES), name="rol"),
+        CheckConstraint("intentos_fallidos >= 0", name="intentos_fallidos"),
         {"comment": "Usuarios con credencial propia. Sin SSO ni Active Directory."},
     )
 
@@ -45,6 +46,14 @@ class Usuario(Base, TimestampMixin):
     rol: Mapped[str] = mapped_column(String(20), nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     ultimo_acceso: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: `US-42`: intentos fallidos seguidos. Al llegar al máximo se bloquea un
+    #: rato; entrar bien lo devuelve a cero.
+    intentos_fallidos: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0")
+    )
+    bloqueado_hasta: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 

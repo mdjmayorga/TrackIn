@@ -198,8 +198,20 @@ erDiagram
         varchar     rol                "CHECK, RNF-05"
         boolean     activo             "no se borran usuarios"
         timestamptz ultimo_acceso
+        integer     intentos_fallidos  "US-42"
+        timestamptz bloqueado_hasta    "US-42"
         timestamptz creado_en
         timestamptz actualizado_en
+    }
+
+    SESIONES {
+        bigserial   id           PK "US-42"
+        bigint      id_usuario   FK
+        varchar     hash_token   UK "SHA-256, nunca el token"
+        boolean     recordada
+        timestamptz creada_en
+        timestamptz ultimo_uso
+        timestamptz cerrada_en      "NULL = abierta"
     }
 
     AUDITORIA_INTERVENCIONES {
@@ -785,6 +797,12 @@ redundante sobre una tabla de decenas de filas, que es despreciable.
 | `pk_maestro_destinos` | `(id)` | PK |
 | `uq_maestro_destinos_codigo` | `(codigo)` | Clave natural; resolución por código en la ingesta |
 | `uq_maestro_destinos_id_via` | `(id, via_transporte)` | Requisito del FK compuesto de §2.7 |
+| `uq_maestro_destinos_nombre_via` | `(lower(nombre), via_transporte)` | `US-13`: el mismo destino no se da de alta dos veces (migración `0015`) |
+
+> **Verificado contra la base el 30/09/2026:** `uq_maestro_destinos_id_via` **no existe** en
+> la base de desarrollo, y con él tampoco el FK compuesto de §2.7; en cambio sí existe un
+> índice GIST `idx_maestro_destinos_ubicacion` que este apartado desaconseja. El documento y
+> las migraciones divergen desde `TASK-01`; queda anotado para revisarlo aparte.
 
 **No se propone un índice GIST sobre `ubicacion`, y conviene decir por qué**,
 porque es el reflejo automático al ver una columna geoespacial. Un índice
@@ -1238,7 +1256,16 @@ que puede diferir de la unidad base del material; por eso existe en ambos sitios
 | `rol` | `VARCHAR(20)` | no | `CHECK`: `COMPRAS`, `LOGISTICA`, `PLANIFICACION` |
 | `activo` | `BOOLEAN` | no | Baja lógica; no se borran usuarios |
 | `ultimo_acceso` | `TIMESTAMPTZ` | sí | |
+| `intentos_fallidos` | `INTEGER` | no | `US-42`: fallos seguidos; vuelve a 0 al entrar |
+| `bloqueado_hasta` | `TIMESTAMPTZ` | sí | `US-42`: bloqueo tras superar los intentos |
 | `creado_en`, `actualizado_en` | `TIMESTAMPTZ` | no | |
+
+> **Actualizado el 30/09/2026 (`US-42`).** El dominio de roles tiene **cuatro** valores con
+> `ADMINISTRADOR`, y el hash es **argon2id**. Las sesiones viven en una tabla propia,
+> `sesiones` (migración `0016`), y no en un JWT: el cierre por inactividad, la cuenta
+> compartida de Compras con sesiones simultáneas y la revocación al desactivar un usuario
+> necesitan saber qué sesiones hay abiertas. De cada una se guarda el SHA-256 del token,
+> nunca el token.
 
 **`hash_contrasena` guarda un hash con sal, no la contraseña.** El algoritmo
 —argon2id o bcrypt— lo decide la historia que implemente el login; el modelo

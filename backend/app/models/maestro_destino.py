@@ -15,7 +15,17 @@ el sistema no podría decir a cuál de los dos llegó el buque (RN-05).
 from __future__ import annotations
 
 from geoalchemy2 import Geography
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, Integer, String, Text, text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -32,6 +42,13 @@ class MaestroDestino(Base, TimestampMixin):
         CheckConstraint("lead_time_dias >= 0", name="lead_time"),
         CheckConstraint("radio_geocerca_km IS NULL OR radio_geocerca_km > 0", name="radio"),
         CheckConstraint("pais ~ '^[A-Z]{2}$'", name="pais"),
+        # `US-13`: el mismo puerto no se da de alta dos veces con otro código.
+        Index(
+            "uq_maestro_destinos_nombre_via",
+            func.lower(text("nombre")),
+            "via_transporte",
+            unique=True,
+        ),
         {"comment": "Puertos y aeropuertos de entrada (TASK-13, repuesto en TASK-31)."},
     )
 

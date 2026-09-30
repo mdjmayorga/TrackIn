@@ -491,8 +491,10 @@ tabla pasa a sostener credenciales reales: se le añaden `hash_contrasena`,
 | 6 | `rol` | `VARCHAR(20)` | no | | `COMPRAS` · `LOGISTICA` · `PLANIFICACION` · `ADMINISTRADOR` (`ck_usuarios_rol`) | Perfil del usuario (RNF-05). **`ADMINISTRADOR` entró el 03/09/2026**: revierte la decisión B9, que lo había descartado cuando no había autenticación y por tanto un cuarto rol no restringía nada. Determina la vista: simple para `PLANIFICACION`, completa para el resto. |
 | 7 | `activo` | `BOOLEAN` | no, *default* `true` | | `true` · `false` | Baja lógica. No se borran: el FK desde `auditoria_intervenciones` es `RESTRICT`, porque quien firmó una intervención debe seguir existiendo. Un usuario inactivo no puede iniciar sesión pero conserva su rastro. |
 | 8 | `ultimo_acceso` | `TIMESTAMPTZ` | sí | | Instante UTC | Último inicio de sesión correcto. `NULL` significa que nunca entró. Sirve para detectar cuentas abandonadas. |
-| 9 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. |
-| 10 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación. |
+| 9 | `intentos_fallidos` | `INTEGER` | no, *default* `0` | | `>= 0` (`ck_usuarios_intentos_fallidos`) | Intentos fallidos seguidos (`US-42`). Al llegar a `login_intentos_maximos` la cuenta se bloquea y el contador vuelve a 0; entrar bien también lo reinicia. Con la cuenta compartida de Compras suman los errores de todos. |
+| 10 | `bloqueado_hasta` | `TIMESTAMPTZ` | sí | | Instante UTC | Hasta cuándo no se admite el ingreso tras superar los intentos. `NULL` = no bloqueado. El Administrador lo limpia al reiniciar la contraseña. |
+| 11 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. |
+| 12 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación. |
 
 ### 10.2 Restricciones de tabla
 
@@ -598,3 +600,27 @@ Salud de cada fuente externa de rastreo, escrita por el worker y leída por
 | 9 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. |
 | 10 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última escritura. |
 
+## 13. `sesiones`
+
+Una fila por inicio de sesión (`US-42`). Modelo: [`data-model.md` §7.1](data-model.md).
+Migración `0016`.
+
+### 13.1 Campos
+
+| # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
+|---|---|---|---|---|---|---|
+| 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador de la sesión. |
+| 2 | `id_usuario` | `BIGINT` | no | `FK` → `usuarios(id)`, `RESTRICT` | Usuario existente | Quién abrió la sesión. Un usuario puede tener varias abiertas a la vez: la cuenta compartida de Compras lo necesita. |
+| 3 | `hash_token` | `VARCHAR(64)` | no | `UK` | SHA-256 en hexadecimal | El hash del token que recibe el cliente; **nunca el token**. Quien lea la tabla no puede suplantar a nadie. |
+| 4 | `recordada` | `BOOLEAN` | no, *default* `false` | | `true` · `false` | «Recordar sesión»: no cierra por inactividad sino al cumplir `sesion_recordada_dias`. |
+| 5 | `creada_en` | `TIMESTAMPTZ` | no | | Instante UTC | Cuándo se abrió. |
+| 6 | `ultimo_uso` | `TIMESTAMPTZ` | no | | Instante UTC | Última petición autenticada. Con `sesion_inactividad_min`, decide el cierre por inactividad. |
+| 7 | `cerrada_en` | `TIMESTAMPTZ` | sí | | Instante UTC | Cierre por logout, por inactividad, por desactivar al usuario o por reiniciar su contraseña. `NULL` = abierta. Las sesiones no se borran: quedan para auditar cuándo terminó cada una. |
+
+### 13.2 Restricciones de tabla
+
+| Nombre | Regla | Qué protege |
+|---|---|---|
+| `uq_sesiones_hash_token` | `UNIQUE (hash_token)` | Un token identifica una sola sesión |
+| `fk_sesiones_id_usuario_usuarios` | `FOREIGN KEY (id_usuario)` → `usuarios(id)`, `ON DELETE RESTRICT` | Coherente con que los usuarios no se borran |
+| `ix_sesiones_id_usuario` | Índice sobre `id_usuario` | Cerrar todas las sesiones de un usuario al desactivarlo |

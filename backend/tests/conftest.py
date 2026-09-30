@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable, Iterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencias import Autenticado, usuario_actual
 from app.db.session import AsyncSessionLocal, dispose_engine
 from app.main import app
+from app.models.sesion import Sesion
+from app.models.usuario import Usuario
 
 
 @pytest.fixture
@@ -48,3 +51,33 @@ async def sesion() -> AsyncGenerator[AsyncSession, None]:
         finally:
             await sesion_bd.rollback()
     await dispose_engine()
+
+
+def usuario_de_prueba(rol: str = "COMPRAS") -> Autenticado:
+    """Un usuario autenticado sin tocar la base, para probar lo que no es el login."""
+    usuario = Usuario(
+        id=0, usuario=f"prueba-{rol.lower()}", nombre_completo="Prueba", rol=rol, activo=True
+    )
+    return Autenticado(usuario=usuario, sesion=Sesion(id=0, id_usuario=0))
+
+
+@pytest.fixture
+def como_rol() -> Iterator[Callable[[str], None]]:
+    """`como_rol("LOGISTICA")` hace que la API vea a ese rol autenticado (`US-42`).
+
+    Sustituye solo `usuario_actual`: `requiere_rol` sigue decidiendo con el rol
+    que se le pase, así que las restricciones por rol se prueban de verdad.
+    """
+
+    def _como(rol: str) -> None:
+        app.dependency_overrides[usuario_actual] = lambda: usuario_de_prueba(rol)
+
+    yield _como
+    app.dependency_overrides.pop(usuario_actual, None)
+
+
+@pytest.fixture
+async def cliente_compras(client: AsyncClient, como_rol) -> AsyncClient:
+    """El cliente HTTP con una sesión de Compras, sin base de datos."""
+    como_rol("COMPRAS")
+    return client

@@ -27,6 +27,7 @@ from app.models.pedido_elemento_rastreado import PedidoElementoRastreado
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.models.salud_fuente import SaludFuente
+from app.models.sesion import Sesion
 from app.models.usuario import Usuario
 
 __all__ = [
@@ -42,5 +43,6 @@ __all__ = [
     "PedidoTransito",
     "Proveedor",
     "SaludFuente",
+    "Sesion",
     "Usuario",
 ]

@@ -56,8 +56,9 @@ def test_los_dominios_de_la_api_son_los_del_modelo(literal, dominio) -> None:
 
 
 @pytest.fixture
-async def api(sesion) -> AsyncGenerator[AsyncClient, None]:
-    """Cliente cuya sesión es la de la prueba, con la tabla de pedidos vacía."""
+async def api(sesion, como_rol) -> AsyncGenerator[AsyncClient, None]:
+    """Cliente de Compras cuya sesión es la de la prueba, con los pedidos vaciados."""
+    como_rol("COMPRAS")
     await sesion.execute(delete(PedidoTransito))
     await sesion.flush()
 
@@ -347,8 +348,8 @@ async def test_la_paginacion_no_cambia_el_total(api, sesion) -> None:
         {"desplazamiento": -1},
     ],
 )
-async def test_los_parametros_invalidos_se_rechazan_con_422(client, params) -> None:
-    respuesta = await client.get(URL, params=params)
+async def test_los_parametros_invalidos_se_rechazan_con_422(cliente_compras, params) -> None:
+    respuesta = await cliente_compras.get(URL, params=params)
 
     assert respuesta.status_code == 422
 
@@ -514,3 +515,70 @@ async def test_los_endpoints_aparecen_en_openapi(client) -> None:
 
     assert f"{URL}" in rutas
     assert f"{URL}/{{id_pedido}}" in rutas
+
+
+# --- Filtros del Figma corregido con los usuarios clave (30/09) -------------
+
+
+def test_los_filtros_de_etapa_y_cumplimiento_cubren_su_dominio() -> None:
+    assert get_args(esquemas.EtapaFiltro) == (*enums.ETAPAS_VIAJE, *enums.ESTADOS_TERMINALES)
+    assert get_args(esquemas.CumplimientoFiltro) == (
+        *enums.ESTADOS_CUMPLIMIENTO,
+        esquemas.SIN_PROYECCION,
+    )
+
+
+async def _ocs(api, **params) -> list[tuple[str, int]]:
+    cuerpo = (await api.get(URL, params=params)).json()
+    return sorted((f["oc_numero"], f["posicion_oc"]) for f in cuerpo["items"])
+
+
+@pytest.mark.integration
+async def test_filtra_por_posicion(api, sesion) -> None:
+    await _pedido(sesion, posicion=10)
+    await _pedido(sesion, posicion=20)
+
+    assert await _ocs(api, posicion=20) == [("4588800001", 20)]
+
+
+@pytest.mark.integration
+async def test_busca_el_material_por_codigo_o_por_nombre(api, sesion) -> None:
+    lactosa = await _maestro(
+        sesion, Material, "13002006", descripcion="Lactosa monohidrato", unidad_medida="KG"
+    )
+    await _pedido(sesion, oc="4588800001", material=lactosa)
+    await _pedido(sesion, oc="4588800002")  # «Material uno»
+
+    assert await _ocs(api, buscar_material="13002") == [("4588800001", 10)]
+    assert await _ocs(api, buscar_material="LACTOSA") == [("4588800001", 10)]
+    assert await _ocs(api, buscar_material="%") == []
+
+
+@pytest.mark.integration
+async def test_el_guion_de_cumplimiento_es_un_filtro(api, sesion) -> None:
+    await _pedido(sesion, oc="4588800001")  # sin proyección
+    await _pedido(
+        sesion,
+        oc="4588800002",
+        eta_utilizada=_medianoche(dt.date(2026, 10, 1)),
+        fecha_proyectada_disponible=dt.date(2026, 10, 8),
+        estado_cumplimiento="A_TIEMPO",
+        estado_calculado="A_TIEMPO",
+    )
+
+    assert await _ocs(api, cumplimiento="SIN_PROYECCION") == [("4588800001", 10)]
+    assert await _ocs(api, cumplimiento="A_TIEMPO") == [("4588800002", 10)]
+    assert len(await _ocs(api, cumplimiento=["A_TIEMPO", "SIN_PROYECCION"])) == 2
+
+
+@pytest.mark.integration
+async def test_la_etapa_de_un_cerrado_no_lo_trae_pero_cerrado_si(api, sesion) -> None:
+    """Un cerrado conserva su última etapa: filtrar por ella no debe traerlo."""
+    await _pedido(sesion, oc="4588800001")
+    await _pedido(
+        sesion, oc="4588800002", estado_calculado="CERRADO", motivo_cierre="CIERRE_FORZADO"
+    )
+
+    assert await _ocs(api, etapa="SIN_TRACKING") == [("4588800001", 10)]
+    assert await _ocs(api, etapa="CERRADO") == [("4588800002", 10)]
+    assert len(await _ocs(api, etapa=["SIN_TRACKING", "CERRADO"])) == 2

@@ -26,16 +26,18 @@ from dataclasses import dataclass
 from typing import Any
 
 from geoalchemy2 import Geometry
-from sqlalchemy import ColumnElement, Select, cast, func, select
+from sqlalchemy import ColumnElement, Select, and_, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, selectinload
 
 from app.models.elemento_rastreado import ElementoRastreado
+from app.models.enums import ESTADOS_TERMINALES
 from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.schemas.pedidos import (
+    SIN_PROYECCION,
     Arribos,
     Calculo,
     Cierre,
@@ -72,7 +74,13 @@ PATRON_ORDEN = rf"^-?({'|'.join(_COLUMNAS_ORDEN)})$"
 
 @dataclass(frozen=True, slots=True)
 class Filtros:
-    """Los seis filtros de RF-19. Vacío significa «sin filtrar»."""
+    """Los filtros de RF-19 y los del Figma del 30/09. Vacío es «sin filtrar».
+
+    El Figma corregido con los usuarios clave filtra por posición, por etapa y
+    por cumplimiento por separado, y busca el material por texto. Los seis de
+    RF-19 se conservan: proveedor y destino no están en el Figma, pero el
+    requisito los pide.
+    """
 
     oc: str | None = None
     proveedores: Sequence[int] = ()
@@ -80,6 +88,10 @@ class Filtros:
     vias: Sequence[str] = ()
     estados: Sequence[str] = ()
     destinos: Sequence[int] = ()
+    posiciones: Sequence[int] = ()
+    etapas: Sequence[str] = ()
+    cumplimientos: Sequence[str] = ()
+    material_texto: str | None = None
 
 
 def _escapar_like(texto: str) -> str:
@@ -101,9 +113,45 @@ def _condiciones(filtros: Filtros) -> list[ColumnElement[bool]]:
         condiciones.append(PedidoTransito.via_transporte.in_(filtros.vias))
     if filtros.destinos:
         condiciones.append(PedidoTransito.id_destino.in_(filtros.destinos))
+    if filtros.posiciones:
+        condiciones.append(PedidoTransito.posicion_oc.in_(filtros.posiciones))
+    if filtros.material_texto and filtros.material_texto.strip():
+        patron = f"%{_escapar_like(filtros.material_texto.strip())}%"
+        condiciones.append(
+            or_(
+                Material.codigo.ilike(patron, escape="\\"),
+                Material.descripcion.ilike(patron, escape="\\"),
+            )
+        )
+    if filtros.cumplimientos:
+        valores = [c for c in filtros.cumplimientos if c != SIN_PROYECCION]
+        opciones: list[ColumnElement[bool]] = []
+        if valores:
+            opciones.append(PedidoTransito.estado_cumplimiento.in_(valores))
+        if SIN_PROYECCION in filtros.cumplimientos:
+            opciones.append(PedidoTransito.estado_cumplimiento.is_(None))
+        condiciones.append(or_(*opciones))
+
+    terminales = [e for e in filtros.etapas if e in ESTADOS_TERMINALES]
+    if filtros.etapas:
+        activas = [e for e in filtros.etapas if e not in ESTADOS_TERMINALES]
+        opciones = []
+        if activas:
+            # Un cerrado conserva su última etapa real, congelada: sin esta
+            # condición, filtrar «En tránsito» traería pedidos ya cerrados.
+            opciones.append(
+                and_(
+                    PedidoTransito.etapa_viaje.in_(activas),
+                    PedidoTransito.motivo_cierre.is_(None),
+                )
+            )
+        if terminales:
+            opciones.append(PedidoTransito.estado_calculado.in_(terminales))
+        condiciones.append(or_(*opciones))
+
     if filtros.estados:
         condiciones.append(PedidoTransito.estado_calculado.in_(filtros.estados))
-    else:
+    elif not terminales:
         condiciones.append(PedidoTransito.motivo_cierre.is_(None))
     return condiciones
 

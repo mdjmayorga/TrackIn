@@ -77,7 +77,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-45` | Integrar la fuente marítima por contenedor o BL — **ShipsGo** | Story | OE2 | **Must** | Sprint 4 | 12h | ✅ **GO** 14/09: probado con contenedor real, entrega posición, ETA, hitos, buque, IMO y transbordo · ✅ terminada 22/09 |
 | `US-46` | Integrar la fuente aérea por guía aérea (MAWB) — **ShipsGo Air** | Story | OE2 | **Must** | Sprint 4 | 10h | ✅ **GO** 14/09: MAWB real resuelto (PEK→FRA→SJO, 10 hitos CIMP). TrackingMore descartado: no tiene aerolíneas · ✅ terminada 22/09 |
 | `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 · ✅ terminada 29/09 |
-| `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 |
+| `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 · ✅ terminada 30/09 |
 | `US-14` | Confirmar el desembarco y **disparar el paso manual a proceso aduanal** | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 · RN-06 revisada 04/09 |
 | `US-15` | Auditar toda intervencion manual sobre un pedido | Story | OE4 | **Should** | Sprint 5 | 8h | RF-14 / RNF-06 |
 | `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) · ✅ terminada 29/09 |
@@ -85,8 +85,8 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 |
 | `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada |
 | `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) |
-| `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) |
-| `TASK-04` | Publicar la documentacion OpenAPI del backend | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 |
+| `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) · ✅ terminada 30/09 (backend) |
+| `TASK-04` | Publicar la documentacion OpenAPI del backend ✅ | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 · ✅ cerrada 30/09 |
 | `TASK-05` | Andamiaje del frontend React con TypeScript, Vite y Tailwind | Task | OE3 | **Must** | Sprint 6 | 6h | RNF (stack 5.8) |
 | `US-19` | Listar los pedidos en transito en una grilla ordenable | Story | OE3 | **Must** | Sprint 6 | 12h | RF-04 / RNF-01 |
 | `US-20` | Consultar el detalle completo de un pedido | Story | OE3 | **Must** | Sprint 6 | 10h | RF-05 / CU-03 |
@@ -103,6 +103,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-53` | Medir el cumplimiento contra la fecha de llegada a Gutis (columna R) | Story | OE2 | **Must** | Sprint 5 | 3h | Reunión con Compras 29/09 · revierte la decisión 2 del 04/09 · ✅ terminada 29/09 |
 | `US-54` | Tomar el puerto de llegada del API aunque el incoterm diga otro | Story | OE2 | **Should** | Sprint 5 | 3h | Reunión con Compras 29/09 · amplía `US-52` · ✅ terminada 29/09 |
 | `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · hoy solo por script |
+| `US-56` | Leer los pedidos del Z-tracking desde la API de SAP | Story | OE2 | **Must** | — | — | 30/09: el Excel es una copia estática · **bloqueada** por el contrato de la API |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
@@ -1343,6 +1344,26 @@ Como usuario de Logística, quiero administrar los destinos y su lead time en d�
 | Origen en el SRS | RF-23 / CU-06 |
 | Etiquetas | `backend,maestros` |
 
+> **✅ Terminada el 30/09/2026, adelantada al Sprint 5.** `/api/v1/destinos`: listar, detalle,
+> alta (`POST`) y edición parcial (`PATCH`).
+>
+> | Criterio | Cómo se cumple |
+> |---|---|
+> | Un destino nuevo queda disponible | Entra activo; la ingesta lo encuentra por su código desde ese momento |
+> | Lead time negativo o no numérico | 422 con el formato esperado: «El lead time debe ser un número entero de días» |
+> | Desactivar con pedidos activos | 409 con cuántos pedidos afecta y `requiere_confirmacion`; se repite con `confirmar: true`. Los pedidos conservan su destino; la ingesta deja de ofrecerlo para líneas nuevas |
+> | Duplicado en nombre y vía | 409, sin distinguir mayúsculas. Lo garantiza además un índice único nuevo (migración `0015`) |
+>
+> - **Cambiar el lead time recalcula** los pedidos activos del destino en la misma
+>   transacción, por el camino de `US-12`; la respuesta dice qué movió.
+> - **El código y la vía no se editan:** el código es la clave con que la ingesta y ShipsGo
+>   ubican el destino, y la vía ata al destino con sus pedidos. Cambiarlos es otro destino.
+> - **Sin roles todavía:** quién puede editar el maestro lo decide `US-42`.
+> - **Arreglo colateral en la medición:** coverage no seguía el código de SQLAlchemy async
+>   (corre en *greenlets*) y reportaba sin cubrir líneas que las pruebas sí ejercitan. Con
+>   `concurrency = ["greenlet", "thread"]` los módulos de `US-13` y `US-16` pasan de 63-82 %
+>   a 98-100 %. Suite: 1107 pruebas, 97 %.
+
 #### US-14 — Confirmar manualmente el desembarco de un pedido
 
 Como usuario de Logística, quiero registrar la llegada real de la carga, para corregir al sistema cuando la fuente automática no la reporta
@@ -1543,6 +1564,10 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 | Origen en el SRS | RNF-17 |
 | Etiquetas | `backend,documentacion` |
 
+> **✅ Cerrada el 30/09/2026.** Los dos criterios se cumplen desde `US-16`: FastAPI publica
+> Swagger UI en `/docs`, y `test_los_endpoints_aparecen_en_openapi` verifica que un endpoint
+> nuevo aparece sin escribir el esquema a mano. No hubo que escribir código propio.
+
 ---
 
 ### Sprint 6 (19-30 oct 2026)
@@ -1591,6 +1616,19 @@ Como usuario de Compras, quiero ver todos los pedidos en una grilla, para revisa
 > **Criterio nuevo:** al filtrar por un estado terminal, la grilla sustituye `ETA` y `F. proyectada` por `F. recepcion` y `Cantidad recibida`, que es lo que importa de un pedido cerrado.
 | Etiquetas | `frontend,grilla` |
 
+> **Corregida con los usuarios clave el 30/09/2026** (Figma: `Grilla completa.png`,
+> `Dashboard Principal - Grilla simple.png`). Nueve columnas, en este orden: **OC · POS ·
+> Material · Etapa · Cumplimiento · F. Proyectada · F. Comprometida · Vía · Destino**.
+>
+> - **OC y POS primero**, en columnas separadas (pedido de Compras del 29/09).
+> - **Material = código + nombre**: «13002006 Lactosa monohidrato». El código es la columna F
+>   de `PRODUCCION`, que la API ya entrega en `material.codigo`.
+> - **Salen `Proveedor` y `ETA`** respecto de §1.5 de los wireframes. Sin la columna ETA, el
+>   criterio de arriba se reduce a sustituir `F. proyectada`.
+> - **La etapa muestra el estado terminal** en las filas cerradas («Cerrado», «Cancelado»),
+>   como ya decía §1.11.
+> - La grilla simple (pantalla de planta, `US-43`) deja solo Material, Etapa y Cumplimiento.
+
 #### US-20 — Consultar el detalle completo de un pedido
 
 Como usuario de Logística, quiero ver el detalle de un pedido con el desglose del calculo, para entender por que tiene el estado que tiene.
@@ -1628,6 +1666,20 @@ Como usuario de Compras, quiero filtrar por OC, proveedor, material, vía, estad
 | Estimacion | 12 h |
 | Origen en el SRS | RF-19 / CU-04 / RNF-02 |
 | Etiquetas | `frontend,filtros` |
+
+> **Filtros del Figma corregido el 30/09/2026:** Orden de compra · **Posición** · Material
+> (**búsqueda por texto**) · Vía · **Etapa** · **Cumplimiento**. La API de `US-16` los admite
+> desde el mismo día (`posicion`, `buscar_material`, `etapa`, `cumplimiento`).
+>
+> **Proveedor y Destino salen de RF-19 (decidido el 30/09/2026).** El dashboard principal
+> nunca filtró por proveedor ni por destino: el requisito los listaba, pero no correspondían
+> a cómo se usa la vista. RF-19 queda con los seis filtros del Figma y se corrige en el SRS
+> v0.6 (`docs/srs/SRS_v0.6_plan_de_cambios.md`). La API conserva `proveedor` y `destino`:
+> no estorban y no hay que tocar nada para quitarlos de la pantalla.
+>
+> Dos detalles de la API para el frontend: el filtro de etapa acepta `CERRADO` y `CANCELADO`
+> y con ellos trae los pedidos terminales, que por omisión no salen; y el guion de
+> cumplimiento se filtra como `SIN_PROYECCION`.
 
 #### US-22 — Mostrar la cinta de indicadores KPI
 
@@ -2066,6 +2118,40 @@ intervenciones.
 - Dada la pantalla de planta, cuando pasa el tiempo de inactividad, entonces la sesión cierra
 
 > Sin SSO/Active Directory: mecanismo propio (RNF-05 ampliado). **Revierte B9:** el rol Administrador entra porque, con login, el rol sí restringe.
+
+> **✅ Terminada el 30/09/2026 (backend), adelantada al Sprint 5.** La pantalla de login es
+> del frontend (Sprint 6).
+>
+> | Criterio | Cómo se cumple |
+> |---|---|
+> | La sesión identifica al autor | `POST /auth/login` abre una sesión; `usuario_actual` la da a cada endpoint. La auditoría de `US-15` tomará el autor de ahí |
+> | Cada rol opera lo suyo | Solo el Administrador usa `/usuarios`. El maestro de destinos lo mantienen Logística y el Administrador; los pedidos los consulta cualquier rol |
+> | Error genérico y se cuenta el intento | El mismo mensaje falle el usuario, la contraseña o esté bloqueada, y con el mismo tiempo de respuesta. Cada fallo suma; al máximo, la cuenta se bloquea |
+> | La inactividad cierra la sesión | Cada petición renueva la sesión; sin uso durante el plazo, se cierra y queda registrada |
+>
+> **Las decisiones abiertas del wireframe (§0.4)**, fijadas como parámetros ajustables sin
+> desplegar (migración `0016` los siembra):
+>
+> | Parámetro | Valor | Qué decide |
+> |---|---|---|
+> | `login_intentos_maximos` | 5 | Fallos seguidos antes de bloquear |
+> | `login_bloqueo_min` | 15 | Duración del bloqueo |
+> | `sesion_inactividad_min` | 30 | Minutos sin uso hasta cerrar la sesión. La pantalla de planta, que se refresca sola, no se cierra |
+> | `sesion_recordada_dias` | 30 | Duración de «Recordar sesión», que no cierra por inactividad |
+>
+> - **Sesiones en la base, no JWT** (tabla `sesiones`): hacen posibles el cierre por
+>   inactividad, las sesiones simultáneas de `compras@gutis.com` y cortar las sesiones al
+>   desactivar a alguien. Se guarda el hash del token, nunca el token.
+> - **«¿Olvidó su contraseña?»:** la reinicia el Administrador; eso desbloquea la cuenta y
+>   cierra sus sesiones.
+> - **Contraseñas:** argon2id, mínimo 10 caracteres. Nueva dependencia: `argon2-cffi`.
+> - **El wireframe mostraba intentos restantes; no se implementó.** Contar intentos de un
+>   usuario que no existe es imposible, y mostrar el contador solo cuando existe revelaría
+>   qué cuentas hay.
+> - **El primer Administrador** se crea con `scripts/crear_usuario.py`, que pide la
+>   contraseña sin mostrarla.
+>
+> Suite: 1125 pruebas (18 nuevas), 97 %.
 
 ### `US-43` — Dos vistas de la grilla según el rol
 
@@ -2760,6 +2846,40 @@ libera el material, para que «cerrado» signifique **disponible para producció
 
 ---
 
+## El Z-tracking real vive en SAP — 30/09/2026
+
+**El Excel que se ha usado es una copia estática.** El Z-tracking real está en SAP, y Gutis
+va a proveer **una API para leerlo**. Tres consecuencias:
+
+- **La ingesta cambia de fuente, no de lógica.** `FuentePedidos` (`TASK-03`) se diseñó como
+  puerto para esto: el lector del Excel es un adaptador, y SAP será otro. La normalización,
+  la carga idempotente, las ausencias y el recálculo (`US-12`) no cambian.
+- **La calidad de datos medida en el Excel es provisional.** En la recarga del WK38 del
+  30/09, 373 de 465 líneas no entraron: 273 sin vía (vacía, «N/A» o hasta «INDIA») y 100 sin
+  destino resoluble. Puede ser un defecto de la copia manual o del dato en SAP; se vuelve a
+  medir contra la API.
+- **Nueva historia, bloqueada por el contrato:** `US-56`. Sin sprint hasta que se conozca la
+  API: formato, autenticación, frecuencia y si trae las columnas de referencia (`TASK-30`).
+
+### `US-56` — Leer los pedidos del Z-tracking desde la API de SAP
+
+Como usuario de Planificación, quiero que los pedidos entren desde SAP sin exportar un Excel,
+para que el sistema trabaje con el dato vigente y no con una copia de la semana.
+
+**Criterios de aceptación** (provisionales, a ajustar con el contrato de la API)
+
+- Dada la API de SAP configurada, cuando corre la carga, entonces los pedidos entran por el mismo camino que el Excel (`FuentePedidos`), con la misma normalización y el mismo informe
+- Dada una línea que deja de venir de SAP, cuando corre la carga, entonces se marca ausente y no se borra, como en `US-31`
+- Dada la API caída, cuando corre la carga, entonces falla con un motivo claro y no marca ausente nada
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Must** · sin sprint · estimación pendiente del contrato |
+| Origen | 30/09/2026: el Z-tracking real está en SAP |
+| Bloqueada por | El contrato de la API de SAP |
+
+---
+
 ## Cambios de la reunión con Compras (29/09/2026)
 
 Siete respuestas. Tres cambian el cálculo, dos cambian la autenticación y dos solo la
@@ -2928,10 +3048,34 @@ como `US-46`, detrás de la misma política de resiliencia (`US-03`).
 | Tipo | Task · OE2 · **Must** · Sprint 5 · 3 h · ✅ terminada 29/09/2026 |
 | Origen | Reunión con usuarios clave, 29/09/2026 |
 
+> **Decisión del 30/09/2026: Parcels queda descartado; se sigue con ShipsGo.** Motivo: no da
+> seguimiento en vivo del marítimo —sin ETA, sin puerto de descarga, sin posición—, y cada
+> consulta es un pedido suelto, no una suscripción que se actualice sola.
+>
+> **Negociación con ShipsGo, abierta.** Se les pidió un precio anual fijo. Respondieron el
+> 30/09 con un paquete por adelantado —1.100 créditos a US$2,00 (US$2.200) válidos 12 meses,
+> más **US$250 de uso de API, pago único**—, que sigue siendo por crédito: si se supera, se
+> compran más. Se les repreguntó por una **licencia anual plana**, un tope garantizado o un
+> precio fijo por crédito adicional, la **transferencia de créditos no usados** al año
+> siguiente y un descuento por volumen. Confirmaron que el alta por BL cubre todos sus
+> contenedores y que las consultas, el mapa y las notificaciones no consumen créditos.
+>
+> **Volumen confirmado el 30/09/2026: entre 70 y 110 embarques al mes** (estimación de
+> Ventas), es decir **840 a 1.320 al año**. La cotización de 1.100 cae dentro del rango, y
+> la estimación del 14/09 —~375 al año, ~US$750— queda **desactualizada**: a US$2 por
+> crédito, el costo real va de **US$1.680 a US$2.640 al año**, más los US$250 únicos de API.
+>
+> Consecuencia en el sistema: el parámetro `altas_maximas_dia` (5) se fijó cuando había 50
+> créditos. Con 70–110 embarques al mes salen 3 a 5 altas por día hábil, así que el aviso
+> saltaría en días normales. Conviene subirlo cuando se compren los créditos.
+
 ### Lo que cambia en `US-42`
 
 - **Una cuenta compartida:** `compras@gutis.com`, con **sesiones simultáneas**. Abrir una sesión no cierra las demás.
-- **Riesgo para la auditoría (RF-14, `US-15`):** con una cuenta compartida, la auditoría dirá «Compras» y no qué persona dio de alta o intervino un pedido. Si eso importa —y con altas que cuestan dinero, importa—, la acción podría pedir el nombre de quien la hace, junto con el motivo. **Decisión abierta.**
+- **Auditoría (RF-14, `US-15`) — decidido el 30/09/2026:** `compras@gutis.com` se trata como
+  **un solo usuario**, aunque lo usen varias personas a la vez. Las acciones **no piden el
+  nombre** de quien las hace: la auditoría registra «Compras», y esa es la trazabilidad
+  que se acepta para ese rol.
 
 ---
 

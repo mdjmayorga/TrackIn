@@ -28,6 +28,22 @@ EtapaViaje = Literal[
     "RECIBIDO_EN_PLANTA",
 ]
 Cumplimiento = Literal["A_TIEMPO", "EN_RIESGO", "RETRASADO"]
+
+#: El filtro «Etapa» del Figma del 30/09: la columna muestra el estado terminal
+#: en las filas cerradas (`wireframes.md` §1.11), así que el filtro también.
+EtapaFiltro = Literal[
+    "SIN_TRACKING",
+    "EN_ORIGEN",
+    "EN_TRANSITO",
+    "EN_DESTINO",
+    "EN_PROCESO_ADUANAL",
+    "RECIBIDO_EN_PLANTA",
+    "CERRADO",
+    "CANCELADO",
+]
+#: El guion de la columna «Cumplimiento» es una categoría: sin fecha proyectada.
+SIN_PROYECCION = "SIN_PROYECCION"
+CumplimientoFiltro = Literal["A_TIEMPO", "EN_RIESGO", "RETRASADO", "SIN_PROYECCION"]
 EstadoCalculado = Literal[
     "SIN_TRACKING",
     "EN_ORIGEN",
@@ -232,6 +248,9 @@ __all__ = [
     "Calculo",
     "Cierre",
     "Cumplimiento",
+    "CumplimientoFiltro",
+    "EtapaFiltro",
+    "SIN_PROYECCION",
     "DestinoRef",
     "EstadoCalculado",
     "EtapaViaje",
