@@ -67,6 +67,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.pedido_transito import PedidoTransito
 from app.services import arribo, planificador, recalculo, salud_fuentes
+from app.services import estado as estado_mod
 from app.services.rastreo import colector_shipsgo, colector_tica
 from app.services.rastreo.indice_shipsgo import clave_referencia, indice_shipsgo
 from app.services.rastreo.shipsgo_aerolineas import CatalogoAerolineas
@@ -219,10 +220,25 @@ async def _pedidos_activos(
     return list(filas)
 
 
+#: Hasta dónde mueve la etapa la lectura de la fuente. «En destino» lo decide
+#: `arribo` —con el hito en el puerto de destino— y de ahí en adelante son
+#: actos humanos (`US-14`, `US-18`).
+ETAPAS_DE_LA_FUENTE: Final = frozenset({"EN_ORIGEN", "EN_TRANSITO"})
+
+
 async def _arribo_y_recalculo(
-    sesion: AsyncSession, elemento: ElementoRastreado, resumen: ResumenCiclo, ahora: dt.datetime
+    sesion: AsyncSession,
+    elemento: ElementoRastreado,
+    resumen: ResumenCiclo,
+    ahora: dt.datetime,
+    etapa_fuente: str | None = None,
 ) -> None:
     """El orden importa: el arribo mueve la etapa y el estado se deriva de ella.
+
+    Antes del arribo se aplica la etapa que leyó la fuente, **solo hacia
+    adelante** (`US-14`). Era el hallazgo del Sprint 4: el BL de COSCO
+    navegaba (`SAILING`) y el pedido seguía «En origen», porque nadie copiaba
+    la etapa de la lectura al pedido.
 
     Cada pedido va en su *savepoint* (`US-12`, RNF-14): si uno falla, se
     deshace solo ese. Sin esto, el error revertía el elemento entero —la
@@ -233,6 +249,10 @@ async def _arribo_y_recalculo(
         etapa_antes = pedido.etapa_viaje
         try:
             async with sesion.begin_nested():
+                if etapa_fuente in ETAPAS_DE_LA_FUENTE and estado_mod.avanza(
+                    pedido.etapa_viaje, etapa_fuente
+                ):
+                    pedido.etapa_viaje = etapa_fuente
                 llegada = await arribo.evaluar(sesion, pedido, ahora)
                 await recalculo.recalcular(sesion, pedido, instante=ahora)
                 await sesion.flush()
@@ -253,7 +273,8 @@ async def _consultar_shipsgo(
     aereo: bool,
     estado: EstadoWorker,
     ahora: dt.datetime,
-) -> bool:
+) -> tuple[bool, str | None]:
+    """Si la lectura se aplicó, y la etapa que dicen sus hitos."""
     shipment = await cliente.leer(id_embarque, aereo=aereo)
     geojson = await cliente.leer_geojson(id_embarque, aereo=aereo)
     lectura = await colector_shipsgo.procesar(sesion, elemento, shipment, geojson, instante=ahora)
@@ -261,7 +282,8 @@ async def _consultar_shipsgo(
         estado.madurando.add(elemento.id)
     else:
         estado.madurando.discard(elemento.id)
-    return lectura.aplicada
+    etapa = lectura.lectura.etapa if lectura.lectura is not None else None
+    return lectura.aplicada, etapa
 
 
 async def _consultar_tica(
@@ -381,9 +403,10 @@ async def ejecutar_ciclo(
             if elemento is None:
                 continue
             try:
+                etapa_fuente: str | None = None
                 if registrado is not None:
                     assert fuentes.shipsgo is not None
-                    aplicada = await _consultar_shipsgo(
+                    aplicada, etapa_fuente = await _consultar_shipsgo(
                         sesion, elemento, fuentes.shipsgo, *registrado, estado, ahora
                     )
                 else:
@@ -392,7 +415,7 @@ async def ejecutar_ciclo(
                 _registrar_exito(fuente, estado, ahora, con_datos=aplicada)
                 if aplicada:
                     resumen.aplicados += 1
-                    await _arribo_y_recalculo(sesion, elemento, resumen, ahora)
+                    await _arribo_y_recalculo(sesion, elemento, resumen, ahora, etapa_fuente)
                 await sesion.commit()
             except (ErrorShipsGo, ErrorTICA) as exc:
                 await sesion.rollback()

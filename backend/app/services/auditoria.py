@@ -49,6 +49,11 @@ def _como_texto(valor: object) -> str | None:
     if valor is None:
         return None
     if isinstance(valor, dt.datetime):
+        # En UTC siempre: el mismo instante llega con «-06:00» si viene de la
+        # pantalla y con «+00:00» si viene de la base, y la bitácora tiene que
+        # poder compararlos como texto (`US-14`).
+        if valor.tzinfo is not None:
+            valor = valor.astimezone(dt.UTC)
         return valor.isoformat()
     if isinstance(valor, dt.date):
         return valor.isoformat()

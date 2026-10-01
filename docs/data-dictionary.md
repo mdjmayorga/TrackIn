@@ -86,7 +86,7 @@ Además de los `CHECK` de columna listados arriba:
 | `uq_pedidos_transito_tracking_interno` | `UNIQUE (tracking_interno)` | |
 | `fk_pedidos_transito_id_destino_maestro_destinos` | `FOREIGN KEY (id_destino, via_transporte)` → `maestro_destinos (id, via_transporte)`, `ON DELETE RESTRICT` | Que la vía del pedido y la del destino coincidan |
 | `fk_pedidos_transito_id_elemento_rastreado_elementos_rastreados` | `ON DELETE SET NULL` | Que borrar una nave devuelva el pedido a `SIN_TRACKING` en vez de eliminarlo |
-| `ck_pedidos_transito_sin_tracking` | `(id_elemento_rastreado IS NULL) = (etapa_viaje = 'SIN_TRACKING')` | **RN-02** como invariante de base, no como regla de código |
+| `ck_pedidos_transito_sin_tracking` | `CASE WHEN id_elemento_rastreado IS NOT NULL THEN etapa_viaje <> 'SIN_TRACKING' ELSE (etapa_viaje = 'SIN_TRACKING' OR ata_confirmada IS NOT NULL) END` | **RN-02** como invariante de base. Desde el 01/10/2026 (`US-14`, migración `0018`), un pedido sin rastreo sale de `SIN_TRACKING` solo si una persona confirma su llegada |
 | `ck_pedidos_transito_terminal` | `(motivo_cierre IS NULL) = (estado_calculado NOT IN ('CERRADO','CANCELADO'))` | **RN-13**: no hay estado terminal sin causa, ni causa sin estado terminal |
 | `ck_pedidos_transito_recepcion` | `motivo_cierre = 'RECEPCION_CONFORME'` ⇒ `fecha_recepcion_planta` y `cantidad_recibida` no nulos | **RN-10**: no se cierra por recepción sin los datos de la recepción |
 

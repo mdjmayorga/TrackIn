@@ -243,6 +243,30 @@ class PedidoDetalle(PedidoResumen):
     fecha_ultima_carga: dt.datetime | None
 
 
+class DesembarcoEntrada(BaseModel):
+    """`US-14`: la llegada real de la carga, con su motivo."""
+
+    ata: dt.datetime = Field(
+        description="Fecha y hora de llegada **con zona horaria** (`2026-09-30T08:15:00-06:00`)."
+    )
+    motivo: str = Field(description="Obligatorio (RF-14): por qué se confirma a mano.")
+    confirmar: bool = Field(
+        default=False, description="Obligatorio para reemplazar una llegada ya confirmada."
+    )
+
+
+class PasoAduanalEntrada(BaseModel):
+    motivo: str = Field(description="Obligatorio (RF-14).")
+
+
+class ConfirmacionDesembarco(BaseModel):
+    """El cuerpo del 409 cuando ya había una llegada confirmada."""
+
+    detail: str
+    ata_confirmada_actual: dt.datetime
+    requiere_confirmacion: bool = True
+
+
 class AsientoBitacora(BaseModel):
     """Una intervención manual sobre el pedido (`US-15`, RF-14)."""
 
@@ -260,6 +284,9 @@ class AsientoBitacora(BaseModel):
 __all__ = [
     "Arribos",
     "AsientoBitacora",
+    "ConfirmacionDesembarco",
+    "DesembarcoEntrada",
+    "PasoAduanalEntrada",
     "Calculo",
     "Cierre",
     "Cumplimiento",

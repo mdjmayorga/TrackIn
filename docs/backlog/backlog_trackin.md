@@ -78,7 +78,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-46` | Integrar la fuente aérea por guía aérea (MAWB) — **ShipsGo Air** | Story | OE2 | **Must** | Sprint 4 | 10h | ✅ **GO** 14/09: MAWB real resuelto (PEK→FRA→SJO, 10 hitos CIMP). TrackingMore descartado: no tiene aerolíneas · ✅ terminada 22/09 |
 | `US-12` | Recalcular fecha y estado ante cualquier cambio de insumo | Story | OE2 | **Must** | Sprint 5 | 8h | RF-12 · ✅ terminada 29/09 |
 | `US-13` | Mantener el maestro de destinos y sus lead times | Story | OE2 | **Must** | Sprint 5 | 10h | RF-23 / CU-06 · ✅ terminada 30/09 |
-| `US-14` | Confirmar el desembarco y **disparar el paso manual a proceso aduanal** | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 · RN-06 revisada 04/09 |
+| `US-14` | Confirmar el desembarco y **disparar el paso manual a proceso aduanal** | Story | OE2 | **Must** | Sprint 5 | 8h | RF-13 / CU-05 · RN-06 revisada 04/09 · ✅ terminada 01/10 |
 | `US-15` | Auditar toda intervencion manual sobre un pedido | Story | OE4 | **Should** | Sprint 5 | 8h | RF-14 / RNF-06 · ✅ terminada 30/09 |
 | `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) · ✅ terminada 29/09 |
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 · ✅ terminada 29/09 |
@@ -1105,9 +1105,9 @@ Como estudiante practicante, quiero consolidar los entregables de OE1 (SRS, mode
 > **Dos hallazgos quedan abiertos, sin historia asignada,** para triarlos en la
 > planificación del Sprint 5:
 >
-> - **La etapa de viaje que reporta la fuente no se aplica al pedido.** La OC 4500016185-10
+> - ~~**La etapa de viaje que reporta la fuente no se aplica al pedido.** La OC 4500016185-10
 >   sigue en `EN_ORIGEN` aunque ShipsGo dice `SAILING`; `arribo` solo sabe mover a
->   `EN_DESTINO` (ver `US-52`).
+>   `EN_DESTINO` (ver `US-52`).~~ **Resuelto el 01/10 con `US-14`.**
 > - **El alta con costo del 28/09 (15:16) no tiene registro RF-14**, porque se hizo antes de
 >   que existiera el pedido. El registro que sí quedó dice «409: sin costo».
 
@@ -1385,6 +1385,38 @@ Como usuario de Logística, quiero registrar la llegada real de la carga, para c
 | Etiquetas | `backend,manual` |
 
 > **Sube de `Should` a `Must` el 01/09.** Confirmado que no se compran fuentes de datos de pago (B1), y el spike TG-10 probo que **no hay cobertura AIS gratuita en Moin**. Sin fuente satelital, el arribo al puerto de destino no se puede detectar automaticamente: esta historia deja de ser un respaldo del automatismo y pasa a ser el **unico mecanismo** que cierra ese paso del ciclo.
+
+> **✅ Terminada el 01/10/2026, adelantada al Sprint 5.** Dos actos, como en la operación
+> (decisión del 04/09), los dos solo para Logística y el Administrador:
+>
+> | Acto | Endpoint | Qué hace |
+> |---|---|---|
+> | Confirmar el desembarco | `POST /pedidos/{id}/desembarco` | Registra la llegada real con su motivo y deja el pedido «En destino» |
+> | Pasar a proceso aduanal | `POST /pedidos/{id}/paso-aduanal` | El acto humano que autoriza el cambio de etapa; exige que el arribo se conozca, confirmado o por el hito de la fuente |
+>
+> | Criterio | Cómo se cumple |
+> |---|---|
+> | La ATA manda sobre la ETA de la fuente | `ata_confirmada` encabeza RN-14: el desglose muestra `ATA_CONFIRMADA` como origen |
+> | Una fecha futura se rechaza | 422. También una fecha sin zona horaria: «08:15» sería una hora distinta en cada servidor |
+> | Sobrescribir exige confirmación | 409 con la llegada actual; se repite con `confirmar: true`, y la bitácora guarda la anterior y la nueva |
+> | Se recalcula y queda auditada | En la misma transacción, por `US-12` y `US-15`, con el autor de la sesión |
+>
+> **Tres cambios que la historia arrastró:**
+>
+> - **RN-02 abre una excepción** (migración `0018`). La base exigía «sin nave asociada ⇔
+>   `SIN_TRACKING`», y con eso un pedido sin rastreo —106 de 107 hoy— no podía llegar nunca,
+>   ni confirmándolo. Ahora sale de `SIN_TRACKING` si, y solo si, alguien confirma su llegada.
+> - **Las etapas solo avanzan.** El worker reevalúa el arribo en cada lectura y devolvía a
+>   «En destino» un pedido ya pasado a aduana; corregir la llegada de un pedido en aduana
+>   tampoco lo hace retroceder.
+> - **El hallazgo del Sprint 4, resuelto:** el worker aplica al pedido la etapa que leyó de
+>   ShipsGo —«navegando» pasa a «En tránsito»—, solo hacia adelante y hasta «En tránsito».
+>   «En destino» lo sigue decidiendo el hito en el puerto de destino.
+>
+> De paso, la bitácora escribe las fechas con hora **siempre en UTC**: el mismo instante
+> llegaba como `-06:00` o `+00:00` según viniera de la pantalla o de la base.
+>
+> Suite: 1161 pruebas (22 nuevas), 97 %.
 
 #### US-15 — Auditar toda intervención manual sobre un pedido
 
@@ -3283,8 +3315,9 @@ su embarque ya está en ShipsGo, para no perder el seguimiento por un dato que l
 > `CRCAL` (una lectura gratuita a ShipsGo), asoció el BL leído del comentario y el worker proyectó
 > el 12/10, `A_TIEMPO`.
 >
-> **Hallazgo pendiente.** El pedido quedó en `EN_ORIGEN` aunque ShipsGo dice `SAILING`: nadie
-> aplica la etapa de la fuente al pedido; `arribo` solo mueve a `EN_DESTINO`.
+> ~~**Hallazgo pendiente.** El pedido quedó en `EN_ORIGEN` aunque ShipsGo dice `SAILING`: nadie
+> aplica la etapa de la fuente al pedido; `arribo` solo mueve a `EN_DESTINO`.~~ **Resuelto el
+> 01/10 con `US-14`:** el worker aplica la etapa de la lectura, solo hacia adelante.
 >
 > **Auditoría del alta.** El registro formal del BL a nombre de Mariano Mayorga (usuario 59) dice
 > «Ya estaba registrado (409): sin costo», que es cierto para esa llamada. El alta que sí costó

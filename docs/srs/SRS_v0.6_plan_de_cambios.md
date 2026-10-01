@@ -67,6 +67,12 @@ contraseñas con argon2id, bloqueo tras 5 intentos fallidos durante 15 minutos, 
 sesión tras 30 minutos sin actividad, «Recordar sesión» de 30 días y reinicio de
 contraseña por el Administrador. Los cuatro plazos son parámetros ajustables.
 
+## 6b. §7.1 · RN-02 — la llegada confirmada saca a un pedido de «Sin tracking»
+
+Añadir a RN-02: un pedido sin identificador de rastreo permanece en `SIN_TRACKING` **salvo
+que una persona confirme su llegada** (`US-14`); con la llegada confirmada avanza a «En
+destino». Y a RN-02 a RN-06: **las etapas solo avanzan**. — `US-14`, 01/10/2026
+
 ## 7. Anexo C.5 — fuentes de rastreo
 
 Registrar la prueba de **Parcels** (29/09): sirve para aéreo, no para marítimo (sin ETA, sin

@@ -500,7 +500,7 @@ filtro).
 | `ck_pedidos_transito_estado_cumplimiento` | dominio de §1.4 o `NULL` | RN-07..RN-09 |
 | `ck_pedidos_transito_estado_calculado` | dominio de §1.4 | RF-11 |
 | `ck_pedidos_transito_motivo_cierre` | `IN ('RECEPCION_CONFORME','CIERRE_FORZADO','CANCELACION')` o `NULL` | RN-13 |
-| `ck_pedidos_transito_sin_tracking` | `(id_elemento_rastreado IS NULL) = (etapa_viaje = 'SIN_TRACKING')` | **RN-02** |
+| `ck_pedidos_transito_sin_tracking` | `CASE WHEN id_elemento_rastreado IS NOT NULL THEN etapa_viaje <> 'SIN_TRACKING' ELSE (etapa_viaje = 'SIN_TRACKING' OR ata_confirmada IS NOT NULL) END` | **RN-02**, con la excepción de la llegada confirmada (`US-14`, migración `0018`) |
 | `ck_pedidos_transito_terminal` | `(motivo_cierre IS NULL) = (estado_calculado NOT IN ('CERRADO','CANCELADO'))` | **RN-13** |
 | `ck_pedidos_transito_recepcion` | `motivo_cierre='RECEPCION_CONFORME'` ⇒ `fecha_recepcion_planta` y `cantidad_recibida` no nulos | **RN-10** |
 | `ck_pedidos_transito_cantidad_pedida` | `cantidad_pedida > 0` | RN-10 |

@@ -222,3 +222,16 @@ async def test_un_pedido_sin_intervenciones_tiene_la_bitacora_vacia(api, sesion)
 
 async def test_la_bitacora_de_un_pedido_que_no_existe_da_404(api) -> None:
     assert (await api.get("/api/v1/pedidos/999999999/bitacora")).status_code == 404
+
+
+async def test_una_fecha_con_hora_se_escribe_siempre_en_utc(sesion) -> None:
+    """El mismo instante, venga con la zona de Costa Rica o de la base."""
+    usuario = await _usuario(sesion)
+    pedido = await _pedido(sesion)
+    costa_rica = dt.timezone(dt.timedelta(hours=-6))
+
+    fila = await _intervencion(
+        sesion, pedido, usuario, anterior=dt.datetime(2026, 9, 22, 8, 15, tzinfo=costa_rica)
+    )
+
+    assert fila.valor_anterior == "2026-09-22T14:15:00+00:00"

@@ -66,9 +66,12 @@ class PedidoTransito(Base, TimestampMixin):
             name="tipo_proveedor",
         ),
         # --- Las tres que hacen trabajo real (§1.5) -------------------------
-        # RN-02: no tener nave asociada *es* el estado SIN_TRACKING.
+        # RN-02: no tener nave asociada *es* el estado SIN_TRACKING, salvo que
+        # una persona confirme la llegada (`US-14`, migración `0018`).
         CheckConstraint(
-            "(id_elemento_rastreado IS NULL) = (etapa_viaje = 'SIN_TRACKING')",
+            "CASE WHEN id_elemento_rastreado IS NOT NULL "
+            "THEN etapa_viaje <> 'SIN_TRACKING' "
+            "ELSE (etapa_viaje = 'SIN_TRACKING' OR ata_confirmada IS NOT NULL) END",
             name="sin_tracking",
         ),
         # RN-13: los estados terminales y el motivo de cierre van juntos.

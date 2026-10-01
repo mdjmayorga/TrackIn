@@ -11,21 +11,25 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencias import usuario_actual
+from app.api.dependencias import LOGISTICA, Autenticado, requiere_rol, usuario_actual
 from app.db.session import get_db
 from app.models.pedido_transito import PedidoTransito
 from app.schemas.pedidos import (
     AsientoBitacora,
+    ConfirmacionDesembarco,
     CumplimientoFiltro,
+    DesembarcoEntrada,
     EstadoCalculado,
     EtapaFiltro,
     PaginaPedidos,
+    PasoAduanalEntrada,
     PedidoDetalle,
     Via,
 )
-from app.services import auditoria, consulta_pedidos
+from app.services import auditoria, consulta_pedidos, intervenciones
 from app.services.consulta_pedidos import ORDEN_POR_OMISION, PATRON_ORDEN, Filtros
 
 # Cualquier rol autenticado consulta pedidos (`US-42`).
@@ -152,6 +156,106 @@ async def bitacora_pedido(
         )
         for a in await auditoria.bitacora(db, id_pedido)
     ]
+
+
+#: Quién confirma desembarcos y pasa a aduana: Logística (y el Administrador).
+logistica = requiere_rol(LOGISTICA)
+
+
+async def _detalle_tras_intervenir(db: AsyncSession, id_pedido: int) -> PedidoDetalle:
+    await db.commit()
+    detalle = await consulta_pedidos.detalle(db, id_pedido)
+    assert detalle is not None
+    return detalle
+
+
+def _error_de_intervencion(exc: Exception) -> HTTPException:
+    if isinstance(exc, LookupError):
+        return HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
+    if isinstance(exc, intervenciones.IntervencionRechazada):
+        return HTTPException(status.HTTP_409_CONFLICT, str(exc))
+    # Motivo ausente o fecha inválida: es el dato que se envió.
+    return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc))
+
+
+@router.post(
+    "/{id_pedido}/desembarco",
+    response_model=PedidoDetalle,
+    summary="Confirmar el desembarco (US-14)",
+    description=(
+        "Registra la llegada real con su motivo y deja el pedido «En destino». La "
+        "llegada confirmada manda sobre la ETA de la fuente (RN-14); se recalcula y "
+        "se audita. Una fecha futura se rechaza. Si ya había una llegada confirmada, "
+        "responde 409 con la actual y exige repetir con `confirmar: true`."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {"model": ConfirmacionDesembarco, "description": "Ya confirmado, o pedido cerrado."},
+    },
+)
+async def confirmar_desembarco(
+    id_pedido: int,
+    datos: DesembarcoEntrada,
+    quien: Annotated[Autenticado, Depends(logistica)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle | JSONResponse:
+    try:
+        await intervenciones.confirmar_desembarco(
+            db,
+            id_pedido,
+            ata=datos.ata,
+            motivo=datos.motivo,
+            id_usuario=quien.usuario.id,
+            confirmar=datos.confirmar,
+        )
+    except intervenciones.ConfirmacionRequerida as exc:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=ConfirmacionDesembarco(
+                detail=str(exc), ata_confirmada_actual=exc.valor_actual
+            ).model_dump(mode="json"),
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        intervenciones.FechaInvalida,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
+
+
+@router.post(
+    "/{id_pedido}/paso-aduanal",
+    response_model=PedidoDetalle,
+    summary="Pasar a proceso aduanal (US-14)",
+    description=(
+        "El acto humano que autoriza pasar de «En destino» a «En proceso aduanal» "
+        "(decisión del 04/09). Exige que el arribo se conozca: confirmado a mano o "
+        "por el hito de la fuente."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {"description": "No llegó, ya pasó, o está cerrado."},
+    },
+)
+async def pasar_a_aduanal(
+    id_pedido: int,
+    datos: PasoAduanalEntrada,
+    quien: Annotated[Autenticado, Depends(logistica)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle:
+    try:
+        await intervenciones.pasar_a_aduanal(
+            db, id_pedido, motivo=datos.motivo, id_usuario=quien.usuario.id
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
 
 
 __all__ = ["router"]

@@ -47,6 +47,8 @@ from __future__ import annotations
 import datetime as dt
 from typing import Final
 
+from app.models.enums import ETAPAS_VIAJE
+
 #: Dominio de `estado_cumplimiento` (RN-07 a RN-09).
 A_TIEMPO: Final = "A_TIEMPO"
 EN_RIESGO: Final = "EN_RIESGO"
@@ -122,7 +124,21 @@ def derivar_estado_calculado(
     return etapa_viaje
 
 
+def avanza(actual: str, nueva: str) -> bool:
+    """Si pasar de `actual` a `nueva` es avanzar en el viaje (RN-02 a RN-06).
+
+    Las etapas solo avanzan. Un hito tardío, una lectura vieja de la fuente o
+    el worker evaluando el arribo de nuevo no pueden devolver a «En destino» un
+    pedido que alguien ya pasó a proceso aduanal (`US-14`). El orden es el de
+    `ETAPAS_VIAJE`, que es el del viaje.
+    """
+    if actual not in ETAPAS_VIAJE or nueva not in ETAPAS_VIAJE:
+        return False
+    return ETAPAS_VIAJE.index(nueva) > ETAPAS_VIAJE.index(actual)
+
+
 __all__ = [
+    "avanza",
     "A_TIEMPO",
     "CANCELADO",
     "CERRADO",

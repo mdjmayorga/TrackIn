@@ -59,7 +59,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.maestro_destino import MaestroDestino
 from app.models.pedido_transito import PedidoTransito
-from app.services import parametros
+from app.services import estado, parametros
 
 logger = logging.getLogger(__name__)
 
@@ -213,8 +213,12 @@ async def _marcar_en_destino(
 
     **No toca `estado_calculado`**: eso lo deriva `US-10` a partir de las dos
     dimensiones, y escribirlo aquí lo dejaría incoherente con el cumplimiento.
+
+    **Solo avanza** (`US-14`): un pedido que alguien ya pasó a proceso aduanal
+    sigue teniendo su hito de arribo, y el worker lo vuelve a evaluar en cada
+    lectura. Sin esta guarda lo devolvía a «En destino».
     """
-    if pedido.etapa_viaje != ETAPA_EN_DESTINO:
+    if estado.avanza(pedido.etapa_viaje, ETAPA_EN_DESTINO):
         pedido.etapa_viaje = ETAPA_EN_DESTINO
     await sesion.flush()
     await _apagar_si_todos_arribaron(sesion, elemento)
