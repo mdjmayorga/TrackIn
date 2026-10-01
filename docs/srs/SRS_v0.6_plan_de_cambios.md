@@ -73,6 +73,13 @@ Añadir a RN-02: un pedido sin identificador de rastreo permanece en `SIN_TRACKI
 que una persona confirme su llegada** (`US-14`); con la llegada confirmada avanza a «En
 destino». Y a RN-02 a RN-06: **las etapas solo avanzan**. — `US-14`, 01/10/2026
 
+## 6c. §7.1 · RN-10 — la recepción en planta
+
+Precisar: la recepción es conforme si lo recibido llega **al menos** a lo pedido menos la
+tolerancia (10 %, parámetro `tolerancia_recepcion_pct`); recibir de más no lo impide. Solo
+se recibe un pedido que pasó aduana. Por debajo de la tolerancia el pedido no avanza y se
+ofrece el **cierre forzado**, que cierra con lo recibido. — `US-18`, 01/10/2026
+
 ## 7. Anexo C.5 — fuentes de rastreo
 
 Registrar la prueba de **Parcels** (29/09): sirve para aéreo, no para marítimo (sin ETA, sin

@@ -82,7 +82,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-15` | Auditar toda intervencion manual sobre un pedido | Story | OE4 | **Should** | Sprint 5 | 8h | RF-14 / RNF-06 · ✅ terminada 30/09 |
 | `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) · ✅ terminada 29/09 |
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 · ✅ terminada 29/09 |
-| `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 |
+| `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 · ✅ terminada 01/10 |
 | `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada |
 | `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) |
 | `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) · ✅ terminada 30/09 (backend) |
@@ -1574,6 +1574,28 @@ Como usuario de Logística, quiero registrar la recepción efectiva en planta, p
 | Estimacion | 8 h |
 | Origen en el SRS | RF-25 / RN-10 |
 | Etiquetas | `backend,manual,ciclo-vida` |
+
+> **✅ Terminada el 01/10/2026, adelantada al Sprint 5.** Dos actos, solo para Logística y
+> el Administrador:
+>
+> | Acto | Endpoint | Qué hace |
+> |---|---|---|
+> | Recepción en planta | `POST /pedidos/{id}/recepcion` | Fecha, cantidad y motivo. Deja el pedido «Recibido en planta», **sin cerrarlo** |
+> | Cierre forzado | `POST /pedidos/{id}/cierre-forzado` | Registra la recepción parcial y cierra como `CIERRE_FORZADO`; dos asientos en la bitácora |
+>
+> | Criterio | Cómo se cumple |
+> |---|---|
+> | Dentro del margen: `RECIBIDO_EN_PLANTA`, no `CERRADO` | Conforme si lo recibido llega al pedido menos `tolerancia_recepcion_pct` (10 %, nuevo parámetro, migración `0019`). Recibir de más no lo impide: RN-10 habla de *satisfacer* lo pedido |
+> | Por debajo: no avanza y se ofrece el cierre forzado | 409 con el mínimo conforme y `ofrece_cierre_forzado`; el pedido no cambia |
+> | Recibido: el planificador no lo consulta | El planificador descarta los elementos cuyos únicos pedidos activos ya están en planta |
+> | Recibido: sigue activo en los KPIs | Sigue sin `motivo_cierre`, así que la grilla y los KPIs lo cuentan como activo hasta la liberación de Calidad |
+>
+> - **Solo se recibe lo que pasó aduana:** la recepción exige la etapa «En proceso aduanal».
+>   La carga no entra a planta sin despacho.
+> - **El cierre forzado congela el cumplimiento como veredicto** —dice si el proveedor
+>   cumplió—, como en `wireframes.md` §1.11.
+>
+> Suite: 1175 pruebas (14 nuevas), 97 %.
 
 #### US-40 — Ajustar manualmente la fecha proyectada de un pedido
 

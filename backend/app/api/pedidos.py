@@ -27,6 +27,8 @@ from app.schemas.pedidos import (
     PaginaPedidos,
     PasoAduanalEntrada,
     PedidoDetalle,
+    RecepcionEntrada,
+    RecepcionIncompleta,
     Via,
 )
 from app.services import auditoria, consulta_pedidos, intervenciones
@@ -252,6 +254,98 @@ async def pasar_a_aduanal(
     except (
         LookupError,
         intervenciones.IntervencionRechazada,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
+
+
+@router.post(
+    "/{id_pedido}/recepcion",
+    response_model=PedidoDetalle,
+    summary="Registrar la recepción en planta (US-18)",
+    description=(
+        "Deja el pedido «Recibido en planta» **sin cerrarlo**: lo cierra la liberación "
+        "de Calidad. Exige haber pasado aduana. Si lo recibido no llega al mínimo de "
+        "RN-10 (`tolerancia_recepcion_pct`), el pedido no avanza y responde 409 con el "
+        "mínimo, ofreciendo el cierre forzado."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {
+            "model": RecepcionIncompleta,
+            "description": "Recepción incompleta, o fuera de etapa.",
+        },
+    },
+)
+async def registrar_recepcion(
+    id_pedido: int,
+    datos: RecepcionEntrada,
+    quien: Annotated[Autenticado, Depends(logistica)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle | JSONResponse:
+    try:
+        await intervenciones.registrar_recepcion(
+            db,
+            id_pedido,
+            fecha=datos.fecha,
+            cantidad=datos.cantidad,
+            motivo=datos.motivo,
+            id_usuario=quien.usuario.id,
+        )
+    except intervenciones.RecepcionIncompleta as exc:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=RecepcionIncompleta(
+                detail=str(exc),
+                cantidad_pedida=exc.pedida,
+                cantidad_recibida=exc.recibida,
+                minimo_conforme=exc.minimo,
+            ).model_dump(mode="json"),
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        intervenciones.FechaInvalida,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
+
+
+@router.post(
+    "/{id_pedido}/cierre-forzado",
+    response_model=PedidoDetalle,
+    summary="Cerrar con una recepción parcial (US-18)",
+    description=(
+        "Registra lo recibido y cierra el pedido como `CIERRE_FORZADO` (RN-10, RN-13), "
+        "cuando el resto no va a llegar. Deja dos asientos en la bitácora: la "
+        "recepción y el cierre."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {"description": "Fuera de etapa o cerrado."},
+    },
+)
+async def cerrar_forzado(
+    id_pedido: int,
+    datos: RecepcionEntrada,
+    quien: Annotated[Autenticado, Depends(logistica)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle:
+    try:
+        await intervenciones.cerrar_forzado(
+            db,
+            id_pedido,
+            fecha=datos.fecha,
+            cantidad=datos.cantidad,
+            motivo=datos.motivo,
+            id_usuario=quien.usuario.id,
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        intervenciones.FechaInvalida,
         auditoria.IntervencionInvalida,
     ) as exc:
         raise _error_de_intervencion(exc) from exc

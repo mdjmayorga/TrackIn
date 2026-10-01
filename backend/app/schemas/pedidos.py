@@ -255,6 +255,24 @@ class DesembarcoEntrada(BaseModel):
     )
 
 
+class RecepcionEntrada(BaseModel):
+    """`US-18`: la entrada a planta, o la recepción parcial de un cierre forzado."""
+
+    fecha: dt.datetime = Field(description="Fecha y hora de recepción, con zona horaria.")
+    cantidad: Decimal = Field(ge=0, description="Cantidad recibida, en la unidad del pedido.")
+    motivo: str = Field(description="Obligatorio (RF-14).")
+
+
+class RecepcionIncompleta(BaseModel):
+    """El cuerpo del 409 cuando lo recibido no llega al mínimo de RN-10."""
+
+    detail: str
+    cantidad_pedida: Decimal
+    cantidad_recibida: Decimal
+    minimo_conforme: Decimal
+    ofrece_cierre_forzado: bool = True
+
+
 class PasoAduanalEntrada(BaseModel):
     motivo: str = Field(description="Obligatorio (RF-14).")
 
@@ -287,6 +305,8 @@ __all__ = [
     "ConfirmacionDesembarco",
     "DesembarcoEntrada",
     "PasoAduanalEntrada",
+    "RecepcionEntrada",
+    "RecepcionIncompleta",
     "Calculo",
     "Cierre",
     "Cumplimiento",

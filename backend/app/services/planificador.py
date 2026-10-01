@@ -226,12 +226,16 @@ async def _elementos_con_pedidos_activos(sesion: AsyncSession) -> set[int]:
     Decisión B7 del 01/09: los demás no se consultan. `US-11` ya los apaga al
     cerrar el arribo; esto cubre además el caso de que la única línea que los
     usaba se cerrara por otra vía (RN-13).
+
+    Un pedido «Recibido en planta» sigue activo —espera a Calidad— pero **ya no
+    se rastrea** (`US-18`): la carga llegó, y consultarla es gastar cuota.
     """
     filas = await sesion.scalars(
         select(PedidoTransito.id_elemento_rastreado)
         .where(
             PedidoTransito.id_elemento_rastreado.is_not(None),
             PedidoTransito.motivo_cierre.is_(None),
+            PedidoTransito.etapa_viaje != "RECIBIDO_EN_PLANTA",
         )
         .distinct()
     )

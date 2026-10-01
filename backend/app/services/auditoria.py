@@ -44,7 +44,7 @@ class IntervencionInvalida(ValueError):
     """Falta algo que RF-14 exige, o el tipo no existe."""
 
 
-def _como_texto(valor: object) -> str | None:
+def como_texto(valor: object) -> str | None:
     """Una sola forma de escribir cada tipo, para que la bitácora se compare."""
     if valor is None:
         return None
@@ -99,8 +99,8 @@ def registrar(
         id_usuario=id_usuario,
         tipo_intervencion=tipo,
         campo_afectado=campo,
-        valor_anterior=_como_texto(anterior),
-        valor_nuevo=_como_texto(nuevo),
+        valor_anterior=como_texto(anterior),
+        valor_nuevo=como_texto(nuevo),
         motivo=validar_motivo(motivo),
     )
     if instante is not None:
@@ -141,6 +141,7 @@ __all__ = [
     "Asiento",
     "IntervencionInvalida",
     "bitacora",
+    "como_texto",
     "registrar",
     "validar_motivo",
 ]

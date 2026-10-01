@@ -393,3 +393,165 @@ async def test_sin_rastreo_ni_llegada_confirmada_la_etapa_sigue_atada(sesion) ->
         select(AuditoriaIntervencion).where(AuditoriaIntervencion.id_pedido == pedido.id)
     )
     assert list(filas) == []
+
+
+# --- US-18: la recepción en planta ya no cierra ----------------------------------------
+
+RECIBIDO = dt.datetime(2026, 9, 29, 10, 0, tzinfo=dt.timezone(dt.timedelta(hours=-6)))
+MOTIVO_RECEPCION = "Ingresó a bodega con la guía de despacho completa"
+
+
+async def _en_aduana(sesion, pedida: str = "100") -> PedidoTransito:
+    elemento = ElementoRastreado(
+        tipo_tracking_externo="CONTENEDOR",
+        tracking_externo="MRSU0001818",
+        via_transporte="MARITIMO",
+    )
+    sesion.add(elemento)
+    await sesion.flush()
+    return await _pedido(
+        sesion,
+        id_elemento_rastreado=elemento.id,
+        etapa_viaje="EN_PROCESO_ADUANAL",
+        estado_calculado="EN_PROCESO_ADUANAL",
+        ata_confirmada=LLEGADA,
+        cantidad_pedida=Decimal(pedida),
+    )
+
+
+def _recepcion(cantidad: str, motivo: str = MOTIVO_RECEPCION) -> dict[str, str]:
+    return {"fecha": RECIBIDO.isoformat(), "cantidad": cantidad, "motivo": motivo}
+
+
+@pytest.mark.parametrize("cantidad", ["100", "90", "130"])
+async def test_dentro_de_la_tolerancia_queda_recibido_y_no_cerrado(api, sesion, cantidad) -> None:
+    """Primer criterio. 90 es el borde del 10 %; recibir de más no lo impide."""
+    cliente, _ = api
+    pedido = await _en_aduana(sesion)
+
+    respuesta = await cliente.post(_url(pedido, "recepcion"), json=_recepcion(cantidad))
+
+    assert respuesta.status_code == 200, respuesta.text
+    cuerpo = respuesta.json()
+    assert cuerpo["etapa_viaje"] == "RECIBIDO_EN_PLANTA"
+    assert cuerpo["cierre"]["motivo_cierre"] is None
+    assert Decimal(cuerpo["cierre"]["cantidad_recibida"]) == Decimal(cantidad)
+    (asiento,) = (await cliente.get(_url(pedido, "bitacora"))).json()
+    assert asiento["tipo"] == "RECEPCION_PLANTA"
+    assert asiento["valor_nuevo"] == f"{cantidad} KG el 2026-09-29T16:00:00+00:00"
+
+
+async def test_por_debajo_de_la_tolerancia_no_avanza_y_ofrece_cerrar(api, sesion) -> None:
+    """Segundo criterio."""
+    cliente, _ = api
+    pedido = await _en_aduana(sesion)
+
+    respuesta = await cliente.post(_url(pedido, "recepcion"), json=_recepcion("89.999"))
+
+    assert respuesta.status_code == 409
+    cuerpo = respuesta.json()
+    assert cuerpo["ofrece_cierre_forzado"] is True
+    assert Decimal(cuerpo["minimo_conforme"]) == Decimal("90")
+    await sesion.refresh(pedido)
+    assert pedido.etapa_viaje == "EN_PROCESO_ADUANAL"
+    assert pedido.cantidad_recibida is None
+    assert (await cliente.get(_url(pedido, "bitacora"))).json() == []
+
+
+async def test_la_tolerancia_se_ajusta_sin_desplegar(api, sesion) -> None:
+    cliente, _ = api
+    await sesion.execute(
+        text("UPDATE parametros_sistema SET valor = '25' WHERE clave = 'tolerancia_recepcion_pct'")
+    )
+    pedido = await _en_aduana(sesion)
+
+    respuesta = await cliente.post(_url(pedido, "recepcion"), json=_recepcion("80"))
+
+    assert respuesta.status_code == 200
+
+
+async def test_el_cierre_forzado_cierra_con_lo_recibido(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _en_aduana(sesion)
+    pedido.estado_cumplimiento = "RETRASADO"
+    await sesion.flush()
+
+    respuesta = await cliente.post(
+        _url(pedido, "cierre-forzado"),
+        json=_recepcion("60", "El proveedor confirmó que no enviará el resto"),
+    )
+
+    assert respuesta.status_code == 200, respuesta.text
+    cuerpo = respuesta.json()
+    assert cuerpo["estado_calculado"] == "CERRADO"
+    assert cuerpo["cierre"]["motivo_cierre"] == "CIERRE_FORZADO"
+    # El cumplimiento queda como veredicto: el proveedor no cumplió.
+    assert cuerpo["estado_cumplimiento"] == "RETRASADO"
+    tipos = [a["tipo"] for a in (await cliente.get(_url(pedido, "bitacora"))).json()]
+    assert tipos == ["RECEPCION_PLANTA", "CIERRE_FORZADO"]
+    # Y cerrado, ya no admite nada: RN-13.
+    otra = await cliente.post(_url(pedido, "recepcion"), json=_recepcion("100"))
+    assert otra.status_code == 409
+
+
+@pytest.mark.parametrize(
+    ("etapa", "esperado"),
+    [
+        ("EN_DESTINO", "sin pasar aduana"),
+        ("RECIBIDO_EN_PLANTA", "ya se recibió en planta"),
+    ],
+)
+async def test_solo_se_recibe_lo_que_paso_aduana(api, sesion, etapa, esperado) -> None:
+    cliente, _ = api
+    pedido = await _rastreado(sesion, etapa=etapa)
+
+    for accion in ("recepcion", "cierre-forzado"):
+        respuesta = await cliente.post(_url(pedido, accion), json=_recepcion("1"))
+        assert respuesta.status_code == 409
+        assert esperado in respuesta.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    ("datos", "esperado"),
+    [
+        ({"cantidad": "-1"}, "greater than or equal to 0"),
+        ({"fecha": "2026-09-29T10:00:00"}, "zona horaria"),
+        ({"fecha": "2099-01-01T10:00:00-06:00"}, "no puede ser futura"),
+        ({"motivo": "ok"}, "motivo es obligatorio"),
+    ],
+)
+async def test_los_datos_invalidos_se_rechazan(api, sesion, datos, esperado) -> None:
+    cliente, _ = api
+    pedido = await _en_aduana(sesion)
+
+    respuesta = await cliente.post(_url(pedido, "recepcion"), json={**_recepcion("100"), **datos})
+
+    assert respuesta.status_code == 422
+    assert esperado in respuesta.text
+
+
+async def test_solo_logistica_recibe(api, sesion) -> None:
+    cliente, como = api
+    pedido = await _en_aduana(sesion)
+    await como("PLANIFICACION")
+
+    respuesta = await cliente.post(_url(pedido, "recepcion"), json=_recepcion("100"))
+
+    assert respuesta.status_code == 403
+
+
+async def test_recibido_sigue_activo_pero_ya_no_se_rastrea(api, sesion) -> None:
+    """Tercer y cuarto criterio: cuenta como activo, y el planificador lo deja."""
+    from app.services import planificador
+
+    cliente, _ = api
+    pedido = await _en_aduana(sesion)
+    await cliente.post(_url(pedido, "recepcion"), json=_recepcion("100"))
+
+    activos = (
+        await cliente.get("/api/v1/pedidos", params={"oc": "4544400001", "limite": 200})
+    ).json()
+    assert [f["etapa_viaje"] for f in activos["items"]] == ["RECIBIDO_EN_PLANTA"]
+    assert pedido.id_elemento_rastreado not in await planificador._elementos_con_pedidos_activos(
+        sesion
+    )

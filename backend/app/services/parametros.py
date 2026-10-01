@@ -189,6 +189,17 @@ CATALOGO: Final[dict[str, Parametro]] = {
             "Con 60 se probó el 28/09/2026 una guía que llegó diez días tarde."
         ),
     ),
+    # --- Recepción en planta (`US-18`, RN-10) -------------------------------
+    "tolerancia_recepcion_pct": Parametro(
+        clave="tolerancia_recepcion_pct",
+        defecto=Decimal("10"),
+        tipo_dato="DECIMAL",
+        descripcion=(
+            "RN-10: la recepción es conforme si lo recibido llega al menos al "
+            "pedido menos este porcentaje. Por debajo, el pedido no avanza y se "
+            "ofrece el cierre forzado. Recibir de más no lo impide."
+        ),
+    ),
     # --- Autenticación (`US-42`, RNF-05) ------------------------------------
     # Las cuatro eran «decisiones abiertas» del wireframe del login (§0.4). Se
     # fijan con valores razonables y quedan aquí para ajustarlas sin desplegar.
