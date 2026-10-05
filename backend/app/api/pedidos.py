@@ -24,6 +24,7 @@ from app.api.dependencias import (
 from app.db.session import get_db
 from app.models.pedido_transito import PedidoTransito
 from app.schemas.pedidos import (
+    AjusteEntrada,
     AsientoBitacora,
     ConfirmacionDesembarco,
     CumplimientoFiltro,
@@ -396,6 +397,43 @@ async def liberar_calidad(
         LookupError,
         intervenciones.IntervencionRechazada,
         intervenciones.FechaInvalida,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
+
+
+@router.post(
+    "/{id_pedido}/ajuste-manual",
+    response_model=PedidoDetalle,
+    summary="Ajustar la fecha proyectada (US-40)",
+    description=(
+        "Fija los días que RN-01 suma (o resta) a la fecha proyectada, con un motivo "
+        "declarado. Reemplaza al ajuste anterior y 0 lo quita. Se recalcula en el acto, "
+        "y la bitácora conserva el valor anterior y el nuevo."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {"description": "Cerrado, o el ajuste ya tiene ese valor."},
+    },
+)
+async def ajustar_fecha(
+    id_pedido: int,
+    datos: AjusteEntrada,
+    quien: Annotated[Autenticado, Depends(logistica)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle:
+    try:
+        await intervenciones.ajustar_fecha(
+            db,
+            id_pedido,
+            dias=datos.dias,
+            motivo=datos.motivo,
+            id_usuario=quien.usuario.id,
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
         auditoria.IntervencionInvalida,
     ) as exc:
         raise _error_de_intervencion(exc) from exc

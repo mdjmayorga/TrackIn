@@ -84,7 +84,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 · ✅ terminada 29/09 |
 | `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 · ✅ terminada 01/10 |
 | `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada · ✅ terminada 05/10 |
-| `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) |
+| `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) · ✅ terminada 05/10 |
 | `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) · ✅ terminada 30/09 (backend) |
 | `TASK-04` | Publicar la documentacion OpenAPI del backend ✅ | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 · ✅ cerrada 30/09 |
 | `TASK-05` | Andamiaje del frontend React con TypeScript, Vite y Tailwind | Task | OE3 | **Must** | Sprint 6 | 6h | RNF (stack 5.8) |
@@ -1618,6 +1618,20 @@ Como usuario de Logistica, quiero sumar o restar dias a la fecha proyectada de u
 | Etiquetas | `backend,intervencion,auditoria` |
 
 > **Creada el 01/09 (decision B4).** RN-01 define la fecha proyectada como «ETA o ATA, mas el lead time, mas un **ajuste manual opcional**». `US-09` lo usaba en la formula y `US-20` lo mostraba en el desglose, pero **ninguna historia permitia introducirlo**: el campo existia en el modelo y hasta habia un valor `AJUSTE_MANUAL` en la auditoria, sin pantalla que lo escribiera. El hueco aparecio al dibujar la barra de acciones de US-37.
+
+> **✅ Terminada el 05/10/2026.** `POST /pedidos/{id}/ajuste-manual`, solo para Logística y
+> el Administrador, con `dias` (con signo) y `motivo`.
+>
+> | Criterio | Cómo se cumple |
+> |---|---|
+> | Se guarda y entra en RN-01 | Se guarda en `ajuste_manual_dias` y se recalcula **en el acto**, no en el siguiente ciclo: fecha proyectada y semáforo cambian en la misma respuesta |
+> | Motivo declarado y auditado | Asiento `AJUSTE_MANUAL` (RF-14) con autor, motivo e instante |
+> | Al modificar, se conserva anterior y nuevo | El ajuste **reemplaza** al anterior, no se acumula; el asiento guarda los dos («3» → «5») |
+> | Sumando propio en el desglose | Ya lo estaba desde `US-16`; se corrigió el signo: un ajuste de -2 se lee «- 2 d de ajuste manual» y no «+ -2 d» |
+>
+> **Decisiones tomadas al implementar, a confirmar:** el ajuste se limita a ±365 días, para
+> que un error de tipeo no mueva la fecha años; poner 0 quita el ajuste; repetir el mismo
+> valor responde 409 y no deja asiento. Suite: 1211 pruebas (11 nuevas), 97 %.
 
 #### TASK-04 — Publicar la documentación OpenAPI del backend
 

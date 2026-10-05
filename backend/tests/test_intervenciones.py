@@ -747,3 +747,127 @@ async def test_libera_planificacion_o_logistica(api, sesion, rol, esperado) -> N
     respuesta = await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("100"))
 
     assert respuesta.status_code == esperado
+
+
+# --- US-40: el ajuste manual de la fecha proyectada ------------------------------------
+
+MOTIVO_AJUSTE = "El puerto anunció cierre por feriado el lunes"
+COMPROMETIDA = dt.date(2026, 10, 30)
+
+
+async def _proyectado(sesion, holgura_dias: int = 10) -> PedidoTransito:
+    """Un pedido con ETA declarada que llega `holgura_dias` antes de lo comprometido."""
+    destino = await sesion.scalar(select(MaestroDestino).where(MaestroDestino.codigo == "CRMOB"))
+    eta = COMPROMETIDA - dt.timedelta(days=destino.lead_time_dias + holgura_dias)
+    return await _pedido(sesion, eta_declarada=eta, fecha_entrega_pedido=COMPROMETIDA)
+
+
+def _ajuste(dias: int, motivo: str = MOTIVO_AJUSTE) -> dict[str, Any]:
+    return {"dias": dias, "motivo": motivo}
+
+
+async def test_el_ajuste_entra_en_la_formula_y_se_recalcula(api, sesion) -> None:
+    """Primer criterio: con 15 días de ajuste, 10 de holgura pasan a 5 de atraso."""
+    cliente, _ = api
+    pedido = await _proyectado(sesion)
+
+    respuesta = await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(15))
+
+    assert respuesta.status_code == 200, respuesta.text
+    cuerpo = respuesta.json()
+    assert cuerpo["fecha_proyectada_disponible"] == "2026-11-04"
+    assert cuerpo["estado_cumplimiento"] == "RETRASADO"
+    assert cuerpo["calculo"]["ajuste_manual_dias"] == 15
+    assert cuerpo["calculo"]["margen_dias"] == -5
+
+
+async def test_el_ajuste_aparece_como_sumando_propio(api, sesion) -> None:
+    """Cuarto criterio, con los dos signos."""
+    cliente, _ = api
+    pedido = await _proyectado(sesion)
+
+    adelanta = (await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(-2))).json()
+
+    desglose = adelanta["calculo"]["desglose"]
+    assert "d de lead time - 2 d de ajuste manual = 2026-10-18" in desglose
+    assert adelanta["calculo"]["al_dia"] is True
+
+
+async def test_cada_ajuste_queda_auditado_con_el_anterior_y_el_nuevo(api, sesion) -> None:
+    """Segundo y tercer criterio. El ajuste reemplaza al anterior, no se acumula."""
+    cliente, _ = api
+    pedido = await _proyectado(sesion)
+
+    await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(3))
+    otro = await cliente.post(
+        _url(pedido, "ajuste-manual"), json=_ajuste(5, "La naviera confirmó dos días más")
+    )
+
+    assert otro.json()["calculo"]["ajuste_manual_dias"] == 5
+    asientos = (await cliente.get(_url(pedido, "bitacora"))).json()
+    assert [(a["tipo"], a["valor_anterior"], a["valor_nuevo"]) for a in asientos] == [
+        ("AJUSTE_MANUAL", "0", "3"),
+        ("AJUSTE_MANUAL", "3", "5"),
+    ]
+    assert asientos[0]["motivo"] == MOTIVO_AJUSTE
+
+
+async def test_poner_cero_quita_el_ajuste(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _proyectado(sesion)
+    await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(4))
+
+    respuesta = await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(0))
+
+    assert "ajuste" not in respuesta.json()["calculo"]["desglose"]
+
+
+async def test_repetir_el_mismo_ajuste_no_deja_asiento(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _proyectado(sesion)
+    await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(4))
+
+    respuesta = await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(4))
+
+    assert respuesta.status_code == 409
+    assert len((await cliente.get(_url(pedido, "bitacora"))).json()) == 1
+
+
+@pytest.mark.parametrize(
+    ("datos", "esperado"),
+    [
+        ({"motivo": "ok"}, "motivo es obligatorio"),
+        ({"dias": 366}, "less than or equal to 365"),
+        ({"dias": -366}, "greater than or equal to -365"),
+    ],
+)
+async def test_los_ajustes_invalidos_se_rechazan(api, sesion, datos, esperado) -> None:
+    cliente, _ = api
+    pedido = await _proyectado(sesion)
+
+    respuesta = await cliente.post(_url(pedido, "ajuste-manual"), json={**_ajuste(3), **datos})
+
+    assert respuesta.status_code == 422
+    assert esperado in respuesta.text
+    await sesion.refresh(pedido)
+    assert pedido.ajuste_manual_dias == 0
+
+
+async def test_un_pedido_cerrado_no_se_ajusta(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _pedido(sesion, motivo_cierre="CANCELACION", estado_calculado="CANCELADO")
+
+    respuesta = await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(3))
+
+    assert respuesta.status_code == 409
+    assert "RN-13" in respuesta.json()["detail"]
+
+
+async def test_solo_logistica_ajusta(api, sesion) -> None:
+    cliente, como = api
+    pedido = await _proyectado(sesion)
+    await como("PLANIFICACION")
+
+    respuesta = await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(3))
+
+    assert respuesta.status_code == 403

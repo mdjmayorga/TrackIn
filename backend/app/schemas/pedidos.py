@@ -277,6 +277,17 @@ class RecepcionEntrada(BaseModel):
     motivo: str = Field(description="Obligatorio (RF-14).")
 
 
+class AjusteEntrada(BaseModel):
+    """`US-40`: el ajuste manual de la fecha proyectada, con signo."""
+
+    dias: int = Field(
+        ge=-365,
+        le=365,
+        description="Días a sumar (positivo) o restar (negativo). Reemplaza al anterior; 0 lo quita.",
+    )
+    motivo: str = Field(description="Obligatorio (RF-14).")
+
+
 class LiberacionEntrada(BaseModel):
     """`US-47`: una liberación de Calidad, total o parcial."""
 
@@ -327,6 +338,7 @@ __all__ = [
     "ConfirmacionDesembarco",
     "DesembarcoEntrada",
     "PasoAduanalEntrada",
+    "AjusteEntrada",
     "LiberacionEntrada",
     "RecepcionEntrada",
     "RecepcionIncompleta",

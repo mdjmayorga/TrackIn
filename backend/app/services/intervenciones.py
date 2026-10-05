@@ -7,7 +7,14 @@ Cada intervención hace tres cosas en la misma transacción, o ninguna:
 2. **Recalcula** fecha proyectada y estado (`US-12`): el cambio es un insumo.
 3. **La audita** (`US-15`), con el autor de la sesión (`US-42`) y el motivo.
 
-`US-40` se suma aquí con el mismo esquema.
+`US-40`: el ajuste manual de la fecha proyectada
+-------------------------------------------------
+
+RN-01 suma a la fecha proyectada un ajuste manual opcional: días que Logística
+conoce y el sistema no —un feriado en el puerto, una inspección anunciada—. Se
+guarda en `ajuste_manual_dias`, con signo, y **reemplaza** al anterior: no se
+acumula. Se recalcula en el acto y la auditoría conserva el valor anterior y el
+nuevo. Poner 0 es quitar el ajuste.
 
 `US-47`: la liberación de Calidad cierra el pedido
 --------------------------------------------------
@@ -429,8 +436,46 @@ async def liberar_calidad(
     return pedido
 
 
+async def ajustar_fecha(
+    sesion: AsyncSession,
+    id_pedido: int,
+    *,
+    dias: int,
+    motivo: str,
+    id_usuario: int,
+    instante: dt.datetime | None = None,
+) -> PedidoTransito:
+    """Fija el ajuste manual de RN-01 y recalcula. **No hace commit.**"""
+    ahora = instante or dt.datetime.now(dt.UTC)
+    motivo = auditoria.validar_motivo(motivo)
+    pedido = await _pedido(sesion, id_pedido)
+    anterior = pedido.ajuste_manual_dias
+    if dias == anterior:
+        raise IntervencionRechazada(
+            f"El pedido ya tiene un ajuste de {anterior} d: no hay nada que cambiar."
+        )
+
+    pedido.ajuste_manual_dias = dias
+    await recalculo.recalcular(sesion, pedido, instante=ahora)
+    auditoria.registrar(
+        sesion,
+        id_pedido=pedido.id,
+        id_usuario=id_usuario,
+        tipo="AJUSTE_MANUAL",
+        campo="ajuste_manual_dias",
+        anterior=anterior,
+        nuevo=dias,
+        motivo=motivo,
+        instante=ahora,
+    )
+    await sesion.flush()
+    logger.info("Pedido %s: ajuste manual %s → %s d.", pedido.tracking_interno, anterior, dias)
+    return pedido
+
+
 __all__ = [
     "RecepcionIncompleta",
+    "ajustar_fecha",
     "ZONA_CR",
     "estimar_liberacion",
     "liberar_calidad",

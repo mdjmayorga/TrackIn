@@ -120,9 +120,18 @@ class Proyeccion:
         if self.fecha is None:
             return f"Sin fecha proyectada: {self.motivo}"
         partes = f"{self.base} ({self.origen}) + {self.lead_time_dias} d de lead time"
-        if self.ajuste_manual_dias:
-            partes += f" + {self.ajuste_manual_dias} d de ajuste manual"
-        return f"{partes} = {self.fecha}"
+        return f"{partes}{sumando_ajuste(self.ajuste_manual_dias)} = {self.fecha}"
+
+
+def sumando_ajuste(dias: int) -> str:
+    """El ajuste manual como sumando propio del desglose (RF-05, `US-40`).
+
+    Con su signo: un ajuste de -3 se lee «- 3 d», no «+ -3 d». Vacío si es cero.
+    """
+    if not dias:
+        return ""
+    signo = "+" if dias > 0 else "-"
+    return f" {signo} {abs(dias)} d de ajuste manual"
 
 
 def _a_fecha(valor: dt.date | dt.datetime | None) -> dt.date | None:
@@ -219,4 +228,5 @@ __all__ = [
     "SIN_LEAD_TIME",
     "Proyeccion",
     "calcular",
+    "sumando_ajuste",
 ]

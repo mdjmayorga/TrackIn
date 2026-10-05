@@ -48,7 +48,7 @@ from app.schemas.pedidos import (
     Rastreo,
     VentanaLiberacion,
 )
-from app.services import parametros, recalculo
+from app.services import parametros, proyeccion, recalculo
 
 #: Columna de la grilla → expresión por la que ordena. La OC ordena también
 #: por posición: la fila es la línea, y 10 tiene que ir antes que 20.
@@ -277,8 +277,7 @@ def _desglose_guardado(pedido: PedidoTransito, origen: str | None) -> str:
     if origen is not None:
         base += f" ({origen})"
     partes = f"{base} + {pedido.lead_time_destino_dias} d de lead time"
-    if pedido.ajuste_manual_dias:
-        partes += f" + {pedido.ajuste_manual_dias} d de ajuste manual"
+    partes += proyeccion.sumando_ajuste(pedido.ajuste_manual_dias)
     return f"{partes} = {fecha.isoformat()}"
 
 

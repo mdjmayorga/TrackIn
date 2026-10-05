@@ -208,6 +208,13 @@ def test_el_desglose_explica_la_suma() -> None:
     assert "2026-10-08" in desglose
 
 
+def test_un_ajuste_negativo_se_resta_en_el_desglose() -> None:
+    """`US-40`: «- 3 d», no «+ -3 d»."""
+    desglose = calcular(eta_fuente=ETA, lead_time_dias=5, ajuste_manual_dias=-3).desglose
+
+    assert "+ 5 d de lead time - 3 d de ajuste manual = 2026-10-03" in desglose
+
+
 def test_el_desglose_omite_el_ajuste_cuando_es_cero() -> None:
     """Escribir «+ 0 d de ajuste manual» solo añade ruido."""
     assert "ajuste" not in calcular(eta_fuente=ETA, lead_time_dias=5).desglose
