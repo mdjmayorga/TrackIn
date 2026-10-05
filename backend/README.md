@@ -109,6 +109,20 @@ Los endpoints de `api/` no deben contener reglas de negocio: delegan en
 Los tests marcados `integration` requieren PostgreSQL levantado; sin él se
 saltan solos en vez de fallar.
 
+**Las pruebas usan su propia base, `trackin_test`, nunca `trackin_dev`**
+(`tests/conftest.py` la fija aunque el `.env` diga otra). La base de desarrollo
+tiene datos reales con auditoría inmutable, y las pruebas que vacían los
+pedidos no pueden borrarlos. Se crea una sola vez:
+
+```powershell
+& "$HOME\pgsql\bin\createdb" -h localhost -U trackin -O trackin -E UTF8 --locale=C -T template0 trackin_test
+```
+
+No hace falta migrarla a mano: cada `pytest` la lleva a la última migración
+antes de empezar. `trackin_dev` se sigue migrando con `alembic upgrade head`.
+
+`POSTGRES_TEST_DB` apunta las pruebas a otra base si hiciera falta.
+
 ### Autenticación (`US-42`)
 
 Todo `/api/v1` pide sesión, salvo `/auth/login`. Se entra con

@@ -50,6 +50,8 @@ ignore = [
 # F401: `import app.models` existe por su efecto de registrar el metadata.
 # ARG001: la firma de los callbacks (include_object) la impone Alembic.
 "alembic/env.py" = ["ARG001", "E402", "ERA001", "F401"]
+# E402: los imports de `app` van después de fijar la base de pruebas.
+"tests/conftest.py" = ["ARG001", "ARG002", "S101", "E402"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

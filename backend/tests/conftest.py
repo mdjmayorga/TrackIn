@@ -1,8 +1,28 @@
-"""Fixtures compartidas de pytest."""
+"""Fixtures compartidas de pytest.
+
+**Las pruebas corren contra `trackin_test`, nunca contra `trackin_dev`.** La
+base de desarrollo guarda datos reales —auditoría inmutable incluida— y las
+pruebas que vacían `pedidos_transito` no pueden borrar un pedido auditado.
+`POSTGRES_TEST_DB` permite apuntar a otra base; CI usa el mismo nombre.
+
+La variable se fija antes de importar `app`: `settings` se construye al
+importarse, y una variable de entorno real manda sobre el `.env`.
+
+**La base de pruebas se migra sola** al empezar la sesión (`alembic upgrade
+head`), así una migración nueva no deja las pruebas contra un esquema viejo.
+Se omite con `-m "not integration"`, que no toca la base.
+"""
 
 from __future__ import annotations
 
+import os
+
+os.environ["POSTGRES_DB"] = os.environ.get("POSTGRES_TEST_DB", "trackin_test")
+
+import subprocess
+import sys
 from collections.abc import AsyncGenerator, Callable, Iterator
+from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -14,6 +34,29 @@ from app.db.session import AsyncSessionLocal, dispose_engine
 from app.main import app
 from app.models.sesion import Sesion
 from app.models.usuario import Usuario
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    """Lleva la base de pruebas a la última migración antes de correr nada.
+
+    En un proceso aparte: `alembic/env.py` abre su propio event loop. Si la
+    base no responde no se aborta: las pruebas de integración fallarán con su
+    propio error, y las demás corren igual.
+    """
+    if "not integration" in (session.config.option.markexpr or ""):
+        return
+    resultado = subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=BACKEND_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if resultado.returncode != 0:
+        ultima = (resultado.stderr.strip().splitlines() or ["sin detalle"])[-1]
+        print(f"\n⚠ No se pudo migrar {os.environ['POSTGRES_DB']}: {ultima}", file=sys.stderr)
 
 
 @pytest.fixture

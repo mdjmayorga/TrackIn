@@ -83,7 +83,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) · ✅ terminada 29/09 |
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 · ✅ terminada 29/09 |
 | `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 · ✅ terminada 01/10 |
-| `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada · 🟡 implementada 05/10, falta correr la suite de integración |
+| `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada · ✅ terminada 05/10 |
 | `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) |
 | `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) · ✅ terminada 30/09 (backend) |
 | `TASK-04` | Publicar la documentacion OpenAPI del backend ✅ | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 · ✅ cerrada 30/09 |
@@ -2917,9 +2917,10 @@ libera el material, para que «cerrado» signifique **disponible para producció
 | Origen | Reunión con Planeación, 04/09/2026 |
 | Etiquetas | `backend,calidad,cierre` |
 
-> **🟡 Implementada el 05/10/2026; falta correr la suite de integración** (no había Postgres
-> local ese día). `POST /pedidos/{id}/liberacion-calidad`, para Planificación, Logística y
-> el Administrador:
+> **✅ Terminada el 05/10/2026.** `POST /pedidos/{id}/liberacion-calidad`, para
+> Planificación, Logística y el Administrador. Suite: 1200 pruebas (35 nuevas), 97 %,
+> corrida contra la base nueva `trackin_test`: la de desarrollo tiene auditoría real que
+> las pruebas no pueden borrar.
 >
 > | Criterio | Cómo se cumple |
 > |---|---|
