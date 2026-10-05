@@ -7,7 +7,17 @@ Cada intervención hace tres cosas en la misma transacción, o ninguna:
 2. **Recalcula** fecha proyectada y estado (`US-12`): el cambio es un insumo.
 3. **La audita** (`US-15`), con el autor de la sesión (`US-42`) y el motivo.
 
-`US-47` y `US-40` se suman aquí con el mismo esquema.
+`US-40` se suma aquí con el mismo esquema.
+
+`US-47`: la liberación de Calidad cierra el pedido
+--------------------------------------------------
+
+«Cerrado» significa **disponible para producción**. Al recibir en planta se
+estima la ventana de RN-19 —de 7 a 15 días hábiles—, que es un **rango** y se
+guarda como tal. Calidad puede liberar por partes: cada liberación suma a
+`cantidad_liberada` y la línea **sigue activa** hasta que lo liberado llega a lo
+recibido. Entonces cierra como `RECEPCION_CONFORME`: la recepción fue conforme y
+el material ya se puede usar. No se libera más de lo que entró a planta.
 
 `US-18`: la recepción en planta ya no cierra el pedido
 -------------------------------------------------------
@@ -46,13 +56,17 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.pedido_transito import PedidoTransito
-from app.services import auditoria, estado, parametros, recalculo
+from app.services import auditoria, dias_habiles, estado, parametros, recalculo
 
 logger = logging.getLogger(__name__)
 
 EN_DESTINO = "EN_DESTINO"
 EN_PROCESO_ADUANAL = "EN_PROCESO_ADUANAL"
 RECIBIDO_EN_PLANTA = "RECIBIDO_EN_PLANTA"
+
+#: La hora local decide qué día se recibió: recibir a las 20:00 del viernes en
+#: Costa Rica ya es sábado en UTC, y la ventana de Calidad empezaría mal.
+ZONA_CR = dt.timezone(dt.timedelta(hours=-6), "America/Costa_Rica")
 
 
 class IntervencionRechazada(Exception):
@@ -251,6 +265,10 @@ async def registrar_recepcion(
     pedido.fecha_recepcion_planta = fecha
     pedido.cantidad_recibida = cantidad
     pedido.etapa_viaje = RECIBIDO_EN_PLANTA
+    (
+        pedido.fecha_liberacion_estimada_desde,
+        pedido.fecha_liberacion_estimada_hasta,
+    ) = await estimar_liberacion(sesion, fecha)
     await recalculo.recalcular(sesion, pedido, instante=ahora)
     auditoria.registrar(
         sesion,
@@ -323,8 +341,99 @@ async def cerrar_forzado(
     return pedido
 
 
+async def estimar_liberacion(
+    sesion: AsyncSession, recibido: dt.datetime
+) -> tuple[dt.date, dt.date]:
+    """La ventana de Calidad de RN-19: el rango, en días hábiles desde la recepción."""
+    minimo = await parametros.obtener_entero(sesion, "ventana_calidad_habiles_min")
+    maximo = await parametros.obtener_entero(sesion, "ventana_calidad_habiles_max")
+    dia = recibido.astimezone(ZONA_CR).date()
+    return (
+        dias_habiles.sumar_dias_habiles(dia, minimo),
+        dias_habiles.sumar_dias_habiles(dia, max(minimo, maximo)),
+    )
+
+
+async def liberar_calidad(
+    sesion: AsyncSession,
+    id_pedido: int,
+    *,
+    fecha: dt.datetime,
+    cantidad: Decimal,
+    motivo: str,
+    id_usuario: int,
+    instante: dt.datetime | None = None,
+) -> PedidoTransito:
+    """Registra una liberación de Calidad; con el total, cierra. **No hace commit.**
+
+    Una liberación parcial suma a `cantidad_liberada` y deja la línea activa.
+    El cumplimiento no se recalcula al cerrar: queda como veredicto, igual que
+    en el cierre forzado.
+    """
+    ahora = instante or dt.datetime.now(dt.UTC)
+    motivo = auditoria.validar_motivo(motivo)
+    _validar_fecha(fecha, ahora, "liberación")
+    if cantidad <= 0:
+        raise FechaInvalida("La cantidad liberada debe ser mayor que cero.")
+    pedido = await _pedido(sesion, id_pedido)
+    if pedido.etapa_viaje != RECIBIDO_EN_PLANTA or pedido.fecha_recepcion_planta is None:
+        raise IntervencionRechazada(
+            f"Calidad solo libera lo que ya se recibió en planta (etapa {pedido.etapa_viaje}). "
+            "Registre primero la recepción."
+        )
+    if fecha < pedido.fecha_recepcion_planta:
+        raise FechaInvalida(
+            "La liberación no puede ser anterior a la recepción en planta "
+            f"({auditoria.como_texto(pedido.fecha_recepcion_planta)})."
+        )
+    recibida = pedido.cantidad_recibida or Decimal(0)
+    anterior = pedido.cantidad_liberada or Decimal(0)
+    liberada = anterior + cantidad
+    if liberada > recibida:
+        raise FechaInvalida(
+            f"No se puede liberar más de lo recibido: hay {anterior} liberado de "
+            f"{recibida} recibido, y {cantidad} lo excede."
+        )
+
+    pedido.cantidad_liberada = liberada
+    completa = liberada == recibida
+    if completa:
+        pedido.fecha_liberacion_calidad = fecha
+        pedido.motivo_cierre = "RECEPCION_CONFORME"
+        pedido.estado_calculado = estado.derivar_estado_calculado(
+            pedido.etapa_viaje, pedido.estado_cumplimiento, pedido.motivo_cierre
+        )
+    de_lo_recibido = f"de {auditoria.como_texto(recibida)} {pedido.unidad_medida}"
+    auditoria.registrar(
+        sesion,
+        id_pedido=pedido.id,
+        id_usuario=id_usuario,
+        tipo="LIBERACION_CALIDAD",
+        campo="cantidad_liberada",
+        anterior=f"{auditoria.como_texto(anterior)} {de_lo_recibido}",
+        nuevo=(
+            f"{auditoria.como_texto(liberada)} {de_lo_recibido} "
+            f"el {auditoria.como_texto(fecha)}"
+        ),
+        motivo=motivo,
+        instante=ahora,
+    )
+    await sesion.flush()
+    logger.info(
+        "Pedido %s: Calidad liberó %s de %s%s.",
+        pedido.tracking_interno,
+        liberada,
+        recibida,
+        "; cerrado" if completa else "",
+    )
+    return pedido
+
+
 __all__ = [
     "RecepcionIncompleta",
+    "ZONA_CR",
+    "estimar_liberacion",
+    "liberar_calidad",
     "cerrar_forzado",
     "minimo_conforme",
     "registrar_recepcion",

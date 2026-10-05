@@ -83,7 +83,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-16` | Exponer los pedidos y su detalle por API REST | Story | OE2 | **Must** | Sprint 5 | 10h | RF-04 / RF-05 (backend) · ✅ terminada 29/09 |
 | `US-17` | Mantener credenciales, umbrales y frecuencias fuera del codigo | Story | OE2 | **Should** | Sprint 5 | 6h | RF-24 / RNF-07 / RNF-15 · ✅ terminada 29/09 |
 | `US-18` | Registrar la recepcion en planta (**ya no cierra** el pedido) | Story | OE2 | **Should** | Sprint 5 | 8h | RF-25 / RN-10 revisada 04/09 · ✅ terminada 01/10 |
-| `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada |
+| `US-47` | Registrar la liberación de Control de Calidad y cerrar el pedido | Story | OE2 | **Must** | Sprint 5 | 8h | Reunión Planeación 04/09 · RN-10 revisada · 🟡 implementada 05/10, falta correr la suite de integración |
 | `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) |
 | `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) · ✅ terminada 30/09 (backend) |
 | `TASK-04` | Publicar la documentacion OpenAPI del backend ✅ | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 · ✅ cerrada 30/09 |
@@ -2916,6 +2916,31 @@ libera el material, para que «cerrado» signifique **disponible para producció
 | Tipo | Story · OE2 · **Must** · Sprint 5 · 8 h |
 | Origen | Reunión con Planeación, 04/09/2026 |
 | Etiquetas | `backend,calidad,cierre` |
+
+> **🟡 Implementada el 05/10/2026; falta correr la suite de integración** (no había Postgres
+> local ese día). `POST /pedidos/{id}/liberacion-calidad`, para Planificación, Logística y
+> el Administrador:
+>
+> | Criterio | Cómo se cumple |
+> |---|---|
+> | Liberado: `CERRADO` y fuera del tablero | Al liberar el total de lo recibido cierra como `RECEPCION_CONFORME`, cuyo `CHECK` ya exigía los datos de la recepción. El listado de activos deja de mostrarlo |
+> | Ventana en días hábiles | `registrar_recepcion` (`US-18`) la estima al recibir, de lunes a viernes, contando desde el día local de Costa Rica. Queda guardada (migración `0020`), igual que el lead time |
+> | Es un rango | El detalle devuelve `cierre.liberacion_estimada = {desde, hasta}`, nunca una sola fecha |
+> | Auditada (RF-14) | Asiento `LIBERACION_CALIDAD` con autor, motivo, instante y lo liberado antes y después («40 de 100 KG») |
+> | Parcial: sigue activa | Cada liberación suma a `cantidad_liberada`; la línea cierra al igualar lo recibido. No se libera más de lo recibido (422) |
+>
+> **Decisiones tomadas al implementar, a confirmar:**
+>
+> - **Contra qué se mide «el total»: lo recibido, no lo pedido.** Calidad libera lo que entró
+>   a planta; si se recibieron 95 de 100, dentro de la tolerancia, liberar 95 cierra.
+> - **Quién registra:** Planificación (dueña de la historia) y Logística (registra la
+>   recepción). Calidad no tiene rol en el sistema.
+> - **Los feriados no se descuentan.** No hay calendario de feriados; en un rango de ocho
+>   días hábiles, un feriado mueve un extremo un día.
+> - **El cumplimiento no se recalcula al cerrar:** queda como veredicto, igual que en el
+>   cierre forzado.
+> - Los pedidos que ya estaban «Recibido en planta» antes de la migración `0020` no tienen
+>   ventana estimada; se pueden liberar igual.
 
 ---
 

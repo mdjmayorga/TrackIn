@@ -90,6 +90,10 @@ class PedidoTransito(Base, TimestampMixin):
             "cantidad_recibida IS NULL OR cantidad_recibida >= 0",
             name="cantidad_recibida",
         ),
+        CheckConstraint(
+            "cantidad_liberada IS NULL OR cantidad_liberada >= 0",
+            name="cantidad_liberada",
+        ),
         CheckConstraint("posicion_oc > 0", name="posicion_oc"),
         CheckConstraint("lead_time_destino_dias >= 0", name="lead_time"),
         # Búsqueda por prefijo de OC (decisión A5): el btree basta, no hace
@@ -187,6 +191,17 @@ class PedidoTransito(Base, TimestampMixin):
     )
     cantidad_recibida: Mapped[Decimal | None] = mapped_column(Numeric(14, 3), nullable=True)
     motivo_cierre: Mapped[str | None] = mapped_column(String(25), nullable=True)
+
+    # --- Liberación de Calidad (`US-47`, RN-19) -----------------------------
+    #: La ventana de RN-19, estimada al recibir. Instantánea, como el lead time:
+    #: cambiar el parámetro no reescribe lo ya estimado. Es un rango, no una fecha.
+    fecha_liberacion_estimada_desde: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    fecha_liberacion_estimada_hasta: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    #: Lo liberado hasta ahora. La línea sigue activa hasta que llega a lo recibido.
+    cantidad_liberada: Mapped[Decimal | None] = mapped_column(Numeric(14, 3), nullable=True)
+    fecha_liberacion_calidad: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # --- Presencia en la carga (US-31) --------------------------------------
     #: Cuándo se vio por última vez en un archivo, y desde cuándo dejó de venir.

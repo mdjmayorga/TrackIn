@@ -218,9 +218,23 @@ class Calculo(BaseModel):
     fecha_ultimo_recalculo: dt.datetime | None
 
 
+class VentanaLiberacion(BaseModel):
+    """RN-19: cuándo se espera que Calidad libere. **Es un rango**, no una fecha."""
+
+    desde: dt.date = Field(description="Recepción más la ventana mínima, en días hábiles.")
+    hasta: dt.date = Field(description="Recepción más la ventana máxima, en días hábiles.")
+
+
 class Cierre(BaseModel):
     fecha_recepcion_planta: dt.datetime | None
     cantidad_recibida: Decimal | None
+    liberacion_estimada: VentanaLiberacion | None = Field(
+        description="Nula hasta la recepción en planta (`US-47`)."
+    )
+    cantidad_liberada: Decimal | None = Field(
+        description="Lo que Calidad liberó hasta ahora; cierra al llegar a lo recibido."
+    )
+    fecha_liberacion_calidad: dt.datetime | None
     motivo_cierre: str | None
 
 
@@ -260,6 +274,14 @@ class RecepcionEntrada(BaseModel):
 
     fecha: dt.datetime = Field(description="Fecha y hora de recepción, con zona horaria.")
     cantidad: Decimal = Field(ge=0, description="Cantidad recibida, en la unidad del pedido.")
+    motivo: str = Field(description="Obligatorio (RF-14).")
+
+
+class LiberacionEntrada(BaseModel):
+    """`US-47`: una liberación de Calidad, total o parcial."""
+
+    fecha: dt.datetime = Field(description="Fecha y hora de la liberación, con zona horaria.")
+    cantidad: Decimal = Field(gt=0, description="Cantidad liberada en este acto.")
     motivo: str = Field(description="Obligatorio (RF-14).")
 
 
@@ -305,8 +327,10 @@ __all__ = [
     "ConfirmacionDesembarco",
     "DesembarcoEntrada",
     "PasoAduanalEntrada",
+    "LiberacionEntrada",
     "RecepcionEntrada",
     "RecepcionIncompleta",
+    "VentanaLiberacion",
     "Calculo",
     "Cierre",
     "Cumplimiento",

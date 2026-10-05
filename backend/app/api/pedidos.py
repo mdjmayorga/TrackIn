@@ -14,7 +14,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencias import LOGISTICA, Autenticado, requiere_rol, usuario_actual
+from app.api.dependencias import (
+    LOGISTICA,
+    PLANIFICACION,
+    Autenticado,
+    requiere_rol,
+    usuario_actual,
+)
 from app.db.session import get_db
 from app.models.pedido_transito import PedidoTransito
 from app.schemas.pedidos import (
@@ -24,6 +30,7 @@ from app.schemas.pedidos import (
     DesembarcoEntrada,
     EstadoCalculado,
     EtapaFiltro,
+    LiberacionEntrada,
     PaginaPedidos,
     PasoAduanalEntrada,
     PedidoDetalle,
@@ -162,6 +169,9 @@ async def bitacora_pedido(
 
 #: Quién confirma desembarcos y pasa a aduana: Logística (y el Administrador).
 logistica = requiere_rol(LOGISTICA)
+#: `US-47`: la liberación la registra Planificación, dueña de la historia, o
+#: Logística, que ya registra la recepción. Calidad no tiene rol en el sistema.
+calidad = requiere_rol(PLANIFICACION, LOGISTICA)
 
 
 async def _detalle_tras_intervenir(db: AsyncSession, id_pedido: int) -> PedidoDetalle:
@@ -335,6 +345,46 @@ async def cerrar_forzado(
 ) -> PedidoDetalle:
     try:
         await intervenciones.cerrar_forzado(
+            db,
+            id_pedido,
+            fecha=datos.fecha,
+            cantidad=datos.cantidad,
+            motivo=datos.motivo,
+            id_usuario=quien.usuario.id,
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        intervenciones.FechaInvalida,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
+
+
+@router.post(
+    "/{id_pedido}/liberacion-calidad",
+    response_model=PedidoDetalle,
+    summary="Registrar la liberación de Calidad (US-47)",
+    description=(
+        "Registra lo que Control de Calidad liberó. Con el total de lo recibido, el "
+        "pedido se cierra (`RECEPCION_CONFORME`) y queda disponible para producción; "
+        "con una parte, suma a lo liberado y la línea **sigue activa**. Exige la "
+        "recepción en planta, y no se libera más de lo recibido."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {"description": "Sin recepción en planta, o cerrado."},
+    },
+)
+async def liberar_calidad(
+    id_pedido: int,
+    datos: LiberacionEntrada,
+    quien: Annotated[Autenticado, Depends(calidad)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle:
+    try:
+        await intervenciones.liberar_calidad(
             db,
             id_pedido,
             fecha=datos.fecha,

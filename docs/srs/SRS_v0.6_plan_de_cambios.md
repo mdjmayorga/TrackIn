@@ -80,6 +80,14 @@ tolerancia (10 %, parámetro `tolerancia_recepcion_pct`); recibir de más no lo 
 se recibe un pedido que pasó aduana. Por debajo de la tolerancia el pedido no avanza y se
 ofrece el **cierre forzado**, que cierra con lo recibido. — `US-18`, 01/10/2026
 
+## 6d. §7.1 · RN-19 y §4 · RF-32 — la liberación de Calidad
+
+Precisar en RN-19: la ventana se cuenta en días hábiles (lunes a viernes) desde el **día
+local** de la recepción; el día de la recepción no cuenta. **Los feriados no se descuentan**
+mientras no exista un calendario. Precisar en RF-32: Calidad puede liberar **por partes**;
+la línea sigue activa hasta que lo liberado iguala lo recibido, y no se libera más de lo
+recibido. La registran Planificación o Logística. — `US-47`, 05/10/2026
+
 ## 7. Anexo C.5 — fuentes de rastreo
 
 Registrar la prueba de **Parcels** (29/09): sirve para aéreo, no para marítimo (sin ETA, sin

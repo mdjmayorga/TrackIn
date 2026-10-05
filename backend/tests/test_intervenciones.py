@@ -555,3 +555,195 @@ async def test_recibido_sigue_activo_pero_ya_no_se_rastrea(api, sesion) -> None:
     assert pedido.id_elemento_rastreado not in await planificador._elementos_con_pedidos_activos(
         sesion
     )
+
+
+# --- US-47: la liberación de Calidad cierra el pedido ----------------------------------
+
+LIBERADO = dt.datetime(2026, 10, 2, 9, 0, tzinfo=dt.timezone(dt.timedelta(hours=-6)))
+MOTIVO_LIBERACION = "Calidad aprobó el certificado de análisis del lote"
+
+
+async def _recibido(api, sesion, recibida: str = "100") -> PedidoTransito:
+    cliente, _ = api
+    pedido = await _en_aduana(sesion)
+    respuesta = await cliente.post(_url(pedido, "recepcion"), json=_recepcion(recibida))
+    assert respuesta.status_code == 200, respuesta.text
+    return pedido
+
+
+def _liberacion(cantidad: str, motivo: str = MOTIVO_LIBERACION) -> dict[str, str]:
+    return {"fecha": LIBERADO.isoformat(), "cantidad": cantidad, "motivo": motivo}
+
+
+async def _detalle(cliente, pedido: PedidoTransito) -> dict[str, Any]:
+    return (await cliente.get(f"/api/v1/pedidos/{pedido.id}")).json()
+
+
+async def test_al_recibir_se_estima_la_ventana_de_calidad_como_rango(api, sesion) -> None:
+    """Segundo y tercer criterio: 7 a 15 días hábiles desde el martes 29/09."""
+    cliente, _ = api
+    pedido = await _recibido(api, sesion)
+
+    cuerpo = await _detalle(cliente, pedido)
+
+    assert cuerpo["cierre"]["liberacion_estimada"] == {
+        "desde": "2026-10-08",
+        "hasta": "2026-10-20",
+    }
+
+
+async def test_la_ventana_cuenta_desde_el_dia_local_de_la_recepcion(sesion) -> None:
+    """Jueves 20:00 en Costa Rica ya es viernes en UTC: manda el jueves."""
+    from app.services import intervenciones
+
+    jueves_noche = dt.datetime(2026, 10, 1, 20, 0, tzinfo=dt.timezone(dt.timedelta(hours=-6)))
+
+    ventana = await intervenciones.estimar_liberacion(sesion, jueves_noche)
+
+    assert ventana == (dt.date(2026, 10, 12), dt.date(2026, 10, 22))
+
+
+async def test_la_ventana_se_ajusta_sin_desplegar(api, sesion) -> None:
+    cliente, _ = api
+    await sesion.execute(
+        text(
+            "UPDATE parametros_sistema SET valor = '3' "
+            "WHERE clave IN ('ventana_calidad_habiles_min', 'ventana_calidad_habiles_max')"
+        )
+    )
+    pedido = await _recibido(api, sesion)
+
+    cuerpo = await _detalle(cliente, pedido)
+
+    assert cuerpo["cierre"]["liberacion_estimada"] == {
+        "desde": "2026-10-02",
+        "hasta": "2026-10-02",
+    }
+
+
+async def test_liberar_el_total_cierra_y_sale_del_tablero_activo(api, sesion) -> None:
+    """Primer y cuarto criterio."""
+    cliente, _ = api
+    pedido = await _recibido(api, sesion)
+
+    respuesta = await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("100"))
+
+    assert respuesta.status_code == 200, respuesta.text
+    cuerpo = respuesta.json()
+    assert cuerpo["estado_calculado"] == "CERRADO"
+    assert cuerpo["cierre"]["motivo_cierre"] == "RECEPCION_CONFORME"
+    assert dt.datetime.fromisoformat(cuerpo["cierre"]["fecha_liberacion_calidad"]) == LIBERADO
+    activos = (await cliente.get("/api/v1/pedidos", params={"oc": "4544400001"})).json()
+    assert activos["items"] == []
+    asientos = (await cliente.get(_url(pedido, "bitacora"))).json()
+    assert [a["tipo"] for a in asientos] == ["RECEPCION_PLANTA", "LIBERACION_CALIDAD"]
+    liberacion = asientos[1]
+    assert liberacion["motivo"] == MOTIVO_LIBERACION
+    assert liberacion["valor_anterior"] == "0 de 100 KG"
+    assert liberacion["valor_nuevo"] == "100 de 100 KG el 2026-10-02T15:00:00+00:00"
+
+
+async def test_se_libera_contra_lo_recibido_no_contra_lo_pedido(api, sesion) -> None:
+    """Recibido 95 de 100, dentro de la tolerancia: liberar 95 es el total."""
+    cliente, _ = api
+    pedido = await _recibido(api, sesion, recibida="95")
+
+    respuesta = await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("95"))
+
+    assert respuesta.json()["estado_calculado"] == "CERRADO"
+
+
+async def test_una_liberacion_parcial_deja_la_linea_activa(api, sesion) -> None:
+    """Quinto criterio: activa hasta liberar el total, y cada parte se audita."""
+    cliente, _ = api
+    pedido = await _recibido(api, sesion)
+
+    parcial = await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("40"))
+
+    assert parcial.status_code == 200, parcial.text
+    cuerpo = parcial.json()
+    assert cuerpo["etapa_viaje"] == "RECIBIDO_EN_PLANTA"
+    assert cuerpo["cierre"]["motivo_cierre"] is None
+    assert Decimal(cuerpo["cierre"]["cantidad_liberada"]) == Decimal("40")
+    assert cuerpo["cierre"]["fecha_liberacion_calidad"] is None
+    activos = (await cliente.get("/api/v1/pedidos", params={"oc": "4544400001"})).json()
+    assert [f["etapa_viaje"] for f in activos["items"]] == ["RECIBIDO_EN_PLANTA"]
+
+    resto = await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("60"))
+
+    assert resto.json()["estado_calculado"] == "CERRADO"
+    asientos = (await cliente.get(_url(pedido, "bitacora"))).json()
+    assert [a["valor_anterior"] for a in asientos if a["tipo"] == "LIBERACION_CALIDAD"] == [
+        "0 de 100 KG",
+        "40 de 100 KG",
+    ]
+
+
+async def test_no_se_libera_mas_de_lo_recibido(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _recibido(api, sesion)
+    await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("70"))
+
+    respuesta = await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("31"))
+
+    assert respuesta.status_code == 422
+    assert "más de lo recibido" in respuesta.text
+    await sesion.refresh(pedido)
+    assert pedido.cantidad_liberada == Decimal("70")
+
+
+@pytest.mark.parametrize("etapa", ["EN_DESTINO", "EN_PROCESO_ADUANAL"])
+async def test_solo_se_libera_lo_recibido_en_planta(api, sesion, etapa) -> None:
+    cliente, _ = api
+    pedido = await _rastreado(sesion, etapa=etapa)
+
+    respuesta = await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("1"))
+
+    assert respuesta.status_code == 409
+    assert "Registre primero la recepción" in respuesta.json()["detail"]
+
+
+async def test_un_pedido_cerrado_no_se_libera_otra_vez(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _recibido(api, sesion)
+    await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("100"))
+
+    respuesta = await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("1"))
+
+    assert respuesta.status_code == 409
+    assert "RN-13" in respuesta.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    ("datos", "esperado"),
+    [
+        ({"cantidad": "0"}, "greater than 0"),
+        ({"fecha": "2026-10-02T09:00:00"}, "zona horaria"),
+        ({"fecha": "2099-01-01T10:00:00-06:00"}, "no puede ser futura"),
+        ({"fecha": "2026-09-28T10:00:00-06:00"}, "anterior a la recepción"),
+        ({"motivo": "ok"}, "motivo es obligatorio"),
+    ],
+)
+async def test_los_datos_invalidos_de_la_liberacion_se_rechazan(
+    api, sesion, datos, esperado
+) -> None:
+    cliente, _ = api
+    pedido = await _recibido(api, sesion)
+
+    respuesta = await cliente.post(
+        _url(pedido, "liberacion-calidad"), json={**_liberacion("100"), **datos}
+    )
+
+    assert respuesta.status_code == 422
+    assert esperado in respuesta.text
+
+
+@pytest.mark.parametrize(("rol", "esperado"), [("PLANIFICACION", 200), ("COMPRAS", 403)])
+async def test_libera_planificacion_o_logistica(api, sesion, rol, esperado) -> None:
+    cliente, como = api
+    pedido = await _recibido(api, sesion)
+    await como(rol)
+
+    respuesta = await cliente.post(_url(pedido, "liberacion-calidad"), json=_liberacion("100"))
+
+    assert respuesta.status_code == esperado

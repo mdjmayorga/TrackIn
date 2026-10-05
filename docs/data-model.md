@@ -119,6 +119,10 @@ erDiagram
         timestamptz fecha_recepcion_planta         "RF-25"
         numeric     cantidad_recibida              "RN-10"
         varchar     motivo_cierre                  "CHECK NULL, RN-13"
+        date        fecha_liberacion_estimada_desde "RN-19, US-47"
+        date        fecha_liberacion_estimada_hasta "RN-19, US-47"
+        numeric     cantidad_liberada              "US-47"
+        timestamptz fecha_liberacion_calidad       "RF-32, US-47"
         timestamptz fecha_ultima_carga             "US-31"
         timestamptz ausente_desde                  "NULL = presente, US-31"
         boolean     destino_segun_fuente           "US-54"
@@ -390,6 +394,14 @@ explícitamente no proyecta.
 | `fecha_recepcion_planta` | `TIMESTAMPTZ` | sí | §8.2 |
 | `cantidad_recibida` | `NUMERIC(14,3)` | sí | §8.2 |
 | `motivo_cierre` | `VARCHAR(25)` | sí | §8.2 |
+| `fecha_liberacion_estimada_desde` | `DATE` | sí | `US-47` / RN-19 |
+| `fecha_liberacion_estimada_hasta` | `DATE` | sí | `US-47` / RN-19 |
+| `cantidad_liberada` | `NUMERIC(14,3)` | sí | `US-47` |
+| `fecha_liberacion_calidad` | `TIMESTAMPTZ` | sí | `US-47` / RF-32 |
+
+La ventana de Calidad es un **rango** y se guarda como instantánea al recibir,
+con el mismo criterio que `lead_time_destino_dias`. La liberación cierra con el
+motivo `RECEPCION_CONFORME`, cuyo `CHECK` ya exige los datos de la recepción.
 
 #### Presencia en la carga (`US-31`)
 
@@ -505,6 +517,7 @@ filtro).
 | `ck_pedidos_transito_recepcion` | `motivo_cierre='RECEPCION_CONFORME'` ⇒ `fecha_recepcion_planta` y `cantidad_recibida` no nulos | **RN-10** |
 | `ck_pedidos_transito_cantidad_pedida` | `cantidad_pedida > 0` | RN-10 |
 | `ck_pedidos_transito_cantidad_recibida` | `cantidad_recibida >= 0` | RN-10 |
+| `ck_pedidos_transito_cantidad_liberada` | `cantidad_liberada >= 0` | `US-47` (migración `0020`) |
 | `ck_pedidos_transito_posicion_oc` | `posicion_oc > 0` | §8.2 |
 | `ck_pedidos_transito_lead_time` | `lead_time_destino_dias >= 0` | RN-12 |
 

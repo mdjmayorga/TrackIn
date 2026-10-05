@@ -46,6 +46,7 @@ from app.schemas.pedidos import (
     PedidoResumen,
     Posicion,
     Rastreo,
+    VentanaLiberacion,
 )
 from app.services import parametros, recalculo
 
@@ -383,6 +384,17 @@ async def detalle(sesion: AsyncSession, id_pedido: int) -> PedidoDetalle | None:
             "cierre": Cierre(
                 fecha_recepcion_planta=pedido.fecha_recepcion_planta,
                 cantidad_recibida=pedido.cantidad_recibida,
+                liberacion_estimada=(
+                    VentanaLiberacion(
+                        desde=pedido.fecha_liberacion_estimada_desde,
+                        hasta=pedido.fecha_liberacion_estimada_hasta,
+                    )
+                    if pedido.fecha_liberacion_estimada_desde is not None
+                    and pedido.fecha_liberacion_estimada_hasta is not None
+                    else None
+                ),
+                cantidad_liberada=pedido.cantidad_liberada,
+                fecha_liberacion_calidad=pedido.fecha_liberacion_calidad,
                 motivo_cierre=pedido.motivo_cierre,
             ),
             "fecha_ultima_carga": pedido.fecha_ultima_carga,
