@@ -44,9 +44,10 @@ Dos cosas importantes:
 ```
 src/
 ├── main.tsx        Punto de entrada
-├── App.tsx         Providers (react-query) y rutas
+├── App.tsx         Providers (react-query, sesión) y rutas
+├── auth/           Sesión del navegador, proveedor y ruta protegida (US-42)
 ├── components/     Componentes reutilizables
-├── pages/          Vistas: Dashboard (+ Pedidos y Mapas en Sprint 2+)
+├── pages/          Vistas: Login, Dashboard (+ Pedidos y Mapas en Sprint 6 y 7)
 ├── services/       Cliente axios y llamadas a la API
 ├── hooks/          Custom hooks (useHealth, …)
 ├── types/          Tipos del contrato con la API
@@ -72,7 +73,22 @@ que deben mantenerse sincronizados: `resolve.alias` de `vite.config.ts` y
 | `npm run format` | Prettier |
 | `npm test` | Tests |
 | `npm run test:watch` | Tests en modo watch |
-| `npm run test:coverage` | Tests con cobertura |
+| `npm run test:coverage` | Tests con cobertura; falla por debajo del 70 % |
+
+## Sesión (`US-42`)
+
+Toda la API versionada pide sesión, así que la app también: cualquier ruta
+salvo `/login` pasa por `RutaProtegida`. El cliente (`services/api.ts`) pone el
+token en cada petición y, ante un 401 que no sea del propio login —sesión
+vencida, usuario desactivado, contraseña reiniciada—, borra la sesión local y
+la app vuelve al login.
+
+La sesión se guarda como en el backend: una normal en `sessionStorage`, que se
+pierde al cerrar la pestaña; con «Recordar sesión», en `localStorage`. El token
+es opaco: quien decide si vale es el backend.
+
+Para entrar hace falta un usuario. El primero se crea desde el backend con
+`scripts/crear_usuario.py`; los demás, con `/api/v1/usuarios`.
 
 ## Notas
 

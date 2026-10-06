@@ -14,7 +14,14 @@ Desde `backend/`:
 python -m venv .venv
 ```
 
-Activar — PowerShell: `.\.venv\Scripts\Activate.ps1`; bash: `source .venv/bin/activate`.
+Activar — cmd: `.venv\Scripts\activate`; PowerShell: `.\.venv\Scripts\Activate.ps1`;
+bash: `source .venv/bin/activate`.
+
+**La activación vale solo para esa ventana de consola.** En una ventana nueva,
+`uvicorn`, `alembic` o `python scripts/...` usan el Python global, que no tiene
+las dependencias, y fallan con «no se reconoce como un comando» o
+`ModuleNotFoundError`. Hay que activar otra vez, o llamar al Python del entorno
+directamente: `.venv\Scripts\python -m uvicorn ...`.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -24,6 +31,8 @@ Levantar el servidor (necesita PostgreSQL corriendo; ver el README raíz):
 
 ```bash
 uvicorn app.main:app --reload
+# sin activar el entorno (cmd):
+.venv\Scripts\python -m uvicorn app.main:app --reload
 ```
 
 | URL | Qué es |

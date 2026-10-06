@@ -109,8 +109,10 @@ jobs:
       - name: Tipos (tsc)
         run: npm run typecheck
 
+      # Con cobertura: `vite.config.ts` fija el mínimo de 70 % de la Definition
+      # of Done, y por debajo el paso falla (TASK-05).
       - name: Tests
-        run: npm test
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build

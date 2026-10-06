@@ -43,6 +43,14 @@ export default defineConfig({
       reporter: ['text', 'html'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/main.tsx', 'src/**/*.d.ts'],
+      // La Definition of Done exige 70 %. Con el umbral aquí, `npm run
+      // test:coverage` falla si se baja de ese mínimo (TASK-05).
+      thresholds: {
+        statements: 70,
+        branches: 70,
+        functions: 70,
+        lines: 70,
+      },
     },
   },
 })

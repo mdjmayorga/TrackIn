@@ -1,7 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
+import { AuthProvider } from '@/auth/AuthContext'
+import { RutaProtegida } from '@/auth/RutaProtegida'
 import Dashboard from '@/pages/Dashboard'
+import Login from '@/pages/Login'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -14,16 +17,33 @@ const queryClient = new QueryClient({
   },
 })
 
+/** Las rutas, separadas del router para poder probarlas con uno en memoria. */
+export function Rutas() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={
+          <RutaProtegida>
+            <Dashboard />
+          </RutaProtegida>
+        }
+      />
+      {/* Sprint 6 y 7: /pedidos/:id, /mapa-maritimo, /mapa-aereo */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          {/* Rutas de Sprint 1+: /pedidos, /mapa-maritimo, /mapa-aereo */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Rutas />
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   )
 }

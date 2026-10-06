@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
 
+import { useSesion } from '@/auth/useSesion'
 import { useHealth } from '@/hooks/useHealth'
 import { API_BASE_URL, mensajeDeError } from '@/services/api'
+import { cerrarSesion } from '@/services/auth'
 
 /**
  * Placeholder del dashboard.
@@ -12,19 +14,42 @@ import { API_BASE_URL, mensajeDeError } from '@/services/api'
  */
 export default function Dashboard() {
   const { data, isPending, isError, error } = useHealth()
+  const sesion = useSesion()
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <header className="mb-10">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">TrackIn Dashboard</h1>
-        <p className="mt-2 text-slate-600">Sprint 1 pendiente</p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+            TrackIn Dashboard
+          </h1>
+          {sesion && (
+            <div className="text-right text-sm text-slate-600">
+              <p>
+                {sesion.usuario.nombre_completo}{' '}
+                <span className="text-slate-400">({sesion.usuario.rol})</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => void cerrarSesion()}
+                className="text-marca-700 underline"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          )}
+        </div>
+        <p className="mt-2 text-slate-600">La grilla de pedidos llega con US-19 (Sprint 6)</p>
       </header>
 
       <section
         aria-labelledby="estado-stack"
         className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
       >
-        <h2 id="estado-stack" className="text-sm font-medium uppercase tracking-wide text-slate-500">
+        <h2
+          id="estado-stack"
+          className="text-sm font-medium uppercase tracking-wide text-slate-500"
+        >
           Estado del entorno
         </h2>
 
@@ -80,7 +105,5 @@ function Fila({ etiqueta, children }: { etiqueta: string; children: ReactNode })
 
 function Insignia({ ok, children }: { ok: boolean; children: ReactNode }) {
   const clases = ok ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-  return (
-    <span className={`rounded px-2 py-0.5 text-xs font-medium ${clases}`}>{children}</span>
-  )
+  return <span className={`rounded px-2 py-0.5 text-xs font-medium ${clases}`}>{children}</span>
 }

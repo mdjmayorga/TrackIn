@@ -23,11 +23,11 @@ function renderConProviders(ui: ReactElement) {
 }
 
 describe('Dashboard', () => {
-  it('muestra el título y el placeholder de Sprint 1', () => {
+  it('muestra el título y lo que viene en el Sprint 6', () => {
     renderConProviders(<Dashboard />)
 
     expect(screen.getByRole('heading', { name: /TrackIn Dashboard/i })).toBeInTheDocument()
-    expect(screen.getByText(/Sprint 1 pendiente/i)).toBeInTheDocument()
+    expect(screen.getByText(/US-19 \(Sprint 6\)/)).toBeInTheDocument()
   })
 
   it('reporta la versión de PostGIS cuando el backend responde', async () => {

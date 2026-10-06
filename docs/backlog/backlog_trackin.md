@@ -87,7 +87,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-40` | Ajustar manualmente la fecha proyectada de un pedido | Story | OE2 | **Should** | Sprint 5 | 4h | RN-01 (ajuste manual) · ✅ terminada 05/10 |
 | `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) · ✅ terminada 30/09 (backend) |
 | `TASK-04` | Publicar la documentacion OpenAPI del backend ✅ | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 · ✅ cerrada 30/09 |
-| `TASK-05` | Andamiaje del frontend React con TypeScript, Vite y Tailwind | Task | OE3 | **Must** | Sprint 6 | 6h | RNF (stack 5.8) |
+| `TASK-05` | Andamiaje del frontend React con TypeScript, Vite y Tailwind ✅ | Task | OE3 | **Must** | Sprint 6 | 6h | RNF (stack 5.8) · ✅ terminada 06/10, adelantada |
 | `US-19` | Listar los pedidos en transito en una grilla ordenable | Story | OE3 | **Must** | Sprint 6 | 12h | RF-04 / RNF-01 |
 | `US-20` | Consultar el detalle completo de un pedido | Story | OE3 | **Must** | Sprint 6 | 10h | RF-05 / CU-03 |
 | `US-21` | Filtrar el dashboard de forma transversal y coherente | Story | OE3 | **Must** | Sprint 6 | 12h | RF-19 / CU-04 / RNF-02 |
@@ -1680,6 +1680,25 @@ Como desarrollador, quiero el proyecto de frontend configurado, para empezar a c
 | Estimacion | 6 h |
 | Origen en el SRS | RNF (stack 5.8) |
 | Etiquetas | `frontend,fundacional` |
+
+> **✅ Terminada el 06/10/2026, adelantada al Sprint 6.** El andamiaje existía desde el 24/08
+> (React 19, TypeScript, Vite, Tailwind, Vitest, ESLint, Prettier, React Query, React
+> Router), pero nunca se había instalado en esta máquina. Los tres criterios se verificaron:
+> el servidor de desarrollo carga sin errores, Vitest corre con cobertura y el build sale
+> sin advertencias.
+>
+> **Dos huecos que habrían frenado todo el sprint, cerrados aquí:**
+>
+> - **El frontend no podía hablar con la API.** Desde `US-42`, todo `/api/v1` pide sesión.
+>   Se agregó la parte de navegador del login: la pantalla del wireframe (§0.1), la sesión
+>   guardada como la distingue el backend (normal en la pestaña, «Recordar sesión» en el
+>   navegador), el token en cada petición, la vuelta al login ante un 401 y las rutas
+>   protegidas. «¿Olvidó su contraseña?» explica que la reinicia el Administrador. No se
+>   muestran los intentos restantes, igual que en el backend. Se verificó CORS con el origen
+>   real del navegador.
+> - **La cobertura era 39 % con dos pruebas**, por debajo del 70 % de la Definition of Done,
+>   y nada lo exigía. Ahora son 37 pruebas y 95 %, y el umbral de 70 % vive en
+>   `vite.config.ts`: CI corre `test:coverage` y falla si se baja.
 
 #### US-19 — Listar los pedidos en transito en una grilla ordenable
 
