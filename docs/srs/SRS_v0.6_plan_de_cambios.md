@@ -96,6 +96,15 @@ volumen estimado por Ventas: 70–110 embarques al mes.
 
 ## Pendiente
 
-- Respuesta de **Planeación** al cambio de fecha comprometida (punto 2).
+- ~~Respuesta de **Planeación** al cambio de fecha comprometida (punto 2).~~ **Confirmado el
+  06/10/2026:** la fecha comprometida es la columna R.
 - Contrato de la **API de SAP** (punto 4).
-- Respuesta de **ShipsGo** a la licencia anual plana (punto 7).
+- ~~Respuesta de **ShipsGo** a la licencia anual plana (punto 7).~~ **06/10:** se aprueba la
+  compra anual de créditos, condicionada a US$1,70 por crédito. Contraoferta enviada.
+
+## Acuerdos del 06/10/2026 que también entran en v0.6
+
+- **RF-17 (mapa aéreo):** la posición de la aeronave es **estimada** sobre la ruta que entrega
+  la fuente comercial, y se rotula como tal. OpenSky queda fuera mientras no haya licencia.
+- **RF-03:** el MAWB se provee para cada pedido aéreo; la guía hija (HAWB) se conserva para
+  confirmar el arribo por TICA.

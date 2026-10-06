@@ -103,6 +103,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-53` | Medir el cumplimiento contra la fecha de llegada a Gutis (columna R) | Story | OE2 | **Must** | Sprint 5 | 3h | Reunión con Compras 29/09 · revierte la decisión 2 del 04/09 · ✅ terminada 29/09 |
 | `US-54` | Tomar el puerto de llegada del API aunque el incoterm diga otro | Story | OE2 | **Should** | Sprint 5 | 3h | Reunión con Compras 29/09 · amplía `US-52` · ✅ terminada 29/09 |
 | `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · hoy solo por script |
+| `US-57` | Saldo de créditos de ShipsGo y aviso antes de que se agoten | Story | OE2 | **Should** | Sprint 6 | 4h | Acuerdo del 06/10: compra anual de créditos |
 | `US-56` | Leer los pedidos del Z-tracking desde la API de SAP | Story | OE2 | **Must** | — | — | 30/09: el Excel es una copia estática · **bloqueada** por el contrato de la API |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
@@ -1893,6 +1894,12 @@ Como usuario de Compras, quiero un mapa aéreo independiente, para seguir los em
 | Origen en el SRS | RF-17 / CU-08 |
 | Etiquetas | `frontend,mapas,leaflet` |
 
+> **Replanteada el 06/10/2026.** La posición ya no sale de OpenSky —su licencia no permite el
+> uso de una empresa sin acuerdo escrito— sino de ShipsGo: con el MAWB de cada pedido (acuerdo
+> del 06/10), ShipsGo da por tramo el vuelo, sus horas y la ruta. El mapa dibuja la ruta y ubica
+> el avión en una **posición estimada** según lo transcurrido del vuelo, rotulada como estimada.
+> Si la carga queda en tierra, el hito lo dice y el mapa la muestra en tierra.
+
 #### US-27 — Mostrar información emergente en los marcadores del mapa
 
 Como usuario, quiero ver los datos del pedido al posarme sobre su marcador, para obtener contexto sin salir del mapa.
@@ -2956,6 +2963,51 @@ libera el material, para que «cerrado» signifique **disponible para producció
 >   cierre forzado.
 > - Los pedidos que ya estaban «Recibido en planta» antes de la migración `0020` no tienen
 >   ventana estimada; se pueden liberar igual.
+
+---
+
+## Acuerdos de la reunión con usuarios clave — 06/10/2026
+
+| # | Acuerdo | Efecto |
+|---|---|---|
+| 1 | La fecha comprometida es la **columna R** (`Fecha Entrega`) | Confirma `US-53` tal como está. Cierra la respuesta pendiente de Planeación |
+| 2 | Se aprueba el **dashboard corregido** (Figma del 30/09) | El Sprint 6 arranca con ese diseño; la API ya admite sus filtros |
+| 3 | **Se proveerá el MAWB de cada pedido** | El rastreo aéreo vuelve al alcance completo por ShipsGo: hitos, vuelos, ETA y ruta (`US-46`). TICA queda para confirmar el arribo por la guía hija |
+| 4 | Se aprueba el plan de ShipsGo **con una condición: US$1,70 por crédito** en vez de US$1,90 | Se responde a ShipsGo con esa contraoferta. 1.100 créditos pasarían de US$2.090 a US$1.870 |
+
+### Lo que el MAWB cambia en el plan
+
+- **El mapa aéreo (`US-26`) no depende de OpenSky.** ShipsGo entrega por cada tramo el vuelo,
+  sus horas de salida y llegada y la ruta (verificado el 06/10 sobre el MAWB `020-50685434`
+  de `TASK-28`). Con eso el mapa ubica el avión en una **posición estimada** sobre su ruta,
+  marcada como tal. Queda por verificar con el primer aéreo en vuelo si el campo `current`
+  de ShipsGo trae una posición propia.
+- **OpenSky queda en pausa por licencia.** Sus términos exigen un acuerdo escrito para el uso
+  de una empresa con fines de lucro y para cualquier uso operativo, aunque sea interno.
+  `US-05` y `US-06` quedan construidas, sin conectar al worker, hasta tener ese permiso.
+- **Los créditos se reparten entre marítimo y aéreo.** En el WK38 completo el marítimo es el
+  59 % de las líneas y el aéreo el 41 %. La cifra de 1.100 al año es coherente con 70–110
+  embarques al mes por las dos vías.
+- **El MAWB tiene que llegar en el archivo** (o en la API de SAP, `US-56`), en las columnas de
+  referencia del contrato de `TASK-30`: hoy vienen vacías en las 48 líneas de `IDA`. El
+  cargador ya las lee y asocia (`US-01`, `US-52`).
+
+### `US-57` — Saldo de créditos de ShipsGo y aviso antes de que se agoten
+
+Como usuario de Compras, quiero saber cuántos créditos de ShipsGo quedan y recibir un aviso
+cuando se estén agotando, para comprar a tiempo y no dejar embarques sin rastrear.
+
+**Criterios de aceptación**
+
+- Dado el paquete comprado, cuando se registra (cantidad y fecha de vencimiento), entonces el sistema descuenta cada alta que consumió crédito
+- Dado un consumo del 80 % del paquete, cuando se alcanza, entonces `/health` y el log lo advierten
+- Dado un paquete vencido o agotado, cuando se intenta un alta, entonces el sistema lo advierte antes de gastar
+- Dado el umbral de altas diarias, cuando se compra el paquete, entonces `altas_maximas_dia` sube de 5 a un valor acorde con 70–110 embarques al mes
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Should** · Sprint 6 · 4 h |
+| Origen | Acuerdo del 06/10/2026: compra anual de créditos |
 
 ---
 
