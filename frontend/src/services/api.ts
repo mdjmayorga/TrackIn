@@ -13,6 +13,9 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15_000,
   headers: { 'Content-Type': 'application/json' },
+  // FastAPI lee los filtros de lista repetidos (`?via=AEREO&via=MARITIMO`);
+  // axios, por omisión, los mandaría como `via[]=...`, que no reconoce.
+  paramsSerializer: { indexes: null },
 })
 
 /**

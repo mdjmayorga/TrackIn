@@ -100,7 +100,9 @@ volumen estimado por Ventas: 70–110 embarques al mes.
   06/10/2026:** la fecha comprometida es la columna R.
 - Contrato de la **API de SAP** (punto 4).
 - ~~Respuesta de **ShipsGo** a la licencia anual plana (punto 7).~~ **06/10:** se aprueba la
-  compra anual de créditos, condicionada a US$1,70 por crédito. Contraoferta enviada.
+  compra anual de créditos, condicionada a US$1,70 por crédito. **07/10: ShipsGo aceptó**
+  1.100 créditos a US$1,70 (US$1.870) más US$250 únicos por la API; recargas al mismo precio
+  y arrastre de créditos sobrantes si la recompra es al menos el 50 % del paquete.
 
 ## Acuerdos del 06/10/2026 que también entran en v0.6
 

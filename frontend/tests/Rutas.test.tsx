@@ -11,6 +11,10 @@ import { api } from '@/services/api'
 
 import { USUARIO } from './sesion.test'
 
+vi.mock('@/services/pedidos', () => ({
+  listarPedidos: vi.fn().mockResolvedValue({ total: 0, limite: 10, desplazamiento: 0, items: [] }),
+}))
+
 vi.mock('@/services/health', () => ({
   obtenerHealth: vi.fn().mockResolvedValue({
     status: 'ok',
@@ -57,15 +61,15 @@ describe('rutas protegidas', () => {
     guardarSesion({ token: 't', usuario: USUARIO, recordada: false })
     montar('/')
 
-    expect(screen.getByRole('heading', { name: /TrackIn Dashboard/ })).toBeInTheDocument()
-    expect(screen.getByText(/\(COMPRAS\)/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Panel de Control Logístico/ })).toBeInTheDocument()
+    expect(screen.getByText('COMPRAS')).toBeInTheDocument()
   })
 
   it('una ruta desconocida vuelve al inicio', () => {
     guardarSesion({ token: 't', usuario: USUARIO, recordada: false })
     montar('/no-existe')
 
-    expect(screen.getByRole('heading', { name: /TrackIn Dashboard/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Panel de Control Logístico/ })).toBeInTheDocument()
   })
 
   it('cerrar sesión vuelve al login', async () => {
@@ -91,7 +95,9 @@ describe('pantalla de login', () => {
     await userEvent.type(screen.getByLabelText('Contraseña'), 'una-clave-larga')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
-    expect(await screen.findByRole('heading', { name: /TrackIn Dashboard/ })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: /Panel de Control Logístico/ }),
+    ).toBeInTheDocument()
   })
 
   it('con credenciales inválidas muestra el mensaje genérico del backend', async () => {
@@ -135,7 +141,7 @@ describe('pantalla de login', () => {
     guardarSesion({ token: 't', usuario: USUARIO, recordada: false })
     montar('/login')
 
-    expect(screen.getByRole('heading', { name: /TrackIn Dashboard/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Panel de Control Logístico/ })).toBeInTheDocument()
   })
 })
 

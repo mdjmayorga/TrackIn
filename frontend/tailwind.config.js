@@ -18,12 +18,28 @@ export default {
           800: '#1842b4',
           900: '#1a3b8e',
         },
-        // Semáforo de estados de pedido (se formaliza en Sprint 1 con Greivin).
+        // Semáforo de RNF-08 (wireframes §1.6), con los tonos del Figma aprobado
+        // el 06/10. Un solo lugar: la grilla y los mapas tienen que coincidir
+        // (`US-24`).
         estado: {
-          transito: '#3386fc',
-          demorado: '#f59e0b',
-          critico: '#ef4444',
-          entregado: '#10b981',
+          'sin-tracking': '#9ca3af',
+          origen: '#0ea589',
+          transito: '#0b4dff',
+          destino: '#6b3a7f',
+          aduanal: '#8c8c26',
+          recibido: '#92400e',
+          'a-tiempo': '#24955f',
+          riesgo: '#ea580c',
+          retrasado: '#d0141b',
+          cancelado: '#000000',
+        },
+        // Superficies del panel oscuro del Figma.
+        panel: {
+          fondo: '#111317',
+          superficie: '#1b1e24',
+          cabecera: '#3a3b3e',
+          borde: '#3a3f4b',
+          mapa: '#2b2c2f',
         },
       },
       fontFamily: {

@@ -88,7 +88,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-42` | Autenticar usuarios con login, sesión y tres roles más Administrador | Story | OE3 | **Must** | Sprint 5 | 12h | Reunión Logística 03/09 / RNF-05 (ampliado) · ✅ terminada 30/09 (backend) |
 | `TASK-04` | Publicar la documentacion OpenAPI del backend ✅ | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 · ✅ cerrada 30/09 |
 | `TASK-05` | Andamiaje del frontend React con TypeScript, Vite y Tailwind ✅ | Task | OE3 | **Must** | Sprint 6 | 6h | RNF (stack 5.8) · ✅ terminada 06/10, adelantada |
-| `US-19` | Listar los pedidos en transito en una grilla ordenable | Story | OE3 | **Must** | Sprint 6 | 12h | RF-04 / RNF-01 |
+| `US-19` | Listar los pedidos en transito en una grilla ordenable ✅ | Story | OE3 | **Must** | Sprint 6 | 12h | RF-04 / RNF-01 · ✅ terminada 07/10, adelantada |
 | `US-20` | Consultar el detalle completo de un pedido | Story | OE3 | **Must** | Sprint 6 | 10h | RF-05 / CU-03 |
 | `US-21` | Filtrar el dashboard de forma transversal y coherente | Story | OE3 | **Must** | Sprint 6 | 12h | RF-19 / CU-04 / RNF-02 |
 | `US-22` | Mostrar la cinta de indicadores KPI | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 |
@@ -1284,6 +1284,35 @@ Como usuario de Logística, quiero que el sistema determine el arribo a destino,
 
 **11 items · 86 h estimadas · capacidad 65 h — sobrecargado en 21 h.** US-40 entro el 01/09 (decision B4); `US-47` (+8 h, reunión con Planeación del 04/09) y `US-42` (+12 h, reunión con Logística del 03/09) entraron después y el encabezado no se había recontado (corregido el 29/09).
 
+> **✅ Alcance completo el 05/10/2026, en el primer día del sprint.** El trabajo se adelantó
+> desde el 29/09, con el Sprint 4 ya cerrado. Terminadas:
+>
+> | Ítem | h | Terminado |
+> |---|---|---|
+> | `US-16` API de pedidos | 10 | 29/09 |
+> | `US-12` Recálculo ante cualquier insumo | 8 | 29/09 |
+> | `US-17` Configuración fuera del código | 6 | 29/09 |
+> | `US-53` Fecha comprometida = columna R | 3 | 29/09 · nueva, reunión con Compras |
+> | `US-54` Puerto de llegada del API | 3 | 29/09 · nueva, reunión con Compras |
+> | `TASK-32` Spike Parcels (descartado) | 3 | 29/09 · nueva, usuarios clave |
+> | `TASK-04` OpenAPI | 4 | 30/09 |
+> | `US-13` Maestro de destinos | 10 | 30/09 |
+> | `US-42` Login, sesión y roles (backend) | 12 | 30/09 |
+> | `US-15` Auditoría de intervenciones | 8 | 30/09 |
+> | `US-14` Desembarco y paso a aduana | 8 | 01/10 |
+> | `US-18` Recepción en planta | 8 | 01/10 |
+> | `US-47` Liberación de Calidad y cierre | 8 | 05/10 |
+> | `US-40` Ajuste manual de la fecha | 4 | 05/10 |
+> | **Total** | **95** | |
+>
+> El backend cubre el ciclo completo del pedido —carga, rastreo, desembarco, aduana,
+> recepción, liberación y cierre—, auditado e inmutable y protegido por roles. El 05/10 las
+> pruebas pasaron a su propia base, `trackin_test`, separada de la de desarrollo.
+>
+> **Queda para el cierre formal del 16/10:** la revisión con Greivin y el paso de las
+> historias a terminadas en Jira. La verificación integral del 06/10 está en «Verificación
+> integral del sistema — 06/10/2026».
+
 #### US-12 — Recalcular fecha y estado ante cualquier cambio de insumo
 
 Como sistema, quiero recalcular automáticamente cuando cambie un insumo, para que el dashboard nunca muestre un estado obsoleto.
@@ -1662,6 +1691,17 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 
 **8 items · 64 h estimadas · capacidad 65 h — dentro de capacidad.** US-37 volvio al Sprint 2 el 25/08 (US-38 la necesita) y US-28 llego desde el Sprint 7, al integrarse al dashboard en vez de ser una vista aparte.
 
+> **Avance adelantado (el sprint empieza el 19/10):**
+>
+> | Ítem | Estado |
+> |---|---|
+> | `TASK-05` Andamiaje del frontend | ✅ 06/10, con la parte de navegador del login de `US-42` |
+> | `US-19` Grilla de pedidos | ✅ 07/10 |
+> | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
+> | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
+>
+> El diseño del dashboard quedó aprobado por los usuarios clave el 06/10.
+
 #### TASK-05 — Andamiaje del frontend React con TypeScript, Vite y Tailwind
 
 Como desarrollador, quiero el proyecto de frontend configurado, para empezar a construir vistas sobre una base estable.
@@ -1699,6 +1739,21 @@ Como desarrollador, quiero el proyecto de frontend configurado, para empezar a c
 > - **La cobertura era 39 % con dos pruebas**, por debajo del 70 % de la Definition of Done,
 >   y nada lo exigía. Ahora son 37 pruebas y 95 %, y el umbral de 70 % vive en
 >   `vite.config.ts`: CI corre `test:coverage` y falla si se baja.
+>
+> **El login, con el diseño de Figma** («Login Form»), el mismo 06/10:
+>
+> - **Diseño:** foto del edificio de Gutis a pantalla completa; «TrackIn» y «Seguimiento
+>   logístico | Laboratorios Gutis» en blanco; campos azul marino con los textos de ayuda del
+>   Figma; botón blanco «Iniciar sesión».
+> - **La foto** (`public/login-fondo.jpg`) llegó exportada en PNG y ya oscurecida. Se
+>   convirtió a JPG —90 KB en vez de 1,3 MB, sin diferencia visible— y no lleva velo
+>   adicional.
+> - **Mostrar la contraseña**, pedido el 06/10: un botón de ojo dentro del campo que alterna
+>   entre ver y ocultar. Lo anuncia a los lectores de pantalla y no envía el formulario.
+> - **Se conserva «Recordar sesión»**, que no está en el Figma pero sí en el wireframe, y el
+>   backend la distingue.
+>
+> Frontend: 39 pruebas, 95 % de cobertura.
 
 #### US-19 — Listar los pedidos en transito en una grilla ordenable
 
@@ -1735,6 +1790,30 @@ Como usuario de Compras, quiero ver todos los pedidos en una grilla, para revisa
 > - **La etapa muestra el estado terminal** en las filas cerradas («Cerrado», «Cancelado»),
 >   como ya decía §1.11.
 > - La grilla simple (pantalla de planta, `US-43`) deja solo Material, Etapa y Cumplimiento.
+
+> **✅ Terminada el 07/10/2026, adelantada.** La grilla del Figma, dentro del panel oscuro del
+> dashboard, sobre `GET /api/v1/pedidos`:
+>
+> - **Las nueve columnas en el orden aprobado.** El destino aéreo va por su código («MROC») y
+>   el marítimo por su nombre, como en el Figma; el nombre completo queda al pasar el cursor.
+> - **Ordena el backend**, sobre el total y no solo sobre lo que está en pantalla: un clic
+>   ordena ascendente y el segundo, descendente. POS ordena junto con la OC. Al cambiar el
+>   orden vuelve a la primera página, y la página anterior queda a la vista hasta que llega la
+>   nueva, sin vaciar la tabla.
+> - **Paginación de 25 filas** («26–50 de 107 pedidos»). Orden inicial: fecha proyectada, lo
+>   que llega antes.
+> - **Filas terminales** (§1.11): «Cerrado» o «Cancelado» en la etapa, y el cumplimiento del
+>   cerrado se conserva como veredicto del proveedor. El cambio de `F. Proyectada` por
+>   `F. Recepción` está hecho en la grilla y se activa cuando `US-21` agregue el filtro por
+>   estado terminal.
+> - **Rendimiento:** la consulta tarda 12–15 ms sobre los 107 pedidos de la base de
+>   desarrollo, también pidiendo los 200 de una vez. El límite era 3 s.
+> - **Semáforo:** la paleta del Figma vive en un solo lugar (`tailwind.config.js` y
+>   `components/estados.ts`) para que los mapas la reusen (`US-24`). **«Recibido en planta»
+>   no tiene color en el SRS ni en el Figma:** se usó un café provisional, que hay que validar
+>   en `US-24`.
+>
+> Frontend: 60 pruebas, 96 % de cobertura.
 
 #### US-20 — Consultar el detalle completo de un pedido
 
@@ -1873,6 +1952,11 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 ### Sprint 7 (2-13 nov 2026)
 
 **6 items · 54 h estimadas · capacidad 65 h — dentro de capacidad.** US-28 paso al Sprint 6 el 25/08, integrada al dashboard.
+
+> **Hito: compra de los créditos de ShipsGo, ~06/11**, una semana antes de la entrega (acuerdo
+> con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
+> créditos actuales; esa semana queda para la carga inicial de altas y para registrar el
+> paquete de 1.100. Las 11 h libres del sprint cubren cualquier imprevisto.
 
 #### US-25 — Presentar el mapa interactivo marítimo con posiciones actuales
 
@@ -2985,6 +3069,44 @@ libera el material, para que «cerrado» signifique **disponible para producció
 
 ---
 
+## Verificación integral del sistema — 06/10/2026
+
+Hecha antes de la reunión con Ventas, para confirmar que todo corre como debe.
+
+| Revisión | Resultado |
+|---|---|
+| Lint (ruff) y formato (black) | ✅ Limpios |
+| Suite completa, contra `trackin_test` | ✅ 1212 pruebas, 0 fallos, 97 % de cobertura |
+| Migraciones | ✅ Las dos bases en `0020_liberacion_calidad` |
+| API real con uvicorn, por HTTP | ✅ `/health` OK con PostGIS; 20 rutas en `/docs`; rechaza sin token; error de login genérico |
+| Ciclo real del worker | ✅ ShipsGo consultado gratis, sin altas; 107 pedidos recalculados; salud de las fuentes publicada |
+| Tipos (mypy) | ⚠️ 15 errores, informativos en CI |
+| Modelo contra base (`alembic check`) | ⚠️ Diferencias no funcionales |
+
+**Arreglos de entorno hechos ese día:** se creó la base `trackin_test`, que no existía en esta
+máquina —sin ella las pruebas de integración no podían correr—, y la de desarrollo se llevó
+a la migración `0020`.
+
+**Un caso real de punta a punta.** El BL de COSCO `COSU6508789000` (OC 4500016185-10) **llegó
+a Caldera el 04/10**, según el hito de ShipsGo. El ciclo del worker pasó el pedido de «En
+origen» a «En destino», lo recalculó y dejó de consultar el embarque. Es el primer pedido
+real que recorre solo el rastreo automático.
+
+**Efecto lateral:** el login de prueba con contraseña incorrecta sumó un intento fallido a
+`admin`, que vuelve a cero al entrar bien.
+
+### Deuda técnica detectada
+
+| Deuda | Riesgo | Cuándo |
+|---|---|---|
+| 15 errores de mypy, sobre todo anotaciones en `api/` | Bajo: CI no los bloquea | Antes del cierre del proyecto |
+| `alembic check` ve comentarios de columna que el modelo no declara, el índice `ix_pedidos_transito_ausentes` ausente del modelo y el tipo de `sesiones.id` | Que una migración autogenerada borre ese índice | Antes de autogenerar otra migración |
+| El modelo documenta `uq_maestro_destinos_id_via` y el FK compuesto de §2.7, que **no existen** en la base; en cambio hay un índice GIST que el documento desaconseja | Documentación que no describe la base real | Revisión de `TASK-01` |
+| El diccionario y el modelo divergen en `usuarios`, `elementos_rastreados` y `salud_fuentes` (`scripts/check_docs_model.py`) | Documentación desfasada | Junto con la anterior |
+| `altas_maximas_dia` sigue en 5 | Avisaría en días normales con 70–110 embarques al mes | `US-57`, al comprar los créditos |
+
+---
+
 ## Acuerdos de la reunión con usuarios clave — 06/10/2026
 
 | # | Acuerdo | Efecto |
@@ -2992,7 +3114,51 @@ libera el material, para que «cerrado» signifique **disponible para producció
 | 1 | La fecha comprometida es la **columna R** (`Fecha Entrega`) | Confirma `US-53` tal como está. Cierra la respuesta pendiente de Planeación |
 | 2 | Se aprueba el **dashboard corregido** (Figma del 30/09) | El Sprint 6 arranca con ese diseño; la API ya admite sus filtros |
 | 3 | **Se proveerá el MAWB de cada pedido** | El rastreo aéreo vuelve al alcance completo por ShipsGo: hitos, vuelos, ETA y ruta (`US-46`). TICA queda para confirmar el arribo por la guía hija |
-| 4 | Se aprueba el plan de ShipsGo **con una condición: US$1,70 por crédito** en vez de US$1,90 | Se responde a ShipsGo con esa contraoferta. 1.100 créditos pasarían de US$2.090 a US$1.870 |
+| 4 | Se aprueba el plan de ShipsGo **con una condición: US$1,70 por crédito** en vez de US$1,90 | Se responde a ShipsGo con esa contraoferta. 1.100 créditos pasarían de US$2.090 a US$1.870 · ✅ **ShipsGo la aceptó el 07/10** (ver abajo) |
+
+### Oferta final de ShipsGo, aceptada — 07/10/2026
+
+ShipsGo aceptó la contraoferta y confirmó las dos condiciones que se le pidieron:
+
+| Concepto | Monto |
+|---|---|
+| 1.100 créditos × US$1,70 | US$1.870 |
+| Cargo único por uso de la API | US$250 |
+| **Total del primer año** | **US$2.120** |
+
+- **Recargas al mismo precio.** Los créditos adicionales que se compren dentro de los 12 meses
+  cuestan también US$1,70.
+- **Arrastre de créditos no usados.** Los créditos sobrantes pasan al período siguiente
+  **siempre que la siguiente compra sea al menos el 50 % del paquete anterior**, es decir,
+  550 créditos o más.
+
+Frente a la primera oferta (US$1,90, US$2.340 en total) el ahorro es de US$220 el primer año.
+El cargo de la API es único: los años siguientes solo se pagan créditos.
+
+**Falta:** la orden de compra y el pago por parte de Gutis. Con los créditos en la cuenta se
+habilitan las altas desde el sistema (`US-55`) y se registra el paquete en `US-57`.
+
+**Fecha de compra, acordada con Compras y ShipsGo el 07/10:** una semana antes de entregar el
+sistema, previsiblemente al final del Sprint 7 (entrega ~13/11, **compra ~06/11**). Así los 12
+meses del paquete corren desde que el sistema se usa, no durante el desarrollo.
+
+Consecuencias para el plan:
+
+- **`US-55` y `US-57` se verifican en el Sprint 6 con los 49 créditos que quedan en la
+  cuenta** (corrección del 07/10; antes se había dejado la prueba real para después de la
+  compra). Las pruebas automáticas siguen contra ShipsGo simulado; la verificación real usa
+  pocos créditos —uno o dos altas— y **solo sobre pedidos reales en tránsito** que haya que
+  rastrear de todos modos, así que ningún crédito se gasta en balde. Para `US-57`, esos 49 se
+  registran como el paquete vigente, y el aviso del 80 % se prueba con un paquete simulado.
+  Las lecturas siguen siendo gratis.
+- **La semana entre la compra y la entrega queda solo para la carga inicial** y para registrar
+  el paquete de 1.100 en `US-57`, no para probar funcionalidad nueva.
+- **Los 49 se suman al paquete nuevo** (confirmado con ShipsGo el 07/10). Lo que no se use en
+  las pruebas pasa al paquete de 1.100: usarlos ahora no cuesta nada extra, solo adelanta
+  consumo. En `US-57`, el saldo al comprar es 1.100 más lo que quede de los 49.
+- **La carga inicial.** Al comprar, los pedidos en tránsito que aún no estén en ShipsGo se
+  darán de alta de una vez, y `altas_maximas_dia` (hoy 5) tiene que permitirlo ese día.
+  Hay que estimar cuántos serán antes del 06/11 para no gastar más de lo previsto.
 
 ### Lo que el MAWB cambia en el plan
 
@@ -3019,9 +3185,11 @@ cuando se estén agotando, para comprar a tiempo y no dejar embarques sin rastre
 **Criterios de aceptación**
 
 - Dado el paquete comprado, cuando se registra (cantidad y fecha de vencimiento), entonces el sistema descuenta cada alta que consumió crédito
+- Dado un saldo previo en la cuenta, cuando se registra un paquete nuevo, entonces el saldo se suma en vez de reemplazarse (los 49 créditos actuales se suman al paquete de 1.100, confirmado con ShipsGo el 07/10)
 - Dado un consumo del 80 % del paquete, cuando se alcanza, entonces `/health` y el log lo advierten
 - Dado un paquete vencido o agotado, cuando se intenta un alta, entonces el sistema lo advierte antes de gastar
 - Dado el umbral de altas diarias, cuando se compra el paquete, entonces `altas_maximas_dia` sube de 5 a un valor acorde con 70–110 embarques al mes
+- Dado que faltan 60 días para el vencimiento del paquete, cuando quedan créditos sin usar, entonces el sistema advierte cuántos se arrastrarían y que la recompra debe ser de al menos el 50 % del paquete (550 créditos con el de 1.100) para conservarlos (condición de ShipsGo del 07/10)
 
 | | |
 |---|---|
@@ -3188,6 +3356,7 @@ empezar a rastrearlo sin pedírselo a Planificación.
 | Tipo | Story · OE2 · **Should** · Sprint 6 · 6 h |
 | Origen | Reunión con Compras, 29/09/2026: hay presupuesto y las altas las autorizan ellos |
 | Depende de | `US-42` (roles) |
+| Verificación real | En el Sprint 6, con uno o dos de los 49 créditos que quedan, sobre pedidos reales en tránsito. Las pruebas automáticas, con ShipsGo simulado |
 
 ### `TASK-32` — Spike: Parcels API como alternativa con licencia ✅ HECHA
 

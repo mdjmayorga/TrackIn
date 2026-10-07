@@ -16,6 +16,21 @@
 @layer components {
   /* Leaflet inyecta su propio CSS, pero el contenedor necesita altura
      explícita o el mapa se renderiza con 0px de alto. */
+  /* El gris del Figma sobre los mosaicos de OpenStreetMap: el agua queda
+     oscura y la tierra clara. Va sobre el panel de mosaicos, no sobre todo el
+     mapa, para no apagar los marcadores ni los controles. */
+  .mapa-oscuro .leaflet-tile-pane {
+    filter: grayscale(1) brightness(0.62) contrast(3);
+  }
+
+  .mapa-oscuro .leaflet-control-attribution {
+    @apply bg-black/60 text-slate-300;
+  }
+
+  .mapa-oscuro .leaflet-control-attribution a {
+    @apply text-slate-200;
+  }
+
   .mapa-contenedor {
     @apply h-full min-h-[24rem] w-full overflow-hidden rounded-lg border border-slate-200;
   }
