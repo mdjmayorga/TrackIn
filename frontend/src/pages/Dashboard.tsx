@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom'
+
+import { puedeCargar } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { EstadoShipsGo } from '@/components/EstadoShipsGo'
 import { CintaKpis } from '@/components/CintaKpis'
@@ -37,13 +40,18 @@ export default function Dashboard() {
                 {sesion.usuario.nombre_completo}{' '}
                 <span className="text-slate-500">{sesion.usuario.rol}</span>
               </p>
-              <button
-                type="button"
-                onClick={() => void cerrarSesion()}
-                className="text-marca-300 underline hover:text-marca-200"
-              >
-                Cerrar sesión
-              </button>
+              <p className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => void cerrarSesion()}
+                  className="text-marca-300 underline hover:text-marca-200"
+                >
+                  Cerrar sesión
+                </button>
+                <Link to="/cargas" className="text-marca-300 underline hover:text-marca-200">
+                  {puedeCargar(sesion.usuario.rol) ? 'Cargar Z-tracking' : 'Cargas del Z-tracking'}
+                </Link>
+              </p>
             </>
           )}
         </div>

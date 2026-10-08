@@ -91,6 +91,7 @@ erDiagram
     USUARIOS             ||--o{ PARAMETROS_SISTEMA : "modifica"
     PEDIDOS_TRANSITO     ||--o{ PEDIDO_ELEMENTO_RASTREADO : "recorre en"
     ELEMENTOS_RASTREADOS ||--o{ PEDIDO_ELEMENTO_RASTREADO : "cubre"
+    USUARIOS             ||--o{ CARGAS_ZTRACKING : "sube"
 
     PEDIDOS_TRANSITO {
         bigserial   id                          PK "clave sustituta"
@@ -216,6 +217,24 @@ erDiagram
         timestamptz creada_en
         timestamptz ultimo_uso
         timestamptz cerrada_en      "NULL = abierta"
+    }
+
+    CARGAS_ZTRACKING {
+        bigserial   id                   PK "US-58"
+        bigint      id_usuario           FK "quién subió el Excel"
+        varchar     archivo                 "nombre, sin la ruta"
+        integer     tamano_bytes
+        timestamptz realizada_en
+        varchar     estado                  "CHECK APLICADA, RECHAZADA"
+        varchar     motivo_rechazo          "NULL si se aplicó"
+        integer     recibidas
+        integer     insertadas
+        integer     actualizadas
+        integer     sin_cambios
+        integer     ausentes
+        integer     no_entraron
+        integer     entraron_sin_rastreo
+        jsonb       informe                 "InformeValidacion completo"
     }
 
     AUDITORIA_INTERVENCIONES {

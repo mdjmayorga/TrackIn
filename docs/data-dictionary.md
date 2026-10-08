@@ -643,3 +643,37 @@ Migración `0016`.
 | `uq_sesiones_hash_token` | `UNIQUE (hash_token)` | Un token identifica una sola sesión |
 | `fk_sesiones_id_usuario_usuarios` | `FOREIGN KEY (id_usuario)` → `usuarios(id)`, `ON DELETE RESTRICT` | Coherente con que los usuarios no se borran |
 | `ix_sesiones_id_usuario` | Índice sobre `id_usuario` | Cerrar todas las sesiones de un usuario al desactivarlo |
+
+## 14. `cargas_ztracking`
+
+Una fila por cada subida del Excel del Z-tracking desde la interfaz (`US-58`), aplicada o
+rechazada. Desde el 07/10/2026 el Excel es la vía definitiva de entrada de los pedidos: la API
+de SAP no va a existir. Migración `0021`.
+
+### 14.1 Campos
+
+| # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
+|---|---|---|---|---|---|---|
+| 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador de la carga. |
+| 2 | `id_usuario` | `BIGINT` | no | `FK` → `usuarios(id)`, `RESTRICT` | Usuario de Compras o Administrador | Quién subió el archivo. Con la cuenta compartida de Compras dice «Compras», sin distinguir personas. |
+| 3 | `archivo` | `VARCHAR(255)` | no | | Nombre de archivo, sin la ruta del equipo | Cómo se llamaba el Excel: «2026 - SEPTIEMBRE - WK38.xlsx». |
+| 4 | `tamano_bytes` | `INTEGER` | no | | `≥ 0`, máximo 20 MB | Tamaño de lo subido. |
+| 5 | `realizada_en` | `TIMESTAMPTZ` | no | | Instante UTC | Cuándo se subió. La más reciente aplicada es la «última carga» del encabezado (`US-23`). |
+| 6 | `estado` | `VARCHAR(10)` | no | `CHECK` | `APLICADA` · `RECHAZADA` | `RECHAZADA` no tocó ningún pedido: el archivo no era un Z-tracking, estaba dañado o no traía líneas. |
+| 7 | `motivo_rechazo` | `VARCHAR(500)` | sí | | Texto | Por qué se rechazó el archivo entero. `NULL` en las aplicadas. |
+| 8 | `recibidas` | `INTEGER` | no, *default* `0` | | `≥ 0` | Líneas del archivo, legibles o no. |
+| 9 | `insertadas` | `INTEGER` | no, *default* `0` | | `≥ 0` | Pedidos nuevos. |
+| 10 | `actualizadas` | `INTEGER` | no, *default* `0` | | `≥ 0` | Pedidos existentes con algún dato distinto. |
+| 11 | `sin_cambios` | `INTEGER` | no, *default* `0` | | `≥ 0` | Pedidos existentes idénticos: la carga es idempotente. |
+| 12 | `ausentes` | `INTEGER` | no, *default* `0` | | `≥ 0` | Estaban en TrackIn y no vinieron: marcados para revisión, nunca borrados (`US-31`). |
+| 13 | `no_entraron` | `INTEGER` | no, *default* `0` | | `≥ 0` | Líneas rechazadas, cada una con su motivo en `informe`. |
+| 14 | `entraron_sin_rastreo` | `INTEGER` | no, *default* `0` | | `≥ 0` | Entraron, pero su referencia de embarque no sirve. |
+| 15 | `informe` | `JSONB` | sí | | `InformeValidacion.como_dict()` más `avisos` | El informe completo de `US-32`, para volver a mostrarlo sin repetir la carga. `NULL` en las rechazadas. |
+
+### 14.2 Restricciones de tabla
+
+| Nombre | Regla | Qué protege |
+|---|---|---|
+| `ck_cargas_ztracking_estado` | `estado IN ('APLICADA', 'RECHAZADA')` | Solo los dos resultados posibles |
+| `fk_cargas_ztracking_id_usuario_usuarios` | `FOREIGN KEY (id_usuario)` → `usuarios(id)`, `ON DELETE RESTRICT` | Coherente con que los usuarios no se borran |
+| `ix_cargas_ztracking_realizada_en` | Índice sobre `realizada_en` | El historial, de la más reciente a la más antigua |

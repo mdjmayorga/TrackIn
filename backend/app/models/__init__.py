@@ -17,6 +17,7 @@ Ver `docs/data-model.md` para la justificación de cada decisión de diseño.
 """
 
 from app.models.auditoria_intervencion import AuditoriaIntervencion
+from app.models.carga_ztracking import CargaZTracking
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.historial_tracking import HistorialTracking
 from app.models.maestro_destino import MaestroDestino
@@ -33,6 +34,7 @@ from app.models.usuario import Usuario
 __all__ = [
     "AliasPais",
     "AuditoriaIntervencion",
+    "CargaZTracking",
     "ElementoRastreado",
     "HistorialTracking",
     "MaestroDestino",

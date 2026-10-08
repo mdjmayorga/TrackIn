@@ -26,3 +26,18 @@ export function formatearFecha(fecha: string | null | undefined): string | null 
   if (Number.isNaN(instante.getTime())) return null
   return formatoFechaHora.format(instante)
 }
+
+const formatoHora = new Intl.DateTimeFormat('es-CR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: ZONA,
+})
+
+/** `dd/mm/aaaa hh:mm`, en hora de Costa Rica. */
+export function formatearFechaHora(instante: string | null | undefined): string | null {
+  if (!instante) return null
+  const fecha = new Date(instante)
+  if (Number.isNaN(fecha.getTime())) return null
+  return `${formatoFechaHora.format(fecha)} ${formatoHora.format(fecha)}`
+}

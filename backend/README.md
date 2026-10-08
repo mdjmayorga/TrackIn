@@ -255,6 +255,35 @@ libro entero era ilegible. Hoy cualquiera de las dos entregas se lee sin tocar
 código, y una hoja a la que le falte una columna **obligatoria** se rechaza
 entera en vez de producir líneas plausibles y equivocadas.
 
+## Carga del Z-tracking desde la interfaz (`US-58`)
+
+Desde el 07/10/2026 el Excel del Z-tracking es la vía definitiva de entrada: la API de SAP
+no va a existir. Compras (o el Administrador) lo sube en **«Cargar Z-tracking»**, en el
+panel, que llama a:
+
+| Endpoint | Qué hace |
+|---|---|
+| `POST /api/v1/cargas` | Sube el Excel (`multipart/form-data`, campo `archivo`) y devuelve el informe |
+| `GET /api/v1/cargas` | Historial, la más reciente primero, aplicadas y rechazadas |
+| `GET /api/v1/cargas/{id}` | Una carga con su informe completo |
+
+La carga es la misma de `scripts/cargar_semilla.py` (`US-31`, `US-32`, recálculo de
+`US-12`); el endpoint agrega tres guardas:
+
+- **Un archivo equivocado se rechaza entero (422) sin tocar ningún pedido**: sin las hojas
+  `PRODUCCION` e `IDA`, dañado, vacío, de más de 20 MB o sin ninguna línea legible. Sin esto,
+  un Excel cualquiera se leería «bien», no traería líneas y la carga daría por ausentes
+  **todos** los pedidos.
+- **Una carga a la vez** (409): un candado de PostgreSQL, porque la cuenta de Compras es
+  compartida.
+- **Queda registro** en `cargas_ztracking`: quién, cuándo, qué archivo, el resultado y el
+  informe. También de las rechazadas.
+
+Con `SHIPSGO_API_TOKEN` configurado, ShipsGo completa los destinos que el archivo no dice,
+igual que el script. Solo lee, que es gratis.
+
+El script sigue sirviendo para desarrollo (`--limpiar`, `--resumen`, la fuente `semilla`).
+
 ## Migraciones (Alembic)
 
 Configurado con la plantilla **async**: usa el mismo driver `asyncpg` que la

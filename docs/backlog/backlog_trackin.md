@@ -105,7 +105,8 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · hoy solo por script |
 | `US-57` | Saldo de créditos de ShipsGo y aviso antes de que se agoten | Story | OE2 | **Should** | Sprint 6 | 4h | Acuerdo del 06/10: compra anual de créditos |
 | `US-56` | ~~Leer los pedidos del Z-tracking desde la API de SAP~~ ❌ | Story | OE2 | — | — | — | **Cancelada el 07/10:** la API de SAP no va a existir. La reemplaza `US-58` |
-| `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada |
+| `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga ✅ | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada · ✅ terminada 08/10 |
+| `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
@@ -1698,6 +1699,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > |---|---|
 > | `TASK-05` Andamiaje del frontend | ✅ 06/10, con la parte de navegador del login de `US-42` |
 > | `US-19` Grilla de pedidos | ✅ 07/10 |
+> | `US-58` Carga del Z-tracking desde la interfaz (nueva, 07/10) | ✅ 08/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
 > | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
 >
@@ -1952,12 +1954,12 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 
 ### Sprint 7 (2-13 nov 2026)
 
-**6 items · 54 h estimadas · capacidad 65 h — dentro de capacidad.** US-28 paso al Sprint 6 el 25/08, integrada al dashboard.
+**7 items · 62 h estimadas · capacidad 65 h — dentro de capacidad.** US-28 paso al Sprint 6 el 25/08, integrada al dashboard. `US-59` (+8 h, plantilla y validación del Z-tracking) entró el 08/10.
 
 > **Hito: compra de los créditos de ShipsGo, ~06/11**, una semana antes de la entrega (acuerdo
 > con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
 > créditos actuales; esa semana queda para la carga inicial de altas y para registrar el
-> paquete de 1.100. Las 11 h libres del sprint cubren cualquier imprevisto.
+> paquete de 1.100. Con `US-59` el margen libre del sprint baja de 11 h a 3 h.
 
 #### US-25 — Presentar el mapa interactivo marítimo con posiciones actuales
 
@@ -3246,6 +3248,75 @@ qué no, para mantener los pedidos al día sin depender de un desarrollador.
 | Origen | Reunión del 07/10/2026: la API de SAP no va a existir |
 | Reemplaza a | `US-56` |
 | Depende de | `US-31`, `US-32` (hechas), `US-42` (roles, hecha) |
+
+> **✅ Terminada el 08/10/2026.** «Cargar Z-tracking» en el panel (Compras y Administrador;
+> los demás ven el historial), sobre `POST /api/v1/cargas`:
+>
+> - **La carga es la misma** de `US-31` y `US-32`, con su recálculo. Con el WK38 real
+>   (ensayado en una transacción revertida) tarda **2,3 s** y da lo mismo que el script: 465
+>   líneas, 92 sin cambios y las mismas 373 rechazadas.
+> - **Un archivo equivocado se rechaza entero, sin tocar ningún pedido.** El riesgo no era
+>   un archivo dañado: era **un Excel que se lee bien pero no es el Z-tracking**. No traería
+>   líneas, y la carga, de buena fe, habría marcado ausentes *todos* los pedidos. Se exigen
+>   las hojas `PRODUCCION` e `IDA` y al menos una línea legible.
+> - **Una carga a la vez**, con un candado de PostgreSQL: la cuenta de Compras es compartida.
+> - **Registro** en la tabla nueva `cargas_ztracking` (migración `0021`): quién, cuándo, qué
+>   archivo, el resultado y el informe completo. También las rechazadas.
+> - **El informe** agrupa los rechazos por motivo, con qué corregir en SAP, y lista cada
+>   línea con su OC y posición.
+>
+> Backend: 1 233 pruebas, 97 %. Frontend: 85 pruebas, 97,7 %. Falta la fecha de la última
+> carga en el encabezado, que se hace en `US-23`.
+
+---
+
+### `US-59` — Plantilla vacía del Z-tracking y validación de formato al cargar
+
+Como usuario de Compras, quiero descargar la plantilla vacía del Z-tracking y que la carga
+valide el formato de cada campo, para preparar el archivo con la estructura correcta y saber
+exactamente qué dato está mal antes de que un pedido entre con información equivocada.
+
+**Criterios de aceptación**
+
+*Plantilla*
+
+- Dado un usuario de Compras o Administrador en «Cargar Z-tracking», cuando pulsa «Descargar plantilla», entonces recibe un Excel con las hojas `PRODUCCION` e `IDA` y **solo los encabezados**, en el mismo orden y con los mismos rótulos que el archivo real, sin ninguna fila de datos
+- Dada la plantilla, cuando la reviso, entonces incluye las columnas de referencia de embarque del contrato de `TASK-30` (tipo y número de referencia: BL, contenedor, MAWB), que el archivo real hoy trae vacías y de las que depende el rastreo
+- Dada la plantilla descargada y llenada, cuando se carga sin modificar su estructura, entonces se acepta sin errores de encabezado
+- Dado un rol que no es Compras ni Administrador, cuando entra a la pantalla, entonces no ve la opción de descarga
+
+*Validación de formato*
+
+- Dado un archivo cargado, cuando se valida cada línea, entonces se comprueba el formato de cada campo y no solo su presencia. Como mínimo:
+  - **OC**: entero de exactamente 10 dígitos
+  - **Posición**: entero positivo
+  - **Código de material**: numérico
+  - **Fechas** (fecha de entrega —columna R—, ETA declarada, arribo declarado): fechas válidas
+  - **Cantidad**: número positivo
+  - **Vía**: Aéreo, Marítimo o Terrestre
+  - **Referencia de embarque**: el formato de su tipo (`TASK-30`)
+- Dado un campo con formato inválido, cuando se carga, entonces la línea **no entra** y el informe dice la OC y posición (u hoja y fila), **qué campo**, **qué valor traía** y **qué se esperaba**; el resto del lote sigue (RN-17)
+- Dado un archivo cuyos encabezados no coinciden con la plantilla, cuando se carga, entonces se rechaza entero con la lista de columnas que faltan o sobran, sin tocar ningún pedido
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Must** · Sprint 7 · 8 h |
+| Origen | 08/10/2026: pedido sobre la pantalla de carga de `US-58` |
+| Depende de | `US-58` (hecha), `US-32` (validación actual), `TASK-30` (formatos de referencia) |
+
+> **Notas para cuando se haga:**
+>
+> - **«Fecha proyectada» no viene en el Excel:** la calcula TrackIn (RN-01). Las fechas que
+>   el archivo sí trae son la fecha de entrega (columna R, la comprometida), la ETA declarada
+>   y el arribo declarado. Son esas las que se validan.
+> - **Parte ya existe.** `US-32` rechaza hoy las líneas sin OC, posición, vía, destino o fecha
+>   de entrega, y verifica el dígito de control de las referencias. Lo nuevo es validar el
+>   **formato** de cada campo (que una OC con 9 dígitos o una fecha escrita como texto no
+>   pase) y decir en el informe el campo, el valor y lo esperado.
+> - **Qué diseño sigue la plantilla.** El archivo cambió de forma entre entregas (WK36 → WK38
+>   insertó seis columnas y una banda de agrupación). La plantilla fija **un** diseño —el del
+>   WK38, el más reciente— y conviene que Compras la adopte para que no vuelva a cambiar.
+> - **Sprint 7**, asignado el 08/10: el Sprint 6 ya está sobrecargado.
 
 ---
 

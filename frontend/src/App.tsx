@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { AuthProvider } from '@/auth/AuthContext'
 import { RutaProtegida } from '@/auth/RutaProtegida'
+import Cargas from '@/pages/Cargas'
 import Dashboard from '@/pages/Dashboard'
 import Login from '@/pages/Login'
 
@@ -30,7 +31,15 @@ export function Rutas() {
           </RutaProtegida>
         }
       />
-      {/* Sprint 6 y 7: /pedidos/:id, /mapa-maritimo, /mapa-aereo */}
+      <Route
+        path="/cargas"
+        element={
+          <RutaProtegida>
+            <Cargas />
+          </RutaProtegida>
+        }
+      />
+      {/* Sprint 6 y 7: /pedidos/:id */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

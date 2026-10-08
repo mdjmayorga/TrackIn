@@ -133,3 +133,40 @@ export interface PaginaPedidos {
   desplazamiento: number
   items: PedidoResumen[]
 }
+
+// --- Cargas del Z-tracking (`US-58`) -----------------------------------------
+
+export type EstadoCarga = 'APLICADA' | 'RECHAZADA'
+
+/** Una carga en el historial de `GET /api/v1/cargas`. */
+export interface CargaResumen {
+  id: number
+  archivo: string
+  tamano_bytes: number
+  realizada_en: string
+  estado: EstadoCarga
+  motivo_rechazo: string | null
+  usuario: { usuario: string; nombre_completo: string }
+  recibidas: number
+  insertadas: number
+  actualizadas: number
+  sin_cambios: number
+  ausentes: number
+  no_entraron: number
+  entraron_sin_rastreo: number
+}
+
+export interface IncidenciaCarga {
+  /** `OC-posición`, o `hoja!fila` si la fila no tenía OC. */
+  clave: string
+  motivo: string
+  detalle: string
+  consecuencia: 'no_entro' | 'entro_sin_rastreo'
+}
+
+/** La carga con su informe completo (`POST` y `GET /api/v1/cargas/{id}`). */
+export interface CargaDetalle extends CargaResumen {
+  por_motivo: Record<string, number>
+  incidencias: IncidenciaCarga[]
+  avisos: Array<{ clave: string; tipo: string; detalle: string }>
+}
