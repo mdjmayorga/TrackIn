@@ -17,8 +17,9 @@ Decisiones que respaldan estos cambios:
    principal nunca tuvo.
 4. **Una cuenta compartida para Compras** (`compras@gutis.com`): varias personas a la vez,
    tratadas como un solo usuario también en la auditoría. — `US-42`
-5. **El Z-tracking se leerá de SAP por API.** El Excel usado hasta ahora es una copia
-   estática. — `US-56`
+5. ~~**El Z-tracking se leerá de SAP por API.**~~ **Revertido el 07/10:** la API de SAP no va
+   a existir. Los pedidos entran desde el Excel del Z-tracking, que Compras sube desde el
+   sistema. — `US-58` (reemplaza a `US-56`)
 6. **ShipsGo sigue como fuente comercial**; Parcels se probó y se descartó. — `TASK-32`
 
 ---
@@ -28,7 +29,8 @@ Decisiones que respaldan estos cambios:
 > **v0.6 · 30/09/2026 · Mariano Mayorga** — Reuniones con Compras y usuarios clave. La fecha
 > comprometida pasa a ser la llegada a Gutis. El puerto de llegada lo declara la naviera.
 > RF-19 se ajusta a los filtros reales del dashboard. Compras opera con una cuenta
-> compartida. El Z-tracking se leerá de SAP por API.
+> compartida. ~~El Z-tracking se leerá de SAP por API.~~ (07/10: la API no va a existir; el
+> Excel es la vía definitiva.)
 
 ## 2. §7.1 · RN-07 a RN-09 — contra qué fecha se mide
 
@@ -48,8 +50,11 @@ código o descripción), vía, etapa y cumplimiento**. La etapa admite los estad
 
 ## 4. §4 · RF-01 y RF-31 — origen de los pedidos
 
-RF-31 (carga manual del archivo) queda como **vía transitoria**. RF-01 pasa a leer de **la
-API de SAP** cuando exista su contrato; la lógica de carga no cambia.
+**Corregido el 07/10/2026.** La API de SAP no va a existir: **RF-31 (carga del archivo
+Z-tracking) es la vía definitiva** de entrada, y RF-01 se redacta sobre ella. La carga la hace
+Compras desde la interfaz, con un informe de lo que entró y lo que no (`US-58`). Se elimina
+del SRS toda mención a la sincronización con SAP como alcance; puede quedar en «evolución
+futura».
 
 ## 5. §7.1 · RN-05 y RF-03 — destino del pedido
 
@@ -98,7 +103,8 @@ volumen estimado por Ventas: 70–110 embarques al mes.
 
 - ~~Respuesta de **Planeación** al cambio de fecha comprometida (punto 2).~~ **Confirmado el
   06/10/2026:** la fecha comprometida es la columna R.
-- Contrato de la **API de SAP** (punto 4).
+- ~~Contrato de la **API de SAP** (punto 5).~~ **07/10:** la API no va a existir. El Excel del
+  Z-tracking es la vía definitiva (`RF-31`) y la carga pasa a la interfaz (`US-58`).
 - ~~Respuesta de **ShipsGo** a la licencia anual plana (punto 7).~~ **06/10:** se aprueba la
   compra anual de créditos, condicionada a US$1,70 por crédito. **07/10: ShipsGo aceptó**
   1.100 créditos a US$1,70 (US$1.870) más US$250 únicos por la API; recargas al mismo precio

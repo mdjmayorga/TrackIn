@@ -104,7 +104,8 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-54` | Tomar el puerto de llegada del API aunque el incoterm diga otro | Story | OE2 | **Should** | Sprint 5 | 3h | Reunión con Compras 29/09 · amplía `US-52` · ✅ terminada 29/09 |
 | `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · hoy solo por script |
 | `US-57` | Saldo de créditos de ShipsGo y aviso antes de que se agoten | Story | OE2 | **Should** | Sprint 6 | 4h | Acuerdo del 06/10: compra anual de créditos |
-| `US-56` | Leer los pedidos del Z-tracking desde la API de SAP | Story | OE2 | **Must** | — | — | 30/09: el Excel es una copia estática · **bloqueada** por el contrato de la API |
+| `US-56` | ~~Leer los pedidos del Z-tracking desde la API de SAP~~ ❌ | Story | OE2 | — | — | — | **Cancelada el 07/10:** la API de SAP no va a existir. La reemplaza `US-58` |
+| `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
@@ -3173,7 +3174,7 @@ Consecuencias para el plan:
 - **Los créditos se reparten entre marítimo y aéreo.** En el WK38 completo el marítimo es el
   59 % de las líneas y el aéreo el 41 %. La cifra de 1.100 al año es coherente con 70–110
   embarques al mes por las dos vías.
-- **El MAWB tiene que llegar en el archivo** (o en la API de SAP, `US-56`), en las columnas de
+- **El MAWB tiene que llegar en el archivo** (la API de SAP se descartó el 07/10), en las columnas de
   referencia del contrato de `TASK-30`: hoy vienen vacías en las 48 líneas de `IDA`. El
   cargador ya las lee y asocia (`US-01`, `US-52`).
 
@@ -3198,7 +3199,59 @@ cuando se estén agotando, para comprar a tiempo y no dejar embarques sin rastre
 
 ---
 
+## La API de SAP no va a existir: el Excel es la vía definitiva — 07/10/2026
+
+En la reunión del 07/10 sobre la API de SAP se decidió **no contar con ella**: los pedidos
+entran desde el Excel del Z-tracking, exportado de SAP. Se vuelve a la decisión del 03/09
+(`RF-31`), ahora como definitiva y no como puente.
+
+**Lo que ya está hecho no cambia.** La carga del Excel funciona desde el Sprint 4 (`US-31`,
+`US-32`): es idempotente por OC y posición, normaliza, rechaza línea por línea sin abortar,
+marca ausentes sin borrar e informa el resultado. `US-12` recalcula después de cada carga.
+
+**Lo que cambia:**
+
+- **`US-56` se cancela.** Nunca tuvo sprint ni horas, así que no mueve el plan.
+- **La carga tiene que poder hacerla Compras desde el sistema.** Hoy la corre un desarrollador
+  con `scripts/cargar_semilla.py` y la ruta del archivo fija en `.env`. Eso servía como puente
+  hasta la API; como vía definitiva, en producción nadie de Gutis podría cargar pedidos.
+  **Nueva historia: `US-58`**, Must, al Sprint 6.
+- **La calidad del Excel deja de ser provisional.** En la recarga del WK38 (30/09), 373 de
+  465 líneas no entraron: 273 sin vía (vacía, «N/A», «INDIA») y 100 sin destino resoluble. Se
+  pensaba volver a medir contra la API; ahora **es el dato real** y hay que resolverlo en el
+  origen: que Compras complete la vía y el destino en SAP antes de exportar. El informe de
+  `US-58` les dice exactamente qué líneas y por qué.
+- **El BL y el MAWB tienen que venir en el Excel**, en las columnas de referencia de `TASK-30`
+  (acuerdos del 29/09 y del 06/10). Ya no hay otra vía para que lleguen.
+- **La frescura depende de cada cuánto se cargue.** Un pedido nuevo en SAP no existe para
+  TrackIn hasta la siguiente carga. El encabezado (`US-23`) tiene que mostrar también cuándo
+  fue la última carga, no solo la última consulta a ShipsGo.
+
+### `US-58` — Cargar el Z-tracking desde la interfaz, con el informe de la carga
+
+Como usuario de Compras, quiero subir el Excel del Z-tracking desde TrackIn y ver qué entró y
+qué no, para mantener los pedidos al día sin depender de un desarrollador.
+
+**Criterios de aceptación**
+
+- Dado un usuario de Compras o Administrador, cuando sube el Excel del Z-tracking, entonces los pedidos se cargan por el mismo camino que hoy (`US-31`, `US-32`) y se recalculan (`US-12`)
+- Dada una carga terminada, cuando la veo, entonces el informe muestra recibidos, insertados, actualizados, ausentes y rechazados, y cada rechazo con su OC, posición y motivo
+- Dado un archivo que no es un Z-tracking (sin las hojas `PRODUCCION` e `IDA`, u otro formato), cuando lo subo, entonces se rechaza entero con un motivo claro y no se marca ausente nada
+- Dado un rol que no es Compras ni Administrador, cuando intenta cargar, entonces no puede
+- Dada una carga, cuando termina, entonces queda registrada quién la hizo y cuándo, y el encabezado del dashboard muestra la fecha de la última carga (`US-23`)
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Must** · Sprint 6 · 10 h |
+| Origen | Reunión del 07/10/2026: la API de SAP no va a existir |
+| Reemplaza a | `US-56` |
+| Depende de | `US-31`, `US-32` (hechas), `US-42` (roles, hecha) |
+
+---
+
 ## El Z-tracking real vive en SAP — 30/09/2026
+
+> **Superado el 07/10/2026:** la API de SAP no va a existir; ver la sección anterior.
 
 **El Excel que se ha usado es una copia estática.** El Z-tracking real está en SAP, y Gutis
 va a proveer **una API para leerlo**. Tres consecuencias:
@@ -3226,9 +3279,9 @@ para que el sistema trabaje con el dato vigente y no con una copia de la semana.
 
 | | |
 |---|---|
-| Tipo | Story · OE2 · **Must** · sin sprint · estimación pendiente del contrato |
+| Tipo | Story · OE2 · ~~Must · sin sprint~~ · **cancelada el 07/10/2026** |
 | Origen | 30/09/2026: el Z-tracking real está en SAP |
-| Bloqueada por | El contrato de la API de SAP |
+| Bloqueada por | El contrato de la API de SAP, que no va a existir. La reemplaza `US-58` |
 
 ---
 
