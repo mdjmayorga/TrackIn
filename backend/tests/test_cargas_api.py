@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import io
 from collections.abc import AsyncGenerator
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -372,8 +371,37 @@ def test_el_resolutor_sin_token_no_usa_shipsgo(monkeypatch) -> None:
     assert asyncio.run(_primero()) is None
 
 
-def test_validar_nombre_quita_la_ruta() -> None:
-    assert carga_archivo.validar_nombre("C:\\x\\y\\WK40.XLSX") == "WK40.XLSX"
-    assert carga_archivo.validar_nombre(str(Path("a") / "b.xlsm")) == "b.xlsm"
+@pytest.mark.parametrize(
+    "subido",
+    [
+        "C:\\x\\y\\WK40.XLSX",  # ruta de Windows: falló en CI (Linux) con `PurePath`
+        "/home/x/WK40.XLSX",  # ruta de Linux o macOS
+        "carpeta/sub\\WK40.XLSX",  # mezclada
+        "WK40.XLSX",
+    ],
+)
+def test_validar_nombre_quita_la_ruta_en_cualquier_sistema(subido: str) -> None:
+    """El servidor corre en Linux y los usuarios suben desde Windows."""
+    assert carga_archivo.validar_nombre(subido) == "WK40.XLSX"
+
+
+def test_el_rechazo_guarda_el_nombre_sin_la_ruta_de_windows() -> None:
+    class _Sesion:
+        def add(self, fila: Any) -> None:
+            self.fila = fila
+
+    sesion = _Sesion()
+    carga_archivo.registrar_rechazo(
+        sesion,  # type: ignore[arg-type]
+        nombre_archivo="C:\\Users\\alguien\\Escritorio\\otro.xlsx",
+        tamano=10,
+        id_usuario=1,
+        motivo="no es un Z-tracking",
+    )
+
+    assert sesion.fila.archivo == "otro.xlsx"
+
+
+def test_un_nombre_vacio_se_rechaza() -> None:
     with pytest.raises(carga_archivo.ArchivoInvalido):
         carga_archivo.validar_nombre("   ")

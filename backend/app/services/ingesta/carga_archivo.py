@@ -27,7 +27,7 @@ import logging
 import tempfile
 import zipfile
 from dataclasses import dataclass
-from pathlib import Path, PurePath
+from pathlib import Path, PureWindowsPath
 from typing import Any, Final
 
 from openpyxl import load_workbook
@@ -75,9 +75,20 @@ class _FuenteLeida:
         return self.pedidos
 
 
+def _sin_ruta(nombre_archivo: str | None) -> str:
+    """El nombre del archivo sin la carpeta del equipo de quien lo subió.
+
+    `PureWindowsPath` y no `PurePath`: este último sigue las reglas del sistema
+    donde corre, y en el servidor Linux no reconocería `\\` como separador, así
+    que «C:\\Users\\x\\WK40.xlsx» quedaría entero. `PureWindowsPath` entiende
+    `\\` y `/` en cualquier sistema.
+    """
+    return PureWindowsPath(nombre_archivo or "").name.strip()
+
+
 def validar_nombre(nombre_archivo: str) -> str:
     """El nombre sin ruta, y solo si es un Excel."""
-    nombre = PurePath(nombre_archivo or "").name.strip()
+    nombre = _sin_ruta(nombre_archivo)
     if not nombre:
         raise ArchivoInvalido("El archivo no tiene nombre.")
     if not nombre.lower().endswith(EXTENSIONES):
@@ -242,7 +253,7 @@ def registrar_rechazo(
     instante: dt.datetime | None = None,
 ) -> CargaZTracking:
     """Deja constancia de un archivo rechazado. **No hace commit.**"""
-    nombre = PurePath(nombre_archivo or "").name.strip()[:255] or "(sin nombre)"
+    nombre = _sin_ruta(nombre_archivo)[:255] or "(sin nombre)"
     fila = _registro(
         id_usuario=id_usuario,
         archivo=nombre,
