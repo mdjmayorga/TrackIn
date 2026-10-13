@@ -14,6 +14,7 @@ import { Distintivo } from '@/components/Distintivo'
 import { CUMPLIMIENTOS, ETAPAS, etapaVisible } from '@/components/estados'
 import type { ColumnaOrden, Orden, PaginaPedidos, PedidoResumen, Via } from '@/types/api'
 import { formatearFecha } from '@/utils/fechas'
+import { destinoCorto } from '@/utils/formatos'
 
 const VIAS: Record<Via, string> = {
   AEREO: 'Aéreo',
@@ -42,13 +43,9 @@ function fecha(valor: string | null, motivo: string) {
   return formatearFecha(valor) ?? <Guion motivo={motivo} />
 }
 
-/**
- * Destino como en el Figma: el aeropuerto por su código («MROC»), el puerto
- * por su nombre («Puerto Limón»). El nombre completo queda en el `title`.
- */
+/** Destino como en el Figma (`destinoCorto`), con el nombre completo en el `title`. */
 function destino(pedido: PedidoResumen) {
-  const { codigo, nombre } = pedido.destino
-  return <span title={nombre}>{pedido.via_transporte === 'AEREO' ? codigo : nombre}</span>
+  return <span title={pedido.destino.nombre}>{destinoCorto(pedido)}</span>
 }
 
 function columnas(terminales: boolean): Columna[] {

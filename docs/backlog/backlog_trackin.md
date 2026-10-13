@@ -91,7 +91,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-19` | Listar los pedidos en transito en una grilla ordenable ✅ | Story | OE3 | **Must** | Sprint 6 | 12h | RF-04 / RNF-01 · ✅ terminada 07/10, adelantada |
 | `US-20` | Consultar el detalle completo de un pedido | Story | OE3 | **Must** | Sprint 6 | 10h | RF-05 / CU-03 |
 | `US-21` | Filtrar el dashboard de forma transversal y coherente | Story | OE3 | **Must** | Sprint 6 | 12h | RF-19 / CU-04 / RNF-02 |
-| `US-22` | Mostrar la cinta de indicadores KPI | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 |
+| `US-22` | Mostrar la cinta de indicadores KPI ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 · ✅ terminada 13/10, adelantada |
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
 | `US-24` | Aplicar el semaforo de estados de forma consistente | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 |
 | `US-43` | Ofrecer dos vistas de la grilla: completa por rol y simple para la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | 10h | Reunión Logística 03/09 · mapa rol→vista corregido 04/09 |
@@ -111,7 +111,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
-| `US-28` | Presentar los proximos arribos dentro del dashboard | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 |
+| `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | 10h | RF-22 (Media en SRS) / CU-09 |
 | `US-30` | Actualizar la nave asignada ante un transbordo | Story | OE2 | **Should** | Sprint 7 | 10h | RF-26 / CU-10 · ⚠️ **reestimar**: la fase 3 midió que ShipsGo trae el transbordo en el payload (hasta 3 naves en un envío), así que puede pasar de captura manual a detección automática |
 | `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido | Story | OE3 | **Should** | Sprint 7 | 8h | Reunión Logística 03/09 / RF-05 (ampliado) |
@@ -1311,8 +1311,8 @@ Como usuario de Logística, quiero que el sistema determine el arribo a destino,
 > recepción, liberación y cierre—, auditado e inmutable y protegido por roles. El 05/10 las
 > pruebas pasaron a su propia base, `trackin_test`, separada de la de desarrollo.
 >
-> **Queda para el cierre formal del 16/10:** la revisión con Greivin y el paso de las
-> historias a terminadas en Jira. La verificación integral del 06/10 está en «Verificación
+> **✅ Sprint cerrado formalmente** (revisión con Greivin y paso de las historias a terminadas
+> en Jira, registrado el 13/10). La verificación integral del 06/10 está en «Verificación
 > integral del sistema — 06/10/2026».
 
 #### US-12 — Recalcular fecha y estado ante cualquier cambio de insumo
@@ -1691,7 +1691,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 
 ### Sprint 6 (19-30 oct 2026)
 
-**8 items · 64 h estimadas · capacidad 65 h — dentro de capacidad.** US-37 volvio al Sprint 2 el 25/08 (US-38 la necesita) y US-28 llego desde el Sprint 7, al integrarse al dashboard en vez de ser una vista aparte.
+**13 items · 100 h estimadas · capacidad 65 h — sobrecargado en 35 h** (recontado el 13/10). El encabezado decía «8 items · 64 h» y no se había actualizado con lo que entró después: `US-43` (+10 h) y `US-48` (+6 h), de las reuniones de septiembre; `US-55` (+6 h, 29/09); `US-57` (+4 h, 06/10), y `US-58` (+10 h, 07/10, al descartarse la API de SAP). La sobrecarga se absorbe con el adelanto: al 13/10, antes de que el sprint empiece, ya hay 44 h hechas. `US-55` y `US-57` quedan al final; si no entran, pasan al Sprint 7 (decisión del 08/10). US-37 volvio al Sprint 2 el 25/08 (US-38 la necesita) y US-28 llego desde el Sprint 7, al integrarse al dashboard en vez de ser una vista aparte.
 
 > **Avance adelantado (el sprint empieza el 19/10):**
 >
@@ -1700,10 +1700,15 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `TASK-05` Andamiaje del frontend | ✅ 06/10, con la parte de navegador del login de `US-42` |
 > | `US-19` Grilla de pedidos | ✅ 07/10 |
 > | `US-58` Carga del Z-tracking desde la interfaz (nueva, 07/10) | ✅ 08/10 |
+> | `US-22` Cinta de KPIs | ✅ 13/10 |
+> | `US-28` Próximos arribos | ✅ 13/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
 > | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
 >
 > El diseño del dashboard quedó aprobado por los usuarios clave el 06/10.
+>
+> **Hechas: 44 de 100 h.** Pendientes: `US-21` (12), `US-20` (10), `US-43` (10), `US-48` (6),
+> `US-23` (4), `US-24` (4), `US-55` (6), `US-57` (4).
 
 #### TASK-05 — Andamiaje del frontend React con TypeScript, Vite y Tailwind
 
@@ -1889,6 +1894,23 @@ Como gerencia de operaciones, quiero una cinta de indicadores agregados, para ev
 | Origen en el SRS | RF-15 |
 | Etiquetas | `frontend,kpi` |
 
+> **✅ Terminada el 13/10/2026, adelantada.** `GET /api/v1/pedidos/indicadores` y la cinta del
+> Figma con datos reales.
+>
+> - **Mismos filtros que la grilla.** Los parámetros de filtro pasaron a una dependencia común
+>   de los tres endpoints del panel: cuando `US-21` ponga la barra de filtros, KPIs, arribos y
+>   grilla responderán al mismo subconjunto sin tocar el backend.
+> - **Solo activos**, aunque el filtro pida cerrados o cancelados (tercer criterio).
+> - **Decisión: los porcentajes son sobre los activos con fecha proyectada**, no sobre todos.
+>   En el Figma da igual, porque todos sus pedidos tienen proyección y suman 100 %. Con los
+>   datos reales del 13/10 no: hay 107 activos y solo 9 con fecha proyectada. Sobre todos, la
+>   cinta diría «2,80 % a tiempo · 1,87 % en riesgo · 3,74 % retrasados» y parecería que el
+>   resto está perdido. Sobre los evaluables dice 33 % · 22 % · 44 %, y debajo de la cinta
+>   una línea aclara «98 de 107 activos sin fecha proyectada: no entran en los porcentajes».
+> - **Lead time medio:** el promedio del lead time de destino de los activos (wireframes
+>   §1.2), con un decimal.
+> - La consulta es una sola y tarda 2 ms sobre la base de desarrollo.
+
 #### US-23 — Indicar la frescura de los datos en el encabezado
 
 Como usuario, quiero saber de cuando son los datos que estoy viendo, para juzgar si puedo confiar en ellos para decidir.
@@ -1949,6 +1971,22 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **Reformulada y movida al Sprint 6 el 25/08.** Era una vista aparte en el Sprint 7. RNF-01 enumera la vista inicial como «cinta de KPIs, **vista de proximos arribos**, grilla y ambos mapas», de modo que el requisito no funcional ya la situaba dentro del dashboard. Se integra ahi y se agrupa con las demas historias del dashboard, que viven en el Sprint 6.
 
 > **RF-27 se simplifico el 01/09.** En la sesion de validacion los usuarios pidieron **los cinco arribos mas proximos y nada mas**: se elimina el segundo nivel de la regla —rellenar con los de peor cumplimiento a 30 dias— y con el la necesidad de distinguir dos poblaciones. La historia se simplifica; `TASK-25` lleva el cambio al SRS.
+
+> **✅ Terminada el 13/10/2026, adelantada.** `GET /api/v1/pedidos/proximos-arribos` y las
+> tarjetas del Figma con datos reales.
+>
+> - **Los cinco activos con fecha proyectada más próxima entre hoy y 7 días**, ordenados por
+>   fecha y, a igual fecha, por OC y posición. **Sin relleno**: si hay menos, van menos.
+> - **«Hoy» es la fecha de Costa Rica**, no la del servidor: a las 18:00 el día UTC ya es
+>   mañana y el bloque perdería los arribos del día.
+> - **Cada tarjeta:** el cumplimiento en el cuadro de color (gris si no se evaluó), OC y
+>   posición, material, el ícono de la vía, el destino como en la grilla y «16/10 - 3d»
+>   («hoy» si es el día).
+> - **Mismos filtros que la grilla**, como `US-22`.
+> - **Con los datos de desarrollo del 13/10 el bloque está vacío**, y lo dice: «Ningún pedido
+>   tiene fecha proyectada en los próximos 7 días». La fecha proyectada más reciente es del
+>   11/10, porque los datos son del WK38 de septiembre. Con una carga actual del Z-tracking
+>   se llena solo.
 
 ---
 

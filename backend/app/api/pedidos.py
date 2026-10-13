@@ -8,6 +8,8 @@ la ruta a SAP (`data-model.md` §1.2).
 
 from __future__ import annotations
 
+import datetime as dt
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -31,16 +33,21 @@ from app.schemas.pedidos import (
     DesembarcoEntrada,
     EstadoCalculado,
     EtapaFiltro,
+    IndicadoresKpi,
     LiberacionEntrada,
     PaginaPedidos,
     PasoAduanalEntrada,
     PedidoDetalle,
+    Porcentaje,
+    ProximoArribo,
+    ProximosArribos,
     RecepcionEntrada,
     RecepcionIncompleta,
     Via,
 )
 from app.services import auditoria, consulta_pedidos, intervenciones
 from app.services.consulta_pedidos import ORDEN_POR_OMISION, PATRON_ORDEN, Filtros
+from app.services.intervenciones import ZONA_CR
 
 # Cualquier rol autenticado consulta pedidos (`US-42`).
 router = APIRouter(prefix="/pedidos", tags=["pedidos"], dependencies=[Depends(usuario_actual)])
@@ -49,19 +56,7 @@ router = APIRouter(prefix="/pedidos", tags=["pedidos"], dependencies=[Depends(us
 LIMITE_MAXIMO = 200
 
 
-@router.get(
-    "",
-    response_model=PaginaPedidos,
-    summary="Listar pedidos en tránsito",
-    description=(
-        "Los pedidos con su estado calculado, filtrados, ordenados y paginados. "
-        "Sin filtro de `estado` devuelve solo los activos; los cerrados y "
-        "cancelados aparecen al pedir ese estado (`wireframes.md` §1.11). "
-        "Los filtros de lista se repiten: `?via=AEREO&via=MARITIMO`."
-    ),
-)
-async def listar_pedidos(
-    db: Annotated[AsyncSession, Depends(get_db)],
+def filtros_de_consulta(
     oc: Annotated[str | None, Query(max_length=20, description="Prefijo del número de OC.")] = None,
     proveedor: Annotated[list[int] | None, Query(description="Id de proveedor.")] = None,
     material: Annotated[list[int] | None, Query(description="Id de material.")] = None,
@@ -83,17 +78,11 @@ async def listar_pedidos(
         str | None,
         Query(max_length=60, description="Texto en el código o la descripción del material."),
     ] = None,
-    orden: Annotated[
-        str,
-        Query(
-            pattern=PATRON_ORDEN,
-            description="Columna por la que ordenar; con `-` delante, descendente.",
-        ),
-    ] = ORDEN_POR_OMISION,
-    limite: Annotated[int, Query(ge=1, le=LIMITE_MAXIMO)] = 50,
-    desplazamiento: Annotated[int, Query(ge=0)] = 0,
-) -> PaginaPedidos:
-    filtros = Filtros(
+) -> Filtros:
+    """Los filtros de RF-19, comunes a la grilla, los KPIs y los próximos
+    arribos: los tres bloques tienen que mostrar el mismo subconjunto (`US-21`).
+    """
+    return Filtros(
         oc=oc,
         proveedores=proveedor or (),
         materiales=material or (),
@@ -105,10 +94,109 @@ async def listar_pedidos(
         cumplimientos=cumplimiento or (),
         material_texto=buscar_material,
     )
+
+
+@router.get(
+    "",
+    response_model=PaginaPedidos,
+    summary="Listar pedidos en tránsito",
+    description=(
+        "Los pedidos con su estado calculado, filtrados, ordenados y paginados. "
+        "Sin filtro de `estado` devuelve solo los activos; los cerrados y "
+        "cancelados aparecen al pedir ese estado (`wireframes.md` §1.11). "
+        "Los filtros de lista se repiten: `?via=AEREO&via=MARITIMO`."
+    ),
+)
+async def listar_pedidos(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    filtros: Annotated[Filtros, Depends(filtros_de_consulta)],
+    orden: Annotated[
+        str,
+        Query(
+            pattern=PATRON_ORDEN,
+            description="Columna por la que ordenar; con `-` delante, descendente.",
+        ),
+    ] = ORDEN_POR_OMISION,
+    limite: Annotated[int, Query(ge=1, le=LIMITE_MAXIMO)] = 50,
+    desplazamiento: Annotated[int, Query(ge=0)] = 0,
+) -> PaginaPedidos:
     total, items = await consulta_pedidos.listar(
         db, filtros, orden=orden, limite=limite, desplazamiento=desplazamiento
     )
     return PaginaPedidos(total=total, limite=limite, desplazamiento=desplazamiento, items=items)
+
+
+def _porcentaje(pedidos: int, evaluables: int) -> Porcentaje:
+    if evaluables == 0:
+        return Porcentaje(pedidos=pedidos, porcentaje=None)
+    valor = (Decimal(pedidos) * 100 / evaluables).quantize(Decimal("0.01"))
+    return Porcentaje(pedidos=pedidos, porcentaje=valor)
+
+
+# Las rutas fijas van antes de `/{id_pedido}`: si no, «indicadores» se
+# intentaría leer como id y respondería 422.
+@router.get(
+    "/indicadores",
+    response_model=IndicadoresKpi,
+    summary="Cinta de KPIs (US-22)",
+    description=(
+        "Pedidos activos, el reparto por cumplimiento y el lead time medio, con los "
+        "mismos filtros que la grilla. Solo cuentan los activos, aunque el filtro pida "
+        "cerrados o cancelados. Los porcentajes son sobre los activos con fecha "
+        "proyectada; los demás se cuentan en `sin_proyeccion`."
+    ),
+)
+async def indicadores(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    filtros: Annotated[Filtros, Depends(filtros_de_consulta)],
+) -> IndicadoresKpi:
+    datos = await consulta_pedidos.indicadores(db, filtros)
+    # Sobre los que tienen fecha proyectada: ver `IndicadoresKpi`.
+    evaluables = datos.a_tiempo + datos.en_riesgo + datos.retrasados
+    return IndicadoresKpi(
+        activos=datos.activos,
+        a_tiempo=_porcentaje(datos.a_tiempo, evaluables),
+        en_riesgo=_porcentaje(datos.en_riesgo, evaluables),
+        retrasados=_porcentaje(datos.retrasados, evaluables),
+        sin_proyeccion=datos.sin_proyeccion,
+        lead_time_medio_dias=datos.lead_time_medio_dias,
+    )
+
+
+@router.get(
+    "/proximos-arribos",
+    response_model=ProximosArribos,
+    summary="Próximos arribos (US-28)",
+    description=(
+        "Los cinco pedidos activos con fecha proyectada más próxima entre hoy y los "
+        "siguientes 7 días, en hora de Costa Rica. Si hay menos, devuelve los que haya: "
+        "no rellena con pedidos fuera del horizonte (RF-27, 01/09). Mismos filtros que "
+        "la grilla."
+    ),
+)
+async def proximos_arribos(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    filtros: Annotated[Filtros, Depends(filtros_de_consulta)],
+) -> ProximosArribos:
+    hoy = hoy_en_costa_rica()
+    pedidos = await consulta_pedidos.proximos_arribos(db, filtros, hoy=hoy)
+    return ProximosArribos(
+        hoy=hoy,
+        horizonte_dias=consulta_pedidos.HORIZONTE_ARRIBOS_DIAS,
+        items=[
+            ProximoArribo(
+                **p.model_dump(),
+                # El filtro de la consulta garantiza que hay fecha.
+                dias_restantes=(p.fecha_proyectada_disponible - hoy).days,  # type: ignore[operator]
+            )
+            for p in pedidos
+        ],
+    )
+
+
+def hoy_en_costa_rica() -> dt.date:
+    """Separado para que las pruebas fijen el día."""
+    return dt.datetime.now(ZONA_CR).date()
 
 
 @router.get(

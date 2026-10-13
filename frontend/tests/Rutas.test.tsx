@@ -13,6 +13,17 @@ import { USUARIO } from './sesion.test'
 
 vi.mock('@/services/pedidos', () => ({
   listarPedidos: vi.fn().mockResolvedValue({ total: 0, limite: 10, desplazamiento: 0, items: [] }),
+  obtenerIndicadores: vi.fn().mockResolvedValue({
+    activos: 0,
+    a_tiempo: { pedidos: 0, porcentaje: null },
+    en_riesgo: { pedidos: 0, porcentaje: null },
+    retrasados: { pedidos: 0, porcentaje: null },
+    sin_proyeccion: 0,
+    lead_time_medio_dias: null,
+  }),
+  obtenerProximosArribos: vi
+    .fn()
+    .mockResolvedValue({ hoy: '2026-10-13', horizonte_dias: 7, items: [] }),
 }))
 
 vi.mock('@/services/health', () => ({
