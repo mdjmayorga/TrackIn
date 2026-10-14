@@ -6,29 +6,42 @@ import {
   obtenerIndicadores,
   obtenerProximosArribos,
 } from '@/services/pedidos'
+import { FILTROS_VACIOS, type FiltrosPanel } from '@/utils/filtros'
+
+// Las claves empiezan con `pedidos`: al cargar un Z-tracking se invalida
+// `['pedidos']` y la grilla, los KPIs y los arribos se refrescan juntos. Los
+// filtros van en la clave: cada combinación es su propia consulta en caché.
+//
+// `keepPreviousData` en los tres: al cambiar un filtro se conserva lo que hay
+// en pantalla hasta que llega lo nuevo, en vez de vaciar los bloques (RNF-02:
+// «sin recarga completa»).
 
 /**
  * Una página de la grilla. Al ordenar o paginar se conserva la página anterior
- * en pantalla hasta que llega la nueva, en vez de vaciar la tabla (`US-19`:
- * «sin recargar la página»).
+ * en pantalla hasta que llega la nueva, en vez de vaciar la tabla (`US-19`).
  */
-export function usePedidos(consulta: ConsultaPedidos) {
+export function usePedidos(consulta: ConsultaPedidos, filtros: FiltrosPanel = FILTROS_VACIOS) {
   return useQuery({
-    queryKey: ['pedidos', consulta],
-    queryFn: () => listarPedidos(consulta),
+    queryKey: ['pedidos', consulta, filtros],
+    queryFn: () => listarPedidos(consulta, filtros),
     placeholderData: keepPreviousData,
   })
 }
 
-// Las claves empiezan con `pedidos`: al cargar un Z-tracking se invalida
-// `['pedidos']` y la grilla, los KPIs y los arribos se refrescan juntos.
-
 /** La cinta de KPIs (`US-22`). */
-export function useIndicadores() {
-  return useQuery({ queryKey: ['pedidos', 'indicadores'], queryFn: obtenerIndicadores })
+export function useIndicadores(filtros: FiltrosPanel = FILTROS_VACIOS) {
+  return useQuery({
+    queryKey: ['pedidos', 'indicadores', filtros],
+    queryFn: () => obtenerIndicadores(filtros),
+    placeholderData: keepPreviousData,
+  })
 }
 
 /** Los próximos arribos (`US-28`). */
-export function useProximosArribos() {
-  return useQuery({ queryKey: ['pedidos', 'proximos-arribos'], queryFn: obtenerProximosArribos })
+export function useProximosArribos(filtros: FiltrosPanel = FILTROS_VACIOS) {
+  return useQuery({
+    queryKey: ['pedidos', 'proximos-arribos', filtros],
+    queryFn: () => obtenerProximosArribos(filtros),
+    placeholderData: keepPreviousData,
+  })
 }

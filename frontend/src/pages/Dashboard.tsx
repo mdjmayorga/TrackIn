@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { puedeCargar } from '@/auth/permisos'
@@ -8,6 +9,7 @@ import { MapaBase } from '@/components/MapaBase'
 import { PanelPedidos } from '@/components/PanelPedidos'
 import { ProximosArribos } from '@/components/ProximosArribos'
 import { cerrarSesion } from '@/services/auth'
+import { FILTROS_VACIOS, type FiltrosPanel } from '@/utils/filtros'
 
 /**
  * Encuadres del Figma: el Caribe y Centroamérica, con Costa Rica abajo a la
@@ -29,6 +31,20 @@ const AEREO: [number, number] = [17, -78]
  */
 export default function Dashboard() {
   const sesion = useSesion()
+  // Un solo juego de filtros para los tres bloques (`US-21`): KPIs, arribos y
+  // grilla muestran siempre el mismo subconjunto. Los mapas lo usarán en el
+  // Sprint 7.
+  const [filtros, setFiltros] = useState<FiltrosPanel>(FILTROS_VACIOS)
+  const [versionFiltros, setVersionFiltros] = useState(0)
+
+  function cambiarFiltros(cambios: Partial<FiltrosPanel>) {
+    setFiltros((actuales) => ({ ...actuales, ...cambios }))
+  }
+
+  function limpiarFiltros() {
+    setFiltros(FILTROS_VACIOS)
+    setVersionFiltros((v) => v + 1)
+  }
 
   return (
     <div className="min-h-screen bg-panel-fondo text-slate-100">
@@ -73,9 +89,14 @@ export default function Dashboard() {
           <MapaBase titulo="Mapa Marítimo" centro={MARITIMO} zoom={4} />
         </div>
         <div className="order-1 flex min-w-0 flex-col gap-5 xl:order-none">
-          <CintaKpis />
-          <ProximosArribos />
-          <PanelPedidos />
+          <CintaKpis filtros={filtros} />
+          <ProximosArribos filtros={filtros} />
+          <PanelPedidos
+            filtros={filtros}
+            onCambioFiltros={cambiarFiltros}
+            onLimpiarFiltros={limpiarFiltros}
+            versionFiltros={versionFiltros}
+          />
         </div>
         <div className="order-3 xl:order-none">
           <MapaBase titulo="Mapa Aéreo" centro={AEREO} zoom={4} />

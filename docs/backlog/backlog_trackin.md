@@ -90,11 +90,11 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-05` | Andamiaje del frontend React con TypeScript, Vite y Tailwind ✅ | Task | OE3 | **Must** | Sprint 6 | 6h | RNF (stack 5.8) · ✅ terminada 06/10, adelantada |
 | `US-19` | Listar los pedidos en transito en una grilla ordenable ✅ | Story | OE3 | **Must** | Sprint 6 | 12h | RF-04 / RNF-01 · ✅ terminada 07/10, adelantada |
 | `US-20` | Consultar el detalle completo de un pedido | Story | OE3 | **Must** | Sprint 6 | 10h | RF-05 / CU-03 |
-| `US-21` | Filtrar el dashboard de forma transversal y coherente | Story | OE3 | **Must** | Sprint 6 | 12h | RF-19 / CU-04 / RNF-02 |
+| `US-21` | Filtrar el dashboard de forma transversal y coherente ✅ | Story | OE3 | **Must** | Sprint 6 | 12h | RF-19 / CU-04 / RNF-02 · ✅ terminada 14/10, adelantada |
 | `US-22` | Mostrar la cinta de indicadores KPI ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 · ✅ terminada 13/10, adelantada |
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
 | `US-24` | Aplicar el semaforo de estados de forma consistente | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 |
-| `US-43` | Ofrecer dos vistas de la grilla: completa por rol y simple para la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | 10h | Reunión Logística 03/09 · mapa rol→vista corregido 04/09 |
+| `US-43` | Ofrecer las dos grillas del Figma: completa en el panel y simple para la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | ~~10h~~ 3h | Reunión Logística 03/09 · **reducida al Figma el 14/10** |
 | `US-48` | Bandeja de arribos pendientes de gestión para Planificación | Story | OE3 | **Must** | Sprint 6 | 6h | RF-32 (nuevo, 04/09) · aviso interno, sin correo |
 | `US-49` | Rastrear guías hijas (HAWB) por el manifiesto de carga de TICA | Story | OE2 | **Must** | Sprint 4 | 6h | Hallazgo del 28/09 · ✅ terminada 28/09 con el margen del Sprint 4 |
 | `US-50` | Worker de rastreo: ciclo periódico que consulta, aplica, evalúa el arribo y recalcula | Story | OE2 | **Must** | Sprint 4 | 6h | `TASK-20` §1.4 · ✅ terminada 28/09 con el margen del Sprint 4 |
@@ -1691,7 +1691,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 
 ### Sprint 6 (19-30 oct 2026)
 
-**13 items · 100 h estimadas · capacidad 65 h — sobrecargado en 35 h** (recontado el 13/10). El encabezado decía «8 items · 64 h» y no se había actualizado con lo que entró después: `US-43` (+10 h) y `US-48` (+6 h), de las reuniones de septiembre; `US-55` (+6 h, 29/09); `US-57` (+4 h, 06/10), y `US-58` (+10 h, 07/10, al descartarse la API de SAP). La sobrecarga se absorbe con el adelanto: al 13/10, antes de que el sprint empiece, ya hay 44 h hechas. `US-55` y `US-57` quedan al final; si no entran, pasan al Sprint 7 (decisión del 08/10). US-37 volvio al Sprint 2 el 25/08 (US-38 la necesita) y US-28 llego desde el Sprint 7, al integrarse al dashboard en vez de ser una vista aparte.
+**13 items · 93 h estimadas · capacidad 65 h — sobrecargado en 28 h** (recontado el 13/10; `US-43` bajó de 10 a 3 h el 14/10). El encabezado decía «8 items · 64 h» y no se había actualizado con lo que entró después: `US-43` (+10 h) y `US-48` (+6 h), de las reuniones de septiembre; `US-55` (+6 h, 29/09); `US-57` (+4 h, 06/10), y `US-58` (+10 h, 07/10, al descartarse la API de SAP). La sobrecarga se absorbe con el adelanto: al 13/10, antes de que el sprint empiece, ya hay 44 h hechas. `US-55` y `US-57` quedan al final; si no entran, pasan al Sprint 7 (decisión del 08/10). US-37 volvio al Sprint 2 el 25/08 (US-38 la necesita) y US-28 llego desde el Sprint 7, al integrarse al dashboard en vez de ser una vista aparte.
 
 > **Avance adelantado (el sprint empieza el 19/10):**
 >
@@ -1702,13 +1702,21 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `US-58` Carga del Z-tracking desde la interfaz (nueva, 07/10) | ✅ 08/10 |
 > | `US-22` Cinta de KPIs | ✅ 13/10 |
 > | `US-28` Próximos arribos | ✅ 13/10 |
+> | `US-21` Filtros del panel | ✅ 14/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
 > | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
 >
 > El diseño del dashboard quedó aprobado por los usuarios clave el 06/10.
 >
-> **Hechas: 44 de 100 h.** Pendientes: `US-21` (12), `US-20` (10), `US-43` (10), `US-48` (6),
-> `US-23` (4), `US-24` (4), `US-55` (6), `US-57` (4).
+> **Hechas: 56 de 93 h.** Pendientes: `US-20` (10), `US-48` (6), `US-55` (6), `US-23` (4),
+> `US-24` (4), `US-57` (4), `US-43` (3).
+>
+> **En espera de la reunión con Ventas (14/10):**
+>
+> - **Frecuencia de carga del Z-tracking y quién la sube** — para el aviso de «hace falta
+>   cargar» de `US-23`.
+> - **Qué 1 o 2 pedidos reales dar de alta en ShipsGo** con los 49 créditos — para la prueba
+>   real de `US-55`.
 
 #### TASK-05 — Andamiaje del frontend React con TypeScript, Vite y Tailwind
 
@@ -1875,6 +1883,28 @@ Como usuario de Compras, quiero filtrar por OC, proveedor, material, vía, estad
 > y con ellos trae los pedidos terminales, que por omisión no salen; y el guion de
 > cumplimiento se filtra como `SIN_PROYECCION`.
 
+> **✅ Terminada el 14/10/2026, adelantada.** El recuadro «Filtros de consulta» del Figma, con
+> la grilla adentro:
+>
+> - **Los seis filtros del Figma:** Orden de compra (prefijo, solo dígitos), Posición (solo
+>   dígitos), Material (texto en código o descripción) y las listas Vía, Etapa —con
+>   «Cerrado» y «Cancelado»— y Cumplimiento —con «Sin proyección (–)»—.
+> - **Un solo juego de filtros para todo el panel:** cinta de KPIs, próximos arribos y
+>   grilla consultan con los mismos parámetros. **Los mapas los tomarán en el Sprint 7**
+>   (`US-25`, `US-26`): el estado ya vive en el panel, listo para pasárselo.
+> - **Menos de 1 s (RNF-02):** los campos de texto esperan 300 ms a que se deje de
+>   escribir —diez dígitos de OC son una consulta, no diez— y las tres consultas tardan
+>   28–35 ms juntas sobre la base de desarrollo. Mientras llega lo nuevo, los bloques
+>   conservan lo anterior en vez de vaciarse.
+> - **Sin resultados:** «Ningún pedido coincide con los filtros» y «Limpiar filtros», que
+>   vacía también los campos. El botón está además en el encabezado del recuadro mientras
+>   haya algún filtro.
+> - **Etapa «Cerrado» o «Cancelado»** cambia «F. Proyectada» por «F. Recepción» en la
+>   grilla: el criterio de `US-19` que esperaba este filtro.
+> - Cambiar un filtro vuelve a la primera página de la grilla.
+>
+> Frontend: 104 pruebas, 96,8 %.
+
 #### US-22 — Mostrar la cinta de indicadores KPI
 
 Como gerencia de operaciones, quiero una cinta de indicadores agregados, para evaluar el desempeño de la cartera sin entrar al detalle.
@@ -1947,6 +1977,10 @@ Como usuario sin formación técnica, quiero que el color signifique lo mismo en
 | Estimacion | 4 h |
 | Origen en el SRS | RNF-08 / RN-02 a RN-15 |
 | Etiquetas | `frontend,ux` |
+
+> **Decidido el 14/10/2026:** «Recibido en planta», que no tiene color en el SRS ni en el Figma,
+> queda con el **café** (`#92400e`) que se usó de forma provisional en `US-19`. Con eso la
+> paleta está completa.
 
 #### US-28 — Presentar los proximos arribos dentro del dashboard
 
@@ -2393,15 +2427,35 @@ intervenciones.
 
 ### `US-43` — Dos vistas de la grilla según el rol
 
+> **Reducida al Figma el 14/10/2026: el prototipo manda.** Las dos grillas son exactamente las de
+> `Grilla completa.png` y `Dashboard Principal - Grilla simple.png`, nada más:
+>
+> - **Completa:** las nueve columnas aprobadas el 06/10 (OC · POS · Material · Etapa ·
+>   Cumplimiento · F. Proyectada · F. Comprometida · Vía · Destino), para Compras, Logística,
+>   Planificación y Administrador. Es la de `US-19`, ya hecha.
+> - **Simple:** Material · Etapa · Cumplimiento, en el mismo panel. Es la de la pantalla de
+>   planta (`US-33`).
+> - **Sale del alcance:** «deliveries, departures, ETD y ATD». No están en el Figma, nunca se
+>   definió qué eran «deliveries» y «departures», y ETD/ATD dependían de confirmar la fuente.
+>   Los dos últimos criterios de abajo quedan **anulados**.
+> - **Estimación: 10 h → 3 h.** Queda construir la variante simple y la forma de abrirla;
+>   `US-33` la deja fija en la pantalla de planta.
+>
+> **Criterios vigentes:**
+>
+> - Dado cualquier rol, cuando abro el panel, entonces veo la grilla completa del Figma
+> - Dada la pantalla de planta, cuando se abre, entonces el panel muestra la grilla simple del Figma (Material · Etapa · Cumplimiento), con los mismos filtros, KPIs y arribos
+> - Dada la grilla simple, cuando la reviso, entonces el material, la etapa y el cumplimiento usan los mismos textos y colores que la completa (`US-24`)
+
 Como usuario, quiero que la grilla se ajuste a mi rol, para ver solo lo que me compete:
 una **vista simple** (Material · Etapa · Cumplimiento) o la **vista completa**.
 
-**Criterios de aceptación**
+**Criterios de aceptación** (originales; los dos últimos, anulados el 14/10)
 
 - Dado un rol de **Compras, Logística o Planificación**, cuando abro el dashboard, entonces veo la **vista completa** — Planificación la necesita para ejecutar el paso a proceso aduanal (corregido el 04/09)
 - Dada la **pantalla de planta** (`US-33`), cuando se abre, entonces muestra la **vista simple** con Material, Etapa y Cumplimiento, y es el único lugar donde se usa
-- Dado un rol de Compras o Logística, cuando abro el dashboard, entonces la grilla muestra la actual **más deliveries, departures, ETD y ATD**
-- Dado que ETD/ATD no vienen del Z-tracking, cuando los muestro, entonces provienen de la **fuente comercial** que fije `TASK-28` (`US-45` / `US-46`) — **a confirmar (14/09)**: que ShipsGo y TrackingMore los entreguen es parte de lo que el spike valida, no un hecho dado
+- ~~Dado un rol de Compras o Logística, cuando abro el dashboard, entonces la grilla muestra la actual **más deliveries, departures, ETD y ATD**~~ — anulado el 14/10: no está en el Figma
+- ~~Dado que ETD/ATD no vienen del Z-tracking, cuando los muestro, entonces provienen de la **fuente comercial** que fije `TASK-28` (`US-45` / `US-46`)~~ — anulado el 14/10
 
 ### `US-44` — País de origen y mapa del pedido en el detalle
 
@@ -3331,10 +3385,11 @@ exactamente qué dato está mal antes de que un pedido entre con información eq
   - **Código de material**: numérico
   - **Fechas** (fecha de entrega —columna R—, ETA declarada, arribo declarado): fechas válidas
   - **Cantidad**: número positivo
-  - **Vía**: Aéreo, Marítimo o Terrestre
+  - **Vía**: Aéreo o Marítimo, las dos del alcance
   - **Referencia de embarque**: el formato de su tipo (`TASK-30`)
 - Dado un campo con formato inválido, cuando se carga, entonces la línea **no entra** y el informe dice la OC y posición (u hoja y fila), **qué campo**, **qué valor traía** y **qué se esperaba**; el resto del lote sigue (RN-17)
 - Dado un archivo cuyos encabezados no coinciden con la plantilla, cuando se carga, entonces se rechaza entero con la lista de columnas que faltan o sobran, sin tocar ningún pedido
+- Dada una línea con vía **Terrestre**, cuando se carga, entonces no entra y el informe dice «vía terrestre: fuera del alcance de TrackIn», en lugar del «sin destino» que da hoy y que no explica la causa (decisión del 14/10)
 
 | | |
 |---|---|
@@ -3355,6 +3410,11 @@ exactamente qué dato está mal antes de que un pedido entre con información eq
 >   insertó seis columnas y una banda de agrupación). La plantilla fija **un** diseño —el del
 >   WK38, el más reciente— y conviene que Compras la adopte para que no vuelva a cambiar.
 > - **Sprint 7**, asignado el 08/10: el Sprint 6 ya está sobrecargado.
+> - **La vía terrestre no está en el alcance** (aclarado el 14/10). `TERRESTRE` existe en el
+>   modelo desde el 03/09 solo para reconocer ese valor del Z-tracking —compras regionales de
+>   Guatemala y México— y no confundirlo con ruido. No se rastrea, ningún destino terrestre
+>   existe en el maestro y hoy esas líneas ya no entran, pero por «sin destino». El filtro
+>   «Vía» del panel ofrece solo Marítimo y Aéreo desde el mismo día.
 
 ---
 

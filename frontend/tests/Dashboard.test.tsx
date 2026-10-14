@@ -8,6 +8,7 @@ import Dashboard from '@/pages/Dashboard'
 import { obtenerHealth } from '@/services/health'
 import { listarPedidos } from '@/services/pedidos'
 import type { HealthResponse } from '@/types/api'
+import { FILTROS_VACIOS } from '@/utils/filtros'
 
 import { pagina, pedido } from './fixtures'
 
@@ -103,11 +104,10 @@ describe('Dashboard', () => {
 
     const grilla = await screen.findByRole('table')
     expect(within(grilla).getAllByRole('row')).toHaveLength(3)
-    expect(listarPedidos).toHaveBeenCalledWith({
-      orden: 'fecha_proyectada',
-      limite: 10,
-      desplazamiento: 0,
-    })
+    expect(listarPedidos).toHaveBeenCalledWith(
+      { orden: 'fecha_proyectada', limite: 10, desplazamiento: 0 },
+      FILTROS_VACIOS,
+    )
   })
 
   it('ordenar vuelve a consultar desde la primera página', async () => {
@@ -117,12 +117,14 @@ describe('Dashboard', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Siguiente' }))
     await userEvent.click(screen.getByRole('button', { name: /^OC/ }))
 
-    expect(listarPedidos).toHaveBeenCalledWith({
-      orden: 'fecha_proyectada',
-      limite: 10,
-      desplazamiento: 10,
-    })
-    expect(listarPedidos).toHaveBeenLastCalledWith({ orden: 'oc', limite: 10, desplazamiento: 0 })
+    expect(listarPedidos).toHaveBeenCalledWith(
+      { orden: 'fecha_proyectada', limite: 10, desplazamiento: 10 },
+      FILTROS_VACIOS,
+    )
+    expect(listarPedidos).toHaveBeenLastCalledWith(
+      { orden: 'oc', limite: 10, desplazamiento: 0 },
+      FILTROS_VACIOS,
+    )
   })
 
   it('si la consulta falla, lo dice en vez de mostrar una grilla vacía', async () => {

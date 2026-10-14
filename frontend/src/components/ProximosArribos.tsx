@@ -10,6 +10,7 @@
 import { IconoVia } from '@/components/IconoVia'
 import { useProximosArribos } from '@/hooks/usePedidos'
 import type { Cumplimiento, ProximoArribo } from '@/types/api'
+import type { FiltrosPanel } from '@/utils/filtros'
 import { destinoCorto } from '@/utils/formatos'
 
 const COLOR: Record<Cumplimiento, string> = {
@@ -62,8 +63,8 @@ function Tarjeta({ arribo }: { arribo: ProximoArribo }) {
   )
 }
 
-export function ProximosArribos() {
-  const { data, isPending, isError } = useProximosArribos()
+export function ProximosArribos({ filtros }: { filtros?: FiltrosPanel }) {
+  const { data, isPending, isError } = useProximosArribos(filtros)
 
   return (
     <section aria-labelledby="titulo-arribos">
