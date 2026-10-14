@@ -21,8 +21,10 @@ reemplace a la condición por omisión.
 
 from __future__ import annotations
 
+import datetime as dt
 from collections.abc import Sequence
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any
 
 from geoalchemy2 import Geometry
@@ -401,4 +403,107 @@ async def detalle(sesion: AsyncSession, id_pedido: int) -> PedidoDetalle | None:
     )
 
 
-__all__ = ["ORDEN_POR_OMISION", "PATRON_ORDEN", "Filtros", "detalle", "listar"]
+#: RF-27: el horizonte del bloque «Próximos arribos» y cuántas tarjetas tiene.
+HORIZONTE_ARRIBOS_DIAS = 7
+TARJETAS_ARRIBOS = 5
+
+
+@dataclass(frozen=True, slots=True)
+class Indicadores:
+    """Los cinco de RF-15 (`wireframes.md` §1.2), sobre los activos filtrados."""
+
+    activos: int
+    a_tiempo: int
+    en_riesgo: int
+    retrasados: int
+    #: Activos sin fecha proyectada: el guion de la grilla. No entran en los
+    #: porcentajes de cumplimiento, que no tienen cómo evaluarlos.
+    sin_proyeccion: int
+    lead_time_medio_dias: Decimal | None
+
+
+async def indicadores(sesion: AsyncSession, filtros: Filtros) -> Indicadores:
+    """La cinta de KPIs (`US-22`) en una sola consulta.
+
+    **Solo activos**, aunque el filtro pida terminales: el tercer criterio de
+    `US-22` dice que un pedido cerrado no computa, y los porcentajes de
+    cumplimiento hablan de lo que todavía está en camino.
+    """
+    cumplimiento = PedidoTransito.estado_cumplimiento
+    fila = (
+        await sesion.execute(
+            select(
+                func.count(),
+                func.count().filter(cumplimiento == "A_TIEMPO"),
+                func.count().filter(cumplimiento == "EN_RIESGO"),
+                func.count().filter(cumplimiento == "RETRASADO"),
+                func.count().filter(cumplimiento.is_(None)),
+                func.avg(PedidoTransito.lead_time_destino_dias),
+            )
+            .select_from(PedidoTransito)
+            # El filtro de texto de material la necesita; todo pedido tiene material.
+            .join(PedidoTransito.material)
+            .where(*_condiciones(filtros), PedidoTransito.motivo_cierre.is_(None))
+        )
+    ).one()
+    activos, a_tiempo, en_riesgo, retrasados, sin_proyeccion, promedio = fila
+    return Indicadores(
+        activos=activos,
+        a_tiempo=a_tiempo,
+        en_riesgo=en_riesgo,
+        retrasados=retrasados,
+        sin_proyeccion=sin_proyeccion,
+        lead_time_medio_dias=(
+            None if promedio is None else Decimal(promedio).quantize(Decimal("0.1"))
+        ),
+    )
+
+
+async def proximos_arribos(
+    sesion: AsyncSession,
+    filtros: Filtros,
+    *,
+    hoy: dt.date,
+    dias: int = HORIZONTE_ARRIBOS_DIAS,
+    limite: int = TARJETAS_ARRIBOS,
+) -> list[PedidoResumen]:
+    """Los cinco activos con fecha proyectada más próxima entre hoy y `dias`
+    más (`US-28`, RF-27 del 01/09). **Sin relleno**: si hay menos, van menos.
+
+    `hoy` lo da quien llama, en hora de Costa Rica: a las seis de la tarde el
+    día UTC ya es mañana, y el bloque perdería los arribos de hoy.
+    """
+    consulta = (
+        _consulta_base(filtros)
+        .where(
+            PedidoTransito.motivo_cierre.is_(None),
+            PedidoTransito.fecha_proyectada_disponible.between(hoy, hoy + dt.timedelta(days=dias)),
+        )
+        .options(
+            contains_eager(PedidoTransito.proveedor),
+            contains_eager(PedidoTransito.material),
+            contains_eager(PedidoTransito.destino),
+            contains_eager(PedidoTransito.elemento_rastreado),
+        )
+        .order_by(
+            PedidoTransito.fecha_proyectada_disponible,
+            PedidoTransito.oc_numero,
+            PedidoTransito.posicion_oc,
+        )
+        .limit(limite)
+    )
+    return [PedidoResumen.model_validate(_resumen(p)) for p in await sesion.scalars(consulta)]
+
+
+__all__ = [
+    "HORIZONTE_ARRIBOS_DIAS",
+    "ORDEN_POR_OMISION",
+    "PATRON_ORDEN",
+    "TARJETAS_ARRIBOS",
+    "Filtros",
+    "Indicadores",
+    "detalle",
+    "indicadores",
+    "listar",
+    "proximos_arribos",
+]

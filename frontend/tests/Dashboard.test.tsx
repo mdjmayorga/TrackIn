@@ -12,7 +12,20 @@ import type { HealthResponse } from '@/types/api'
 import { pagina, pedido } from './fixtures'
 
 vi.mock('@/services/health', () => ({ obtenerHealth: vi.fn() }))
-vi.mock('@/services/pedidos', () => ({ listarPedidos: vi.fn() }))
+vi.mock('@/services/pedidos', () => ({
+  listarPedidos: vi.fn(),
+  obtenerIndicadores: vi.fn().mockResolvedValue({
+    activos: 0,
+    a_tiempo: { pedidos: 0, porcentaje: null },
+    en_riesgo: { pedidos: 0, porcentaje: null },
+    retrasados: { pedidos: 0, porcentaje: null },
+    sin_proyeccion: 0,
+    lead_time_medio_dias: null,
+  }),
+  obtenerProximosArribos: vi
+    .fn()
+    .mockResolvedValue({ hoy: '2026-10-13', horizonte_dias: 7, items: [] }),
+}))
 
 const SALUD: HealthResponse = {
   status: 'ok',

@@ -1,78 +1,16 @@
 /**
- * «Próximos Arribos» del Figma (RF-27): los cinco pedidos con fecha proyectada
- * más próxima dentro de los siguientes 7 días.
+ * «Próximos Arribos» del Figma (RF-27, `US-28`): los cinco pedidos activos con
+ * fecha proyectada más próxima dentro de los siguientes 7 días.
  *
- * **Por ahora muestra los cinco ejemplos del Figma**, pedidos tal cual para
- * revisar el diseño. No son pedidos reales: `US-28` los reemplaza por la
- * consulta, y entonces el cuadro de color será el cumplimiento de cada uno.
+ * **Sin relleno** (RF-27 del 01/09): si hay menos de cinco, van menos, y si no
+ * hay ninguno, se dice. Mostrar pedidos fuera del horizonte haría que el bloque
+ * afirmara que algo llega pronto cuando no.
  */
 
 import { IconoVia } from '@/components/IconoVia'
-import type { Cumplimiento, Via } from '@/types/api'
-
-interface Arribo {
-  oc: string
-  pos: number
-  material: string
-  via: Via
-  destino: string
-  fecha: string
-  dias: number
-  cumplimiento: Cumplimiento
-}
-
-const EJEMPLOS_FIGMA: Arribo[] = [
-  {
-    oc: '4500013044',
-    pos: 10,
-    material: 'Dióxido de Titanio',
-    via: 'AEREO',
-    destino: 'MROC',
-    fecha: '28/08',
-    dias: 3,
-    cumplimiento: 'EN_RIESGO',
-  },
-  {
-    oc: '4500012993',
-    pos: 30,
-    material: 'Celulosa microcristalina',
-    via: 'MARITIMO',
-    destino: 'Moín',
-    fecha: '29/08',
-    dias: 4,
-    cumplimiento: 'RETRASADO',
-  },
-  {
-    oc: '4500012760',
-    pos: 40,
-    material: 'Tapa polipropileno 28 mm',
-    via: 'MARITIMO',
-    destino: 'Moín',
-    fecha: '30/08',
-    dias: 5,
-    cumplimiento: 'A_TIEMPO',
-  },
-  {
-    oc: '4500012847',
-    pos: 10,
-    material: 'Lactosa monohidrato',
-    via: 'MARITIMO',
-    destino: 'Moín',
-    fecha: '02/09',
-    dias: 8,
-    cumplimiento: 'A_TIEMPO',
-  },
-  {
-    oc: '4500012847',
-    pos: 20,
-    material: 'Estearato de magnesio',
-    via: 'AEREO',
-    destino: 'MROC',
-    fecha: '02/09',
-    dias: 8,
-    cumplimiento: 'A_TIEMPO',
-  },
-]
+import { useProximosArribos } from '@/hooks/usePedidos'
+import type { Cumplimiento, ProximoArribo } from '@/types/api'
+import { destinoCorto } from '@/utils/formatos'
 
 const COLOR: Record<Cumplimiento, string> = {
   A_TIEMPO: 'bg-estado-a-tiempo',
@@ -80,41 +18,77 @@ const COLOR: Record<Cumplimiento, string> = {
   RETRASADO: 'bg-estado-retrasado',
 }
 
+const TEXTO_CUMPLIMIENTO: Record<Cumplimiento, string> = {
+  A_TIEMPO: 'A tiempo',
+  EN_RIESGO: 'En riesgo',
+  RETRASADO: 'Retrasado',
+}
+
+/** «2026-10-15» → «15/10», como en las tarjetas del Figma. */
+function diaMes(fecha: string | null): string {
+  if (!fecha) return ''
+  const [, mes, dia] = fecha.split('-')
+  return `${dia}/${mes}`
+}
+
+function Tarjeta({ arribo }: { arribo: ProximoArribo }) {
+  const cumplimiento = arribo.estado_cumplimiento
+  const texto = cumplimiento ? TEXTO_CUMPLIMIENTO[cumplimiento] : 'Sin evaluar'
+  return (
+    <li className="grid min-w-0 grid-cols-[auto_1fr] gap-x-1 rounded bg-panel-cabecera p-1 text-[8px] leading-tight text-slate-300">
+      <span
+        role="img"
+        aria-label={texto}
+        title={texto}
+        className={`mt-px h-3 w-3 rounded-sm ${cumplimiento ? COLOR[cumplimiento] : 'bg-slate-600'}`}
+      />
+      <span className="min-w-0">
+        <span className="block whitespace-nowrap font-semibold tracking-tight">
+          {arribo.oc_numero} - {arribo.posicion_oc}
+        </span>
+        <span className="block min-h-[2.5em] break-words">{arribo.material.descripcion}</span>
+      </span>
+      <IconoVia via={arribo.via_transporte} className="mt-0.5 h-3 w-4 text-slate-300" />
+      <span className="mt-0.5 min-w-0">
+        <span className="block" title={arribo.destino.nombre}>
+          {destinoCorto(arribo)}
+        </span>
+        <span className="block font-semibold">
+          {diaMes(arribo.fecha_proyectada_disponible)} -{' '}
+          {arribo.dias_restantes === 0 ? 'hoy' : `${arribo.dias_restantes}d`}
+        </span>
+      </span>
+    </li>
+  )
+}
+
 export function ProximosArribos() {
+  const { data, isPending, isError } = useProximosArribos()
+
   return (
     <section aria-labelledby="titulo-arribos">
       <h2 id="titulo-arribos" className="mb-2 pl-10 text-base text-slate-100">
         Próximos Arribos
       </h2>
-      <ul
-        className="grid grid-cols-5 gap-1"
-        title="Ejemplos del Figma: los arribos reales llegan con US-28"
-      >
-        {EJEMPLOS_FIGMA.map((a) => (
-          <li
-            key={`${a.oc}-${a.pos}`}
-            className="grid min-w-0 grid-cols-[auto_1fr] gap-x-1 rounded bg-panel-cabecera p-1 text-[8px] leading-tight text-slate-300"
-          >
-            <span
-              aria-hidden="true"
-              className={`mt-px h-3 w-3 rounded-sm ${COLOR[a.cumplimiento]}`}
-            />
-            <span className="min-w-0">
-              <span className="block whitespace-nowrap font-semibold tracking-tight">
-                {a.oc} - {a.pos}
-              </span>
-              <span className="block min-h-[2.5em] break-words">{a.material}</span>
-            </span>
-            <IconoVia via={a.via} className="mt-0.5 h-3 w-4 text-slate-300" />
-            <span className="mt-0.5 min-w-0">
-              <span className="block">{a.destino}</span>
-              <span className="block font-semibold">
-                {a.fecha} - {a.dias}d
-              </span>
-            </span>
-          </li>
-        ))}
-      </ul>
+
+      {isPending && <p className="pl-10 text-xs text-slate-500">Cargando…</p>}
+      {isError && (
+        <p role="alert" className="pl-10 text-xs text-red-300">
+          No se pudieron cargar los próximos arribos.
+        </p>
+      )}
+      {data && data.items.length === 0 && (
+        <p className="pl-10 text-xs text-slate-400">
+          Ningún pedido tiene fecha proyectada en los próximos {data.horizonte_dias} días.
+        </p>
+      )}
+      {data && data.items.length > 0 && (
+        <ul className="grid grid-cols-5 gap-1">
+          {data.items.map((arribo) => (
+            <Tarjeta key={arribo.id} arribo={arribo} />
+          ))}
+        </ul>
+      )}
     </section>
   )
 }

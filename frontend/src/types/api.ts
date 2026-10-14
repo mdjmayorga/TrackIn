@@ -134,6 +134,37 @@ export interface PaginaPedidos {
   items: PedidoResumen[]
 }
 
+/** Un indicador de cumplimiento: cuántos y qué parte de los evaluables. */
+export interface Porcentaje {
+  pedidos: number
+  /** Decimal como texto («62.03»). Nulo si no hay ningún activo con proyección. */
+  porcentaje: string | null
+}
+
+/** `GET /api/v1/pedidos/indicadores` (`US-22`): siempre sobre los activos. */
+export interface IndicadoresKpi {
+  activos: number
+  a_tiempo: Porcentaje
+  en_riesgo: Porcentaje
+  retrasados: Porcentaje
+  /** Activos sin fecha proyectada: no entran en los porcentajes. */
+  sin_proyeccion: number
+  /** Decimal como texto («14.2»), o nulo sin activos. */
+  lead_time_medio_dias: string | null
+}
+
+export interface ProximoArribo extends PedidoResumen {
+  dias_restantes: number
+}
+
+/** `GET /api/v1/pedidos/proximos-arribos` (`US-28`): hasta cinco, sin relleno. */
+export interface ProximosArribos {
+  /** La fecha de referencia, en hora de Costa Rica. */
+  hoy: string
+  horizonte_dias: number
+  items: ProximoArribo[]
+}
+
 // --- Cargas del Z-tracking (`US-58`) -----------------------------------------
 
 export type EstadoCarga = 'APLICADA' | 'RECHAZADA'

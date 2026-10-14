@@ -19,6 +19,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, select
 
+from app.api import pedidos as api_pedidos
 from app.db.session import get_db
 from app.main import app
 from app.models import enums
@@ -582,3 +583,171 @@ async def test_la_etapa_de_un_cerrado_no_lo_trae_pero_cerrado_si(api, sesion) ->
     assert await _ocs(api, etapa="SIN_TRACKING") == [("4588800001", 10)]
     assert await _ocs(api, etapa="CERRADO") == [("4588800002", 10)]
     assert len(await _ocs(api, etapa=["SIN_TRACKING", "CERRADO"])) == 2
+
+
+# --- US-22 y US-28: la cinta de KPIs y los próximos arribos ------------------
+#
+# Mismos filtros que la grilla: los tres bloques del panel muestran el mismo
+# subconjunto (`US-21`).
+
+KPI = "/api/v1/pedidos/indicadores"
+ARRIBOS = "/api/v1/pedidos/proximos-arribos"
+HOY = dt.date(2026, 10, 13)
+
+
+@pytest.fixture
+def hoy_fijo(monkeypatch) -> dt.date:
+    monkeypatch.setattr(api_pedidos, "hoy_en_costa_rica", lambda: HOY)
+    return HOY
+
+
+async def _cumpliendo(sesion, oc: str, cumplimiento: str | None, **kwargs):
+    return await _pedido(
+        sesion,
+        oc=oc,
+        estado_cumplimiento=cumplimiento,
+        estado_calculado=cumplimiento or "SIN_TRACKING",
+        **kwargs,
+    )
+
+
+# --- US-22: la cinta de KPIs ------------------------------------------------
+
+
+@pytest.mark.integration
+async def test_los_cinco_indicadores_sobre_los_activos(api, sesion) -> None:
+    for n, cumplimiento in enumerate(["A_TIEMPO", "A_TIEMPO", "EN_RIESGO", "RETRASADO"]):
+        await _cumpliendo(sesion, f"458880000{n}", cumplimiento, lead_time_destino_dias=10 + n)
+
+    kpi = (await api.get(KPI)).json()
+
+    assert kpi["activos"] == 4
+    assert kpi["a_tiempo"] == {"pedidos": 2, "porcentaje": "50.00"}
+    assert kpi["en_riesgo"] == {"pedidos": 1, "porcentaje": "25.00"}
+    assert kpi["retrasados"] == {"pedidos": 1, "porcentaje": "25.00"}
+    assert kpi["sin_proyeccion"] == 0
+    assert kpi["lead_time_medio_dias"] == "11.5"  # (10 + 11 + 12 + 13) / 4
+
+
+@pytest.mark.integration
+async def test_un_terminal_no_computa_aunque_el_filtro_lo_pida(api, sesion) -> None:
+    await _cumpliendo(sesion, "4588800001", "A_TIEMPO")
+    await _pedido(
+        sesion, oc="4588800002", estado_calculado="CANCELADO", motivo_cierre="CANCELACION"
+    )
+
+    sin_filtro = (await api.get(KPI)).json()
+    con_cancelados = (await api.get(KPI, params={"estado": "CANCELADO"})).json()
+
+    assert sin_filtro["activos"] == 1
+    assert con_cancelados["activos"] == 0
+
+
+@pytest.mark.integration
+async def test_los_indicadores_responden_a_los_filtros_de_la_grilla(api, sesion) -> None:
+    aereo = await _destino(sesion, "MROC")
+    await _cumpliendo(sesion, "4588800001", "A_TIEMPO")
+    await _cumpliendo(sesion, "4588800002", "RETRASADO", destino=aereo)
+
+    kpi = (await api.get(KPI, params={"via": "AEREO"})).json()
+
+    assert kpi["activos"] == 1
+    assert kpi["retrasados"] == {"pedidos": 1, "porcentaje": "100.00"}
+
+
+@pytest.mark.integration
+async def test_los_porcentajes_son_sobre_los_que_se_pueden_evaluar(api, sesion) -> None:
+    await _cumpliendo(sesion, "4588800001", "A_TIEMPO")
+    await _cumpliendo(sesion, "4588800002", None)
+
+    kpi = (await api.get(KPI)).json()
+
+    assert kpi["activos"] == 2
+    assert kpi["sin_proyeccion"] == 1
+    # Sin proyección no se puede evaluar: el único evaluable está a tiempo.
+    assert kpi["a_tiempo"] == {"pedidos": 1, "porcentaje": "100.00"}
+
+
+@pytest.mark.integration
+async def test_sin_activos_no_hay_porcentajes_ni_promedio(api) -> None:
+    kpi = (await api.get(KPI)).json()
+
+    assert kpi["activos"] == 0
+    assert kpi["a_tiempo"] == {"pedidos": 0, "porcentaje": None}
+    assert kpi["lead_time_medio_dias"] is None
+
+
+# --- US-28: próximos arribos --------------------------------------------------
+
+
+@pytest.mark.integration
+async def test_los_cinco_mas_proximos_dentro_de_siete_dias(api, sesion, hoy_fijo) -> None:
+    for n, dias in enumerate([6, 0, 3, 1, 7, 2, 5]):
+        await _pedido(
+            sesion,
+            oc=f"458880000{n}",
+            fecha_proyectada_disponible=hoy_fijo + dt.timedelta(days=dias),
+        )
+
+    respuesta = (await api.get(ARRIBOS)).json()
+
+    assert respuesta["hoy"] == "2026-10-13"
+    assert respuesta["horizonte_dias"] == 7
+    assert [p["dias_restantes"] for p in respuesta["items"]] == [0, 1, 2, 3, 5]
+
+
+@pytest.mark.integration
+async def test_con_menos_de_cinco_no_rellena(api, sesion, hoy_fijo) -> None:
+    await _pedido(sesion, oc="4588800001", fecha_proyectada_disponible=hoy_fijo)
+    # Fuera del horizonte, por un día hacia cada lado, y sin fecha.
+    await _pedido(sesion, oc="4588800002", fecha_proyectada_disponible=HOY + dt.timedelta(8))
+    await _pedido(sesion, oc="4588800003", fecha_proyectada_disponible=HOY - dt.timedelta(1))
+    await _pedido(sesion, oc="4588800004")
+
+    items = (await api.get(ARRIBOS)).json()["items"]
+
+    assert [p["oc_numero"] for p in items] == ["4588800001"]
+
+
+@pytest.mark.integration
+async def test_los_cerrados_no_son_arribos(api, sesion, hoy_fijo) -> None:
+    await _pedido(
+        sesion,
+        oc="4588800001",
+        fecha_proyectada_disponible=hoy_fijo,
+        estado_calculado="CANCELADO",
+        motivo_cierre="CANCELACION",
+    )
+
+    assert (await api.get(ARRIBOS, params={"estado": "CANCELADO"})).json()["items"] == []
+
+
+@pytest.mark.integration
+async def test_los_arribos_responden_a_los_filtros(api, sesion, hoy_fijo) -> None:
+    aereo = await _destino(sesion, "MROC")
+    await _pedido(sesion, oc="4588800001", fecha_proyectada_disponible=hoy_fijo)
+    await _pedido(sesion, oc="4588800002", fecha_proyectada_disponible=hoy_fijo, destino=aereo)
+
+    items = (await api.get(ARRIBOS, params={"via": "AEREO"})).json()["items"]
+
+    assert [(p["oc_numero"], p["via_transporte"]) for p in items] == [("4588800002", "AEREO")]
+
+
+@pytest.mark.integration
+async def test_a_igual_fecha_ordena_por_oc_y_posicion(api, sesion, hoy_fijo) -> None:
+    for oc, pos in [("4588800002", 10), ("4588800001", 20), ("4588800001", 10)]:
+        await _pedido(sesion, oc=oc, posicion=pos, fecha_proyectada_disponible=hoy_fijo)
+
+    items = (await api.get(ARRIBOS)).json()["items"]
+
+    assert [(p["oc_numero"], p["posicion_oc"]) for p in items] == [
+        ("4588800001", 10),
+        ("4588800001", 20),
+        ("4588800002", 10),
+    ]
+
+
+def test_hoy_es_la_fecha_de_costa_rica() -> None:
+    """A las 18:00 de Costa Rica el día UTC ya es el siguiente."""
+    hoy = api_pedidos.hoy_en_costa_rica()
+    assert hoy == dt.datetime.now(dt.timezone(dt.timedelta(hours=-6))).date()

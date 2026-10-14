@@ -133,6 +133,53 @@ class PaginaPedidos(BaseModel):
     items: list[PedidoResumen]
 
 
+class Porcentaje(BaseModel):
+    """Un indicador de cumplimiento: cuántos y qué parte de los activos."""
+
+    pedidos: int
+    porcentaje: Decimal | None = Field(
+        description=(
+            "Sobre los activos con fecha proyectada, con dos decimales. Nulo si no hay "
+            "ninguno que evaluar."
+        )
+    )
+
+
+class IndicadoresKpi(BaseModel):
+    """La cinta de KPIs (`US-22`, RF-15, `wireframes.md` §1.2).
+
+    Siempre sobre los **activos** que cumplen los filtros: un cerrado no computa
+    aunque el filtro lo pida.
+
+    Los tres porcentajes son **sobre los activos que se pueden evaluar** —los que
+    tienen fecha proyectada— y suman 100 %, como en el Figma. Los que no tienen
+    proyección se cuentan aparte en `sin_proyeccion`. Sobre todos los activos,
+    con los datos del 13/10 (107 activos, 98 sin proyección) la cinta diría
+    «2,80 % a tiempo» y parecería que el resto está perdido.
+    """
+
+    activos: int
+    a_tiempo: Porcentaje
+    en_riesgo: Porcentaje
+    retrasados: Porcentaje
+    sin_proyeccion: int = Field(description="Activos sin fecha proyectada: el guion de la grilla.")
+    lead_time_medio_dias: Decimal | None = Field(
+        description="Promedio del lead time de destino de los activos, con un decimal."
+    )
+
+
+class ProximoArribo(PedidoResumen):
+    dias_restantes: int = Field(description="Días desde hoy (Costa Rica) a la fecha proyectada.")
+
+
+class ProximosArribos(BaseModel):
+    """`US-28`, RF-27 del 01/09: los cinco más próximos, sin relleno."""
+
+    hoy: dt.date = Field(description="La fecha de referencia, en hora de Costa Rica.")
+    horizonte_dias: int
+    items: list[ProximoArribo]
+
+
 # --- Detalle (RF-05) --------------------------------------------------------
 
 
@@ -352,8 +399,12 @@ __all__ = [
     "DestinoRef",
     "EstadoCalculado",
     "EtapaViaje",
+    "IndicadoresKpi",
     "MaterialRef",
     "PaginaPedidos",
+    "Porcentaje",
+    "ProximoArribo",
+    "ProximosArribos",
     "PaisRef",
     "PedidoDetalle",
     "PedidoResumen",
