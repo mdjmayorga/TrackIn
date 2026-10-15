@@ -68,12 +68,13 @@ def punto_wkt(longitud: float, latitud: float) -> str:
 
 async def ultima_lectura(sesion: AsyncSession, id_elemento: int) -> HistorialTracking | None:
     """Posición más reciente guardada de ese elemento, o `None` si no hay."""
-    return await sesion.scalar(
+    lectura: HistorialTracking | None = await sesion.scalar(
         select(HistorialTracking)
         .where(HistorialTracking.id_elemento_rastreado == id_elemento)
         .order_by(desc(HistorialTracking.fecha_registro))
         .limit(1)
     )
+    return lectura
 
 
 async def registrar_posicion(

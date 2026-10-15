@@ -7,11 +7,15 @@ compartida con sesiones simultáneas y revocación al desactivar un usuario.
 from __future__ import annotations
 
 import datetime as dt
+from typing import TYPE_CHECKING
 
 from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.usuario import Usuario
 
 
 class Sesion(Base):
@@ -35,7 +39,7 @@ class Sesion(Base):
     ultimo_uso: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     cerrada_en: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    usuario: Mapped[Usuario] = relationship()  # noqa: F821
+    usuario: Mapped[Usuario] = relationship()
 
     def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración
         return f"<Sesion {self.id} usuario={self.id_usuario}>"

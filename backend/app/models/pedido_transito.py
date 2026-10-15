@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BigInteger,
@@ -40,6 +41,13 @@ from app.models.enums import (
     VIAS_TRANSPORTE,
     check_in,
 )
+
+if TYPE_CHECKING:
+    from app.models.elemento_rastreado import ElementoRastreado
+    from app.models.maestro_destino import MaestroDestino
+    from app.models.maestro_pais import MaestroPais
+    from app.models.material import Material
+    from app.models.proveedor import Proveedor
 from app.models.mixins import TimestampMixin
 
 
@@ -221,11 +229,11 @@ class PedidoTransito(Base, TimestampMixin):
     )
 
     # --- Relaciones ---------------------------------------------------------
-    proveedor: Mapped[Proveedor] = relationship()  # noqa: F821
-    material: Mapped[Material] = relationship()  # noqa: F821
-    destino: Mapped[MaestroDestino] = relationship()  # noqa: F821
-    pais_origen: Mapped[MaestroPais | None] = relationship()  # noqa: F821
-    elemento_rastreado: Mapped[ElementoRastreado | None] = relationship()  # noqa: F821
+    proveedor: Mapped[Proveedor] = relationship()
+    material: Mapped[Material] = relationship()
+    destino: Mapped[MaestroDestino] = relationship()
+    pais_origen: Mapped[MaestroPais | None] = relationship()
+    elemento_rastreado: Mapped[ElementoRastreado | None] = relationship()
 
     def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración
         return f"<PedidoTransito {self.oc_numero}-{self.posicion_oc}>"

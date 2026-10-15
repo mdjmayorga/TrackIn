@@ -68,9 +68,10 @@ jobs:
       - name: Formato (black)
         run: black --check app tests alembic/env.py
 
+      # Bloqueante desde el 15/10/2026: se corrigieron los 15 errores que había y
+      # un error de tipos nuevo detiene el CI en vez de sumarse en silencio.
       - name: Tipos (mypy)
         run: mypy app
-        continue-on-error: true # se vuelve bloqueante cuando existan modelos
 
       # Las pruebas marcadas `integration` corren contra la base real, no contra
       # un doble: verifican distancias de PostGIS y los CHECK que implementan

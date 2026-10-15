@@ -173,7 +173,10 @@ async def resolver_pais(sesion: AsyncSession, valor: str | None) -> MaestroPais 
         if encontrado is not None:
             return encontrado
 
-    return await sesion.scalar(select(MaestroPais).join(AliasPais).where(AliasPais.alias == texto))
+    por_alias: MaestroPais | None = await sesion.scalar(
+        select(MaestroPais).join(AliasPais).where(AliasPais.alias == texto)
+    )
+    return por_alias
 
 
 __all__ = [

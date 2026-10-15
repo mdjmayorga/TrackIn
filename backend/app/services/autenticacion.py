@@ -32,10 +32,12 @@ import hashlib
 import logging
 import secrets
 from dataclasses import dataclass
+from typing import Any, cast
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
 from sqlalchemy import func, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.sesion import Sesion
@@ -210,10 +212,15 @@ async def cerrar_sesiones_de(
     sesion_bd: AsyncSession, id_usuario: int, *, instante: dt.datetime | None = None
 ) -> int:
     """Cierra todas las sesiones abiertas de un usuario. Devuelve cuántas."""
-    resultado = await sesion_bd.execute(
-        update(Sesion)
-        .where(Sesion.id_usuario == id_usuario, Sesion.cerrada_en.is_(None))
-        .values(cerrada_en=instante or dt.datetime.now(dt.UTC))
+    # Un UPDATE devuelve un `CursorResult`, que es el que tiene `rowcount`;
+    # la firma de `execute` solo promete el `Result` genérico.
+    resultado = cast(
+        CursorResult[Any],
+        await sesion_bd.execute(
+            update(Sesion)
+            .where(Sesion.id_usuario == id_usuario, Sesion.cerrada_en.is_(None))
+            .values(cerrada_en=instante or dt.datetime.now(dt.UTC))
+        ),
     )
     return resultado.rowcount or 0
 

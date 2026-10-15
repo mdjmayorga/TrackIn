@@ -77,12 +77,13 @@ async def tramo_vigente(
     sesion: AsyncSession, pedido: PedidoTransito
 ) -> PedidoElementoRastreado | None:
     """El tramo abierto del pedido, si lo hay. La base garantiza que es uno."""
-    return await sesion.scalar(
+    tramo: PedidoElementoRastreado | None = await sesion.scalar(
         select(PedidoElementoRastreado).where(
             PedidoElementoRastreado.id_pedido == pedido.id,
             PedidoElementoRastreado.fecha_hasta.is_(None),
         )
     )
+    return tramo
 
 
 async def _siguiente_tramo(sesion: AsyncSession, pedido: PedidoTransito) -> int:

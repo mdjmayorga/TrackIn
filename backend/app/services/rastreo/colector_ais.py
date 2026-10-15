@@ -98,13 +98,14 @@ async def buscar_elemento(sesion: AsyncSession, mmsi: str) -> ElementoRastreado 
     MMSI reutilizado años después no colisiona con su vida anterior. Filtrar por
     `activo` acá es lo que hace que eso funcione.
     """
-    return await sesion.scalar(
+    elemento: ElementoRastreado | None = await sesion.scalar(
         select(ElementoRastreado).where(
             ElementoRastreado.tipo_tracking_externo == TIPO_TRACKING,
             ElementoRastreado.tracking_externo == mmsi,
             ElementoRastreado.activo.is_(True),
         )
     )
+    return elemento
 
 
 async def _aplicar_posicion(
@@ -315,7 +316,9 @@ class _ConexionWebSocket:  # pragma: no cover - glue de E/S, sin lógica propia
         await self._socket.send(texto)
 
     def __aiter__(self) -> AsyncIterator[str]:
-        return self._socket.__aiter__()
+        # `websockets` no publica tipos para este iterador.
+        iterador: AsyncIterator[str] = self._socket.__aiter__()
+        return iterador
 
     async def abortar(self) -> None:
         # `close()` negociado se cuelga con volumen alto (Fase 0 del spike).

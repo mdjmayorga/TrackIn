@@ -10,7 +10,7 @@ Administrador (`US-42`, RNF-05: «solo los autorizados mantienen maestros»).
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
@@ -123,7 +123,8 @@ async def actualizar_destino(
     id_destino: int, cambios: DestinoCambios, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> DestinoActualizado | JSONResponse:
     enviados = cambios.model_fields_set
-    argumentos: dict[str, object] = {"confirmar": cambios.confirmar}
+    # `Any`: cada valor ya lo validó `DestinoCambios`, con su tipo propio.
+    argumentos: dict[str, Any] = {"confirmar": cambios.confirmar}
     if "nombre" in enviados and cambios.nombre is not None:
         argumentos["nombre"] = cambios.nombre
     if "lead_time_dias" in enviados and cambios.lead_time_dias is not None:
