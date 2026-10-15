@@ -324,6 +324,18 @@ class RecepcionEntrada(BaseModel):
     motivo: str = Field(description="Obligatorio (RF-14).")
 
 
+#: Las referencias que se asocian a mano: las de `TASK-30` y la guía hija de `US-49`.
+TipoReferencia = Literal["CONTENEDOR", "BL", "BOOKING", "MAWB", "HAWB"]
+
+
+class ReferenciaEntrada(BaseModel):
+    """`US-20`: asociar el identificador de rastreo a un pedido que no lo tiene."""
+
+    tipo: TipoReferencia
+    numero: str = Field(min_length=1, max_length=40, description="Tal como viene en el documento.")
+    motivo: str = Field(description="Obligatorio (RF-14).")
+
+
 class AjusteEntrada(BaseModel):
     """`US-40`: el ajuste manual de la fecha proyectada, con signo."""
 
@@ -408,6 +420,8 @@ __all__ = [
     "PaisRef",
     "PedidoDetalle",
     "PedidoResumen",
+    "ReferenciaEntrada",
+    "TipoReferencia",
     "Posicion",
     "ProveedorRef",
     "Rastreo",

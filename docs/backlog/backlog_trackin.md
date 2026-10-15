@@ -89,7 +89,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-04` | Publicar la documentacion OpenAPI del backend ✅ | Task | OE2 | **Should** | Sprint 5 | 4h | RNF-17 · ✅ cerrada 30/09 |
 | `TASK-05` | Andamiaje del frontend React con TypeScript, Vite y Tailwind ✅ | Task | OE3 | **Must** | Sprint 6 | 6h | RNF (stack 5.8) · ✅ terminada 06/10, adelantada |
 | `US-19` | Listar los pedidos en transito en una grilla ordenable ✅ | Story | OE3 | **Must** | Sprint 6 | 12h | RF-04 / RNF-01 · ✅ terminada 07/10, adelantada |
-| `US-20` | Consultar el detalle completo de un pedido | Story | OE3 | **Must** | Sprint 6 | 10h | RF-05 / CU-03 |
+| `US-20` | Consultar el detalle completo de un pedido ✅ | Story | OE3 | **Must** | Sprint 6 | 10h | RF-05 / CU-03 · ✅ terminada 15/10, adelantada |
 | `US-21` | Filtrar el dashboard de forma transversal y coherente ✅ | Story | OE3 | **Must** | Sprint 6 | 12h | RF-19 / CU-04 / RNF-02 · ✅ terminada 14/10, adelantada |
 | `US-22` | Mostrar la cinta de indicadores KPI ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 · ✅ terminada 13/10, adelantada |
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
@@ -107,6 +107,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-56` | ~~Leer los pedidos del Z-tracking desde la API de SAP~~ ❌ | Story | OE2 | — | — | — | **Cancelada el 07/10:** la API de SAP no va a existir. La reemplaza `US-58` |
 | `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga ✅ | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada · ✅ terminada 08/10 |
 | `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` |
+| `US-60` | Acciones del detalle: confirmar desembarco, pasar a aduana, recibir, ajustar días y liberar ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | 15/10: los endpoints existían desde el Sprint 5; las pantallas, no · ✅ terminada 15/10 |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
@@ -1691,7 +1692,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 
 ### Sprint 6 (19-30 oct 2026)
 
-**13 items · 93 h estimadas · capacidad 65 h — sobrecargado en 28 h** (recontado el 13/10; `US-43` bajó de 10 a 3 h el 14/10). El encabezado decía «8 items · 64 h» y no se había actualizado con lo que entró después: `US-43` (+10 h) y `US-48` (+6 h), de las reuniones de septiembre; `US-55` (+6 h, 29/09); `US-57` (+4 h, 06/10), y `US-58` (+10 h, 07/10, al descartarse la API de SAP). La sobrecarga se absorbe con el adelanto: al 13/10, antes de que el sprint empiece, ya hay 44 h hechas. `US-55` y `US-57` quedan al final; si no entran, pasan al Sprint 7 (decisión del 08/10). US-37 volvio al Sprint 2 el 25/08 (US-38 la necesita) y US-28 llego desde el Sprint 7, al integrarse al dashboard en vez de ser una vista aparte.
+**14 items · 101 h estimadas · capacidad 65 h — sobrecargado en 36 h** (recontado el 13/10; `US-43` bajó de 10 a 3 h el 14/10). El encabezado decía «8 items · 64 h» y no se había actualizado con lo que entró después: `US-43` (+10 h) y `US-48` (+6 h), de las reuniones de septiembre; `US-55` (+6 h, 29/09); `US-57` (+4 h, 06/10), y `US-58` (+10 h, 07/10, al descartarse la API de SAP). La sobrecarga se absorbe con el adelanto: al 13/10, antes de que el sprint empiece, ya hay 44 h hechas. `US-55` y `US-57` quedan al final; si no entran, pasan al Sprint 7 (decisión del 08/10). US-37 volvio al Sprint 2 el 25/08 (US-38 la necesita) y US-28 llego desde el Sprint 7, al integrarse al dashboard en vez de ser una vista aparte.
 
 > **Avance adelantado (el sprint empieza el 19/10):**
 >
@@ -1703,13 +1704,15 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `US-22` Cinta de KPIs | ✅ 13/10 |
 > | `US-28` Próximos arribos | ✅ 13/10 |
 > | `US-21` Filtros del panel | ✅ 14/10 |
+> | `US-20` Detalle del pedido | ✅ 15/10 |
+> | `US-60` Acciones del detalle (nueva, 15/10) | ✅ 15/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
 > | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
 >
 > El diseño del dashboard quedó aprobado por los usuarios clave el 06/10.
 >
-> **Hechas: 56 de 93 h.** Pendientes: `US-20` (10), `US-48` (6), `US-55` (6), `US-23` (4),
-> `US-24` (4), `US-57` (4), `US-43` (3).
+> **Hechas: 74 de 101 h.** Pendientes: `US-48` (6), `US-55` (6), `US-23` (4), `US-24` (4),
+> `US-57` (4), `US-43` (3).
 >
 > **En espera de la reunión con Ventas (14/10):**
 >
@@ -1849,6 +1852,40 @@ Como usuario de Logística, quiero ver el detalle de un pedido con el desglose d
 | Estimacion | 10 h |
 | Origen en el SRS | RF-05 / CU-03 |
 | Etiquetas | `frontend,detalle` |
+
+> **✅ Terminada el 15/10/2026, adelantada.** La vista del Figma «US-37 Detalle de pedido»,
+> en `/pedidos/{id}`; la OC de la grilla la abre.
+>
+> - **Encabezado:** OC · POS, material, proveedor y cantidad, con los distintivos de etapa y
+>   cumplimiento.
+> - **Desglose del cálculo** (RF-05): ETA utilizada con su origen por RN-14, + lead time,
+>   + ajuste, = fecha proyectada, comprometida y margen. Sin fecha base dice «No estimable»
+>   y la causa (§4.4). Avisa si un insumo cambió y falta el recálculo, y si el maestro tiene
+>   hoy otro lead time.
+> - **Elemento rastreado:** referencia y nave, vía y destino, última posición con velocidad y
+>   la **última consulta con su antigüedad** («hace 3 min», RNF-12).
+> - **Arribo:** los tres —manual, fuente, inferido— por separado (§4.3).
+> - **Recepción y cierre**, solo cuando los hay: recepción, ventana de liberación, cierre.
+> - **Sin identificador** (tercer criterio): «No rastreable» y el formulario para **asociar
+>   uno**, con motivo obligatorio, para Logística, Compras y Administrador. Es un endpoint
+>   nuevo, `POST /api/v1/pedidos/{id}/referencia`, sobre el servicio que ya usaba la carga:
+>   valida formato y dígito de control, saca el pedido de «Sin tracking», recalcula y audita.
+>   Si el pedido ya tiene identificador responde 409: cambiarlo es un transbordo (`US-30`).
+> - **Línea de tiempo:** por ahora, las intervenciones manuales de la bitácora, con quién y
+>   por qué. Los hitos del viaje —zarpe, transbordos— se agregan con `US-29`.
+> - **Mapa del envío** con la última posición, cuando la hay. El trayecto llega con `US-44`.
+> - Las pantallas protegidas se cargan ahora **en diferido**: con el detalle, el paquete
+>   pasaba los 500 kB y Vite advertía. El mayor queda en 309 kB.
+>
+> **Fuera de esta historia, y sin dueño: la barra de acciones del Figma** —resuelto el mismo
+> día con `US-60`—. «Confirmar
+> desembarco», «Registrar recepción en planta», «Ajustar días» y «Actualizar nave por
+> transbordo» tienen sus endpoints desde el Sprint 5 (`US-14`, `US-18`, `US-40`) o el 7
+> (`US-30`), pero **ninguna historia construye sus pantallas**: esas historias se cerraron
+> como backend. Sin ellas, Logística y Planificación solo pueden intervenir por la API.
+> Pendiente de decidir (15/10).
+>
+> Backend: 1 259 pruebas. Frontend: 130 pruebas, 96,9 %.
 
 #### US-21 — Filtrar el dashboard de forma transversal y coherente
 
@@ -3415,6 +3452,73 @@ exactamente qué dato está mal antes de que un pedido entre con información eq
 >   Guatemala y México— y no confundirlo con ruido. No se rastrea, ningún destino terrestre
 >   existe en el maestro y hoy esas líneas ya no entran, pero por «sin destino». El filtro
 >   «Vía» del panel ofrece solo Marítimo y Aéreo desde el mismo día.
+
+---
+
+### `US-60` — Acciones del detalle del pedido
+
+Como usuario de Logística o Planificación, quiero registrar desde el detalle del pedido lo que
+pasa con la carga —llegada, aduana, recepción, liberación— y ajustar la fecha, para que el
+sistema refleje la operación sin depender de la API.
+
+**Por qué existe (15/10/2026).** La barra de acciones del Figma no tenía dueño. Sus endpoints
+se construyeron en el Sprint 5 (`US-14`, `US-18`, `US-40`, `US-47`), y esas historias se
+cerraron como backend; ninguna construía la pantalla. Sin ella, nadie de Gutis podía
+intervenir un pedido. `US-48` la necesita: el pedido sale de la bandeja «cuando registro el
+paso a aduanal».
+
+**Criterios de aceptación**
+
+- Dado el detalle de un pedido, cuando lo abro, entonces veo las acciones que mi rol puede hacer, y las que no aplican a la etapa actual aparecen deshabilitadas con el porqué
+- Dada cualquier acción, cuando la ejecuto, entonces pide el **motivo** obligatorio y no se ejecuta de un clic (RF-14, wireframes §4.8)
+- Dado «Confirmar desembarco», cuando ya había una llegada confirmada, entonces muestro la actual y pido confirmar el reemplazo
+- Dado «Registrar recepción en planta», cuando lo recibido no llega al mínimo de RN-10, entonces muestro el mínimo y ofrezco cerrar con recepción parcial
+- Dada una acción exitosa, cuando termina, entonces el detalle, la grilla, los KPIs y la línea de tiempo muestran el cambio
+- Dado el paso a proceso aduanal, cuando lo ejecuta **Planificación**, entonces se permite (decisión del 04/09); Logística conserva el permiso
+
+| Acción | Endpoint | Rol | Etapa |
+|---|---|---|---|
+| Confirmar desembarco | `POST …/desembarco` | Logística | Antes de aduana |
+| Pasar a proceso aduanal | `POST …/paso-aduanal` | Planificación, Logística | En destino |
+| Registrar recepción en planta | `POST …/recepcion` (y `…/cierre-forzado`) | Logística | En proceso aduanal |
+| Registrar liberación de Calidad | `POST …/liberacion-calidad` | Planificación, Logística | Recibido en planta |
+| Ajustar días | `POST …/ajuste-manual` | Logística | Cualquiera activa |
+
+«Actualizar nave por transbordo» queda en `US-30` (Sprint 7). El Administrador puede todo.
+
+| | |
+|---|---|
+| Tipo | Story · OE3 · **Must** · Sprint 6 · 8 h |
+| Origen | 15/10/2026: hueco detectado al construir `US-20` |
+| Depende de | `US-20`, `US-14`, `US-18`, `US-40`, `US-47` (hechas) |
+
+> **Corrección de permisos incluida:** la API dejaba pasar a aduana solo a Logística, aunque
+> desde el 04/09 el backlog dice que lo ejecuta Planificación (`US-43`, `US-48`). Ahora lo
+> hacen las dos.
+
+> **✅ Terminada el 15/10/2026.** La barra al pie del detalle:
+>
+> - **Cinco acciones**, según el rol: Logística ve las cinco; Planificación, el paso a aduana
+>   y la liberación; Compras, ninguna. Lo que no aplica a la etapa se ve deshabilitado y,
+>   al pasar el cursor, dice por qué («Solo desde En destino: confirme antes la llegada»).
+>   En un pedido cerrado, todas, por RN-13.
+> - **Ningún clic ejecuta:** cada botón abre su formulario, y «Confirmar» no se habilita sin
+>   un motivo de al menos 5 caracteres. Las fechas se escriben y se envían en hora de Costa
+>   Rica, sin futuro.
+> - **Los dos 409 con decisión:** si ya había una llegada confirmada, la muestra y ofrece
+>   reemplazarla; si la recepción no llega al mínimo de RN-10, muestra el mínimo y ofrece
+>   cerrar con la recepción parcial (cierre forzado).
+> - **Valores propuestos:** la recepción parte de la cantidad pedida y la liberación de lo
+>   que falta liberar.
+> - **El ajuste se elige como fecha** (cambio pedido el mismo 15/10): un calendario con la
+>   **nueva fecha proyectada**, en vez de sumar días. El sistema muestra la fecha calculada
+>   sin ajuste y cuántos días de ajuste resultan, y guarda eso: la API y la bitácora siguen en
+>   días. Elegir la fecha calculada quita el ajuste; sin fecha proyectada no hay qué ajustar
+>   y el botón se deshabilita con el porqué.
+> - Al terminar, el detalle se actualiza con la respuesta y se refrescan grilla, KPIs,
+>   arribos y línea de tiempo.
+>
+> Backend: 1 262 pruebas. Frontend: 154 pruebas, 97,6 %.
 
 ---
 

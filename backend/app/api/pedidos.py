@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencias import (
+    COMPRAS,
     LOGISTICA,
     PLANIFICACION,
     Autenticado,
@@ -43,6 +44,7 @@ from app.schemas.pedidos import (
     ProximosArribos,
     RecepcionEntrada,
     RecepcionIncompleta,
+    ReferenciaEntrada,
     Via,
 )
 from app.services import auditoria, consulta_pedidos, intervenciones
@@ -261,6 +263,9 @@ logistica = requiere_rol(LOGISTICA)
 #: `US-47`: la liberación la registra Planificación, dueña de la historia, o
 #: Logística, que ya registra la recepción. Calidad no tiene rol en el sistema.
 calidad = requiere_rol(PLANIFICACION, LOGISTICA)
+# El paso a proceso aduanal lo ejecuta Planificación (decisión del 04/09, `US-43`,
+# `US-48`); Logística conserva el permiso, que tenía desde `US-14`. Corregido el 15/10.
+aduana = requiere_rol(PLANIFICACION, LOGISTICA)
 
 
 async def _detalle_tras_intervenir(db: AsyncSession, id_pedido: int) -> PedidoDetalle:
@@ -343,7 +348,7 @@ async def confirmar_desembarco(
 async def pasar_a_aduanal(
     id_pedido: int,
     datos: PasoAduanalEntrada,
-    quien: Annotated[Autenticado, Depends(logistica)],
+    quien: Annotated[Autenticado, Depends(aduana)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> PedidoDetalle:
     try:
@@ -522,6 +527,51 @@ async def ajustar_fecha(
     except (
         LookupError,
         intervenciones.IntervencionRechazada,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
+
+
+# Logística registra la referencia (TASK-30) y Compras carga el archivo que la trae.
+asociadores = requiere_rol(LOGISTICA, COMPRAS)
+
+
+@router.post(
+    "/{id_pedido}/referencia",
+    response_model=PedidoDetalle,
+    summary="Asociar el identificador de rastreo (US-20)",
+    description=(
+        "Vincula una referencia de embarque —contenedor, BL, booking, MAWB o guía hija— "
+        "a un pedido que no la tiene, con su motivo. Valida el formato y el dígito de "
+        "control (TASK-30), saca el pedido de «Sin tracking», recalcula y audita. Si el "
+        "pedido ya tiene identificador responde 409: cambiarlo es un transbordo (US-30)."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {"description": "Cerrado, o ya tiene identificador."},
+        422: {"description": "Referencia con formato o dígito de control inválido, o sin motivo."},
+    },
+)
+async def asociar_referencia(
+    id_pedido: int,
+    datos: ReferenciaEntrada,
+    quien: Annotated[Autenticado, Depends(asociadores)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle:
+    try:
+        await intervenciones.asociar_identificador(
+            db,
+            id_pedido,
+            tipo=datos.tipo,
+            numero=datos.numero,
+            motivo=datos.motivo,
+            id_usuario=quien.usuario.id,
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        intervenciones.ReferenciaInvalida,
         auditoria.IntervencionInvalida,
     ) as exc:
         raise _error_de_intervencion(exc) from exc

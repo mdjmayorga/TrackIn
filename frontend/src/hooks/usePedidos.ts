@@ -3,6 +3,8 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   type ConsultaPedidos,
   listarPedidos,
+  obtenerBitacora,
+  obtenerPedido,
   obtenerIndicadores,
   obtenerProximosArribos,
 } from '@/services/pedidos'
@@ -44,4 +46,14 @@ export function useProximosArribos(filtros: FiltrosPanel = FILTROS_VACIOS) {
     queryFn: () => obtenerProximosArribos(filtros),
     placeholderData: keepPreviousData,
   })
+}
+
+/** El detalle de un pedido (`US-20`). Bajo `pedidos`: una carga lo refresca. */
+export function usePedido(id: number) {
+  return useQuery({ queryKey: ['pedidos', 'detalle', id], queryFn: () => obtenerPedido(id) })
+}
+
+/** Las intervenciones manuales del pedido, para la línea de tiempo (RF-14). */
+export function useBitacora(id: number) {
+  return useQuery({ queryKey: ['pedidos', 'bitacora', id], queryFn: () => obtenerBitacora(id) })
 }

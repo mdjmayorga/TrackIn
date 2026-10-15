@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { GrillaPedidos, type GrillaPedidosProps } from '@/components/GrillaPedidos'
@@ -10,13 +11,15 @@ function montar(props: Partial<GrillaPedidosProps> = {}) {
   const onOrdenar = vi.fn()
   const onPaginar = vi.fn()
   render(
-    <GrillaPedidos
-      pagina={pagina([pedido()])}
-      orden="fecha_proyectada"
-      onOrdenar={onOrdenar}
-      onPaginar={onPaginar}
-      {...props}
-    />,
+    <MemoryRouter>
+      <GrillaPedidos
+        pagina={pagina([pedido()])}
+        orden="fecha_proyectada"
+        onOrdenar={onOrdenar}
+        onPaginar={onPaginar}
+        {...props}
+      />
+    </MemoryRouter>,
   )
   return { onOrdenar, onPaginar }
 }

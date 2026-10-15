@@ -12,7 +12,7 @@
 import 'leaflet/dist/leaflet.css'
 
 import type { LatLngExpression } from 'leaflet'
-import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet'
+import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl } from 'react-leaflet'
 
 const MOSAICOS = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 const ATRIBUCION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -21,13 +21,17 @@ export interface MapaBaseProps {
   titulo: string
   centro: LatLngExpression
   zoom: number
+  /** Sin título visible, como el mapa del detalle; queda para lectores de pantalla. */
+  ocultarTitulo?: boolean
+  /** Un solo punto: la última posición del envío en el detalle (`US-20`). */
+  marcador?: { posicion: LatLngExpression; etiqueta: string }
 }
 
-export function MapaBase({ titulo, centro, zoom }: MapaBaseProps) {
+export function MapaBase({ titulo, centro, zoom, ocultarTitulo, marcador }: MapaBaseProps) {
   const id = `mapa-${titulo.toLowerCase().replace(/\W+/g, '-')}`
   return (
     <section aria-labelledby={id}>
-      <h2 id={id} className="mb-2 text-xl font-semibold">
+      <h2 id={id} className={ocultarTitulo ? 'sr-only' : 'mb-2 text-xl font-semibold'}>
         {titulo}
       </h2>
       <div className="mapa-oscuro aspect-[5/4] overflow-hidden rounded border border-panel-borde">
@@ -41,6 +45,17 @@ export function MapaBase({ titulo, centro, zoom }: MapaBaseProps) {
         >
           <TileLayer url={MOSAICOS} attribution={ATRIBUCION} />
           <ZoomControl position="bottomleft" />
+          {marcador && (
+            <CircleMarker
+              center={marcador.posicion}
+              radius={7}
+              pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#0b4dff', fillOpacity: 1 }}
+            >
+              <Tooltip direction="top" offset={[0, -6]}>
+                {marcador.etiqueta}
+              </Tooltip>
+            </CircleMarker>
+          )}
         </MapContainer>
       </div>
     </section>

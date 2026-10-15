@@ -134,6 +134,100 @@ export interface PaginaPedidos {
   items: PedidoResumen[]
 }
 
+// --- Detalle de un pedido (`GET /api/v1/pedidos/{id}`, `US-20`) --------------
+
+export interface Rastreo {
+  /** CONTENEDOR, BL, BOOKING, MAWB, HAWB… */
+  tipo: string
+  referencia: string
+  via_transporte: Via
+  /** Nombre de la nave, si la fuente lo dio. */
+  nombre: string | null
+  imo: number | null
+  eta_fuente: string | null
+  ata_fuente: string | null
+  posicion: { latitud: number; longitud: number } | null
+  /** Decimal como texto. */
+  velocidad_nudos: string | null
+  /** Cuándo respondió bien la fuente por última vez (RNF-12). */
+  ultima_consulta_exitosa: string | null
+  guia_madre: string | null
+  manifiesto_aduana: string | null
+  /** `false` cuando ya arribó y no se consulta más. */
+  activo: boolean
+}
+
+/** Los tres orígenes del arribo que RN-05 distingue. */
+export interface Arribos {
+  confirmado: string | null
+  fuente: string | null
+  inferido: string | null
+}
+
+/** El desglose de RN-01 que pide RF-05. */
+export interface Calculo {
+  /** De qué fecha partió (`ATA_CONFIRMADA`, `ETA_FUENTE`, `ETA_DECLARADA`…). */
+  origen: string | null
+  eta_utilizada: string | null
+  lead_time_dias: number
+  lead_time_maestro_dias: number
+  ajuste_manual_dias: number
+  fecha_proyectada: string | null
+  fecha_comprometida: string
+  ventana_aduanal_dias: number | null
+  /** Comprometida menos proyectada. Negativo es atraso. */
+  margen_dias: number | null
+  umbral_riesgo_dias: number
+  /** La operación que produjo la fecha, o por qué no hay fecha. */
+  desglose: string
+  /** `false`: un insumo cambió y falta el recálculo. */
+  al_dia: boolean
+  desglose_actual: string | null
+  fecha_ultimo_recalculo: string | null
+}
+
+export interface Cierre {
+  fecha_recepcion_planta: string | null
+  cantidad_recibida: string | null
+  liberacion_estimada: { desde: string; hasta: string } | null
+  cantidad_liberada: string | null
+  fecha_liberacion_calidad: string | null
+  motivo_cierre: string | null
+}
+
+export interface PedidoDetalle extends PedidoResumen {
+  /** Decimal como texto. */
+  cantidad_pedida: string
+  unidad_medida: string
+  incoterm: string | null
+  temperatura: string | null
+  tipo_proveedor: string | null
+  fabricante: string | null
+  pais_origen: { codigo: string; nombre: string } | null
+  /** Nulo cuando no es rastreable: se ofrece asociar uno. */
+  rastreo: Rastreo | null
+  arribos: Arribos
+  calculo: Calculo
+  cierre: Cierre
+  fecha_ultima_carga: string | null
+}
+
+/** Una intervención manual (`GET /api/v1/pedidos/{id}/bitacora`, RF-14). */
+export interface AsientoBitacora {
+  fecha_hora: string
+  usuario: string
+  nombre_usuario: string
+  rol: Rol
+  tipo: string
+  campo: string | null
+  valor_anterior: string | null
+  valor_nuevo: string | null
+  motivo: string
+}
+
+/** Las referencias que se asocian a mano (TASK-30 y la guía hija de US-49). */
+export type TipoReferencia = 'CONTENEDOR' | 'BL' | 'BOOKING' | 'MAWB' | 'HAWB'
+
 /** Un indicador de cumplimiento: cuántos y qué parte de los evaluables. */
 export interface Porcentaje {
   pedidos: number

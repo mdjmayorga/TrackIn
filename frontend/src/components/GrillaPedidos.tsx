@@ -9,6 +9,7 @@
  */
 
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 import { Distintivo } from '@/components/Distintivo'
 import { CUMPLIMIENTOS, ETAPAS, etapaVisible } from '@/components/estados'
@@ -63,7 +64,19 @@ function columnas(terminales: boolean): Columna[] {
       }
 
   return [
-    { titulo: 'OC', orden: 'oc', celda: (p) => p.oc_numero },
+    {
+      titulo: 'OC',
+      orden: 'oc',
+      // La OC abre el detalle (`US-20`).
+      celda: (p) => (
+        <Link
+          to={`/pedidos/${p.id}`}
+          className="underline decoration-slate-500 underline-offset-2 hover:text-white hover:decoration-white"
+        >
+          {p.oc_numero}
+        </Link>
+      ),
+    },
     { titulo: 'POS', celda: (p) => p.posicion_oc },
     {
       titulo: 'Material',

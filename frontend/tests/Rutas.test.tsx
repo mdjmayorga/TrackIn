@@ -37,6 +37,9 @@ vi.mock('@/services/health', () => ({
   }),
 }))
 
+/** El dashboard se carga en diferido: la primera vez tarda más de un segundo en jsdom. */
+const CARGA_DIFERIDA = { timeout: 5000 }
+
 function montar(ruta = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
@@ -68,19 +71,23 @@ describe('rutas protegidas', () => {
     expect(screen.getByLabelText('Usuario')).toBeInTheDocument()
   })
 
-  it('con sesión, entra al dashboard y muestra quién es', () => {
+  it('con sesión, entra al dashboard y muestra quién es', async () => {
     guardarSesion({ token: 't', usuario: USUARIO, recordada: false })
     montar('/')
 
-    expect(screen.getByRole('heading', { name: /Panel de Control Logístico/ })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: /Panel de Control Logístico/ }, CARGA_DIFERIDA),
+    ).toBeInTheDocument()
     expect(screen.getByText('COMPRAS')).toBeInTheDocument()
   })
 
-  it('una ruta desconocida vuelve al inicio', () => {
+  it('una ruta desconocida vuelve al inicio', async () => {
     guardarSesion({ token: 't', usuario: USUARIO, recordada: false })
     montar('/no-existe')
 
-    expect(screen.getByRole('heading', { name: /Panel de Control Logístico/ })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: /Panel de Control Logístico/ }, CARGA_DIFERIDA),
+    ).toBeInTheDocument()
   })
 
   it('cerrar sesión vuelve al login', async () => {
@@ -88,7 +95,9 @@ describe('rutas protegidas', () => {
     vi.spyOn(api, 'post').mockResolvedValue({ data: null })
     montar('/')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Cerrar sesión' }, CARGA_DIFERIDA),
+    )
 
     expect(await screen.findByLabelText('Usuario')).toBeInTheDocument()
     expect(sesionActual()).toBeNull()
@@ -107,7 +116,7 @@ describe('pantalla de login', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
     expect(
-      await screen.findByRole('heading', { name: /Panel de Control Logístico/ }),
+      await screen.findByRole('heading', { name: /Panel de Control Logístico/ }, CARGA_DIFERIDA),
     ).toBeInTheDocument()
   })
 
@@ -148,11 +157,13 @@ describe('pantalla de login', () => {
     expect(screen.getByText(/Pida al Administrador/)).toBeInTheDocument()
   })
 
-  it('con sesión ya abierta, el login no se muestra', () => {
+  it('con sesión ya abierta, el login no se muestra', async () => {
     guardarSesion({ token: 't', usuario: USUARIO, recordada: false })
     montar('/login')
 
-    expect(screen.getByRole('heading', { name: /Panel de Control Logístico/ })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: /Panel de Control Logístico/ }, CARGA_DIFERIDA),
+    ).toBeInTheDocument()
   })
 })
 

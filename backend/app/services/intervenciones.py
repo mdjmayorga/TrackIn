@@ -63,7 +63,8 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.pedido_transito import PedidoTransito
-from app.services import auditoria, dias_habiles, estado, parametros, recalculo
+from app.services import asociacion, auditoria, dias_habiles, estado, parametros, recalculo
+from app.services.referencia import ResultadoReferencia
 
 logger = logging.getLogger(__name__)
 
@@ -473,9 +474,60 @@ async def ajustar_fecha(
     return pedido
 
 
+class ReferenciaInvalida(ValueError):
+    """La referencia no pasa la validación de `TASK-30`: formato o dígito de control."""
+
+
+async def asociar_identificador(
+    sesion: AsyncSession,
+    id_pedido: int,
+    *,
+    tipo: str,
+    numero: str,
+    motivo: str,
+    id_usuario: int,
+    instante: dt.datetime | None = None,
+) -> ResultadoReferencia:
+    """Asocia la referencia de embarque a un pedido sin ella (`US-20`, §4.7). **No hace commit.**
+
+    Es la entrada manual para lo que la carga hace desde las columnas de
+    referencia del Z-tracking: el mismo servicio (`asociacion`), con usuario y
+    motivo para RF-14. Solo para pedidos **sin** identificador: cambiar el de
+    un pedido que ya lo tiene es un transbordo (`US-30`), que conserva el tramo
+    anterior; reemplazarlo aquí lo borraría del historial.
+    """
+    ahora = instante or dt.datetime.now(dt.UTC)
+    motivo = auditoria.validar_motivo(motivo)
+    pedido = await _pedido(sesion, id_pedido)
+    if pedido.id_elemento_rastreado is not None:
+        raise IntervencionRechazada(
+            "El pedido ya tiene identificador de rastreo. Cambiarlo es un transbordo "
+            "(US-30), que conserva el tramo anterior."
+        )
+
+    resultado = await asociacion.asociar_referencia(
+        sesion, pedido, tipo, numero, id_usuario=id_usuario, motivo=motivo
+    )
+    if not resultado.valida:
+        raise ReferenciaInvalida(resultado.motivo)
+
+    # Sale de `SIN_TRACKING`: el estado y la fecha se rehacen con el vínculo.
+    await recalculo.recalcular(sesion, pedido, instante=ahora)
+    await sesion.flush()
+    logger.info(
+        "Pedido %s: referencia %s:%s asociada a mano.",
+        pedido.tracking_interno,
+        resultado.tipo,
+        resultado.numero,
+    )
+    return resultado
+
+
 __all__ = [
     "RecepcionIncompleta",
+    "ReferenciaInvalida",
     "ajustar_fecha",
+    "asociar_identificador",
     "ZONA_CR",
     "estimar_liberacion",
     "liberar_calidad",

@@ -8,3 +8,28 @@ export const PUEDEN_CARGAR: readonly Rol[] = ['COMPRAS', 'ADMINISTRADOR']
 export function puedeCargar(rol: Rol | undefined): boolean {
   return rol !== undefined && PUEDEN_CARGAR.includes(rol)
 }
+
+/** Asociar el identificador de rastreo (`US-20`): `requiere_rol(LOGISTICA, COMPRAS)`. */
+export const PUEDEN_ASOCIAR: readonly Rol[] = ['LOGISTICA', 'COMPRAS', 'ADMINISTRADOR']
+
+export function puedeAsociar(rol: Rol | undefined): boolean {
+  return rol !== undefined && PUEDEN_ASOCIAR.includes(rol)
+}
+
+/**
+ * Las intervenciones del detalle (`US-60`), con los roles de su endpoint. El
+ * Administrador puede todas (`requiere_rol` lo deja pasar siempre).
+ */
+export const ROLES_ACCION = {
+  desembarco: ['LOGISTICA', 'ADMINISTRADOR'],
+  aduana: ['PLANIFICACION', 'LOGISTICA', 'ADMINISTRADOR'],
+  recepcion: ['LOGISTICA', 'ADMINISTRADOR'],
+  liberacion: ['PLANIFICACION', 'LOGISTICA', 'ADMINISTRADOR'],
+  ajuste: ['LOGISTICA', 'ADMINISTRADOR'],
+} as const satisfies Record<string, readonly Rol[]>
+
+export type Accion = keyof typeof ROLES_ACCION
+
+export function puedeIntervenir(accion: Accion, rol: Rol | undefined): boolean {
+  return rol !== undefined && (ROLES_ACCION[accion] as readonly Rol[]).includes(rol)
+}

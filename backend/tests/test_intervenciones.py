@@ -297,6 +297,26 @@ async def test_tras_el_desembarco_se_pasa_a_aduana(api, sesion) -> None:
     assert tipos == ["CONFIRMACION_DESEMBARCO", "PASO_A_ADUANAL"]
 
 
+@pytest.mark.parametrize(
+    ("rol", "esperado"), [("PLANIFICACION", 200), ("LOGISTICA", 200), ("COMPRAS", 403)]
+)
+async def test_pasa_a_aduana_planificacion_o_logistica(api, sesion, rol, esperado) -> None:
+    """Planificación ejecuta el paso a aduana (04/09; `US-43`, `US-48`)."""
+    cliente, como = api
+    pedido = await _pedido(sesion)
+    await cliente.post(
+        _url(pedido, "desembarco"), json={"ata": LLEGADA.isoformat(), "motivo": MOTIVO}
+    )
+    if rol != "LOGISTICA":  # la prueba ya empieza como Logística
+        await como(rol)
+
+    respuesta = await cliente.post(
+        _url(pedido, "paso-aduanal"), json={"motivo": "Documentos entregados al agente"}
+    )
+
+    assert respuesta.status_code == esperado
+
+
 async def test_si_el_arribo_lo_dio_la_fuente_no_hace_falta_confirmarlo(api, sesion) -> None:
     cliente, _ = api
     pedido = await _rastreado(sesion, etapa="EN_DESTINO", ata_api=LLEGADA)
@@ -871,3 +891,102 @@ async def test_solo_logistica_ajusta(api, sesion) -> None:
     respuesta = await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(3))
 
     assert respuesta.status_code == 403
+
+
+# --- US-20: asociar el identificador de rastreo -------------------------------------
+
+MOTIVO_REFERENCIA = "El agente envió el BL por correo; no venía en el Z-tracking"
+
+
+async def test_asociar_saca_al_pedido_de_sin_tracking_y_queda_auditado(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _pedido(sesion)
+
+    respuesta = await cliente.post(
+        _url(pedido, "referencia"),
+        json={"tipo": "BL", "numero": "cosu 6508789000", "motivo": MOTIVO_REFERENCIA},
+    )
+
+    assert respuesta.status_code == 200, respuesta.text
+    detalle = respuesta.json()
+    assert detalle["rastreable"] is True
+    assert detalle["rastreo"]["tipo"] == "BL"
+    assert detalle["rastreo"]["referencia"] == "COSU6508789000"  # normalizada
+    assert detalle["etapa_viaje"] == "EN_ORIGEN"
+    asiento = await sesion.scalar(
+        select(AuditoriaIntervencion).where(AuditoriaIntervencion.id_pedido == pedido.id)
+    )
+    assert asiento.tipo_intervencion == "ASOCIACION_TRACKING"
+    assert asiento.valor_nuevo == "BL:COSU6508789000"
+    assert asiento.motivo == MOTIVO_REFERENCIA
+
+
+async def test_si_ya_tiene_identificador_cambiarlo_es_un_transbordo(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _rastreado(sesion)
+
+    respuesta = await cliente.post(
+        _url(pedido, "referencia"),
+        json={"tipo": "BL", "numero": "COSU6508789000", "motivo": MOTIVO_REFERENCIA},
+    )
+
+    assert respuesta.status_code == 409
+    assert "transbordo" in respuesta.json()["detail"]
+
+
+async def test_una_referencia_con_digito_de_control_malo_no_se_asocia(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _pedido(sesion)
+
+    respuesta = await cliente.post(
+        _url(pedido, "referencia"),
+        # El dígito de control de MRSU813249 es 0, no 1.
+        json={"tipo": "CONTENEDOR", "numero": "MRSU8132491", "motivo": MOTIVO_REFERENCIA},
+    )
+
+    assert respuesta.status_code == 422
+    await sesion.refresh(pedido)
+    assert pedido.id_elemento_rastreado is None
+    assert pedido.etapa_viaje == "SIN_TRACKING"
+
+
+@pytest.mark.parametrize(
+    ("datos", "esperado"),
+    [
+        ({"tipo": "BL", "numero": "COSU6508789000", "motivo": "x"}, 422),
+        ({"tipo": "BL", "numero": "COSU6508789000"}, 422),
+        ({"tipo": "VUELO", "numero": "AA123", "motivo": MOTIVO_REFERENCIA}, 422),
+        ({"tipo": "BL", "numero": "", "motivo": MOTIVO_REFERENCIA}, 422),
+    ],
+)
+async def test_datos_incompletos_se_rechazan(api, sesion, datos, esperado) -> None:
+    cliente, _ = api
+    pedido = await _pedido(sesion)
+
+    assert (await cliente.post(_url(pedido, "referencia"), json=datos)).status_code == esperado
+
+
+async def test_un_pedido_cerrado_no_admite_asociacion(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _pedido(sesion, estado_calculado="CANCELADO", motivo_cierre="CANCELACION")
+
+    respuesta = await cliente.post(
+        _url(pedido, "referencia"),
+        json={"tipo": "BL", "numero": "COSU6508789000", "motivo": MOTIVO_REFERENCIA},
+    )
+
+    assert respuesta.status_code == 409
+
+
+@pytest.mark.parametrize(("rol", "esperado"), [("COMPRAS", 200), ("PLANIFICACION", 403)])
+async def test_asocian_logistica_y_compras(api, sesion, rol, esperado) -> None:
+    cliente, como = api
+    await como(rol)
+    pedido = await _pedido(sesion)
+
+    respuesta = await cliente.post(
+        _url(pedido, "referencia"),
+        json={"tipo": "MAWB", "numero": "02050685434", "motivo": MOTIVO_REFERENCIA},
+    )
+
+    assert respuesta.status_code == esperado
