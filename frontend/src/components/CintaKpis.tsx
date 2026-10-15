@@ -9,6 +9,7 @@
 
 import { useIndicadores } from '@/hooks/usePedidos'
 import type { IndicadoresKpi, Porcentaje } from '@/types/api'
+import type { FiltrosPanel } from '@/utils/filtros'
 import { formatearDias, formatearPorcentaje } from '@/utils/formatos'
 
 interface Recuadro {
@@ -32,8 +33,8 @@ function recuadros(kpi: IndicadoresKpi | undefined): Recuadro[] {
   ]
 }
 
-export function CintaKpis() {
-  const { data, isError } = useIndicadores()
+export function CintaKpis({ filtros }: { filtros?: FiltrosPanel }) {
+  const { data, isError } = useIndicadores(filtros)
 
   return (
     <section aria-label="Indicadores de los pedidos activos">

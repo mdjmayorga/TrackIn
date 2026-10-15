@@ -106,6 +106,8 @@ export interface GrillaPedidosProps {
   actualizando?: boolean
   /** Se filtra por un estado terminal: cambia la columna de fecha. */
   terminales?: boolean
+  /** Qué decir cuando no hay filas; por omisión, «No hay pedidos que mostrar». */
+  vacio?: ReactNode
 }
 
 export function GrillaPedidos({
@@ -115,6 +117,7 @@ export function GrillaPedidos({
   onPaginar,
   actualizando = false,
   terminales = false,
+  vacio,
 }: GrillaPedidosProps) {
   const cols = columnas(terminales)
   const columnaActual = orden.replace(/^-/, '')
@@ -183,7 +186,7 @@ export function GrillaPedidos({
             {pagina && pagina.items.length === 0 && (
               <tr>
                 <td colSpan={cols.length} className="px-3 py-8 text-center text-slate-400">
-                  No hay pedidos que mostrar.
+                  {vacio ?? 'No hay pedidos que mostrar.'}
                 </td>
               </tr>
             )}

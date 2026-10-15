@@ -196,7 +196,7 @@ describe('servicio', () => {
     await real.obtenerIndicadores()
     await real.obtenerProximosArribos()
 
-    expect(get).toHaveBeenNthCalledWith(1, '/api/v1/pedidos/indicadores')
-    expect(get).toHaveBeenNthCalledWith(2, '/api/v1/pedidos/proximos-arribos')
+    expect(get).toHaveBeenNthCalledWith(1, '/api/v1/pedidos/indicadores', { params: {} })
+    expect(get).toHaveBeenNthCalledWith(2, '/api/v1/pedidos/proximos-arribos', { params: {} })
   })
 })

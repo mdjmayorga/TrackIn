@@ -20,7 +20,7 @@ export const ETAPAS: Record<EtapaVisible, Apariencia> = {
   EN_TRANSITO: { texto: 'En Tránsito', clases: 'bg-estado-transito text-white' },
   EN_DESTINO: { texto: 'En Destino', clases: 'bg-estado-destino text-white' },
   EN_PROCESO_ADUANAL: { texto: 'P. Aduanal', clases: 'bg-estado-aduanal text-white' },
-  // Sin color en el SRS ni en el Figma: provisional hasta validarlo en `US-24`.
+  // Sin color en el SRS ni en el Figma: el café quedó definitivo el 14/10 (`US-24`).
   RECIBIDO_EN_PLANTA: { texto: 'Recibido', clases: 'bg-estado-recibido text-white' },
   // Validado el 01/09: blanco con letras negras, y contorno para no perderse.
   CERRADO: { texto: 'Cerrado', clases: 'bg-white text-black ring-1 ring-slate-400' },
