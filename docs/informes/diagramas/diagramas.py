@@ -54,26 +54,26 @@ def guardar(fig, nombre):
 # ---------------------------------------------------------------- 1. Arquitectura conceptual
 fig, ax = lienzo(16, 9.6)
 caja(ax, 0.3, 8.35, 15.4, 1.0, "Usuarios de Laboratorios Gutis",
-     "Compras  |  Logística  |  Planificación de Producción  ·  Administrador  ·  Pantalla de planta (solo lectura)", AZUL, fsb=9)
-grupo(ax, 0.3, 6.45, 15.4, 1.6, "Capa de presentación · navegador")
-caja(ax, 0.6, 6.6, 14.8, 1.05, "Aplicación web (SPA) · React + TypeScript + Vite + Tailwind + Leaflet",
-     "Login · dashboard con KPIs, grilla, filtros y próximos arribos · mapas marítimo y aéreo · detalle del pedido · carga del Z-tracking · administración",
+     "Compras  |  Logística  |  Planificación de Producción  |  Administrador  |  Pantalla de planta (solo lectura)", AZUL, fsb=9)
+grupo(ax, 0.3, 6.45, 15.4, 1.6, "Capa de presentación | navegador")
+caja(ax, 0.6, 6.6, 14.8, 1.05, "Aplicación web (SPA) | React + TypeScript + Vite + Tailwind + Leaflet",
+     "Login | dashboard con KPIs, grilla, filtros y próximos arribos | mapas marítimo y aéreo | detalle del pedido | carga del Z-tracking | administración",
      AZUL2, fsb=8.6)
 flecha(ax, (8, 8.35), (8, 7.67), "HTTPS", off=(0.55, -0.25))
-grupo(ax, 0.3, 3.2, 9.6, 2.95, "Proceso 1 · API REST (FastAPI, uvicorn)")
-caja(ax, 0.6, 4.55, 4.4, 1.1, "Seguridad", "Sesión por token · roles · bloqueo\npor intentos · expiración por inactividad", VERDE, fsb=7.8)
-caja(ax, 5.2, 4.55, 4.4, 1.1, "Routers /api/v1", "pedidos · destinos · usuarios\nauth · cargas · health · OpenAPI", VERDE, fsb=7.8)
+grupo(ax, 0.3, 3.2, 9.6, 2.95, "Proceso 1 | API REST (FastAPI, uvicorn)")
+caja(ax, 0.6, 4.55, 4.4, 1.1, "Seguridad", "Sesión por token | roles | bloqueo\npor intentos | expiración por inactividad", VERDE, fsb=7.8)
+caja(ax, 5.2, 4.55, 4.4, 1.1, "Routers /api/v1", "pedidos | destinos | usuarios\nauth | cargas | health | OpenAPI", VERDE, fsb=7.8)
 caja(ax, 0.6, 3.35, 9.0, 0.95, "Servicios de dominio",
-     "consulta de pedidos · intervenciones manuales y auditoría · recálculo de fecha y estado · maestros · parámetros", VERDE, fsb=7.8)
+     "consulta de pedidos | intervenciones manuales y auditoría | recálculo de fecha y estado | maestros | parámetros", VERDE, fsb=7.8)
 flecha(ax, (5.0, 6.6), (5.0, 5.67), "JSON", off=(0.45, -0.2))
-grupo(ax, 10.2, 3.2, 5.5, 2.95, "Proceso 2 · Worker de rastreo (asyncio)")
-caja(ax, 10.45, 4.55, 5.0, 1.1, "Planificador y colectores", "ShipsGo (marítimo y aéreo) · TICA (guía hija)\nAISStream (respaldo del mapa)", OCRE, fsb=7.8)
-caja(ax, 10.45, 3.35, 5.0, 0.95, "Motor de cálculo", "arribo · ETA · fecha proyectada · etapa y cumplimiento", OCRE, fsb=7.8)
+grupo(ax, 10.2, 3.2, 5.5, 2.95, "Proceso 2 | Worker de rastreo (asyncio)")
+caja(ax, 10.45, 4.55, 5.0, 1.1, "Planificador y colectores", "ShipsGo (marítimo y aéreo) | TICA (guía hija)\nAISStream (respaldo del mapa)", OCRE, fsb=7.8)
+caja(ax, 10.45, 3.35, 5.0, 0.95, "Motor de cálculo", "arribo | ETA | fecha proyectada | etapa y cumplimiento", OCRE, fsb=7.8)
 flecha(ax, (12.95, 4.55), (12.95, 4.32))
 caja(ax, 3.0, 0.75, 10.0, 1.35, "PostgreSQL 16 + PostGIS 3",
-     "15 tablas · pedidos en tránsito, elementos rastreados, historial inmutable de posiciones,\nmaestros, auditoría inmutable, usuarios y sesiones, parámetros, salud de fuentes",
+     "15 tablas | pedidos en tránsito, elementos rastreados, historial inmutable de posiciones,\nmaestros, auditoría inmutable, usuarios y sesiones, parámetros, salud de fuentes",
      MORADO, fsb=8.4)
-flecha(ax, (5.1, 3.35), (5.6, 2.12), "SQLAlchemy · lectura y escritura", off=(1.75, -0.12))
+flecha(ax, (5.1, 3.35), (5.6, 2.12), "SQLAlchemy | lectura y escritura", off=(1.75, -0.12))
 flecha(ax, (12.95, 3.35), (11.6, 2.12), "lecturas y estados", off=(-1.3, -0.12))
 caja(ax, 0.3, 0.05, 2.45, 2.6, "Entrada", "Archivo\nZ-tracking\n(Excel) que\nCompras\nexporta de SAP", VERDE, fsb=7.8)
 caja(ax, 13.25, 0.05, 2.45, 2.6, "Fuentes", "API de ShipsGo\nTICA (Hacienda)\nAISStream", OCRE, fsb=7.8)
@@ -84,12 +84,12 @@ guardar(fig, "arquitectura.png")
 # ---------------------------------------------------------------- 2. Subsistemas
 fig, ax = lienzo(16, 6.6)
 S = [
-    (0.3, 4.1, "S1 · Ingesta de pedidos", "Lector del Z-tracking, normalización\ncontra catálogos (RN-17), carga\nidempotente, ausencias e informe", VERDE),
-    (5.55, 4.1, "S2 · Rastreo", "Planificador, colectores de ShipsGo,\nTICA y AISStream, política de\nresiliencia y salud de las fuentes", OCRE),
-    (10.8, 4.1, "S3 · Motor de cálculo", "Arribo por hito o geocerca, ETA,\nfecha proyectada (RN-01), etapa\ny cumplimiento, recálculo", OCRE),
-    (0.3, 1.0, "S6 · Seguridad", "Usuarios, roles, sesiones por token,\nbloqueo por intentos, expiración\npor inactividad, argon2id", VERDE),
-    (5.55, 1.0, "S5 · Consulta y maestros", "Listado con filtros y paginación,\ndetalle con desglose del cálculo,\ndestinos y parámetros", AZUL2),
-    (10.8, 1.0, "S4 · Intervenciones y auditoría", "Desembarco, paso a aduana, recepción,\ncierre forzado, liberación de Calidad,\najuste manual; bitácora inmutable", MORADO),
+    (0.3, 4.1, "S1 - Ingesta de pedidos", "Lector del Z-tracking, normalización\ncontra catálogos (RN-17), carga\nidempotente, ausencias e informe", VERDE),
+    (5.55, 4.1, "S2 - Rastreo", "Planificador, colectores de ShipsGo,\nTICA y AISStream, política de\nresiliencia y salud de las fuentes", OCRE),
+    (10.8, 4.1, "S3 - Motor de cálculo", "Arribo por hito o geocerca, ETA,\nfecha proyectada (RN-01), etapa\ny cumplimiento, recálculo", OCRE),
+    (0.3, 1.0, "S6 - Seguridad", "Usuarios, roles, sesiones por token,\nbloqueo por intentos, expiración\npor inactividad, argon2id", VERDE),
+    (5.55, 1.0, "S5 - Consulta y maestros", "Listado con filtros y paginación,\ndetalle con desglose del cálculo,\ndestinos y parámetros", AZUL2),
+    (10.8, 1.0, "S4 - Intervenciones y auditoría", "Desembarco, paso a aduana, recepción,\ncierre forzado, liberación de Calidad,\najuste manual; bitácora inmutable", MORADO),
 ]
 for x, y, t, c, col in S:
     caja(ax, x, y, 4.9, 1.95, t, c, col, fs=10.5, fsb=8.6)
@@ -104,10 +104,10 @@ guardar(fig, "subsistemas.png")
 
 # ---------------------------------------------------------------- 3. Despliegue
 fig, ax = lienzo(16, 8.2)
-grupo(ax, 0.3, 0.3, 10.6, 7.5, "Equipo de desarrollo · Windows 11 · sin permisos de administrador")
+grupo(ax, 0.3, 0.3, 10.6, 7.5, "Equipo de desarrollo | Windows 11 | sin permisos de administrador")
 caja(ax, 0.7, 5.8, 3.0, 1.4, "Navegador", "localhost:5173", AZUL2, fsb=8.5)
 caja(ax, 4.2, 5.8, 3.0, 1.4, "Vite dev server", "puerto 5173 · npm run dev", AZUL2, fsb=8.5)
-caja(ax, 0.7, 3.3, 3.0, 1.6, "API · uvicorn", "puerto 8000\napp.main:app", VERDE, fsb=8.5)
+caja(ax, 0.7, 3.3, 3.0, 1.6, "API | uvicorn", "puerto 8000\napp.main:app", VERDE, fsb=8.5)
 caja(ax, 7.55, 3.3, 3.0, 1.6, "Worker de rastreo", "python -m app.workers\nsin puerto", OCRE, fsb=8.5)
 caja(ax, 4.2, 3.3, 3.0, 1.6, "Pruebas (pytest)", "base trackin_test\nseparada", GRIS, fsb=8.5)
 caja(ax, 2.2, 0.7, 6.6, 1.5, "PostgreSQL 16.14 + PostGIS 3.6.2", "puerto 5432 · binarios portables en ~/pgsql\nbases trackin_dev y trackin_test", MORADO, fsb=8.5)
@@ -116,7 +116,7 @@ flecha(ax, (2.2, 5.8), (2.2, 4.92), "HTTP / JSON", off=(-0.95, -0.1))
 flecha(ax, (2.2, 3.3), (3.6, 2.22))
 flecha(ax, (5.7, 3.3), (5.5, 2.22))
 flecha(ax, (9.05, 3.3), (7.6, 2.22))
-grupo(ax, 11.3, 0.3, 4.4, 7.5, "Internet · salida desde la red de Gutis")
+grupo(ax, 11.3, 0.3, 4.4, 7.5, "Internet | salida desde la red de Gutis")
 caja(ax, 11.6, 5.6, 3.8, 1.5, "API de ShipsGo", "REST · token · créditos por alta", OCRE, fsb=8.2)
 caja(ax, 11.6, 3.5, 3.8, 1.5, "TICA · Hacienda", "consulta pública de\nconocimientos de embarque", OCRE, fsb=8.2)
 caja(ax, 11.6, 1.4, 3.8, 1.5, "AISStream", "WebSocket · plan gratuito", OCRE, fsb=8.2)
