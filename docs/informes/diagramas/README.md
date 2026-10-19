@@ -10,13 +10,15 @@ matplotlib; para corregir un texto se edita el script y se vuelve a correr.
 
 ## Cómo regenerarlos
 
-Requiere Python con matplotlib (en este equipo, el Python 3.12):
+Requiere Python con matplotlib (en este equipo, el Python 3.12). En PowerShell:
 
-```bash
-cd docs/informes/diagramas
-"$LOCALAPPDATA/Programs/Python/Python312/python.exe" diagramas.py
-"$LOCALAPPDATA/Programs/Python/Python312/python.exe" cronograma.py
+```powershell
+cd docs\informes\diagramas
+& "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe" diagramas.py
+& "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe" cronograma.py
 ```
+
+En Git Bash, la misma ruta se escribe `"$LOCALAPPDATA/Programs/Python/Python312/python.exe"`, sin el `&`.
 
 Después, en Word: clic derecho sobre la figura → **Cambiar imagen** → **Desde un archivo**, y
 elegir el PNG nuevo de `img/`. Así se conservan el tamaño y la leyenda.

@@ -82,44 +82,57 @@ flecha(ax, (14.47, 2.65), (14.2, 3.2), "", ls=(0, (3, 2)))
 guardar(fig, "arquitectura.png")
 
 # ---------------------------------------------------------------- 2. Subsistemas
-fig, ax = lienzo(16, 6.6)
+# Para separar o juntar las cajas, cambiar solo estas tres medidas:
+ANCHO = 4.9   # ancho de cada caja
+ALTO = 1.95   # alto de cada caja
+SEP = 1.6     # espacio horizontal entre cajas (donde van los mensajes de las flechas)
+X = [0.3, 0.3 + ANCHO + SEP, 0.3 + 2 * (ANCHO + SEP)]   # columnas
+Y_ARRIBA, Y_ABAJO = 4.1, 1.0                              # filas
+fig, ax = lienzo(X[2] + ANCHO + 0.3, 6.6)
 S = [
-    (0.3, 4.1, "S1 - Ingesta de pedidos", "Lector del Z-tracking, normalización\ncontra catálogos (RN-17), carga\nidempotente, ausencias e informe", VERDE),
-    (5.55, 4.1, "S2 - Rastreo", "Planificador, colectores de ShipsGo,\nTICA y AISStream, política de\nresiliencia y salud de las fuentes", OCRE),
-    (10.8, 4.1, "S3 - Motor de cálculo", "Arribo por hito o geocerca, ETA,\nfecha proyectada (RN-01), etapa\ny cumplimiento, recálculo", OCRE),
-    (0.3, 1.0, "S6 - Seguridad", "Usuarios, roles, sesiones por token,\nbloqueo por intentos, expiración\npor inactividad, argon2id", VERDE),
-    (5.55, 1.0, "S5 - Consulta y maestros", "Listado con filtros y paginación,\ndetalle con desglose del cálculo,\ndestinos y parámetros", AZUL2),
-    (10.8, 1.0, "S4 - Intervenciones y auditoría", "Desembarco, paso a aduana, recepción,\ncierre forzado, liberación de Calidad,\najuste manual; bitácora inmutable", MORADO),
+    (X[0], Y_ARRIBA, "S1 - Ingesta de pedidos", "Lector del Z-tracking, normalización\ncontra catálogos (RN-17), carga\nidempotente, ausencias e informe", VERDE),
+    (X[1], Y_ARRIBA, "S2 - Rastreo", "Planificador, colectores de ShipsGo,\nTICA y AISStream, política de\nresiliencia y salud de las fuentes", OCRE),
+    (X[2], Y_ARRIBA, "S3 - Motor de cálculo", "Arribo por hito o geocerca, ETA,\nfecha proyectada (RN-01), etapa\ny cumplimiento, recálculo", OCRE),
+    (X[0], Y_ABAJO, "S6 - Seguridad", "Usuarios, roles, sesiones por token,\nbloqueo por intentos, expiración\npor inactividad, argon2id", VERDE),
+    (X[1], Y_ABAJO, "S5 - Consulta y maestros", "Listado con filtros y paginación,\ndetalle con desglose del cálculo,\ndestinos y parámetros", AZUL2),
+    (X[2], Y_ABAJO, "S4 - Intervenciones y auditoría", "Desembarco, paso a aduana, recepción,\ncierre forzado, liberación de Calidad,\najuste manual; bitácora inmutable", MORADO),
 ]
 for x, y, t, c, col in S:
-    caja(ax, x, y, 4.9, 1.95, t, c, col, fs=10.5, fsb=8.6)
-flecha(ax, (5.2, 5.07), (5.55, 5.07))
-ax.text(5.37, 5.35, "referencias\nde embarque", ha="center", fontsize=6.8, color="#374151")
-flecha(ax, (10.45, 5.07), (10.8, 5.07))
-ax.text(10.62, 5.35, "lecturas\nnormalizadas", ha="center", fontsize=6.8, color="#374151")
-flecha(ax, (13.25, 2.95), (13.25, 4.1), "un acto manual dispara el recálculo", off=(1.5, -0.25))
-ax.text(7.9, 0.55, "La seguridad protege las rutas de consulta e intervención · los seis subsistemas comparten la base PostgreSQL + PostGIS",
-        ha="center", fontsize=8, color="#374151", style="italic")
+    caja(ax, x, y, ANCHO, ALTO, t, c, col, fs=10.5, fsb=8.6)
+
+# Flechas horizontales de la fila de arriba, con su mensaje centrado en el hueco
+y_flecha = Y_ARRIBA + ALTO / 2
+for i, mensaje in enumerate(["referencias\nde embarque", "lecturas\nnormalizadas"]):
+    x_ini, x_fin = X[i] + ANCHO, X[i + 1]
+    flecha(ax, (x_ini, y_flecha), (x_fin, y_flecha))
+    ax.text((x_ini + x_fin) / 2, y_flecha + 0.15, mensaje, ha="center", va="bottom", fontsize=7.5, color="#374151")
+
+# Flecha vertical de S4 a S3
+x_vert = X[2] + ANCHO / 2
+flecha(ax, (x_vert, Y_ABAJO + ALTO), (x_vert, Y_ARRIBA))
+ax.text(x_vert + 0.15, (Y_ABAJO + ALTO + Y_ARRIBA) / 2, "un acto manual\ndispara el recálculo", ha="left", va="center", fontsize=7.5, color="#374151")
+
+
 guardar(fig, "subsistemas.png")
 
 # ---------------------------------------------------------------- 3. Despliegue
 fig, ax = lienzo(16, 8.2)
 grupo(ax, 0.3, 0.3, 10.6, 7.5, "Equipo de desarrollo | Windows 11 | sin permisos de administrador")
 caja(ax, 0.7, 5.8, 3.0, 1.4, "Navegador", "localhost:5173", AZUL2, fsb=8.5)
-caja(ax, 4.2, 5.8, 3.0, 1.4, "Vite dev server", "puerto 5173 · npm run dev", AZUL2, fsb=8.5)
+caja(ax, 4.2, 5.8, 3.0, 1.4, "Vite dev server", "puerto 5173, npm run dev", AZUL2, fsb=8.5)
 caja(ax, 0.7, 3.3, 3.0, 1.6, "API | uvicorn", "puerto 8000\napp.main:app", VERDE, fsb=8.5)
 caja(ax, 7.55, 3.3, 3.0, 1.6, "Worker de rastreo", "python -m app.workers\nsin puerto", OCRE, fsb=8.5)
 caja(ax, 4.2, 3.3, 3.0, 1.6, "Pruebas (pytest)", "base trackin_test\nseparada", GRIS, fsb=8.5)
-caja(ax, 2.2, 0.7, 6.6, 1.5, "PostgreSQL 16.14 + PostGIS 3.6.2", "puerto 5432 · binarios portables en ~/pgsql\nbases trackin_dev y trackin_test", MORADO, fsb=8.5)
+caja(ax, 2.2, 0.7, 6.6, 1.5, "PostgreSQL 16.14 + PostGIS 3.6.2", "puerto 5432, binarios portables en ~/pgsql\nbases trackin_dev y trackin_test", MORADO, fsb=8.5)
 flecha(ax, (3.7, 6.5), (4.2, 6.5))
 flecha(ax, (2.2, 5.8), (2.2, 4.92), "HTTP / JSON", off=(-0.95, -0.1))
 flecha(ax, (2.2, 3.3), (3.6, 2.22))
 flecha(ax, (5.7, 3.3), (5.5, 2.22))
 flecha(ax, (9.05, 3.3), (7.6, 2.22))
 grupo(ax, 11.3, 0.3, 4.4, 7.5, "Internet | salida desde la red de Gutis")
-caja(ax, 11.6, 5.6, 3.8, 1.5, "API de ShipsGo", "REST · token · créditos por alta", OCRE, fsb=8.2)
-caja(ax, 11.6, 3.5, 3.8, 1.5, "TICA · Hacienda", "consulta pública de\nconocimientos de embarque", OCRE, fsb=8.2)
-caja(ax, 11.6, 1.4, 3.8, 1.5, "AISStream", "WebSocket · plan gratuito", OCRE, fsb=8.2)
+caja(ax, 11.6, 5.6, 3.8, 1.5, "API de ShipsGo", "REST, token, créditos por alta", OCRE, fsb=8.2)
+caja(ax, 11.6, 3.5, 3.8, 1.5, "TICA (Hacienda)", "consulta pública de\nconocimientos de embarque", OCRE, fsb=8.2)
+caja(ax, 11.6, 1.4, 3.8, 1.5, "AISStream", "WebSocket, plan gratuito", OCRE, fsb=8.2)
 flecha(ax, (10.55, 4.6), (11.6, 6.3), "HTTPS", off=(-0.35, 0.05))
 flecha(ax, (10.55, 4.1), (11.6, 4.25))
 flecha(ax, (10.55, 3.6), (11.6, 2.2), "wss", off=(-0.25, 0))
@@ -140,7 +153,7 @@ pasos = [
     (1, 4, "5. historial inmutable + posición actual", 6.8),
     (1, 3, "6. elemento actualizado", 6.25),
     (3, 4, "7. pedidos del elemento y parámetros", 5.7),
-    (3, 3, "8. arribo · ETA · fecha proyectada · etapa · cumplimiento", 5.15),
+    (3, 3, "8. arribo, ETA, fecha proyectada, etapa y cumplimiento", 5.15),
     (3, 4, "9. actualiza cada pedido (aislado ante fallos)", 4.6),
     (1, 4, "10. salud de la fuente", 4.05),
     (6, 5, "11. GET /api/v1/pedidos con filtros", 3.0),
@@ -155,9 +168,9 @@ for a, b, t, y in pasos:
     else:
         flecha(ax, (xs[a], y), (xs[b], y), t, color=AZUL if b >= a else VERDE, fs=7.4, off=(0, 0.03))
 ax.add_patch(FancyBboxPatch((0.15, 3.65), 15.7, 5.62, boxstyle="round,pad=0.02", fc="#FBF7EE", ec=OCRE, lw=0.8, zorder=-1))
-ax.text(0.3, 9.18, "Proceso 2 · worker, cada ciclo", fontsize=8, color=OCRE, style="italic", fontweight="bold")
+ax.text(0.3, 9.18, "Proceso 2 - worker, cada ciclo", fontsize=8, color=OCRE, style="italic", fontweight="bold")
 ax.add_patch(FancyBboxPatch((0.15, 1.45), 15.7, 1.95, boxstyle="round,pad=0.02", fc="#EEF4FA", ec=AZUL2, lw=0.8, zorder=-1))
-ax.text(0.3, 3.15, "Proceso 1 · API, a petición del usuario", fontsize=8, color=AZUL2, style="italic", fontweight="bold")
+ax.text(0.3, 3.15, "Proceso 1 - API, a petición del usuario", fontsize=8, color=AZUL2, style="italic", fontweight="bold")
 guardar(fig, "secuencia.png")
 
 # ---------------------------------------------------------------- 5. Estados del pedido
@@ -178,32 +191,32 @@ ax.text(10.5, 1.5, "CANCELADO", ha="center", va="center", fontsize=8, fontweight
 ax.text(10.5, 0.25, "anulación de la OC antes de la recepción\n(desde cualquier etapa no terminal)", ha="center", fontsize=7, color="#374151")
 for x in (1.3, 3.5, 5.8, 8.0, 10.3, 12.5):
     flecha(ax, (x, 3.6), (10.5, 2.02), ls=(0, (2, 2)), color="#6B7280")
-ax.text(0.3, 5.75, "Dimensión 1 · etapa del viaje (solo avanza)", fontsize=10, fontweight="bold", color=AZUL)
-ax.text(0.3, 2.3, "Dimensión 2 · cumplimiento\nA_TIEMPO · EN_RIESGO · RETRASADO\no sin proyección (fecha proyectada frente\na la fecha de llegada a Gutis)",
+ax.text(0.3, 5.75, "Dimensión 1 - etapa del viaje (solo avanza)", fontsize=10, fontweight="bold", color=AZUL)
+ax.text(0.3, 2.3, "Dimensión 2 - cumplimiento\nA_TIEMPO, EN_RIESGO, RETRASADO\no sin proyección (fecha proyectada frente\na la fecha de llegada a Gutis)",
         fontsize=8.8, color=ROJO, va="top", fontweight="bold")
 guardar(fig, "estados.png")
 
 # ---------------------------------------------------------------- 6. ER
 T = {
-    "pedidos_transito": (["PK id", "oc_numero · posicion_oc", "FK id_proveedor", "FK id_material", "FK id_destino", "FK id_pais_origen",
-                          "FK id_elemento_rastreado", "via_transporte · incoterm", "fecha_entrega_pedido", "eta_utilizada · ata_confirmada",
-                          "fecha_proyectada_disponible", "etapa_viaje · estado_cumplimiento", "fecha_recepcion_planta", "fecha_liberacion_calidad",
-                          "ausente_desde · … (40 col.)"], (5.6, 4.6), AZUL),
-    "elementos_rastreados": (["PK id", "tipo_tracking_externo", "tracking_externo", "via_transporte · nombre · imo", "eta_api · ata_api",
-                              "posicion_actual (geography)", "guia_madre · manifiesto_aduana", "activo"], (11.2, 7.3), OCRE),
-    "pedido_elemento_rastreado": (["PK id", "FK id_pedido", "FK id_elemento_rastreado", "tramo · fecha_desde · fecha_hasta", "puerto_transbordo"], (11.2, 3.75), OCRE),
-    "historial_tracking": (["PK id", "FK id_elemento_rastreado", "fecha_registro", "posicion (geography)", "velocidad · rumbo · estado_api", "payload_api (JSONB)"], (15.6, 7.3), OCRE),
-    "maestro_destinos": (["PK id", "codigo (UN/LOCODE) · nombre", "via_transporte", "ubicacion (geography)", "radio_geocerca_km", "lead_time_dias"], (0.3, 9.0), VERDE),
-    "proveedores": (["PK id", "codigo · nombre · pais"], (0.3, 6.2), VERDE),
-    "materiales": (["PK id", "codigo · descripcion", "unidad_medida"], (0.3, 4.7), VERDE),
-    "maestro_paises": (["PK id", "codigo · nombre"], (0.3, 2.9), VERDE),
+    "pedidos_transito": (["PK id", "oc_numero, posicion_oc", "FK id_proveedor", "FK id_material", "FK id_destino", "FK id_pais_origen",
+                          "FK id_elemento_rastreado", "via_transporte, incoterm", "fecha_entrega_pedido", "eta_utilizada, ata_confirmada",
+                          "fecha_proyectada_disponible", "etapa_viaje, estado_cumplimiento", "fecha_recepcion_planta", "fecha_liberacion_calidad",
+                          "ausente_desde, … (40 col.)"], (5.6, 4.6), AZUL),
+    "elementos_rastreados": (["PK id", "tipo_tracking_externo", "tracking_externo", "via_transporte, nombre, imo", "eta_api, ata_api",
+                              "posicion_actual (geography)", "guia_madre, manifiesto_aduana", "activo"], (11.2, 7.3), OCRE),
+    "pedido_elemento_rastreado": (["PK id", "FK id_pedido", "FK id_elemento_rastreado", "tramo, fecha_desde, fecha_hasta", "puerto_transbordo"], (11.2, 3.75), OCRE),
+    "historial_tracking": (["PK id", "FK id_elemento_rastreado", "fecha_registro", "posicion (geography)", "velocidad, rumbo, estado_api", "payload_api (JSONB)"], (15.6, 7.3), OCRE),
+    "maestro_destinos": (["PK id", "codigo (UN/LOCODE), nombre", "via_transporte", "ubicacion (geography)", "radio_geocerca_km", "lead_time_dias"], (0.3, 9.0), VERDE),
+    "proveedores": (["PK id", "codigo, nombre, pais"], (0.3, 6.2), VERDE),
+    "materiales": (["PK id", "codigo, descripcion", "unidad_medida"], (0.3, 4.7), VERDE),
+    "maestro_paises": (["PK id", "codigo, nombre"], (0.3, 2.9), VERDE),
     "alias_paises": (["PK id", "FK id_pais", "alias"], (0.3, 1.0), VERDE),
-    "auditoria_intervenciones": (["PK id", "FK id_pedido", "FK id_usuario", "fecha_hora · tipo_intervencion", "campo · valor anterior y nuevo", "motivo"], (5.6, 0.2), MORADO),
-    "usuarios": (["PK id", "usuario · correo · rol", "hash_contrasena (argon2id)", "intentos_fallidos · bloqueado_hasta"], (11.2, 0.6), MORADO),
-    "sesiones": (["PK id", "FK id_usuario", "hash_token · recordada", "ultimo_uso · cerrada_en"], (15.6, 0.6), MORADO),
-    "parametros_sistema": (["PK clave", "valor · tipo_dato", "FK id_usuario_modificacion"], (15.6, 4.0), GRIS),
-    "salud_fuentes": (["PK nombre", "degradada · fallos_consecutivos", "ultimo_contacto_ok"], (15.6, 10.6), GRIS),
-    "cargas_ztracking": (["PK id", "FK id_usuario → usuarios", "archivo · estado", "recibidas · insertadas · rechazadas", "informe (JSONB)"], (5.6, 10.3), GRIS),
+    "auditoria_intervenciones": (["PK id", "FK id_pedido", "FK id_usuario", "fecha_hora, tipo_intervencion", "campo, valor anterior y nuevo", "motivo"], (5.6, 0.2), MORADO),
+    "usuarios": (["PK id", "usuario, correo, rol", "hash_contrasena (argon2id)", "intentos_fallidos, bloqueado_hasta"], (11.2, 0.6), MORADO),
+    "sesiones": (["PK id", "FK id_usuario", "hash_token, recordada", "ultimo_uso, cerrada_en"], (15.6, 0.6), MORADO),
+    "parametros_sistema": (["PK clave", "valor, tipo_dato", "FK id_usuario_modificacion"], (15.6, 4.0), GRIS),
+    "salud_fuentes": (["PK nombre", "degradada, fallos_consecutivos", "ultimo_contacto_ok"], (15.6, 10.6), GRIS),
+    "cargas_ztracking": (["PK id", "FK id_usuario → usuarios", "archivo, estado", "recibidas, insertadas, rechazadas", "informe (JSONB)"], (5.6, 10.3), GRIS),
 }
 W, LH = 3.9, 0.33
 fig, ax = lienzo(19.8, 13.4)
