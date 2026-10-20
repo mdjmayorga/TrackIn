@@ -18,8 +18,9 @@ from app.main import app
 from app.models.enums import ROLES
 from app.schemas.usuarios import Rol
 
-#: Lo único que un usuario de planta puede escribir: su propia sesión.
-_PROPIAS_DE_LA_SESION = {"/api/v1/auth/login", "/api/v1/auth/logout"}
+#: Lo único que un usuario de planta puede escribir: su propia sesión y su
+#: propia contraseña (`US-61`), que son de la cuenta y no del negocio.
+_PROPIAS_DE_LA_SESION = {"/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/contrasena"}
 
 _ESCRITURAS = sorted(
     (metodo, ruta.path)

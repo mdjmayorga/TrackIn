@@ -78,6 +78,8 @@ describe('rutas protegidas', () => {
     expect(
       await screen.findByRole('heading', { name: /Panel de Control Logístico/ }, CARGA_DIFERIDA),
     ).toBeInTheDocument()
+    // Quién es se lee en el menú Configuración, que abre el encabezado del panel.
+    await userEvent.click(screen.getByRole('button', { name: 'Configuración' }))
     expect(screen.getByText('COMPRAS')).toBeInTheDocument()
   })
 
@@ -96,8 +98,9 @@ describe('rutas protegidas', () => {
     montar('/')
 
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Cerrar sesión' }, CARGA_DIFERIDA),
+      await screen.findByRole('button', { name: 'Configuración' }, CARGA_DIFERIDA),
     )
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
     expect(await screen.findByLabelText('Usuario')).toBeInTheDocument()
     expect(sesionActual()).toBeNull()

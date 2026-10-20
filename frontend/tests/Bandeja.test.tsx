@@ -183,7 +183,7 @@ describe('contador del encabezado (US-48)', () => {
     vi.mocked(listarPedidos).mockResolvedValue(pagina([]))
     montar(<Dashboard />, 'COMPRAS')
 
-    expect(await screen.findByRole('link', { name: 'Cargar Z-tracking' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Configuración' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Arribos pendientes/ })).toBeNull()
     expect(listarPedidos).not.toHaveBeenCalledWith(...CONSULTA_BANDEJA)
   })
@@ -201,9 +201,11 @@ describe('pantalla de planta (US-43)', () => {
         .map((th) => th.textContent?.replace(/[▲▼↕]/g, '')),
     ).toEqual(['Material', 'Etapa', 'Cumplimiento'])
     expect(screen.getByRole('heading', { name: 'Filtros de consulta' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /Z-tracking/ })).toBeNull()
     expect(screen.queryByRole('link', { name: /Arribos pendientes/ })).toBeNull()
     expect(listarPedidos).not.toHaveBeenCalledWith(...CONSULTA_BANDEJA)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Configuración' }))
+    expect(screen.queryByRole('link', { name: /Z-tracking/ })).toBeNull()
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
   })
 
@@ -213,5 +215,18 @@ describe('pantalla de planta (US-43)', () => {
 
     const grilla = await screen.findByRole('table')
     expect(within(grilla).getAllByRole('columnheader')).toHaveLength(9)
+  })
+})
+
+describe('enlace a cambiar la contraseña (US-61)', () => {
+  it.each(['COMPRAS', 'PLANTA'] as const)('%s lo ve en Configuración', async (rol) => {
+    vi.mocked(listarPedidos).mockResolvedValue(pagina([]))
+    montar(<Dashboard />, rol)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Configuración' }))
+    expect(screen.getByRole('link', { name: 'Cambiar contraseña' })).toHaveAttribute(
+      'href',
+      '/contrasena',
+    )
   })
 })

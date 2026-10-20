@@ -172,6 +172,9 @@ mostrarla:
 ```
 
 Después, las cuentas se mantienen con `/api/v1/usuarios` (solo Administrador).
+Cada usuario cambia su propia contraseña con `POST /api/v1/auth/contrasena`
+(`US-61`): exige la vigente, un error cuenta para el bloqueo y se cierran las
+demás sesiones de la cuenta.
 Los plazos de bloqueo e inactividad son parámetros de `parametros_sistema`.
 
 ### API de destinos (`US-13`)

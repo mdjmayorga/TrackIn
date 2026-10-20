@@ -62,6 +62,12 @@ export interface SesionIniciada {
   usuario: UsuarioPublico
 }
 
+/** Respuesta de `POST /api/v1/auth/contrasena` (`US-61`). */
+export interface ContrasenaCambiada {
+  /** Las **otras** sesiones de la cuenta que se cerraron; la actual sigue. */
+  sesiones_cerradas: number
+}
+
 // --- Pedidos (`US-16`, consumidos por la grilla de `US-19`) -----------------
 
 export type Via = 'AEREO' | 'MARITIMO' | 'TERRESTRE'

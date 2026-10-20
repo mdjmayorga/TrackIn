@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { esPantallaPlanta, puedeCargar, puedeVerBandeja } from '@/auth/permisos'
+import { esPantallaPlanta, puedeVerBandeja } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { EstadoShipsGo } from '@/components/EstadoShipsGo'
 import { CintaKpis } from '@/components/CintaKpis'
 import { MapaBase } from '@/components/MapaBase'
+import { MenuConfiguracion } from '@/components/MenuConfiguracion'
 import { PanelPedidos } from '@/components/PanelPedidos'
 import { ProximosArribos } from '@/components/ProximosArribos'
 import { useBandejaArribos } from '@/hooks/usePedidos'
-import { cerrarSesion } from '@/services/auth'
 import { FILTROS_VACIOS, type FiltrosPanel } from '@/utils/filtros'
 
 /**
@@ -29,7 +29,7 @@ function AvisoBandeja() {
   const { data } = useBandejaArribos()
   const pendientes = data?.total ?? 0
   return (
-    <p className="mt-1">
+    <p>
       <Link
         to="/bandeja"
         className="inline-flex items-center gap-2 text-marca-300 underline hover:text-marca-200"
@@ -80,29 +80,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-panel-fondo text-slate-100">
       <header className="grid grid-cols-1 items-start gap-3 px-4 pb-4 pt-3 lg:grid-cols-[1fr_auto_1fr]">
-        <div className="text-sm text-slate-300">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-300">
           {sesion && (
             <>
-              <p>
-                {sesion.usuario.nombre_completo}{' '}
-                <span className="text-slate-500">{sesion.usuario.rol}</span>
-              </p>
-              <p className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => void cerrarSesion()}
-                  className="text-marca-300 underline hover:text-marca-200"
-                >
-                  Cerrar sesión
-                </button>
-                {!planta && (
-                  <Link to="/cargas" className="text-marca-300 underline hover:text-marca-200">
-                    {puedeCargar(sesion.usuario.rol)
-                      ? 'Cargar Z-tracking'
-                      : 'Cargas del Z-tracking'}
-                  </Link>
-                )}
-              </p>
+              <MenuConfiguracion sesion={sesion} />
+              {/* Fuera del menú: es un aviso, y escondido dejaría de avisar (`US-48`). */}
               {puedeVerBandeja(sesion.usuario.rol) && <AvisoBandeja />}
             </>
           )}

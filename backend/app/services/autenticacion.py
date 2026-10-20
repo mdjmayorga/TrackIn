@@ -102,6 +102,29 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def _bloqueada(cuenta: Usuario, ahora: dt.datetime) -> bool:
+    return cuenta.bloqueado_hasta is not None and cuenta.bloqueado_hasta > ahora
+
+
+async def _registrar_fallo(sesion_bd: AsyncSession, cuenta: Usuario, ahora: dt.datetime) -> None:
+    """Suma un intento fallido y, al llegar al máximo, bloquea la cuenta.
+
+    La comparten el login y el cambio de contraseña (`US-61`): adivinar la
+    contraseña actual desde una sesión abierta no puede salir más barato que
+    adivinarla en el login.
+    """
+    cuenta.intentos_fallidos += 1
+    maximo = await parametros.obtener_entero(sesion_bd, "login_intentos_maximos")
+    if cuenta.intentos_fallidos >= maximo:
+        minutos = await parametros.obtener_entero(sesion_bd, "login_bloqueo_min")
+        cuenta.bloqueado_hasta = ahora + dt.timedelta(minutes=minutos)
+        cuenta.intentos_fallidos = 0
+        logger.warning(
+            "Login: %s bloqueado %d min tras %d intentos.", cuenta.usuario, minutos, maximo
+        )
+    await sesion_bd.flush()
+
+
 #: Un hash real para comparar cuando el usuario no existe: así el login tarda
 #: lo mismo exista o no, y el tiempo de respuesta no delata qué cuentas hay.
 _HASH_SEÑUELO = _HASHER.hash(secrets.token_urlsafe(16))
@@ -128,22 +151,12 @@ async def iniciar_sesion(
         _verificar(_HASH_SEÑUELO, contrasena)
         raise CredencialesInvalidas()
 
-    bloqueada = cuenta.bloqueado_hasta is not None and cuenta.bloqueado_hasta > ahora
-    if bloqueada or not cuenta.activo:
+    if _bloqueada(cuenta, ahora) or not cuenta.activo:
         _verificar(_HASH_SEÑUELO, contrasena)
         raise CredencialesInvalidas()
 
     if not _verificar(cuenta.hash_contrasena, contrasena):
-        cuenta.intentos_fallidos += 1
-        maximo = await parametros.obtener_entero(sesion_bd, "login_intentos_maximos")
-        if cuenta.intentos_fallidos >= maximo:
-            minutos = await parametros.obtener_entero(sesion_bd, "login_bloqueo_min")
-            cuenta.bloqueado_hasta = ahora + dt.timedelta(minutes=minutos)
-            cuenta.intentos_fallidos = 0
-            logger.warning(
-                "Login: %s bloqueado %d min tras %d intentos.", cuenta.usuario, minutos, maximo
-            )
-        await sesion_bd.flush()
+        await _registrar_fallo(sesion_bd, cuenta, ahora)
         raise CredencialesInvalidas()
 
     if _HASHER.check_needs_rehash(cuenta.hash_contrasena):
@@ -208,6 +221,78 @@ async def cerrar_sesion(
     await sesion_bd.flush()
 
 
+class ContrasenaActualIncorrecta(Exception):
+    """El cambio de contraseña no trae la contraseña vigente (`US-61`)."""
+
+    def __init__(self) -> None:
+        super().__init__("La contraseña actual no es correcta.")
+
+
+class CuentaBloqueada(Exception):
+    """Demasiados intentos fallidos: la cuenta espera `login_bloqueo_min`."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "La cuenta está bloqueada por demasiados intentos fallidos. "
+            "Espere unos minutos o pida al Administrador que la desbloquee."
+        )
+
+
+async def cambiar_contrasena(
+    sesion_bd: AsyncSession,
+    cuenta: Usuario,
+    sesion_actual: Sesion,
+    actual: str,
+    nueva: str,
+    *,
+    instante: dt.datetime | None = None,
+) -> int:
+    """El propio usuario cambia su contraseña (`US-61`). **No hace commit.**
+
+    Exige la vigente, y un error cuenta para el bloqueo igual que en el login.
+    Al cambiarla se cierran **las demás** sesiones de la cuenta y la actual
+    sigue abierta: en la cuenta compartida de Compras, todas las otras
+    personas tienen que volver a entrar con la nueva (decisión del 20/10).
+    Devuelve cuántas sesiones se cerraron.
+
+    No hay fila en la auditoría de RF-14, que es por pedido: el cambio queda en
+    el log, con quién y cuándo, nunca con la contraseña.
+    """
+    ahora = instante or dt.datetime.now(dt.UTC)
+    if _bloqueada(cuenta, ahora):
+        raise CuentaBloqueada()
+    if not _verificar(cuenta.hash_contrasena, actual):
+        await _registrar_fallo(sesion_bd, cuenta, ahora)
+        raise ContrasenaActualIncorrecta()
+    if nueva == actual:
+        raise ContrasenaDebil("La contraseña nueva tiene que ser distinta de la actual.")
+
+    cuenta.hash_contrasena = hashear(nueva)
+    cuenta.intentos_fallidos = 0
+    resultado = cast(
+        CursorResult[Any],
+        await sesion_bd.execute(
+            update(Sesion)
+            .where(
+                Sesion.id_usuario == cuenta.id,
+                Sesion.cerrada_en.is_(None),
+                Sesion.id != sesion_actual.id,
+            )
+            .values(cerrada_en=ahora)
+        ),
+    )
+    cerradas = resultado.rowcount or 0
+    await sesion_bd.flush()
+    logger.info(
+        "Contraseña: %s (%s) la cambió desde la sesión %d; se cerraron otras %d.",
+        cuenta.usuario,
+        cuenta.rol,
+        sesion_actual.id,
+        cerradas,
+    )
+    return cerradas
+
+
 async def cerrar_sesiones_de(
     sesion_bd: AsyncSession, id_usuario: int, *, instante: dt.datetime | None = None
 ) -> int:
@@ -228,10 +313,13 @@ async def cerrar_sesiones_de(
 __all__ = [
     "LONGITUD_MINIMA_CONTRASENA",
     "MENSAJE_CREDENCIALES",
+    "ContrasenaActualIncorrecta",
     "ContrasenaDebil",
     "CredencialesInvalidas",
+    "CuentaBloqueada",
     "SesionAbierta",
     "SesionInvalida",
+    "cambiar_contrasena",
     "cerrar_sesion",
     "cerrar_sesiones_de",
     "hashear",

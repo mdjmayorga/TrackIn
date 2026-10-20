@@ -108,7 +108,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga ✅ | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada · ✅ terminada 08/10 |
 | `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` |
 | `US-60` | Acciones del detalle: confirmar desembarco, pasar a aduana, recibir, ajustar días y liberar ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | 15/10: los endpoints existían desde el Sprint 5; las pantallas, no · ✅ terminada 15/10 |
-| `US-61` | Cambiar la propia contraseña | Story | OE3 | **Should** | Sprint 6 | 4h | 20/10: creación de la cuenta de Compras · hoy solo el Administrador reinicia contraseñas |
+| `US-61` | Cambiar la propia contraseña ✅ | Story | OE3 | **Should** | Sprint 6 | 4h | 20/10: creación de la cuenta de Compras · hoy solo el Administrador reinicia contraseñas · ✅ terminada 20/10 |
 | `US-62` | Administrar usuarios desde la interfaz | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
@@ -1711,6 +1711,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `US-48` Bandeja de arribos pendientes | ✅ 20/10 |
 > | `US-24` Semáforo consistente | ✅ 20/10 |
 > | `US-43` Grilla simple y rol `PLANTA` | ✅ 20/10 |
+> | `US-61` Cambiar la propia contraseña | ✅ 20/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
 > | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
 >
@@ -1733,6 +1734,15 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 >
 > **20/10: `US-43` terminada**, con 2 h más por el rol `PLANTA`. El sprint queda en **112 h,
 > 89 hechas**. Pendientes: `US-55` (6), `US-62` (5), `US-23` (4), `US-57` (4), `US-61` (4).
+>
+> **20/10: `US-61` terminada. Hechas: 93 de 112 h.** Pendientes: `US-55` (6), `US-62` (5),
+> `US-23` (4), `US-57` (4). Solo `US-62` no depende de la reunión con Compras.
+>
+> **20/10: menú «Configuración» en el encabezado** (pedido del mismo día, para ahorrar
+> espacio en el panel). Reúne quién está conectado, «Cargar Z-tracking» (o el historial,
+> según el rol), «Cambiar contraseña» y «Cerrar sesión». Se cierra con Escape o con un clic
+> fuera. El contador «Arribos pendientes» de `US-48` queda **fuera** del menú: es un aviso, y
+> escondido dejaría de avisar.
 >
 > **En espera de la reunión con Ventas (14/10):**
 >
@@ -3650,6 +3660,29 @@ del Administrador y poder reemplazar la contraseña inicial que me entregaron.
 > **todas las demás tienen que entrar con la nueva**: sus sesiones abiertas se cierran, como
 > en cualquier otra cuenta. Hacer circular la contraseña nueva dentro de Compras queda a
 > cargo de ellos; el sistema no envía avisos (no hay correo, decisión del 04/09).
+
+> **✅ Terminada el 20/10/2026.** «Cambiar contraseña» en el encabezado del panel, para todos
+> los roles —también Planta: es de la cuenta, no del negocio—, sobre
+> `POST /api/v1/auth/contrasena`:
+>
+> - **Pide la actual, la nueva y su repetición.** Lo que se puede comprobar en el navegador
+>   —mínimo de 10 caracteres, que coincida la repetición, que no sea la misma— se dice antes
+>   de enviar, y el backend lo vuelve a verificar.
+> - **Una actual incorrecta cuenta para el bloqueo**, con el mismo contador y los mismos
+>   parámetros del login (`login_intentos_maximos`, `login_bloqueo_min`); la lógica es una
+>   sola para los dos. Con la cuenta bloqueada no se cambia ni con la contraseña correcta.
+> - **Los errores son 403, no 401.** El navegador cierra la sesión ante cualquier 401, y quien
+>   se equivoca al escribir su contraseña actual no debería quedar fuera.
+> - **Se cierran las demás sesiones y la actual sigue**, y la pantalla dice cuántas: «Se
+>   cerraron 2 sesiones abiertas en otros equipos». Antes de cambiarla, advierte que en una
+>   cuenta compartida todas las personas tendrán que entrar con la nueva.
+> - **El registro va al log del servidor**, con usuario, rol y sesión, nunca la contraseña.
+>   No va a la bitácora de RF-14 porque esa es por pedido (`id_pedido` obligatorio).
+> - **Verificado contra la API local** con la cuenta `planta`: cambio, otra sesión cerrada
+>   (401), la actual sigue, una actual incorrecta da 403; la contraseña se devolvió a la
+>   original.
+>
+> Backend: 1 288 pruebas. Frontend: 205 pruebas, 97,3 %.
 
 ### `US-62` — Administrar usuarios desde la interfaz
 

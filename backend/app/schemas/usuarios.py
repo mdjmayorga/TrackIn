@@ -37,6 +37,22 @@ class SesionIniciada(BaseModel):
     usuario: UsuarioPublico
 
 
+class CambioContrasena(BaseModel):
+    """`POST /auth/contrasena` (`US-61`): el propio usuario, con la vigente."""
+
+    contrasena_actual: str = Field(min_length=1, max_length=200)
+    contrasena_nueva: str = Field(max_length=200)
+
+
+class ContrasenaCambiada(BaseModel):
+    sesiones_cerradas: int = Field(
+        description=(
+            "Cuántas **otras** sesiones de la cuenta se cerraron. La del cambio sigue abierta; "
+            "en la cuenta compartida de Compras, las demás personas vuelven a entrar."
+        )
+    )
+
+
 class UsuarioNuevo(BaseModel):
     usuario: str = Field(min_length=3, max_length=50)
     nombre_completo: str = Field(min_length=1, max_length=120)
@@ -59,6 +75,8 @@ class NuevaContrasena(BaseModel):
 
 
 __all__ = [
+    "CambioContrasena",
+    "ContrasenaCambiada",
     "Credenciales",
     "NuevaContrasena",
     "Rol",

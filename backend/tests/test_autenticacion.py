@@ -290,3 +290,111 @@ async def test_un_administrador_no_puede_desactivarse_a_si_mismo(api, sesion) ->
     )
 
     assert respuesta.status_code == 409
+
+
+# --- US-61: cambiar la propia contraseña ------------------------------------------
+
+NUEVA = "otra-clave-larga"
+
+
+async def _cambiar(api, token: str, actual: str = CLAVE, nueva: str = NUEVA) -> Any:
+    return await api.post(
+        "/api/v1/auth/contrasena",
+        json={"contrasena_actual": actual, "contrasena_nueva": nueva},
+        headers=_con(token),
+    )
+
+
+async def test_cambiar_la_contrasena_deja_entrar_con_la_nueva_y_no_con_la_vieja(
+    api, sesion
+) -> None:
+    await _usuario(sesion)
+    token = (await _login(api)).json()["token"]
+
+    respuesta = await _cambiar(api, token)
+
+    assert respuesta.status_code == 200
+    assert (await _login(api, clave=NUEVA)).status_code == 200
+    assert (await _login(api)).status_code == 401
+
+
+async def test_cierra_las_demas_sesiones_y_deja_abierta_la_actual(api, sesion) -> None:
+    """La cuenta compartida de Compras: las otras personas vuelven a entrar (20/10)."""
+    await _usuario(sesion, "compras@gutis.com", "COMPRAS")
+    otras = [(await _login(api, usuario="compras@gutis.com")).json()["token"] for _ in range(2)]
+    propia = (await _login(api, usuario="compras@gutis.com")).json()["token"]
+
+    respuesta = await _cambiar(api, propia)
+
+    assert respuesta.json() == {"sesiones_cerradas": 2}
+    assert (await api.get("/api/v1/auth/yo", headers=_con(propia))).status_code == 200
+    for token in otras:
+        assert (await api.get("/api/v1/auth/yo", headers=_con(token))).status_code == 401
+
+
+async def test_la_actual_incorrecta_se_rechaza_con_403_y_cuenta_para_el_bloqueo(
+    api, sesion
+) -> None:
+    """403 y no 401: un 401 haría que el navegador cerrara la sesión de quien se equivocó."""
+    cuenta = await _usuario(sesion)
+    token = (await _login(api)).json()["token"]
+
+    respuesta = await _cambiar(api, token, actual="no-es-esta-clave")
+
+    assert respuesta.status_code == 403
+    assert respuesta.json()["detail"] == "La contraseña actual no es correcta."
+    await sesion.refresh(cuenta)
+    assert cuenta.intentos_fallidos == 1
+    assert (await _login(api)).status_code == 200  # la vieja sigue valiendo
+
+
+async def test_equivocarse_hasta_el_maximo_bloquea_la_cuenta(api, sesion) -> None:
+    await _parametro(sesion, "login_intentos_maximos", 2)
+    cuenta = await _usuario(sesion)
+    token = (await _login(api)).json()["token"]
+
+    for _ in range(2):
+        await _cambiar(api, token, actual="no-es-esta-clave")
+
+    await sesion.refresh(cuenta)
+    assert cuenta.bloqueado_hasta is not None
+    # Bloqueada, ni con la actual correcta se cambia, ni se entra por el login.
+    bloqueada = await _cambiar(api, token)
+    assert bloqueada.status_code == 403
+    assert "bloqueada" in bloqueada.json()["detail"]
+    assert (await _login(api)).status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("nueva", "motivo"),
+    [("corta", "al menos 10 caracteres"), (CLAVE, "distinta de la actual")],
+)
+async def test_una_nueva_invalida_se_rechaza_sin_cambiar_nada(api, sesion, nueva, motivo) -> None:
+    await _usuario(sesion)
+    token = (await _login(api)).json()["token"]
+
+    respuesta = await _cambiar(api, token, nueva=nueva)
+
+    assert respuesta.status_code == 422
+    assert motivo in respuesta.json()["detail"]
+    assert (await _login(api)).status_code == 200
+
+
+async def test_el_cambio_queda_en_el_log_sin_la_contrasena(api, sesion, caplog) -> None:
+    await _usuario(sesion)
+    token = (await _login(api)).json()["token"]
+
+    with caplog.at_level("INFO", logger="app.services.autenticacion"):
+        await _cambiar(api, token)
+
+    registro = [r.getMessage() for r in caplog.records if "Contraseña:" in r.getMessage()]
+    assert registro and "logistica.prueba" in registro[0]
+    assert all(CLAVE not in m and NUEVA not in m for m in caplog.messages)
+
+
+async def test_sin_sesion_no_se_cambia(api) -> None:
+    respuesta = await api.post(
+        "/api/v1/auth/contrasena", json={"contrasena_actual": CLAVE, "contrasena_nueva": NUEVA}
+    )
+
+    assert respuesta.status_code == 401

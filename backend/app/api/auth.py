@@ -9,7 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencias import Autenticado, usuario_actual
 from app.db.session import get_db
-from app.schemas.usuarios import Credenciales, SesionIniciada, UsuarioPublico
+from app.schemas.usuarios import (
+    CambioContrasena,
+    ContrasenaCambiada,
+    Credenciales,
+    SesionIniciada,
+    UsuarioPublico,
+)
 from app.services import autenticacion
 
 router = APIRouter(prefix="/auth", tags=["autenticación"])
@@ -58,6 +64,41 @@ async def logout(
     await autenticacion.cerrar_sesion(db, quien.sesion)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/contrasena",
+    response_model=ContrasenaCambiada,
+    summary="Cambiar la propia contraseña",
+    description=(
+        "Exige la contraseña vigente; un error cuenta para el bloqueo, como en el login. "
+        "Cierra las **demás** sesiones de la cuenta y deja abierta la actual (`US-61`). "
+        "Los errores son 403, no 401: un 401 haría que el navegador cerrara la sesión."
+    ),
+    responses={
+        403: {"description": "Contraseña actual incorrecta, o la cuenta está bloqueada."},
+        422: {"description": "La nueva es muy corta o igual a la actual."},
+    },
+)
+async def cambiar_contrasena(
+    datos: CambioContrasena,
+    quien: Annotated[Autenticado, Depends(usuario_actual)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ContrasenaCambiada:
+    try:
+        cerradas = await autenticacion.cambiar_contrasena(
+            db, quien.usuario, quien.sesion, datos.contrasena_actual, datos.contrasena_nueva
+        )
+    except autenticacion.ContrasenaActualIncorrecta as exc:
+        # Se confirma igual: el intento fallido tiene que contar.
+        await db.commit()
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc)) from None
+    except autenticacion.CuentaBloqueada as exc:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc)) from None
+    except autenticacion.ContrasenaDebil as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from None
+    await db.commit()
+    return ContrasenaCambiada(sesiones_cerradas=cerradas)
 
 
 @router.get("/yo", response_model=UsuarioPublico, summary="Quién soy")
