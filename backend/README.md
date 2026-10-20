@@ -1,10 +1,14 @@
 # TrackIn — Backend
 
-API REST de TrackIn, en FastAPI con SQLAlchemy 2.0 asíncrono sobre
-PostgreSQL 16 + PostGIS 3.4.
+API REST y worker de rastreo de TrackIn, en FastAPI con SQLAlchemy 2.0
+asíncrono sobre PostgreSQL 16 + PostGIS 3.6.
 
-> Sprint 0: solo el esqueleto. No hay modelos, endpoints de negocio ni
-> integraciones con APIs externas todavía.
+> **Estado (20/10/2026): funcionalmente completo para el alcance del Sprint 6.**
+> Carga del Z-tracking (script y endpoint), rastreo con ShipsGo y TICA en un
+> worker aparte, fecha proyectada y semáforo, ciclo de vida del pedido hasta el
+> cierre, auditoría inmutable y autenticación con roles. Faltan el alta en
+> ShipsGo desde el sistema (`US-55`), el saldo de créditos (`US-57`) y el
+> transbordo (`US-30`). 1 259 pruebas al 15/10.
 
 ## Setup
 
@@ -27,7 +31,8 @@ directamente: `.venv\Scripts\python -m uvicorn ...`.
 pip install -r requirements-dev.txt
 ```
 
-Levantar el servidor (necesita PostgreSQL corriendo; ver el README raíz):
+Levantar la API (necesita PostgreSQL corriendo; el arranque nativo con
+`pg_ctl` está en el README raíz):
 
 ```bash
 uvicorn app.main:app --reload
@@ -47,15 +52,22 @@ uvicorn app.main:app --reload
 Las settings se leen del entorno mediante `app/core/config.py`
 (pydantic-settings), con esta precedencia de menor a mayor:
 
-1. `backend/.env` — overrides locales opcionales, ver `.env.example`
-2. `.env` de la raíz del repo — el principal, el mismo que usa docker-compose
-3. variables de entorno reales — lo que inyecta docker-compose en el contenedor
+1. `backend/.env`
+2. `.env` de la raíz del repo
+3. variables de entorno reales
+
+**En desarrollo la configuración completa vive en `backend/.env`**, copiada de
+la plantilla de la raíz (`Copy-Item ..\.env.example .env`). El `.env` de la
+raíz solo lo usaba docker-compose, que en este equipo no corre; **no hay que
+crearlo**: por su mayor precedencia taparía `backend/.env` sin avisar.
+`backend/.env.example` es apenas una lista de overrides comentados, no una
+plantilla completa.
 
 Dos detalles que no son obvios:
 
-- **`POSTGRES_HOST` cambia según dónde corre el proceso.** `localhost` si
-  corrés uvicorn en tu máquina; `postgres` si corre dentro de la red de
-  compose. El `docker-compose.yml` ya lo sobreescribe para el servicio backend.
+- **`POSTGRES_HOST` es `localhost`** en la instalación nativa. Solo dentro de
+  la red de compose sería `postgres`, y el `docker-compose.yml` ya lo
+  sobreescribe para ese caso (despliegue en servidor).
 - **`BACKEND_CORS_ORIGINS` se declara como string CSV**, no como lista. Ante un
   campo de tipo complejo, pydantic-settings intenta `json.loads()` sobre el
   valor del entorno *antes* de correr cualquier validador, y falla con un CSV.
@@ -74,23 +86,36 @@ como error en el log al arrancar.
 
 ```
 app/
-├── main.py         Creación de la app, CORS, routers, lifespan
-├── api/            Capa HTTP
-│   ├── health.py   GET /health
-│   └── router.py   Router agregador de /api/v1
+├── main.py              Creación de la app, CORS, routers, lifespan
+├── api/                 Capa HTTP
+│   ├── health.py        GET /health
+│   ├── auth.py          Login y sesión (US-42)
+│   ├── usuarios.py      Cuentas, solo Administrador
+│   ├── pedidos.py       Grilla, detalle y acciones del pedido (US-16 y siguientes)
+│   ├── cargas.py        Carga del Z-tracking desde la interfaz (US-58)
+│   ├── destinos.py      Maestro de destinos y lead times (US-13)
+│   ├── dependencias.py  Sesión de base, usuario actual y roles
+│   └── router.py        Router agregador de /api/v1
 ├── core/
-│   └── config.py   Settings
+│   └── config.py        Settings
 ├── db/
-│   ├── base.py     Base declarativa + naming convention
-│   └── session.py  Engine async, sessionmaker, dependencia get_db
-├── models/         Modelos ORM            (Sprint 1-2)
-├── schemas/        Contratos Pydantic     (Sprint 1)
-└── services/       Lógica de negocio      (Sprint 2+)
-    ├── resiliencia.py     Política de reintento, agnóstica del transporte
-    ├── salud_fuentes.py   Estado por fuente + umbrales de parametros_sistema
-    └── rastreo/           Fuentes externas, una por proveedor
-        ├── aisstream.py     Parseo de AIS (puro, sin red)
-        └── colector_ais.py  Suscripción WebSocket + persistencia
+│   ├── base.py          Base declarativa + naming convention
+│   └── session.py       Engine async, sessionmaker, dependencia get_db
+├── models/              Modelos ORM, uno por tabla
+├── schemas/             Contratos Pydantic de la API
+├── services/            Lógica de negocio
+│   ├── ingesta/         Lectores del Z-tracking y la semilla, normalización y carga
+│   ├── rastreo/         Clientes y colectores por fuente: ShipsGo, TICA, AISStream, OpenSky
+│   ├── proyeccion.py    Fecha proyectada (RN-01)
+│   ├── estado.py        Etapa del viaje y semáforo de cumplimiento
+│   ├── arribo.py        Arribo a destino por hito, con la geocerca como verificación
+│   ├── recalculo.py     Recalcula fecha y estado ante cualquier cambio de insumo
+│   ├── intervenciones.py Desembarco, aduana, recepción, ajuste y liberación
+│   ├── auditoria.py     Única puerta a la bitácora de intervenciones (RF-14)
+│   ├── planificador.py  Qué consultar en cada ciclo y aviso de altas diarias
+│   ├── resiliencia.py   Política de reintento, agnóstica del transporte
+│   └── salud_fuentes.py Estado por fuente + umbrales de parametros_sistema
+└── workers/             Ciclo de rastreo (`python -m app.workers`)
 ```
 
 Los endpoints de `api/` no deben contener reglas de negocio: delegan en
@@ -176,7 +201,7 @@ worker no corre, las fechas envejecen, y el detalle lo avisa con
 
 ### Encender el rastreo en vivo
 
-Las tres fuentes REST hablan con el mundo a través de `rastreo.transporte_http`.
+Las fuentes REST hablan con el mundo a través de `rastreo.transporte_http`.
 Para una corrida real basta el token y un cliente compartido:
 
 ```python
@@ -184,21 +209,25 @@ from app.services.rastreo import transporte_http
 
 async with transporte_http.crear_cliente_http() as http:
     shipsgo = transporte_http.crear_cliente_shipsgo(http, token=settings.SHIPSGO_API_TOKEN)
-    opensky = transporte_http.crear_cliente_opensky(
-        http, settings.OPENSKY_CLIENT_ID, settings.OPENSKY_CLIENT_SECRET
-    )
 ```
 
-**Cada alta en ShipsGo cuesta un crédito (~2 USD).** Las consultas no cuestan
-nada: el cobro es por embarque registrado. Antes de la primera corrida conviene
-bajar el umbral de aviso al presupuesto que haya:
+**OpenSky está en pausa** desde el 06/10/2026: su licencia exige un acuerdo
+escrito para el uso de una empresa. Su cliente (`US-05`, `US-06`) queda
+construido pero el worker no lo usa; la posición aérea sale de ShipsGo por el
+MAWB.
+
+**Cada alta en ShipsGo cuesta un crédito.** Las consultas no cuestan nada: el
+cobro es por embarque registrado (un BL o una guía madre, con todos sus
+contenedores). Al 20/10 la cuenta tiene 49 créditos de prueba; la compra del
+paquete anual (1 100 créditos a US$ 1,70) la tramita Compras a inicios de
+noviembre. El umbral de aviso de altas diarias es un parámetro:
 
 ```sql
 UPDATE parametros_sistema SET valor = '5' WHERE clave = 'altas_maximas_dia';
 ```
 
 Sin `SHIPSGO_API_TOKEN` el sistema arranca igual y el rastreo comercial queda
-inactivo, que es la situación mientras no haya créditos comprados.
+inactivo.
 
 ### Worker de rastreo (`US-50`)
 
@@ -332,8 +361,8 @@ Notas:
   campo `fuentes` —con el motivo del fallo y la antigüedad del último dato
   bueno—, pero `status` sigue mirando solo a la base. El dashboard lee de la
   base y no de la fuente, así que una API de terceros no puede tumbar la
-  respuesta. La lista viene vacía mientras ningún adaptador esté conectado
-  (`TASK-28`), igual que `ingesta: null`.
+  respuesta. Las fuentes las publica el worker en `salud_fuentes` (`US-51`):
+  si el worker no corre, la lista no refleja el estado actual.
 - **El colector de AIS no se puede probar en vivo** y es a propósito que no haga
   falta: el riesgo **R1** deja la cuenta de AISStream sin entregar datos desde
   el 19/08/2026. El parseo se prueba contra los 161 mensajes reales que capturó

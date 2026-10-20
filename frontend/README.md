@@ -3,8 +3,19 @@
 Dashboard de TrackIn: React + TypeScript sobre Vite, con TailwindCSS y Leaflet
 para los mapas.
 
-> Sprint 0: solo el esqueleto. La página `Dashboard` es un placeholder que
-> además muestra el estado de conexión con el backend.
+> **Estado (20/10/2026):** login, dashboard y detalle del pedido terminados,
+> con el diseño de Figma aprobado por los usuarios clave el 06/10.
+>
+> | Ruta | Página | Qué tiene |
+> |---|---|---|
+> | `/login` | `Login` | Inicio de sesión, «Recordar sesión» y mostrar contraseña |
+> | `/` | `Dashboard` | Cinta de KPIs, próximos arribos, filtros y grilla de pedidos |
+> | `/pedidos/:id` | `DetallePedido` | Datos, desglose del cálculo, bitácora, mapa de última posición y acciones (desembarco, aduana, recepción, ajuste de días, liberación) |
+> | `/cargas` | `Cargas` | Carga del Z-tracking con su informe, e historial de cargas |
+>
+> Faltan la frescura de datos en el encabezado (`US-23`), la bandeja de
+> arribos (`US-48`), la grilla simple de planta (`US-43`) y los mapas marítimo
+> y aéreo (Sprint 7). 130 pruebas, con 96,9 % de cobertura (15/10).
 
 ## Setup
 
@@ -14,8 +25,8 @@ Desde `frontend/`:
 npm install
 ```
 
-```bash
-cp .env.example .env
+```powershell
+Copy-Item .env.example .env
 ```
 
 ```bash
@@ -45,13 +56,14 @@ Dos cosas importantes:
 src/
 ├── main.tsx        Punto de entrada
 ├── App.tsx         Providers (react-query, sesión) y rutas
-├── auth/           Sesión del navegador, proveedor y ruta protegida (US-42)
-├── components/     Componentes reutilizables
-├── pages/          Vistas: Login, Dashboard (+ Pedidos y Mapas en Sprint 6 y 7)
-├── services/       Cliente axios y llamadas a la API
-├── hooks/          Custom hooks (useHealth, …)
+├── auth/           Sesión del navegador, permisos por rol y ruta protegida (US-42)
+├── components/     Grilla, filtros, KPIs, próximos arribos, acciones del pedido,
+│                   informe de carga, mapa base y paleta de estados (`estados.ts`)
+├── pages/          Vistas: Login, Dashboard, DetallePedido, Cargas (Mapas en Sprint 7)
+├── services/       Cliente axios y llamadas a la API (pedidos, acciones, cargas, auth)
+├── hooks/          Custom hooks (usePedidos, useHealth, …)
 ├── types/          Tipos del contrato con la API
-└── utils/
+└── utils/          Fechas, formatos, filtros y textos de la carga
 tests/              Tests de vitest + Testing Library
 ```
 
@@ -86,6 +98,10 @@ la app vuelve al login.
 La sesión se guarda como en el backend: una normal en `sessionStorage`, que se
 pierde al cerrar la pestaña; con «Recordar sesión», en `localStorage`. El token
 es opaco: quien decide si vale es el backend.
+
+Lo que cada rol puede hacer (cargar el Z-tracking, registrar acciones sobre un
+pedido) se decide en `auth/permisos.ts`, con las mismas reglas que el backend;
+el backend las vuelve a verificar de todos modos.
 
 Para entrar hace falta un usuario. El primero se crea desde el backend con
 `scripts/crear_usuario.py`; los demás, con `/api/v1/usuarios`.

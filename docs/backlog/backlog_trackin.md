@@ -2069,6 +2069,10 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
 > créditos actuales; esa semana queda para la carga inicial de altas y para registrar el
 > paquete de 1.100. Con `US-59` el margen libre del sprint baja de 11 h a 3 h.
+>
+> **20/10:** Compras confirmó que tramita la compra a inicios de noviembre y que en la carga
+> inicial se dan de alta **todos** los pedidos del Z-tracking vigente. Ver «Fecha de compra»
+> en los acuerdos del 06/10.
 
 #### US-25 — Presentar el mapa interactivo marítimo con posiciones actuales
 
@@ -3291,6 +3295,29 @@ Consecuencias para el plan:
 - **La carga inicial.** Al comprar, los pedidos en tránsito que aún no estén en ShipsGo se
   darán de alta de una vez, y `altas_maximas_dia` (hoy 5) tiene que permitirlo ese día.
   Hay que estimar cuántos serán antes del 06/11 para no gastar más de lo previsto.
+
+> **Confirmado con Compras el 20/10/2026:**
+>
+> - **La orden de compra la tramita Compras**, durante el Sprint 7, a **inicios de noviembre**.
+>   Se mantiene ~06/11 como referencia, sin fecha cerrada.
+> - **Se dan de alta todos los pedidos del Z-tracking que estén en la carga** vigente ese día.
+>
+> Lo que eso implica:
+>
+> - **Solo se pueden dar de alta las líneas con BL o MAWB.** Las que lleguen sin referencia no
+>   consumen crédito, pero tampoco quedan rastreadas: el alcance real de la carga inicial
+>   depende de que esas columnas vengan llenas para entonces.
+> - **Un crédito por BL o guía madre, no por línea.** Varias posiciones de una OC, o varias OC,
+>   pueden compartir referencia; el costo es el número de referencias distintas.
+> - **Hace falta un alta masiva.** `US-55` es pedido por pedido, con confirmación del costo.
+>   Para la carga inicial conviene una acción que dé de alta todas las referencias pendientes
+>   de una carga, muestre antes cuántos créditos va a gastar y suspenda ese día el tope de
+>   `altas_maximas_dia`.
+> - **Medido en la base de desarrollo el 20/10** (carga del WK38): de 92 líneas activas —73
+>   aéreas en 47 OC, 19 marítimas en 4 OC— **solo 1 tiene referencia**, un BL ya registrado.
+>   Con ese archivo, la carga inicial no daría de alta nada. Si cada OC fuera un embarque
+>   serían ~51 créditos, menos del 5 % del paquete; la cifra real sale del Z-tracking de
+>   noviembre, con las referencias llenas.
 
 ### Lo que el MAWB cambia en el plan
 
