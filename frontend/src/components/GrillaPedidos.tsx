@@ -49,7 +49,21 @@ function destino(pedido: PedidoResumen) {
   return <span title={pedido.destino.nombre}>{destinoCorto(pedido)}</span>
 }
 
-function columnas(terminales: boolean): Columna[] {
+/**
+ * Las dos grillas del Figma (`US-43`): la completa, para todos los roles, y la
+ * simple de la pantalla de planta, con «Dashboard Principal - Grilla simple».
+ */
+export type VistaGrilla = 'completa' | 'simple'
+
+const COLUMNAS_SIMPLES: ReadonlySet<string> = new Set(['Material', 'Etapa', 'Cumplimiento'])
+
+function columnas(terminales: boolean, vista: VistaGrilla): Columna[] {
+  const todas = columnasCompletas(terminales)
+  // Las mismas columnas, con los mismos textos y colores: solo se quitan las demás.
+  return vista === 'simple' ? todas.filter((c) => COLUMNAS_SIMPLES.has(c.titulo)) : todas
+}
+
+function columnasCompletas(terminales: boolean): Columna[] {
   // Con los cerrados en pantalla importa cuándo llegaron, no cuándo se
   // proyectaba que llegaran (criterio validado el 01/09).
   const proyectada: Columna = terminales
@@ -121,6 +135,8 @@ export interface GrillaPedidosProps {
   terminales?: boolean
   /** Qué decir cuando no hay filas; por omisión, «No hay pedidos que mostrar». */
   vacio?: ReactNode
+  /** La simple es la de la pantalla de planta (`US-43`). */
+  vista?: VistaGrilla
 }
 
 export function GrillaPedidos({
@@ -131,8 +147,9 @@ export function GrillaPedidos({
   actualizando = false,
   terminales = false,
   vacio,
+  vista = 'completa',
 }: GrillaPedidosProps) {
-  const cols = columnas(terminales)
+  const cols = columnas(terminales, vista)
   const columnaActual = orden.replace(/^-/, '')
   const descendente = orden.startsWith('-')
 

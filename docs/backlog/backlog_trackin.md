@@ -94,7 +94,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-22` | Mostrar la cinta de indicadores KPI ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 · ✅ terminada 13/10, adelantada |
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
 | `US-24` | Aplicar el semaforo de estados de forma consistente ✅ | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 · ✅ terminada 20/10 |
-| `US-43` | Ofrecer las dos grillas del Figma: completa en el panel y simple para la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | ~~10h~~ 3h | Reunión Logística 03/09 · **reducida al Figma el 14/10** |
+| `US-43` | Ofrecer las dos grillas del Figma: completa en el panel y simple para la pantalla de planta ✅ | Story | OE3 | **Must** | Sprint 6 | ~~10h~~ ~~3h~~ 5h | Reunión Logística 03/09 · **reducida al Figma el 14/10** · +2 h por el rol `PLANTA` (20/10) · ✅ terminada 20/10 |
 | `US-48` | Bandeja de arribos pendientes de gestión para Planificación ✅ | Story | OE3 | **Must** | Sprint 6 | 6h | RF-32 (nuevo, 04/09) · aviso interno, sin correo · ✅ terminada 20/10 |
 | `US-49` | Rastrear guías hijas (HAWB) por el manifiesto de carga de TICA | Story | OE2 | **Must** | Sprint 4 | 6h | Hallazgo del 28/09 · ✅ terminada 28/09 con el margen del Sprint 4 |
 | `US-50` | Worker de rastreo: ciclo periódico que consulta, aplica, evalúa el arribo y recalcula | Story | OE2 | **Must** | Sprint 4 | 6h | `TASK-20` §1.4 · ✅ terminada 28/09 con el margen del Sprint 4 |
@@ -1710,6 +1710,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `US-60` Acciones del detalle (nueva, 15/10) | ✅ 15/10 |
 > | `US-48` Bandeja de arribos pendientes | ✅ 20/10 |
 > | `US-24` Semáforo consistente | ✅ 20/10 |
+> | `US-43` Grilla simple y rol `PLANTA` | ✅ 20/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
 > | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
 >
@@ -1729,6 +1730,9 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 >
 > **20/10: `US-24` terminada. Hechas: 84 de 110 h.** Pendientes: `US-55` (6), `US-62` (5),
 > `US-23` (4), `US-57` (4), `US-61` (4), `US-43` (3).
+>
+> **20/10: `US-43` terminada**, con 2 h más por el rol `PLANTA`. El sprint queda en **112 h,
+> 89 hechas**. Pendientes: `US-55` (6), `US-62` (5), `US-23` (4), `US-57` (4), `US-61` (4).
 >
 > **En espera de la reunión con Ventas (14/10):**
 >
@@ -2531,6 +2535,26 @@ intervenciones.
 > - Dado cualquier rol, cuando abro el panel, entonces veo la grilla completa del Figma
 > - Dada la pantalla de planta, cuando se abre, entonces el panel muestra la grilla simple del Figma (Material · Etapa · Cumplimiento), con los mismos filtros, KPIs y arribos
 > - Dada la grilla simple, cuando la reviso, entonces el material, la etapa y el cumplimiento usan los mismos textos y colores que la completa (`US-24`)
+>
+> **✅ Terminada el 20/10/2026.**
+>
+> - **Cómo se abre la pantalla de planta: con un rol propio, `PLANTA`** (decisión del 20/10).
+>   La pantalla queda encendida y desatendida en un lugar común; con la cuenta de un rol
+>   operativo, cualquiera que se acercara podría confirmar desembarcos o cargar un archivo.
+>   `PLANTA` **solo lee**: no figura en ningún `requiere_rol`, así que las 13 escrituras de la
+>   API le responden 403. Una prueba recorre **todas** las rutas de escritura, de modo que un
+>   endpoint nuevo que olvide su guarda la hace fallar. Migración `0022`.
+> - **Al entrar, Planta ve el mismo panel** —KPIs, próximos arribos, filtros y mapas— con la
+>   grilla simple del Figma: Material · Etapa · Cumplimiento, con los mismos textos y
+>   colores. Sin enlace al detalle, sin «Cargas del Z-tracking» y sin bandeja de arribos.
+>   Los demás roles siguen con la grilla completa.
+> - **Usuario de prueba** en `trackin_dev`: `planta`, rol `PLANTA`. Verificado contra la API
+>   local: entra, lee los 107 pedidos y una escritura recibe 403.
+> - **Lo que sigue en `US-33`** (Sprint 7): que la pantalla se refresque sola y la política de
+>   inactividad de la sesión. Conviene revisar ahí si a `PLANTA` se le aplica el cierre por
+>   inactividad: una pantalla permanente que se cierra sola deja de servir.
+>
+> Backend: 1 280 pruebas. Frontend: 196 pruebas, 97,7 %.
 
 Como usuario, quiero que la grilla se ajuste a mi rol, para ver solo lo que me compete:
 una **vista simple** (Material · Etapa · Cumplimiento) o la **vista completa**.

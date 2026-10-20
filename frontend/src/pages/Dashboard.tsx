@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { puedeCargar, puedeVerBandeja } from '@/auth/permisos'
+import { esPantallaPlanta, puedeCargar, puedeVerBandeja } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { EstadoShipsGo } from '@/components/EstadoShipsGo'
 import { CintaKpis } from '@/components/CintaKpis'
@@ -64,6 +64,9 @@ export default function Dashboard() {
   // Sprint 7.
   const [filtros, setFiltros] = useState<FiltrosPanel>(FILTROS_VACIOS)
   const [versionFiltros, setVersionFiltros] = useState(0)
+  // La pantalla de planta (`US-43`): el mismo panel con la grilla simple y sin
+  // enlaces de gestión, porque queda desatendida y su rol solo lee.
+  const planta = esPantallaPlanta(sesion?.usuario.rol)
 
   function cambiarFiltros(cambios: Partial<FiltrosPanel>) {
     setFiltros((actuales) => ({ ...actuales, ...cambios }))
@@ -92,9 +95,13 @@ export default function Dashboard() {
                 >
                   Cerrar sesión
                 </button>
-                <Link to="/cargas" className="text-marca-300 underline hover:text-marca-200">
-                  {puedeCargar(sesion.usuario.rol) ? 'Cargar Z-tracking' : 'Cargas del Z-tracking'}
-                </Link>
+                {!planta && (
+                  <Link to="/cargas" className="text-marca-300 underline hover:text-marca-200">
+                    {puedeCargar(sesion.usuario.rol)
+                      ? 'Cargar Z-tracking'
+                      : 'Cargas del Z-tracking'}
+                  </Link>
+                )}
               </p>
               {puedeVerBandeja(sesion.usuario.rol) && <AvisoBandeja />}
             </>
@@ -125,6 +132,7 @@ export default function Dashboard() {
             onCambioFiltros={cambiarFiltros}
             onLimpiarFiltros={limpiarFiltros}
             versionFiltros={versionFiltros}
+            vista={planta ? 'simple' : 'completa'}
           />
         </div>
         <div className="order-3 xl:order-none">

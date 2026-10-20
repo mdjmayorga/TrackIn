@@ -1298,6 +1298,9 @@ que puede diferir de la unidad base del material; por eso existe en ambos sitios
 > compartida de Compras con sesiones simultáneas y la revocación al desactivar un usuario
 > necesitan saber qué sesiones hay abiertas. De cada una se guarda el SHA-256 del token,
 > nunca el token.
+>
+> **Actualizado el 20/10/2026 (`US-43`).** Quinto rol, `PLANTA` (migración `0022`): la
+> pantalla permanente de planta, de solo lectura, con la grilla simple.
 
 **`hash_contrasena` guarda un hash con sal, no la contraseña.** El algoritmo
 —argon2id o bcrypt— lo decide la historia que implemente el login; el modelo

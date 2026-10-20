@@ -188,3 +188,30 @@ describe('contador del encabezado (US-48)', () => {
     expect(listarPedidos).not.toHaveBeenCalledWith(...CONSULTA_BANDEJA)
   })
 })
+
+describe('pantalla de planta (US-43)', () => {
+  it('ve el panel con la grilla simple, sin enlaces de gestión', async () => {
+    vi.mocked(listarPedidos).mockResolvedValue(pagina([pedido()]))
+    montar(<Dashboard />, 'PLANTA')
+
+    const grilla = await screen.findByRole('table')
+    expect(
+      within(grilla)
+        .getAllByRole('columnheader')
+        .map((th) => th.textContent?.replace(/[▲▼↕]/g, '')),
+    ).toEqual(['Material', 'Etapa', 'Cumplimiento'])
+    expect(screen.getByRole('heading', { name: 'Filtros de consulta' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Z-tracking/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Arribos pendientes/ })).toBeNull()
+    expect(listarPedidos).not.toHaveBeenCalledWith(...CONSULTA_BANDEJA)
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
+  })
+
+  it('los demás roles siguen viendo la grilla completa', async () => {
+    vi.mocked(listarPedidos).mockResolvedValue(pagina([pedido()]))
+    montar(<Dashboard />, 'PLANIFICACION')
+
+    const grilla = await screen.findByRole('table')
+    expect(within(grilla).getAllByRole('columnheader')).toHaveLength(9)
+  })
+})

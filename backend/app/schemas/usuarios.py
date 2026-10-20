@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Rol = Literal["COMPRAS", "LOGISTICA", "PLANIFICACION", "ADMINISTRADOR"]
+Rol = Literal["COMPRAS", "LOGISTICA", "PLANIFICACION", "ADMINISTRADOR", "PLANTA"]
 
 
 class Credenciales(BaseModel):

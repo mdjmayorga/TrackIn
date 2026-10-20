@@ -40,7 +40,8 @@ export interface SaludFuente {
 }
 
 /** Los cuatro roles de RNF-05 (`US-42`). */
-export type Rol = 'COMPRAS' | 'LOGISTICA' | 'PLANIFICACION' | 'ADMINISTRADOR'
+/** `PLANTA` es la pantalla permanente de planta: solo lectura (`US-43`, 20/10). */
+export type Rol = 'COMPRAS' | 'LOGISTICA' | 'PLANIFICACION' | 'ADMINISTRADOR' | 'PLANTA'
 
 /** Usuario tal como lo devuelve `/api/v1/auth/login` y `/api/v1/auth/yo`. */
 export interface UsuarioPublico {

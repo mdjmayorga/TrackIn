@@ -100,6 +100,33 @@ describe('columnas', () => {
   })
 })
 
+describe('grilla simple de la pantalla de planta (US-43)', () => {
+  it('solo Material, Etapa y Cumplimiento, como el Figma «Grilla simple»', () => {
+    montar({ vista: 'simple' })
+
+    expect(encabezados()).toEqual(['Material', 'Etapa', 'Cumplimiento'])
+  })
+
+  it('con los mismos textos y colores que la completa, y sin enlace al detalle', () => {
+    montar({
+      vista: 'simple',
+      pagina: pagina([
+        pedido({
+          etapa_viaje: 'EN_DESTINO',
+          estado_calculado: 'EN_RIESGO',
+          estado_cumplimiento: 'EN_RIESGO',
+        }),
+      ]),
+    })
+
+    const celdas = fila(1)
+    expect(celdas.getByText('13002006 Lactosa monohidrato')).toBeInTheDocument()
+    expect(celdas.getByText('En Destino')).toHaveClass('bg-estado-destino', 'text-white')
+    expect(celdas.getByText('En Riesgo')).toHaveClass('bg-estado-riesgo', 'text-black')
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+})
+
 describe('filas terminales (wireframes §1.11)', () => {
   it('la etapa muestra el estado terminal, no la etapa congelada', () => {
     montar({

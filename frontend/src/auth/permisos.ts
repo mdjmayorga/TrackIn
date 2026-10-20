@@ -35,6 +35,15 @@ export function puedeIntervenir(accion: Accion, rol: Rol | undefined): boolean {
 }
 
 /**
+ * La pantalla permanente de planta (`US-43`, RNF-11): ve el panel con la grilla
+ * simple del Figma y no tiene ninguna acción. No figura en ninguna de las
+ * listas de arriba, así que tampoco puede intervenir pedidos ni cargar.
+ */
+export function esPantallaPlanta(rol: Rol | undefined): boolean {
+  return rol === 'PLANTA'
+}
+
+/**
  * La bandeja de arribos (`US-48`) es para quien puede gestionarlos: pasar un
  * pedido a proceso aduanal. Para los demás, el contador sería un pendiente que
  * no pueden resolver.

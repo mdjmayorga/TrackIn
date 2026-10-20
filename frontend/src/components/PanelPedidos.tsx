@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { BarraFiltros } from '@/components/BarraFiltros'
-import { GrillaPedidos } from '@/components/GrillaPedidos'
+import { GrillaPedidos, type VistaGrilla } from '@/components/GrillaPedidos'
 import { usePedidos } from '@/hooks/usePedidos'
 import { mensajeDeError } from '@/services/api'
 import type { Orden } from '@/types/api'
@@ -19,6 +19,8 @@ export interface PanelPedidosProps {
   onLimpiarFiltros: () => void
   /** Cambia al limpiar: la barra vuelve a nacer con los campos vacíos. */
   versionFiltros: number
+  /** La grilla simple de la pantalla de planta (`US-43`); los filtros son los mismos. */
+  vista?: VistaGrilla
 }
 
 /**
@@ -33,6 +35,7 @@ export function PanelPedidos({
   onCambioFiltros,
   onLimpiarFiltros,
   versionFiltros,
+  vista = 'completa',
 }: PanelPedidosProps) {
   const [orden, setOrden] = useState<Orden>(ORDEN_INICIAL)
   // La página se recuerda junto con los filtros con que se pidió: otro filtro
@@ -96,6 +99,7 @@ export function PanelPedidos({
             onPaginar={paginar}
             actualizando={isFetching && isPlaceholderData}
             terminales={filtraTerminales(filtros)}
+            vista={vista}
             vacio={
               filtrado ? (
                 <>

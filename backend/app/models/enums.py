@@ -78,11 +78,15 @@ TIPOS_TRACKING: Final[tuple[str, ...]] = (
 # --- Roles (RNF-05) ---------------------------------------------------------
 # ADMINISTRADOR entra el 03/09/2026: con autenticación real el rol sí restringe,
 # lo que revierte la decisión B9 tomada cuando no había login.
+# PLANTA entra el 20/10/2026 (`US-43`): la pantalla permanente de planta, de
+# solo lectura. No figura en ningún `requiere_rol`, así que ninguna escritura
+# la admite.
 ROLES: Final[tuple[str, ...]] = (
     "COMPRAS",
     "LOGISTICA",
     "PLANIFICACION",
     "ADMINISTRADOR",
+    "PLANTA",
 )
 
 # --- Auditoría (RF-14) ------------------------------------------------------
