@@ -108,6 +108,8 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga ✅ | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada · ✅ terminada 08/10 |
 | `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` |
 | `US-60` | Acciones del detalle: confirmar desembarco, pasar a aduana, recibir, ajustar días y liberar ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | 15/10: los endpoints existían desde el Sprint 5; las pantallas, no · ✅ terminada 15/10 |
+| `US-61` | Cambiar la propia contraseña | Story | OE3 | **Should** | Sprint 6 | 4h | 20/10: creación de la cuenta de Compras · hoy solo el Administrador reinicia contraseñas |
+| `US-62` | Administrar usuarios desde la interfaz | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
@@ -1713,6 +1715,11 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 >
 > **Hechas: 74 de 101 h.** Pendientes: `US-48` (6), `US-55` (6), `US-23` (4), `US-24` (4),
 > `US-57` (4), `US-43` (3).
+>
+> **20/10: entran `US-61` (4 h) y `US-62` (5 h)**, cambio de contraseña y administración de
+> usuarios, al preparar la cuenta de Compras. El sprint queda en **16 ítems · 110 h**, con
+> **36 h pendientes**, dentro de la capacidad que le queda. Son `Should`: si el sprint se
+> aprieta, ceden antes que las `Must`.
 >
 > **En espera de la reunión con Ventas (14/10):**
 >
@@ -3546,6 +3553,66 @@ paso a aduanal».
 >   arribos y línea de tiempo.
 >
 > Backend: 1 262 pruebas. Frontend: 154 pruebas, 97,6 %.
+
+---
+
+## Cuentas desde la interfaz — 20/10/2026
+
+Al preparar la cuenta de Compras para su primera carga se vio que **las cuentas solo se
+mantienen por consola o por el Swagger**. `US-42` dejó el backend completo —alta, cambios de
+rol, desactivación y reinicio de contraseña, todo solo para el Administrador—, pero ninguna
+pantalla lo usa, y nadie puede cambiar **su propia** contraseña: solo el Administrador
+reinicia la de otro. En producción eso obliga a llamar a un desarrollador para cada cuenta.
+
+### `US-61` — Cambiar la propia contraseña
+
+Como usuario de cualquier rol, quiero cambiar mi contraseña desde TrackIn, para no depender
+del Administrador y poder reemplazar la contraseña inicial que me entregaron.
+
+**Criterios de aceptación**
+
+- Dado un usuario con sesión, cuando abre «Cambiar contraseña» desde el encabezado, entonces se le pide la contraseña actual, la nueva y su repetición
+- Dada una contraseña actual incorrecta, cuando envía el cambio, entonces se rechaza sin cambiar nada y el intento cuenta para el bloqueo por intentos fallidos, igual que en el login
+- Dada una contraseña nueva de menos de 10 caracteres, igual a la actual o que no coincide con su repetición, cuando la envía, entonces se rechaza con el motivo
+- Dado un cambio exitoso, cuando se guarda, entonces **las demás sesiones de esa cuenta se cierran** y la sesión actual sigue abierta
+- Dado el cambio, cuando se registra, entonces queda en la bitácora quién y cuándo, **nunca** la contraseña ni su hash
+
+| | |
+|---|---|
+| Tipo | Story · OE3 · **Should** · Sprint 6 · 4 h |
+| Origen | 20/10/2026: creación de la cuenta de Compras |
+| Depende de | `US-42` (hecha) |
+| Toca | Endpoint nuevo `POST /api/v1/auth/contrasena`; diálogo en el encabezado |
+
+> **Decidido el 20/10/2026: la cuenta compartida de Compras no tiene excepción.** Cualquier
+> persona que use `compras@gutis.com` puede cambiar la contraseña, y desde ese momento
+> **todas las demás tienen que entrar con la nueva**: sus sesiones abiertas se cierran, como
+> en cualquier otra cuenta. Hacer circular la contraseña nueva dentro de Compras queda a
+> cargo de ellos; el sistema no envía avisos (no hay correo, decisión del 04/09).
+
+### `US-62` — Administrar usuarios desde la interfaz
+
+Como Administrador, quiero crear y mantener las cuentas desde TrackIn, para no tener que
+usar la consola ni la API cada vez que alguien entra, cambia de rol o se va.
+
+**Criterios de aceptación**
+
+- Dado un Administrador, cuando abre «Usuarios», entonces ve la lista de cuentas con usuario, nombre, correo, rol, si está activa y si está bloqueada
+- Dado el formulario de alta, cuando crea una cuenta con usuario, nombre, correo opcional, rol y contraseña inicial, entonces queda creada; un usuario repetido se rechaza con el motivo
+- Dada una cuenta, cuando cambia su nombre, correo o rol, entonces se guarda
+- Dada una cuenta, cuando la desactiva, entonces se pide confirmación, sus sesiones se cierran y **no se borra** (la auditoría la referencia); puede reactivarse
+- Dada una cuenta, cuando reinicia su contraseña, entonces se advierte que **cierra todas sus sesiones** —en la de Compras, la de todas las personas conectadas—, y la cuenta queda desbloqueada
+- Dado un rol que no es Administrador, cuando busca la pantalla, entonces no la ve en la navegación y la ruta lo devuelve al dashboard
+- Dado el Administrador, cuando intenta desactivarse o quitarse el rol a sí mismo, entonces la pantalla no lo ofrece y, si llega a la API, el 409 que ya devuelve se muestra con su motivo
+
+| | |
+|---|---|
+| Tipo | Story · OE3 · **Should** · Sprint 6 · 5 h |
+| Origen | 20/10/2026: creación de la cuenta de Compras |
+| Depende de | `US-42` (hecha): `GET`, `POST` y `PATCH /api/v1/usuarios` y `POST /usuarios/{id}/contrasena` ya existen |
+
+> **Es solo frontend.** El backend ya tiene todo, incluida la guarda que impide que un
+> Administrador se desactive o se quite el rol a sí mismo.
 
 ---
 
