@@ -93,7 +93,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-21` | Filtrar el dashboard de forma transversal y coherente ✅ | Story | OE3 | **Must** | Sprint 6 | 12h | RF-19 / CU-04 / RNF-02 · ✅ terminada 14/10, adelantada |
 | `US-22` | Mostrar la cinta de indicadores KPI ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 · ✅ terminada 13/10, adelantada |
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
-| `US-24` | Aplicar el semaforo de estados de forma consistente | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 |
+| `US-24` | Aplicar el semaforo de estados de forma consistente ✅ | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 · ✅ terminada 20/10 |
 | `US-43` | Ofrecer las dos grillas del Figma: completa en el panel y simple para la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | ~~10h~~ 3h | Reunión Logística 03/09 · **reducida al Figma el 14/10** |
 | `US-48` | Bandeja de arribos pendientes de gestión para Planificación ✅ | Story | OE3 | **Must** | Sprint 6 | 6h | RF-32 (nuevo, 04/09) · aviso interno, sin correo · ✅ terminada 20/10 |
 | `US-49` | Rastrear guías hijas (HAWB) por el manifiesto de carga de TICA | Story | OE2 | **Must** | Sprint 4 | 6h | Hallazgo del 28/09 · ✅ terminada 28/09 con el margen del Sprint 4 |
@@ -1709,6 +1709,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `US-20` Detalle del pedido | ✅ 15/10 |
 > | `US-60` Acciones del detalle (nueva, 15/10) | ✅ 15/10 |
 > | `US-48` Bandeja de arribos pendientes | ✅ 20/10 |
+> | `US-24` Semáforo consistente | ✅ 20/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
 > | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
 >
@@ -1725,6 +1726,9 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > **20/10: `US-48` terminada. Hechas: 80 de 110 h.** Pendientes: `US-55` (6), `US-62` (5),
 > `US-23` (4), `US-24` (4), `US-57` (4), `US-61` (4), `US-43` (3). `US-55`, `US-57` y `US-23`
 > esperan la reunión con Compras, pasada al 21/10.
+>
+> **20/10: `US-24` terminada. Hechas: 84 de 110 h.** Pendientes: `US-55` (6), `US-62` (5),
+> `US-23` (4), `US-57` (4), `US-61` (4), `US-43` (3).
 >
 > **En espera de la reunión con Ventas (14/10):**
 >
@@ -2030,6 +2034,34 @@ Como usuario sin formación técnica, quiero que el color signifique lo mismo en
 > **Decidido el 14/10/2026:** «Recibido en planta», que no tiene color en el SRS ni en el Figma,
 > queda con el **café** (`#92400e`) que se usó de forma provisional en `US-19`. Con eso la
 > paleta está completa.
+
+> **✅ Terminada el 20/10/2026.**
+>
+> - **Un solo lugar para los colores:** `frontend/src/components/paleta.ts`. Lo importa
+>   `tailwind.config.js` para generar las clases `bg-estado-*` y lo usa `estados.ts`, que da
+>   por estado el texto, las clases y los mismos colores en hexadecimal. Los marcadores de
+>   Leaflet no usan clases: tomarán el hexadecimal con `aparienciaDeEstado(estado_calculado)`,
+>   así que el mapa del Sprint 7 no puede pintar un estado distinto de la grilla. El
+>   marcador del mapa del detalle ya lo usa; antes era un azul fijo, fuera cual fuera el
+>   estado.
+> - **Contraste — decisión del 20/10.** Con letra blanca, cinco tonos del Figma no llegaban
+>   a 4,5:1 (WCAG AA), el mínimo para leer texto chico, y menos a la distancia de la
+>   pantalla de planta: Sin Tracking 2,5 · En Origen 3,1 · P. Aduanal 3,6 · En Riesgo 3,6 ·
+>   A Tiempo 3,8. **Llevan letra negra y conservan el tono aprobado**; quedan entre 5,5 y
+>   8,3. Los otros cinco ya pasaban con blanca. Una prueba verifica el contraste de todos, y
+>   que las clases y el hexadecimal digan el mismo color. La insignia «ShipsGo API Online»,
+>   que usa el verde de «A Tiempo», pasó también a letra negra.
+> - **Se quitó una copia de la paleta** en «Próximos arribos», que repetía los colores de
+>   cumplimiento por su cuenta.
+> - **Tres tonos del Figma no son los que nombra el SRS** (wireframes §1.6): En Origen es
+>   verde azulado y no «azul claro», P. Aduanal es oliva y no «amarillo», y Cancelado es
+>   negro y no «gris oscuro». Se conservan porque el Figma lo aprobaron los usuarios el
+>   06/10; conviene que el SRS lo recoja. **En Origen y A Tiempo son los dos tonos más
+>   parecidos** de la paleta, verde azulado y verde: el texto del distintivo los distingue.
+> - El criterio «mismo color en la grilla y en el mapa» queda cumplido en el mecanismo; los
+>   mapas con marcadores por estado son `US-25` y `US-26`, en el Sprint 7.
+>
+> Frontend: 192 pruebas, 97,6 %.
 
 #### US-28 — Presentar los proximos arribos dentro del dashboard
 

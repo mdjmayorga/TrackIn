@@ -4,7 +4,8 @@ import { useHealth } from '@/hooks/useHealth'
 import { type Nivel, estadoShipsGo } from '@/utils/saludShipsGo'
 
 const CLASES: Record<Nivel, string> = {
-  ok: 'bg-estado-a-tiempo text-white',
+  // Letra negra, como el distintivo «A Tiempo»: con blanca no llega a 4,5:1 (`US-24`).
+  ok: 'bg-estado-a-tiempo text-black',
   aviso: 'bg-amber-500 text-black',
   falla: 'bg-estado-retrasado text-white',
 }

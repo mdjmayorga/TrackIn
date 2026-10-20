@@ -8,16 +8,11 @@
  */
 
 import { IconoVia } from '@/components/IconoVia'
+import { CUMPLIMIENTOS } from '@/components/estados'
 import { useProximosArribos } from '@/hooks/usePedidos'
 import type { Cumplimiento, ProximoArribo } from '@/types/api'
 import type { FiltrosPanel } from '@/utils/filtros'
 import { destinoCorto } from '@/utils/formatos'
-
-const COLOR: Record<Cumplimiento, string> = {
-  A_TIEMPO: 'bg-estado-a-tiempo',
-  EN_RIESGO: 'bg-estado-riesgo',
-  RETRASADO: 'bg-estado-retrasado',
-}
 
 const TEXTO_CUMPLIMIENTO: Record<Cumplimiento, string> = {
   A_TIEMPO: 'A tiempo',
@@ -41,7 +36,10 @@ function Tarjeta({ arribo }: { arribo: ProximoArribo }) {
         role="img"
         aria-label={texto}
         title={texto}
-        className={`mt-px h-3 w-3 rounded-sm ${cumplimiento ? COLOR[cumplimiento] : 'bg-slate-600'}`}
+        // El color del semáforo, de `estados.ts`: el mismo que en la grilla (`US-24`).
+        className={`mt-px h-3 w-3 rounded-sm ${
+          cumplimiento ? CUMPLIMIENTOS[cumplimiento].clases : 'bg-slate-600'
+        }`}
       />
       <span className="min-w-0">
         <span className="block whitespace-nowrap font-semibold tracking-tight">

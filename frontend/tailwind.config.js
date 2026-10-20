@@ -1,3 +1,5 @@
+import { PALETA_ESTADOS } from './src/components/paleta.ts'
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -18,21 +20,9 @@ export default {
           800: '#1842b4',
           900: '#1a3b8e',
         },
-        // Semáforo de RNF-08 (wireframes §1.6), con los tonos del Figma aprobado
-        // el 06/10. Un solo lugar: la grilla y los mapas tienen que coincidir
-        // (`US-24`).
-        estado: {
-          'sin-tracking': '#9ca3af',
-          origen: '#0ea589',
-          transito: '#0b4dff',
-          destino: '#6b3a7f',
-          aduanal: '#8c8c26',
-          recibido: '#92400e',
-          'a-tiempo': '#24955f',
-          riesgo: '#ea580c',
-          retrasado: '#d0141b',
-          cancelado: '#000000',
-        },
+        // Semáforo de RNF-08: vive en `src/components/paleta.ts`, que también
+        // leen los mapas, para que la grilla y los mapas coincidan (`US-24`).
+        estado: PALETA_ESTADOS,
         // Superficies del panel oscuro del Figma.
         panel: {
           fondo: '#111317',

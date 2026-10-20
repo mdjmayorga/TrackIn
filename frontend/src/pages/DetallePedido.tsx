@@ -19,7 +19,7 @@ import { useSesion } from '@/auth/useSesion'
 import { AccionesPedido } from '@/components/AccionesPedido'
 import { AsociarReferencia } from '@/components/AsociarReferencia'
 import { Distintivo } from '@/components/Distintivo'
-import { CUMPLIMIENTOS, ETAPAS, etapaVisible } from '@/components/estados'
+import { CUMPLIMIENTOS, ETAPAS, aparienciaDeEstado, etapaVisible } from '@/components/estados'
 import { MapaBase } from '@/components/MapaBase'
 import { useBitacora, usePedido } from '@/hooks/usePedidos'
 import { mensajeDeError } from '@/services/api'
@@ -374,7 +374,11 @@ function MapaDelEnvio({ pedido }: { pedido: PedidoDetalle }) {
       ocultarTitulo
       centro={centro}
       zoom={5}
-      marcador={{ posicion: centro, etiqueta: r.nombre ?? `${r.tipo} ${r.referencia}` }}
+      marcador={{
+        posicion: centro,
+        etiqueta: r.nombre ?? `${r.tipo} ${r.referencia}`,
+        color: aparienciaDeEstado(pedido.estado_calculado).fondo,
+      }}
     />
   )
 }
