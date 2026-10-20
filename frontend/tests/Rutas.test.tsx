@@ -71,7 +71,9 @@ describe('rutas protegidas', () => {
     expect(screen.getByLabelText('Usuario')).toBeInTheDocument()
   })
 
-  it('con sesión, entra al dashboard y muestra quién es', async () => {
+  // Con más plazo que el de omisión (5 s): la carga diferida más el clic en el
+  // menú pasaron de 5 s con la cobertura activa y la máquina ocupada (20/10).
+  it('con sesión, entra al dashboard y muestra quién es', { timeout: 15_000 }, async () => {
     guardarSesion({ token: 't', usuario: USUARIO, recordada: false })
     montar('/')
 

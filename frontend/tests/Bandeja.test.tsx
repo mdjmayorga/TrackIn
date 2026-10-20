@@ -175,7 +175,7 @@ describe('contador del encabezado (US-48)', () => {
     )
     montar(<Dashboard />)
 
-    const enlace = await screen.findByRole('link', { name: 'Arribos pendientes 3' })
+    const enlace = await screen.findByRole('link', { name: 'Arribos pendientes (3 pendientes)' })
     expect(enlace).toHaveAttribute('href', '/bandeja')
   })
 
@@ -228,5 +228,26 @@ describe('enlace a cambiar la contraseña (US-61)', () => {
       'href',
       '/contrasena',
     )
+  })
+})
+
+describe('botón de arribos pendientes, con el diseño de Arribos_Pendientes.png', () => {
+  it('con pendientes, lleva la burbuja con el número', async () => {
+    vi.mocked(listarPedidos).mockImplementation(async (_consulta, filtros) =>
+      filtros?.etapa === 'EN_DESTINO' ? pagina([], { total: 1 }) : pagina([]),
+    )
+    montar(<Dashboard />)
+
+    const boton = await screen.findByRole('link', { name: 'Arribos pendientes (1 pendiente)' })
+    expect(within(boton).getByText('1')).toBeInTheDocument()
+  })
+
+  it('en cero queda como el diseño: sin burbuja', async () => {
+    vi.mocked(listarPedidos).mockResolvedValue(pagina([]))
+    montar(<Dashboard />)
+
+    const boton = await screen.findByRole('link', { name: 'Arribos pendientes (ninguno)' })
+    expect(within(boton).queryByText('0')).toBeNull()
+    expect(boton).toHaveAttribute('href', '/bandeja')
   })
 })

@@ -21,29 +21,63 @@ const MARITIMO: [number, number] = [16, -77]
 const AEREO: [number, number] = [17, -78]
 
 /**
- * El contador de la bandeja (`US-48`): cuántos pedidos llegaron y esperan el
- * paso a aduana. Resalta solo cuando hay pendientes; en cero queda el enlace,
- * sin llamar la atención.
+ * El botón de la bandeja (`US-48`), con el diseño de `figma/Arribos_Pendientes.png`:
+ * el pin con el ancla y el texto, con el color del botón «Configuración».
+ *
+ * El diseño no trae número, y el criterio de `US-48` pide un contador visible:
+ * va en una burbuja sobre la esquina, **solo cuando hay pendientes**. En cero
+ * el botón queda tal cual el diseño. El número va también en el nombre
+ * accesible, porque la burbuja sola no se lee.
  */
 function AvisoBandeja() {
   const { data } = useBandejaArribos()
   const pendientes = data?.total ?? 0
+  const lectura = !data
+    ? ''
+    : pendientes === 0
+      ? ' (ninguno)'
+      : ` (${pendientes} ${pendientes === 1 ? 'pendiente' : 'pendientes'})`
   return (
-    <p>
-      <Link
-        to="/bandeja"
-        className="inline-flex items-center gap-2 text-marca-300 underline hover:text-marca-200"
-      >
-        Arribos pendientes{' '}
+    <Link
+      to="/bandeja"
+      aria-label={`Arribos pendientes${lectura}`}
+      className="group relative inline-flex items-center gap-2 rounded-lg bg-panel-cabecera py-1.5 pl-2.5 pr-3.5 text-sm text-slate-50 hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-marca-400"
+    >
+      <IconoPinAncla />
+      Arribos pendientes
+      {pendientes > 0 && (
         <span
-          className={`rounded-full px-2 text-xs font-semibold no-underline ${
-            pendientes > 0 ? 'bg-estado-destino text-white' : 'bg-panel-cabecera text-slate-400'
-          }`}
+          aria-hidden="true"
+          className="absolute -right-2 -top-2 min-w-[1.375rem] rounded-full bg-estado-destino px-1.5 text-center text-xs font-semibold leading-[1.375rem] text-white ring-2 ring-panel-fondo"
         >
-          {data ? pendientes : '…'}
+          {pendientes}
         </span>
-      </Link>
-    </p>
+      )}
+    </Link>
+  )
+}
+
+/** El pin de ubicación con un ancla del diseño: llegada a puerto. */
+function IconoPinAncla() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 32" className="h-6 w-[1.125rem] shrink-0">
+      <path
+        d="M12 1C6 1 1.5 5.6 1.5 11.3c0 4 2.2 8.3 4.6 12.1L12 31l5.9-7.6c2.4-3.8 4.6-8.1 4.6-12.1C22.5 5.6 18 1 12 1z"
+        fill="currentColor"
+      />
+      <circle cx="12" cy="11" r="7.2" className="fill-panel-cabecera group-hover:fill-slate-600" />
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="6.6" r="1.3" />
+        <path d="M12 7.9v7.6M9.6 9.8h4.8M7.8 12.2c.5 2.2 2.1 3.4 4.2 3.4s3.7-1.2 4.2-3.4" />
+        <path d="M7.1 13.3l.7-1.1 1.1.7M16.9 13.3l-.7-1.1-1.1.7" />
+      </g>
+    </svg>
   )
 }
 
