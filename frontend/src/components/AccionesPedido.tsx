@@ -39,7 +39,7 @@ import {
 } from '@/utils/fechas'
 
 /** El mínimo del backend (`auditoria.LONGITUD_MINIMA_MOTIVO`). */
-const MOTIVO_MINIMO = 5
+export const MOTIVO_MINIMO = 5
 
 interface Definicion {
   accion: Accion

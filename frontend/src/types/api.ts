@@ -93,6 +93,8 @@ export type ColumnaOrden =
   | 'etapa'
   | 'cumplimiento'
   | 'estado'
+  /** La bandeja de arribos (`US-48`). */
+  | 'fecha_arribo'
 
 export type Orden = ColumnaOrden | `-${ColumnaOrden}`
 
@@ -121,6 +123,8 @@ export interface PedidoResumen {
   estado_calculado: EstadoCalculado
   rastreable: boolean
   ultima_actualizacion_fuente: string | null
+  /** Cuándo llegó a destino: confirmado a mano, fuente o geocerca (RN-05). */
+  fecha_arribo: string | null
   ausente_desde: string | null
   fecha_recepcion_planta: string | null
   /** Decimal serializado como texto. */

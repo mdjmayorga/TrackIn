@@ -19,6 +19,7 @@ export function pedido(cambios: Partial<PedidoResumen> = {}): PedidoResumen {
     estado_calculado: 'A_TIEMPO',
     rastreable: true,
     ultima_actualizacion_fuente: null,
+    fecha_arribo: null,
     ausente_desde: null,
     fecha_recepcion_planta: null,
     cantidad_recibida: null,

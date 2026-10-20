@@ -117,6 +117,12 @@ class PedidoResumen(_Esquema):
     ultima_actualizacion_fuente: dt.datetime | None = Field(
         description="Antigüedad del último dato bueno de la fuente (RNF-12)."
     )
+    fecha_arribo: dt.datetime | None = Field(
+        description=(
+            "Cuándo llegó a destino: lo confirmado a mano, lo que reportó la fuente o lo "
+            "deducido por la geocerca, en ese orden (RN-05). Nula si no ha llegado."
+        )
+    )
     ausente_desde: dt.datetime | None = Field(
         description="Desde cuándo la línea dejó de venir en el archivo (`US-31`)."
     )

@@ -95,7 +95,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
 | `US-24` | Aplicar el semaforo de estados de forma consistente | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 |
 | `US-43` | Ofrecer las dos grillas del Figma: completa en el panel y simple para la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | ~~10h~~ 3h | Reunión Logística 03/09 · **reducida al Figma el 14/10** |
-| `US-48` | Bandeja de arribos pendientes de gestión para Planificación | Story | OE3 | **Must** | Sprint 6 | 6h | RF-32 (nuevo, 04/09) · aviso interno, sin correo |
+| `US-48` | Bandeja de arribos pendientes de gestión para Planificación ✅ | Story | OE3 | **Must** | Sprint 6 | 6h | RF-32 (nuevo, 04/09) · aviso interno, sin correo · ✅ terminada 20/10 |
 | `US-49` | Rastrear guías hijas (HAWB) por el manifiesto de carga de TICA | Story | OE2 | **Must** | Sprint 4 | 6h | Hallazgo del 28/09 · ✅ terminada 28/09 con el margen del Sprint 4 |
 | `US-50` | Worker de rastreo: ciclo periódico que consulta, aplica, evalúa el arribo y recalcula | Story | OE2 | **Must** | Sprint 4 | 6h | `TASK-20` §1.4 · ✅ terminada 28/09 con el margen del Sprint 4 |
 | `US-51` | Publicar la salud de las fuentes en la base para que `/health` vea al worker | Story | OE2 | **Should** | Sprint 4 | 3h | RF-20 / RNF-12 · ✅ terminada 28/09 |
@@ -1708,6 +1708,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `US-21` Filtros del panel | ✅ 14/10 |
 > | `US-20` Detalle del pedido | ✅ 15/10 |
 > | `US-60` Acciones del detalle (nueva, 15/10) | ✅ 15/10 |
+> | `US-48` Bandeja de arribos pendientes | ✅ 20/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
 > | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
 >
@@ -1720,6 +1721,10 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > usuarios, al preparar la cuenta de Compras. El sprint queda en **16 ítems · 110 h**, con
 > **36 h pendientes**, dentro de la capacidad que le queda. Son `Should`: si el sprint se
 > aprieta, ceden antes que las `Must`.
+>
+> **20/10: `US-48` terminada. Hechas: 80 de 110 h.** Pendientes: `US-55` (6), `US-62` (5),
+> `US-23` (4), `US-24` (4), `US-57` (4), `US-61` (4), `US-43` (3). `US-55`, `US-57` y `US-23`
+> esperan la reunión con Compras, pasada al 21/10.
 >
 > **En espera de la reunión con Ventas (14/10):**
 >
@@ -3923,6 +3928,33 @@ para registrar el paso a proceso aduanal sin tener que revisar la grilla pedido 
 
 > **Por qué no hay correo.** Se evaluó y se descartó: exigiría servidor SMTP y credenciales de
 > Gutis, una dependencia externa nueva para un aviso que el usuario ya ve al entrar al sistema.
+
+> **✅ Terminada el 20/10/2026.** «Arribos pendientes» en el encabezado del panel, con el
+> contador, y la página `/bandeja`:
+>
+> - **Quién la ve:** los roles que pueden registrar el paso a aduana —Planificación,
+>   Logística y Administrador—, los mismos del endpoint de `US-14`. A Compras el contador le
+>   mostraría un pendiente que no puede resolver; si entra a la ruta, se le explica de quién es.
+> - **El contador resalta solo con pendientes.** En cero queda el enlace, en gris.
+> - **La lista:** OC y posición (enlace al detalle), material, vía, destino, **cuándo llegó**
+>   («hace 16 días») y la fecha comprometida. **Lo que más espera, primero.**
+> - **El paso a aduana se registra en la misma fila**, con el motivo obligatorio de RF-14. Al
+>   confirmar, el pedido sale de la bandeja y el contador baja; si el backend lo rechaza, se
+>   muestra el motivo y el pedido sigue en la lista.
+> - **Vacía, lo dice:** «No hay arribos pendientes…», en vez de una tabla en blanco.
+> - **Se actualiza sola cada minuto**, el ciclo del worker: el arribo lo detecta el sistema,
+>   no quien mira la pantalla. El contador y la lista usan la misma consulta, así que no
+>   pueden dar cifras distintas.
+>
+> **Backend:** el resumen de cada pedido trae ahora `fecha_arribo` —lo confirmado a mano, lo
+> reportado por la fuente o lo deducido por la geocerca, en ese orden (RN-05)— y la grilla
+> acepta `orden=fecha_arribo`. La bandeja es `GET /pedidos?etapa=EN_DESTINO&orden=fecha_arribo`:
+> no hizo falta un endpoint nuevo.
+>
+> **Con datos reales** (base de desarrollo, 20/10): un pedido en la bandeja, la OC
+> 4500016185-10, marítima, llegada a Caldera el 04/10. Nadie había registrado su paso a aduana.
+>
+> Backend: 1 264 pruebas, 97 %. Frontend: 168 pruebas, 97,6 %.
 
 ### `US-49` — Rastrear guías hijas (HAWB) por el manifiesto de carga de TICA
 

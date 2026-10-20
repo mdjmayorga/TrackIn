@@ -452,6 +452,66 @@ async def test_los_tres_arribos_se_distinguen(api, sesion, umbral_dos) -> None:
     assert dt.datetime.fromisoformat(arribos["inferido"]) == inferido
 
 
+# --- US-48: la bandeja de arribos pendientes --------------------------------
+
+
+async def _en_destino(sesion, posicion: int, referencia: str, **arribo) -> PedidoTransito:
+    """Un pedido llegado. `ata_api` va al elemento; el resto, al pedido."""
+    elemento = await _elemento(
+        sesion, tracking_externo=referencia, ata_api=arribo.pop("ata_api", None)
+    )
+    return await _pedido(
+        sesion,
+        posicion=posicion,
+        id_elemento_rastreado=elemento.id,
+        etapa_viaje="EN_DESTINO",
+        estado_calculado="EN_DESTINO",
+        **arribo,
+    )
+
+
+@pytest.mark.integration
+async def test_la_fila_trae_la_fecha_de_arribo_con_la_precedencia_de_rn05(api, sesion) -> None:
+    """Lo confirmado a mano manda sobre la fuente, y la fuente sobre la geocerca."""
+    confirmado = dt.datetime(2026, 9, 20, 8, 0, tzinfo=dt.UTC)
+    fuente = dt.datetime(2026, 9, 18, 6, 0, tzinfo=dt.UTC)
+    inferido = dt.datetime(2026, 9, 18, 5, 34, tzinfo=dt.UTC)
+    await _en_destino(
+        sesion, 10, "MRSU0000010", ata_confirmada=confirmado, ata_api=fuente, ata_inferida=inferido
+    )
+    await _en_destino(sesion, 20, "MRSU0000020", ata_api=fuente, ata_inferida=inferido)
+    await _en_destino(sesion, 30, "MRSU0000030", ata_inferida=inferido)
+    await _pedido(sesion, posicion=40)  # sin llegar
+
+    filas = (await api.get(URL, params={"orden": "oc"})).json()["items"]
+
+    arribos = [f["fecha_arribo"] and dt.datetime.fromisoformat(f["fecha_arribo"]) for f in filas]
+    assert arribos == [confirmado, fuente, inferido, None]
+
+
+@pytest.mark.integration
+async def test_ordena_por_fecha_de_arribo_lo_mas_antiguo_primero(api, sesion) -> None:
+    """La bandeja pide `etapa=EN_DESTINO&orden=fecha_arribo`: lo que más espera, arriba."""
+    await _en_destino(sesion, 10, "MRSU0000010", ata_api=dt.datetime(2026, 9, 25, tzinfo=dt.UTC))
+    # Confirmado a mano el 15, aunque la fuente diga el 28: cuenta lo confirmado.
+    await _en_destino(
+        sesion,
+        20,
+        "MRSU0000020",
+        ata_confirmada=dt.datetime(2026, 9, 15, tzinfo=dt.UTC),
+        ata_api=dt.datetime(2026, 9, 28, tzinfo=dt.UTC),
+    )
+    await _en_destino(
+        sesion, 30, "MRSU0000030", ata_inferida=dt.datetime(2026, 9, 20, tzinfo=dt.UTC)
+    )
+    await _pedido(sesion, posicion=40)
+
+    cuerpo = (await api.get(URL, params={"etapa": "EN_DESTINO", "orden": "fecha_arribo"})).json()
+
+    assert cuerpo["total"] == 3
+    assert [f["posicion_oc"] for f in cuerpo["items"]] == [20, 30, 10]
+
+
 @pytest.mark.integration
 async def test_una_fecha_que_ya_no_sale_de_sus_insumos_se_senala(api, sesion, umbral_dos) -> None:
     """El caso real del 29/09: una fecha guardada cuyo insumo desapareció."""

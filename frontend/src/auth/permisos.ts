@@ -33,3 +33,12 @@ export type Accion = keyof typeof ROLES_ACCION
 export function puedeIntervenir(accion: Accion, rol: Rol | undefined): boolean {
   return rol !== undefined && (ROLES_ACCION[accion] as readonly Rol[]).includes(rol)
 }
+
+/**
+ * La bandeja de arribos (`US-48`) es para quien puede gestionarlos: pasar un
+ * pedido a proceso aduanal. Para los demás, el contador sería un pendiente que
+ * no pueden resolver.
+ */
+export function puedeVerBandeja(rol: Rol | undefined): boolean {
+  return puedeIntervenir('aduana', rol)
+}

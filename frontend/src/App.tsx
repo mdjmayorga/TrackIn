@@ -12,6 +12,7 @@ import Login from '@/pages/Login'
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Cargas = lazy(() => import('@/pages/Cargas'))
 const DetallePedido = lazy(() => import('@/pages/DetallePedido'))
+const Bandeja = lazy(() => import('@/pages/Bandeja'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +63,14 @@ export function Rutas() {
         element={
           <Protegida>
             <DetallePedido />
+          </Protegida>
+        }
+      />
+      <Route
+        path="/bandeja"
+        element={
+          <Protegida>
+            <Bandeja />
           </Protegida>
         }
       />

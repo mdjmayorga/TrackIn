@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { puedeCargar } from '@/auth/permisos'
+import { puedeCargar, puedeVerBandeja } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { EstadoShipsGo } from '@/components/EstadoShipsGo'
 import { CintaKpis } from '@/components/CintaKpis'
 import { MapaBase } from '@/components/MapaBase'
 import { PanelPedidos } from '@/components/PanelPedidos'
 import { ProximosArribos } from '@/components/ProximosArribos'
+import { useBandejaArribos } from '@/hooks/usePedidos'
 import { cerrarSesion } from '@/services/auth'
 import { FILTROS_VACIOS, type FiltrosPanel } from '@/utils/filtros'
 
@@ -18,6 +19,33 @@ import { FILTROS_VACIOS, type FiltrosPanel } from '@/utils/filtros'
  */
 const MARITIMO: [number, number] = [16, -77]
 const AEREO: [number, number] = [17, -78]
+
+/**
+ * El contador de la bandeja (`US-48`): cuántos pedidos llegaron y esperan el
+ * paso a aduana. Resalta solo cuando hay pendientes; en cero queda el enlace,
+ * sin llamar la atención.
+ */
+function AvisoBandeja() {
+  const { data } = useBandejaArribos()
+  const pendientes = data?.total ?? 0
+  return (
+    <p className="mt-1">
+      <Link
+        to="/bandeja"
+        className="inline-flex items-center gap-2 text-marca-300 underline hover:text-marca-200"
+      >
+        Arribos pendientes{' '}
+        <span
+          className={`rounded-full px-2 text-xs font-semibold no-underline ${
+            pendientes > 0 ? 'bg-estado-destino text-white' : 'bg-panel-cabecera text-slate-400'
+          }`}
+        >
+          {data ? pendientes : '…'}
+        </span>
+      </Link>
+    </p>
+  )
+}
 
 /**
  * Panel de control (Figma «Dashboard Principal», aprobado el 06/10): mapa
@@ -68,6 +96,7 @@ export default function Dashboard() {
                   {puedeCargar(sesion.usuario.rol) ? 'Cargar Z-tracking' : 'Cargas del Z-tracking'}
                 </Link>
               </p>
+              {puedeVerBandeja(sesion.usuario.rol) && <AvisoBandeja />}
             </>
           )}
         </div>

@@ -48,6 +48,33 @@ export function useProximosArribos(filtros: FiltrosPanel = FILTROS_VACIOS) {
   })
 }
 
+/** Cuántos arribos trae la bandeja como máximo: el tope del backend. */
+export const LIMITE_BANDEJA = 200
+
+/** Cada cuánto se vuelve a mirar la bandeja: el ciclo del worker es de 60 s. */
+const REFRESCO_BANDEJA_MS = 60_000
+
+/**
+ * La bandeja de arribos pendientes de gestión (`US-48`): los pedidos en
+ * `EN_DESTINO`, lo que lleva más tiempo esperando primero. La comparten el
+ * contador del encabezado y la página, así que nunca dicen cifras distintas.
+ *
+ * Se vuelve a pedir sola cada minuto: un arribo lo detecta el worker, no una
+ * acción de quien mira, y el aviso es dentro de la aplicación (sin correo).
+ */
+export function useBandejaArribos(habilitada = true) {
+  return useQuery({
+    queryKey: ['pedidos', 'bandeja'],
+    queryFn: () =>
+      listarPedidos(
+        { orden: 'fecha_arribo', limite: LIMITE_BANDEJA, desplazamiento: 0 },
+        { ...FILTROS_VACIOS, etapa: 'EN_DESTINO' },
+      ),
+    enabled: habilitada,
+    refetchInterval: REFRESCO_BANDEJA_MS,
+  })
+}
+
 /** El detalle de un pedido (`US-20`). Bajo `pedidos`: una carga lo refresca. */
 export function usePedido(id: number) {
   return useQuery({ queryKey: ['pedidos', 'detalle', id], queryFn: () => obtenerPedido(id) })

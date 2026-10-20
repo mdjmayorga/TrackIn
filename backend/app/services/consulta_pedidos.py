@@ -52,6 +52,13 @@ from app.schemas.pedidos import (
 )
 from app.services import parametros, proyeccion, recalculo
 
+#: Cuándo llegó a destino, con la precedencia de RN-05: lo confirmado a mano,
+#: lo que reportó la fuente y, por último, lo deducido por la geocerca. El
+#: elemento va en `outerjoin`, así que su `ata_api` es nula si no hay rastreo.
+_FECHA_ARRIBO = func.coalesce(
+    PedidoTransito.ata_confirmada, ElementoRastreado.ata_api, PedidoTransito.ata_inferida
+)
+
 #: Columna de la grilla → expresión por la que ordena. La OC ordena también
 #: por posición: la fila es la línea, y 10 tiene que ir antes que 20.
 _COLUMNAS_ORDEN: dict[str, tuple[Any, ...]] = {
@@ -66,6 +73,8 @@ _COLUMNAS_ORDEN: dict[str, tuple[Any, ...]] = {
     "etapa": (PedidoTransito.etapa_viaje,),
     "cumplimiento": (PedidoTransito.estado_cumplimiento,),
     "estado": (PedidoTransito.estado_calculado,),
+    # La bandeja de arribos (`US-48`): lo que lleva más tiempo esperando, primero.
+    "fecha_arribo": (_FECHA_ARRIBO,),
 }
 
 #: Lo primero que le importa a Compras: qué está por quedar disponible.
@@ -201,6 +210,10 @@ def _resumen(pedido: PedidoTransito) -> dict[str, Any]:
         "estado_calculado": pedido.estado_calculado,
         "rastreable": elemento is not None,
         "ultima_actualizacion_fuente": elemento.ultima_actualizacion_api if elemento else None,
+        # La misma precedencia que `_FECHA_ARRIBO`, que es por la que se ordena.
+        "fecha_arribo": pedido.ata_confirmada
+        or (elemento.ata_api if elemento else None)
+        or pedido.ata_inferida,
         "ausente_desde": pedido.ausente_desde,
         "fecha_recepcion_planta": pedido.fecha_recepcion_planta,
         "cantidad_recibida": pedido.cantidad_recibida,
