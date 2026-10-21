@@ -2659,6 +2659,20 @@ seguimiento** de ese envío en particular, para saber de dónde viene y por dón
 - Dado un pedido, cuando abro su detalle, entonces muestra el país de origen normalizado (maestro de TASK-29)
 - Dado un pedido con posición, cuando abro su detalle, entonces muestra un mapa centrado en ese envío con su última posición y, si existe, su trayecto (depende de US-29/RF-22)
 
+> **21/10/2026: prototipo con el ShipsGo Embed.** La cuenta de ShipsGo trae un mapa en vivo
+> embebible (`embed.shipsgo.com`), con un token propio, distinto del de la API, y una lista
+> de «Allowed HTTP Origins». El detalle lo muestra en lugar del mapa propio cuando el pedido
+> tiene un BL, contenedor, booking o MAWB que ShipsGo ya respondió: buque o vuelo, puertos,
+> ETA y trayecto. Los demás siguen con el mapa propio. Token en `VITE_SHIPSGO_EMBED_TOKEN`
+> (`frontend/.env`, fuera de git). Si el prototipo se valida, el trayecto de este criterio
+> lo resuelve ShipsGo: **reestimar de 8 h a ~4 h**, y `US-29` de 10 h a ~5 h, porque el
+> trayecto pasado y futuro llega en el GeoJSON de ShipsGo. **Los mapas del panel**
+> (`US-25`, `US-26`) **siguen siendo propios**: tienen que pintar el semáforo de TrackIn,
+> responder a los filtros y mostrar pedidos, no embarques.
+>
+> **Pendiente:** el dominio de producción en «Allowed HTTP Origins», y verificar que la red de
+> Gutis deja pasar `embed.shipsgo.com`.
+
 ### `TASK-30` — Contrato de captura de la referencia de embarque
 
 Como equipo, queremos definir por escrito qué referencia se captura por envío, en qué formato

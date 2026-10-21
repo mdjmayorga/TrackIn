@@ -21,6 +21,7 @@ import { AsociarReferencia } from '@/components/AsociarReferencia'
 import { Distintivo } from '@/components/Distintivo'
 import { CUMPLIMIENTOS, ETAPAS, aparienciaDeEstado, etapaVisible } from '@/components/estados'
 import { MapaBase } from '@/components/MapaBase'
+import { MapaShipsGo } from '@/components/MapaShipsGo'
 import { useBitacora, usePedido } from '@/hooks/usePedidos'
 import { mensajeDeError } from '@/services/api'
 import type { AsientoBitacora, PedidoDetalle } from '@/types/api'
@@ -34,6 +35,7 @@ import {
 } from '@/utils/detalle'
 import { formatearFecha, formatearFechaHora, haceCuanto } from '@/utils/fechas'
 import { destinoCorto } from '@/utils/formatos'
+import { urlMapaShipsGo } from '@/utils/mapaShipsGo'
 
 export default function DetallePedido() {
   const { id } = useParams()
@@ -358,6 +360,11 @@ function Evento({ asiento }: { asiento: AsientoBitacora }) {
 }
 
 function MapaDelEnvio({ pedido }: { pedido: PedidoDetalle }) {
+  // Con un envío rastreado por ShipsGo, su mapa en vivo; si no, el propio.
+  const enVivo = urlMapaShipsGo(pedido.rastreo, pedido.via_transporte)
+  if (enVivo && pedido.rastreo) {
+    return <MapaShipsGo url={enVivo} referencia={pedido.rastreo.referencia} />
+  }
   const posicion = pedido.rastreo?.posicion
   if (!posicion) {
     return (

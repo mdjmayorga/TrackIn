@@ -257,6 +257,19 @@ describe('elemento rastreado y arribo', () => {
     montar()
     expect(await screen.findByRole('heading', { name: 'Mapa del envío' })).toBeInTheDocument()
   })
+
+  it('con el token del Embed, el mapa en vivo de ShipsGo en lugar del propio (21/10)', async () => {
+    vi.stubEnv('VITE_SHIPSGO_EMBED_TOKEN', 'tok')
+    try {
+      montar()
+
+      const mapa = await screen.findByTitle('Mapa en vivo de ShipsGo para MEDU1234567')
+      expect(mapa.getAttribute('src')).toContain('query=MEDU1234567')
+      expect(screen.queryByRole('heading', { name: 'Mapa del envío' })).toBeNull()
+    } finally {
+      vi.stubEnv('VITE_SHIPSGO_EMBED_TOKEN', '')
+    }
+  })
 })
 
 describe('sin identificador: no rastreable (RN-02, §4.7)', () => {
