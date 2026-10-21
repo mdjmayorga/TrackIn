@@ -18,7 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencias import ADMINISTRADOR, Autenticado, requiere_rol
 from app.db.session import get_db
 from app.models.usuario import Usuario
-from app.schemas.usuarios import NuevaContrasena, UsuarioCambios, UsuarioNuevo, UsuarioPublico
+from app.schemas.usuarios import (
+    NuevaContrasena,
+    UsuarioAdministrado,
+    UsuarioCambios,
+    UsuarioNuevo,
+)
 from app.services import autenticacion
 
 solo_administrador = requiere_rol(ADMINISTRADOR)
@@ -32,18 +37,18 @@ async def _usuario(db: AsyncSession, id_usuario: int) -> Usuario:
     return usuario
 
 
-@router.get("", response_model=list[UsuarioPublico], summary="Listar usuarios")
+@router.get("", response_model=list[UsuarioAdministrado], summary="Listar usuarios")
 async def listar_usuarios(
     _: Annotated[Autenticado, Depends(solo_administrador)],
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> list[UsuarioPublico]:
+) -> list[UsuarioAdministrado]:
     usuarios = await db.scalars(select(Usuario).order_by(Usuario.usuario))
-    return [UsuarioPublico.model_validate(u) for u in usuarios]
+    return [UsuarioAdministrado.model_validate(u) for u in usuarios]
 
 
 @router.post(
     "",
-    response_model=UsuarioPublico,
+    response_model=UsuarioAdministrado,
     status_code=status.HTTP_201_CREATED,
     summary="Crear un usuario",
     responses={409: {"description": "Ya existe ese usuario o ese correo."}},
@@ -52,7 +57,7 @@ async def crear_usuario(
     datos: UsuarioNuevo,
     _: Annotated[Autenticado, Depends(solo_administrador)],
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> UsuarioPublico:
+) -> UsuarioAdministrado:
     nombre = datos.usuario.strip().lower()
     if await db.scalar(select(Usuario).where(func.lower(Usuario.usuario) == nombre)):
         raise HTTPException(status.HTTP_409_CONFLICT, f"Ya existe el usuario {nombre}.")
@@ -73,12 +78,12 @@ async def crear_usuario(
     )
     db.add(usuario)
     await db.commit()
-    return UsuarioPublico.model_validate(usuario)
+    return UsuarioAdministrado.model_validate(usuario)
 
 
 @router.patch(
     "/{id_usuario}",
-    response_model=UsuarioPublico,
+    response_model=UsuarioAdministrado,
     summary="Cambiar nombre, correo, rol o estado",
     description="Un Administrador no puede quitarse el rol ni desactivarse a sí mismo.",
 )
@@ -87,7 +92,7 @@ async def actualizar_usuario(
     cambios: UsuarioCambios,
     quien: Annotated[Autenticado, Depends(solo_administrador)],
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> UsuarioPublico:
+) -> UsuarioAdministrado:
     usuario = await _usuario(db, id_usuario)
     enviados = cambios.model_fields_set
     if usuario.id == quien.usuario.id and (
@@ -102,7 +107,13 @@ async def actualizar_usuario(
     if "nombre_completo" in enviados and cambios.nombre_completo is not None:
         usuario.nombre_completo = cambios.nombre_completo.strip()
     if "correo" in enviados:
-        usuario.correo = cambios.correo.strip().lower() if cambios.correo else None
+        correo = cambios.correo.strip().lower() if cambios.correo else None
+        # Igual que al crear: sin esto, el único de la base respondería 500.
+        if correo and await db.scalar(
+            select(Usuario).where(func.lower(Usuario.correo) == correo, Usuario.id != usuario.id)
+        ):
+            raise HTTPException(status.HTTP_409_CONFLICT, f"Ya existe una cuenta con {correo}.")
+        usuario.correo = correo
     if cambios.rol is not None:
         usuario.rol = cambios.rol
     if cambios.activo is not None:
@@ -110,7 +121,7 @@ async def actualizar_usuario(
         if not cambios.activo:
             await autenticacion.cerrar_sesiones_de(db, usuario.id)
     await db.commit()
-    return UsuarioPublico.model_validate(usuario)
+    return UsuarioAdministrado.model_validate(usuario)
 
 
 @router.post(

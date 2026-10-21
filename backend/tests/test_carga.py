@@ -686,6 +686,22 @@ class TestReferenciaInvalida:
         assert resultado.sin_rastreo_hoy == 0
         assert len(resultado.referencias_invalidas) == 1
 
+    async def test_una_guia_aerea_en_una_linea_maritima_queda_en_el_informe(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """21/10: la línea entra, pero la guía no se asocia y el informe dice por qué."""
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="HAWB", numero_referencia="ZIVHYD017")]),
+            señalar_ausentes=False,
+        )
+
+        (invalida,) = resultado.referencias_invalidas
+        assert invalida.motivo == RECHAZO_REFERENCIA_INVALIDA
+        assert "no corresponde a un pedido marítimo" in invalida.detalle
+        pedido = await sesion.scalar(select(PedidoTransito))
+        assert pedido is not None and pedido.id_elemento_rastreado is None
+
     async def test_un_contenedor_bien_transcrito_si_se_asocia(self, sesion, sin_pedidos) -> None:
         """El contraste: mismo tipo, mismo formato, dígito correcto."""
         resultado = await cargar(

@@ -258,14 +258,20 @@ async def bitacora_pedido(
     ]
 
 
-#: Quién confirma desembarcos y pasa a aduana: Logística (y el Administrador).
-logistica = requiere_rol(LOGISTICA)
+# Decisión del 21/10/2026: **Compras hace en el detalle lo mismo que el
+# Administrador**: confirmar desembarco, pasar a aduana, recibir (también con
+# cierre forzado), liberar y ajustar días. Se suma a las tres guardas de abajo.
+
+#: Quién confirma desembarcos, recibe y ajusta: Logística y Compras (y el Administrador).
+logistica = requiere_rol(LOGISTICA, COMPRAS)
 #: `US-47`: la liberación la registra Planificación, dueña de la historia, o
-#: Logística, que ya registra la recepción. Calidad no tiene rol en el sistema.
-calidad = requiere_rol(PLANIFICACION, LOGISTICA)
+#: Logística, que ya registra la recepción, y Compras desde el 21/10. Calidad no
+#: tiene rol en el sistema.
+calidad = requiere_rol(PLANIFICACION, LOGISTICA, COMPRAS)
 # El paso a proceso aduanal lo ejecuta Planificación (decisión del 04/09, `US-43`,
 # `US-48`); Logística conserva el permiso, que tenía desde `US-14`. Corregido el 15/10.
-aduana = requiere_rol(PLANIFICACION, LOGISTICA)
+# Compras también, desde la bandeja y el detalle (21/10).
+aduana = requiere_rol(PLANIFICACION, LOGISTICA, COMPRAS)
 
 
 async def _detalle_tras_intervenir(db: AsyncSession, id_pedido: int) -> PedidoDetalle:

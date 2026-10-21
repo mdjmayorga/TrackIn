@@ -21,17 +21,33 @@ export function puedeAsociar(rol: Rol | undefined): boolean {
  * Administrador puede todas (`requiere_rol` lo deja pasar siempre).
  */
 export const ROLES_ACCION = {
-  desembarco: ['LOGISTICA', 'ADMINISTRADOR'],
-  aduana: ['PLANIFICACION', 'LOGISTICA', 'ADMINISTRADOR'],
-  recepcion: ['LOGISTICA', 'ADMINISTRADOR'],
-  liberacion: ['PLANIFICACION', 'LOGISTICA', 'ADMINISTRADOR'],
-  ajuste: ['LOGISTICA', 'ADMINISTRADOR'],
+  // Compras, en las cinco: hace en el detalle lo mismo que el Administrador
+  // (decisión del 21/10/2026).
+  desembarco: ['LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'],
+  aduana: ['PLANIFICACION', 'LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'],
+  recepcion: ['LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'],
+  liberacion: ['PLANIFICACION', 'LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'],
+  ajuste: ['LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'],
 } as const satisfies Record<string, readonly Rol[]>
 
 export type Accion = keyof typeof ROLES_ACCION
 
 export function puedeIntervenir(accion: Accion, rol: Rol | undefined): boolean {
   return rol !== undefined && (ROLES_ACCION[accion] as readonly Rol[]).includes(rol)
+}
+
+/** «Usuarios» (`US-62`): `/api/v1/usuarios` es `requiere_rol(ADMINISTRADOR)`. */
+export function puedeAdministrarUsuarios(rol: Rol | undefined): boolean {
+  return rol === 'ADMINISTRADOR'
+}
+
+/** Los roles como se leen en pantalla, en el orden en que se ofrecen. */
+export const NOMBRES_ROL: Record<Rol, string> = {
+  COMPRAS: 'Compras',
+  LOGISTICA: 'Logística',
+  PLANIFICACION: 'Planificación',
+  ADMINISTRADOR: 'Administrador',
+  PLANTA: 'Planta (solo lectura)',
 }
 
 /**
@@ -45,8 +61,9 @@ export function esPantallaPlanta(rol: Rol | undefined): boolean {
 
 /**
  * La bandeja de arribos (`US-48`) es para quien puede gestionarlos: pasar un
- * pedido a proceso aduanal. Para los demás, el contador sería un pendiente que
- * no pueden resolver.
+ * pedido a proceso aduanal —Planificación, Logística, Compras desde el 21/10 y
+ * el Administrador—. Para los demás, el contador sería un pendiente que no
+ * pueden resolver.
  */
 export function puedeVerBandeja(rol: Rol | undefined): boolean {
   return puedeIntervenir('aduana', rol)

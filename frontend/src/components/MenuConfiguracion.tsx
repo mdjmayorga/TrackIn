@@ -12,7 +12,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { esPantallaPlanta, puedeCargar } from '@/auth/permisos'
+import { esPantallaPlanta, puedeAdministrarUsuarios, puedeCargar } from '@/auth/permisos'
 import type { SesionGuardada } from '@/auth/sesion'
 import { cerrarSesion } from '@/services/auth'
 
@@ -79,6 +79,13 @@ export function MenuConfiguracion({ sesion }: { sesion: SesionGuardada }) {
               <li>
                 <Link to="/cargas" onClick={cerrar} className={OPCION}>
                   {puedeCargar(rol) ? 'Cargar Z-tracking' : 'Cargas del Z-tracking'}
+                </Link>
+              </li>
+            )}
+            {puedeAdministrarUsuarios(rol) && (
+              <li>
+                <Link to="/usuarios" onClick={cerrar} className={OPCION}>
+                  Usuarios
                 </Link>
               </li>
             )}

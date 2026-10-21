@@ -14,6 +14,7 @@ para los mapas.
 > | `/cargas` | `Cargas` | Carga del Z-tracking con su informe, e historial de cargas |
 > | `/bandeja` | `Bandeja` | Arribos pendientes de gestión y paso a proceso aduanal (`US-48`), con su contador en el encabezado del panel |
 > | `/contrasena` | `CambiarContrasena` | Cambiar la propia contraseña, para cualquier rol (`US-61`) |
+> | `/usuarios` | `Usuarios` | Alta, edición, desactivación y reinicio de contraseña de las cuentas, solo Administrador (`US-62`) |
 >
 > Faltan la frescura de datos en el encabezado (`US-23`), la grilla simple de
 > planta (`US-43`) y los mapas marítimo y aéreo (Sprint 7). 130 pruebas, con 96,9 % de cobertura (15/10).

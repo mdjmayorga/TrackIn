@@ -86,6 +86,14 @@ async def pedido(sesion) -> PedidoTransito:
 
 
 @pytest.fixture
+async def pedido_aereo(sesion, pedido) -> PedidoTransito:
+    """Una guía aérea solo se asocia a un pedido aéreo (21/10/2026)."""
+    pedido.via_transporte = "AEREO"
+    await sesion.flush()
+    return pedido
+
+
+@pytest.fixture
 async def usuario(sesion) -> Usuario:
     nuevo = await sesion.scalar(select(Usuario).limit(1))
     if nuevo is None:
@@ -121,11 +129,14 @@ async def test_una_referencia_con_digito_malo_no_gasta_un_credito(sesion, pedido
     assert transporte.llamadas == [], "no debe llegar a la red"
 
 
-@pytest.mark.parametrize("tipo,numero", [("MMSI", "311001711"), ("VUELO", "LH507")])
+@pytest.mark.parametrize(
+    "tipo,numero,via", [("MMSI", "311001711", "MARITIMO"), ("VUELO", "LH507", "AEREO")]
+)
 async def test_no_se_paga_por_lo_que_una_fuente_gratuita_ya_sigue(
-    sesion, pedido, tipo: str, numero: str
+    sesion, pedido, tipo: str, numero: str, via: str
 ) -> None:
     """Un MMSI lo sigue AISStream gratis. Pagarlo sería tirar dinero."""
+    pedido.via_transporte = via
     cliente, transporte = _cliente()
 
     resultado = await registro_embarque.registrar(sesion, cliente, pedido, tipo, numero)
@@ -230,7 +241,7 @@ MAWB_LUFTHANSA = "020-50685434"
 MAWB_SIN_AEROLINEA = "111-12345675"
 
 
-async def test_un_prefijo_sin_cobertura_no_gasta_un_credito(sesion, pedido) -> None:
+async def test_un_prefijo_sin_cobertura_no_gasta_un_credito(sesion, pedido_aereo) -> None:
     """`US-46`: la comprobacion es **gratuita** y evita pagar por nada.
 
     Es la ventaja que la via maritima no tiene: alli hay que pagar el alta para
@@ -239,7 +250,7 @@ async def test_un_prefijo_sin_cobertura_no_gasta_un_credito(sesion, pedido) -> N
     cliente, transporte = _cliente()
 
     resultado = await registro_embarque.registrar(
-        sesion, cliente, pedido, "MAWB", MAWB_SIN_AEROLINEA, catalogo=_catalogo_real()
+        sesion, cliente, pedido_aereo, "MAWB", MAWB_SIN_AEROLINEA, catalogo=_catalogo_real()
     )
 
     assert resultado.registrado is False
@@ -247,11 +258,11 @@ async def test_un_prefijo_sin_cobertura_no_gasta_un_credito(sesion, pedido) -> N
     assert transporte.llamadas == [], "no debe llegar a la red"
 
 
-async def test_un_mawb_de_una_aerolinea_cubierta_si_se_da_de_alta(sesion, pedido) -> None:
+async def test_un_mawb_de_una_aerolinea_cubierta_si_se_da_de_alta(sesion, pedido_aereo) -> None:
     cliente, transporte = _cliente(Respuesta(200, {"id": 264179}))
 
     resultado = await registro_embarque.registrar(
-        sesion, cliente, pedido, "MAWB", MAWB_LUFTHANSA, catalogo=_catalogo_real()
+        sesion, cliente, pedido_aereo, "MAWB", MAWB_LUFTHANSA, catalogo=_catalogo_real()
     )
 
     assert resultado.registrado is True
@@ -259,13 +270,13 @@ async def test_un_mawb_de_una_aerolinea_cubierta_si_se_da_de_alta(sesion, pedido
     assert transporte.llamadas[0][1].endswith("/air/shipments")
 
 
-async def test_sin_catalogo_el_alta_sigue_adelante(sesion, pedido) -> None:
+async def test_sin_catalogo_el_alta_sigue_adelante(sesion, pedido_aereo) -> None:
     """Negar por «no pude comprobarlo» dejaria de rastrear envios validos
     porque fallo una consulta gratuita: el peor intercambio posible."""
     cliente, _ = _cliente(Respuesta(200, {"id": 1}))
 
     resultado = await registro_embarque.registrar(
-        sesion, cliente, pedido, "MAWB", MAWB_LUFTHANSA, catalogo=CatalogoAerolineas([])
+        sesion, cliente, pedido_aereo, "MAWB", MAWB_LUFTHANSA, catalogo=CatalogoAerolineas([])
     )
 
     assert resultado.registrado is True

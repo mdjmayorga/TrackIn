@@ -19,6 +19,7 @@ from app.services.referencia import (
     ResultadoReferencia,
     fuente_de,
     normalizar_referencia,
+    tipos_de_via,
     validar_referencia,
 )
 
@@ -362,3 +363,60 @@ def test_el_digito_no_aborta_el_lote(tmp_path) -> None:
     resultado = validar_referencia("CONTENEDOR", "MSCU1234567")
     assert resultado.numero == "MSCU1234567"  # se conserva para poder corregirla
     assert resultado.tipo == "CONTENEDOR"
+
+
+# --- El tipo según la vía del pedido (21/10/2026) -----------------------------
+
+
+@pytest.mark.parametrize(
+    ("tipo", "numero", "via"),
+    [
+        ("MAWB", "020-25244995", "AEREO"),
+        ("HAWB", "ZIVHYD017", "AEREO"),
+        ("BL", "COSU6508789000", "MARITIMO"),
+        ("CONTENEDOR", "MSCU1234566", "MARITIMO"),
+        ("BOOKING", "4500012847", "MARITIMO"),
+    ],
+)
+def test_cada_via_acepta_sus_propias_referencias(tipo, numero, via) -> None:
+    assert validar_referencia(tipo, numero, via).valida
+
+
+@pytest.mark.parametrize(
+    ("tipo", "numero", "via", "sugerencia"),
+    [
+        ("HAWB", "ZIVHYD017", "MARITIMO", "BL, BOOKING, BUQUE, CONTENEDOR, IMO, MMSI"),
+        ("MAWB", "020-25244995", "MARITIMO", "BL, BOOKING"),
+        ("BL", "COSU6508789000", "AEREO", "HAWB, MAWB, VUELO"),
+        ("CONTENEDOR", "MSCU1234566", "AEREO", "HAWB, MAWB, VUELO"),
+    ],
+)
+def test_una_referencia_de_la_otra_via_se_rechaza_y_dice_cuales_sirven(
+    tipo, numero, via, sugerencia
+) -> None:
+    """Una HAWB en un marítimo iría a TICA a buscar un manifiesto aéreo que nunca llega."""
+    resultado = validar_referencia(tipo, numero, via)
+
+    assert not resultado.valida and not resultado.rastreable
+    assert f"Un {tipo} no corresponde a un pedido" in resultado.motivo
+    assert sugerencia in resultado.motivo
+
+
+def test_la_via_terrestre_no_admite_ninguna() -> None:
+    resultado = validar_referencia("BL", "COSU6508789000", "TERRESTRE")
+
+    assert not resultado.valida
+    assert "la vía terrestre no se rastrea" in resultado.motivo
+
+
+def test_sin_via_solo_se_mira_la_referencia() -> None:
+    """Cuando todavía no hay pedido (p. ej. al resolver el destino en la carga)."""
+    assert validar_referencia("MAWB", "020-25244995").valida
+    assert validar_referencia("BL", "COSU6508789000").valida
+
+
+def test_entre_las_dos_vias_cubren_todos_los_tipos_sin_repetir() -> None:
+    aereo, maritimo = tipos_de_via("AEREO"), tipos_de_via("MARITIMO")
+
+    assert aereo | maritimo == set(TIPOS_TRACKING)
+    assert not aereo & maritimo

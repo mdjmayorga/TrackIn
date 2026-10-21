@@ -14,6 +14,7 @@ const Cargas = lazy(() => import('@/pages/Cargas'))
 const DetallePedido = lazy(() => import('@/pages/DetallePedido'))
 const Bandeja = lazy(() => import('@/pages/Bandeja'))
 const CambiarContrasena = lazy(() => import('@/pages/CambiarContrasena'))
+const Usuarios = lazy(() => import('@/pages/Usuarios'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +81,14 @@ export function Rutas() {
         element={
           <Protegida>
             <CambiarContrasena />
+          </Protegida>
+        }
+      />
+      <Route
+        path="/usuarios"
+        element={
+          <Protegida>
+            <Usuarios />
           </Protegida>
         }
       />

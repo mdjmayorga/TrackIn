@@ -94,3 +94,19 @@ describe('menú Configuración', () => {
     expect(opciones()).toEqual([])
   })
 })
+
+describe('menú Configuración del Administrador (US-62)', () => {
+  it('ofrece además «Usuarios»', async () => {
+    montar('ADMINISTRADOR')
+
+    await userEvent.click(boton())
+
+    expect(opciones()).toEqual([
+      'Cargar Z-tracking',
+      'Usuarios',
+      'Cambiar contraseña',
+      'Cerrar sesión',
+    ])
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toHaveAttribute('href', '/usuarios')
+  })
+})

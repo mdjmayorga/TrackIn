@@ -65,6 +65,24 @@ _FUENTE_POR_TIPO: Final[dict[str, str]] = {
     "BUQUE": "ninguna",
 }
 
+#: Qué tipos de referencia corresponden a cada vía (decisión del 21/10/2026).
+#:
+#: Sin esto, una guía aérea podía quedar en un pedido marítimo —o un BL en uno
+#: aéreo— y el worker la consultaba en la fuente equivocada: una HAWB en un
+#: marítimo iba a TICA a buscar un manifiesto aéreo que nunca aparecería. La
+#: vía terrestre no se rastrea (fuera del alcance, 14/10): no admite ninguna.
+_TIPOS_POR_VIA: Final[dict[str, frozenset[str]]] = {
+    "AEREO": frozenset({"MAWB", "HAWB", "VUELO"}),
+    "MARITIMO": frozenset({"CONTENEDOR", "BL", "BOOKING", "MMSI", "IMO", "BUQUE"}),
+    "TERRESTRE": frozenset(),
+}
+
+_NOMBRE_VIA: Final[dict[str, str]] = {
+    "AEREO": "aéreo",
+    "MARITIMO": "marítimo",
+    "TERRESTRE": "terrestre",
+}
+
 #: Fuentes efectivamente conectadas hoy.
 #:
 #: `shipsgo` entra el 23/09/2026: Planificación compró **50 créditos**, con 150
@@ -174,8 +192,19 @@ def _verificar_digito(tipo: str, numero: str) -> tuple[int | None, int | None]:
     return None, None
 
 
-def validar_referencia(tipo: str | None, numero: str | None) -> ResultadoReferencia:
+def tipos_de_via(via: str) -> frozenset[str]:
+    """Los tipos de referencia que admite un pedido de esa vía."""
+    return _TIPOS_POR_VIA.get(via.strip().upper(), frozenset())
+
+
+def validar_referencia(
+    tipo: str | None, numero: str | None, via: str | None = None
+) -> ResultadoReferencia:
     """Valida el par tipo/número y dice si hoy se puede seguir.
+
+    Con `via`, exige además que el tipo corresponda a la vía del pedido: guías
+    aéreas en los aéreos, BL, contenedor o booking en los marítimos. Sin ella
+    —cuando todavía no hay pedido— solo se mira la referencia.
 
     Una referencia **válida pero no rastreable** no es un error: se guarda, y el
     motivo explica por qué el pedido seguirá en `SIN_TRACKING` (RN-02).
@@ -203,6 +232,26 @@ def validar_referencia(tipo: str | None, numero: str | None) -> ResultadoReferen
                 f"Admitidos: {', '.join(sorted(TIPOS_TRACKING))}."
             ),
         )
+
+    if via is not None:
+        via_norm = via.strip().upper()
+        admitidos = tipos_de_via(via_norm)
+        if tipo_norm not in admitidos:
+            nombre = _NOMBRE_VIA.get(via_norm, via_norm.lower())
+            return ResultadoReferencia(
+                valida=False,
+                tipo=tipo_norm,
+                numero=num_norm,
+                rastreable=False,
+                motivo=(
+                    f"Un {tipo_norm} no corresponde a un pedido {nombre}: "
+                    + (
+                        f"use {', '.join(sorted(admitidos))}."
+                        if admitidos
+                        else "la vía terrestre no se rastrea."
+                    )
+                ),
+            )
 
     patron = _PATRONES.get(tipo_norm)
     if patron is not None and not patron.match(num_norm):
@@ -289,5 +338,6 @@ __all__ = [
     "ResultadoReferencia",
     "fuente_de",
     "normalizar_referencia",
+    "tipos_de_via",
     "validar_referencia",
 ]

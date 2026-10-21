@@ -109,7 +109,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` |
 | `US-60` | Acciones del detalle: confirmar desembarco, pasar a aduana, recibir, ajustar días y liberar ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | 15/10: los endpoints existían desde el Sprint 5; las pantallas, no · ✅ terminada 15/10 |
 | `US-61` | Cambiar la propia contraseña ✅ | Story | OE3 | **Should** | Sprint 6 | 4h | 20/10: creación de la cuenta de Compras · hoy solo el Administrador reinicia contraseñas · ✅ terminada 20/10 |
-| `US-62` | Administrar usuarios desde la interfaz | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no |
+| `US-62` | Administrar usuarios desde la interfaz ✅ | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no · ✅ terminada 21/10 |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
@@ -1712,6 +1712,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `US-24` Semáforo consistente | ✅ 20/10 |
 > | `US-43` Grilla simple y rol `PLANTA` | ✅ 20/10 |
 > | `US-61` Cambiar la propia contraseña | ✅ 20/10 |
+> | `US-62` Administrar usuarios | ✅ 21/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
 > | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
 >
@@ -1743,6 +1744,34 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > según el rol), «Cambiar contraseña» y «Cerrar sesión». Se cierra con Escape o con un clic
 > fuera. El contador «Arribos pendientes» de `US-48` queda **fuera** del menú: es un aviso, y
 > escondido dejaría de avisar.
+>
+> **21/10: `US-62` terminada. Hechas: 98 de 112 h.** Pendientes: `US-55` (6), `US-23` (4),
+> `US-57` (4), las tres a la espera de la reunión con Compras del 21/10.
+>
+> **Decisión del 21/10: Compras hace en el detalle del pedido lo mismo que el
+> Administrador.** Las cinco acciones —confirmar desembarco, pasar a proceso aduanal,
+> registrar la recepción (también con cierre forzado), registrar la liberación de Calidad y
+> ajustar días— y la bandeja de arribos pendientes de `US-48`, con su contador. Cambian las
+> tres guardas de `api/pedidos.py` y la tabla de roles de `frontend/src/auth/permisos.ts`. La
+> bitácora registra «Compras» como autor, como se acordó el 30/09 para la cuenta
+> compartida. **Planta sigue sin ninguna acción**, y Planificación conserva solo el paso a
+> aduana y la liberación. Backend: 1 297 pruebas. Frontend: 234.
+>
+> **21/10: el tipo de referencia tiene que corresponder a la vía del pedido.** Hasta hoy se
+> podía asociar una guía aérea a un pedido marítimo, o un BL a uno aéreo, y el worker la
+> consultaba en la fuente equivocada: una HAWB en un marítimo iba a TICA a buscar un
+> manifiesto aéreo que nunca aparecería. Ahora:
+>
+> - **Aéreo:** MAWB, HAWB o vuelo. **Marítimo:** BL, contenedor, booking, MMSI, IMO o nave.
+>   **Terrestre:** ninguna, porque no se rastrea.
+> - **Una sola regla para las tres entradas** (`referencia.validar_referencia` con la vía):
+>   la asociación a mano en el detalle (422 con los tipos que sí sirven), la carga del
+>   Z-tracking (la línea entra, la referencia va a «referencias inválidas» del informe) y el
+>   alta en ShipsGo, que así no gasta un crédito en una guía de la vía equivocada.
+> - **En el detalle**, «Asociar referencia» ofrece solo los tipos de la vía del pedido.
+> - En `trackin_dev` no había ningún pedido con una referencia de la otra vía.
+>
+> Backend: 1 311 pruebas. Frontend: 235.
 >
 > **En espera de la reunión con Ventas (14/10):**
 >
@@ -2237,6 +2266,14 @@ Como usuario de Logística, quiero sustituir la nave de un pedido cuando hay tra
 | Estimacion | 10 h |
 | Origen en el SRS | RF-26 / CU-10 |
 | Etiquetas | `backend,manual,tracking` |
+
+> **Agregado el 21/10/2026: pasar de la guía hija a la guía madre.** Cuando TICA resuelve la
+> MAWB de una HAWB (`US-49`), hoy no hay cómo seguir el envío por esa guía madre en
+> ShipsGo: el sistema solo señala si la aerolínea está cubierta, y «Asociar referencia»
+> responde 409 porque el pedido ya tiene identificador. Es el mismo mecanismo que el
+> transbordo —cerrar un tramo y abrir otro conservando el historial—, así que cabe aquí:
+> ofrecer «Seguir por la guía madre» cuando TICA la resolvió. Pesa poco en la práctica:
+> TICA la encuentra cerca del arribo, cuando ya casi no queda viaje que seguir.
 
 #### TASK-10 — Política de retención y submuestreo del historial de posiciones
 
@@ -3707,6 +3744,32 @@ usar la consola ni la API cada vez que alguien entra, cambia de rol o se va.
 
 > **Es solo frontend.** El backend ya tiene todo, incluida la guarda que impide que un
 > Administrador se desactive o se quite el rol a sí mismo.
+
+> **✅ Terminada el 21/10/2026.** «Usuarios» en el menú Configuración, solo para el
+> Administrador; cualquier otro rol que entre a `/usuarios` vuelve al panel.
+>
+> - **La lista:** usuario, nombre, correo, rol, estado (Activa, Inactiva o «Bloqueada hasta
+>   …») y último acceso. La cuenta propia lleva «(usted)».
+> - **Alta** con usuario, nombre, correo opcional, rol y contraseña inicial repetida; el
+>   mínimo de 10 caracteres se avisa antes de enviar, y un usuario o correo repetido muestra
+>   el motivo del backend.
+> - **Editar** nombre, correo y rol, mandando solo lo que cambió.
+> - **Desactivar y reactivar**, con una confirmación bajo la fila que advierte que se
+>   cierran las sesiones y que la cuenta no se borra. **Reiniciar la contraseña** advierte
+>   que saca a todas las personas de una cuenta compartida.
+> - **La propia cuenta** no ofrece «Desactivar» y no deja cambiar el rol.
+> - Sin diálogos del navegador: cada acción abre su formulario bajo la fila.
+>
+> **Resultó que no era solo frontend: dos cambios chicos en el backend.**
+>
+> - **La lista no decía si una cuenta estaba bloqueada.** Las respuestas de `/usuarios` traen
+>   ahora `bloqueado_hasta` (esquema `UsuarioAdministrado`, solo para el Administrador; el
+>   login y `/auth/yo` no cambian).
+> - **Cambiar el correo a uno que ya usa otra cuenta respondía 500**: el alta lo verificaba,
+>   la edición no, y el índice único de la base lo rechazaba. Ahora responde 409 con el
+>   motivo, como el alta.
+>
+> Backend: 1 290 pruebas. Frontend: 231 pruebas, 95,9 %.
 
 ---
 

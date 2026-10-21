@@ -43,7 +43,8 @@ export default function Bandeja() {
           <Lista />
         ) : (
           <p className="text-sm text-slate-400">
-            La bandeja es de Planificación y Logística, que registran el paso a proceso aduanal.
+            La bandeja es de Planificación, Logística y Compras, que registran el paso a proceso
+            aduanal.
           </p>
         )}
       </main>

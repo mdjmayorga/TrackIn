@@ -87,9 +87,10 @@ async def registrar(
     referencia mala es una línea para revisión (RN-17), no una excepción que
     detenga un lote.
     """
-    veredicto = referencia_mod.validar_referencia(tipo, numero)
+    veredicto = referencia_mod.validar_referencia(tipo, numero, pedido.via_transporte)
     if not veredicto.valida:
-        # Primera guarda: no se gasta un crédito en un número mal transcrito.
+        # Primera guarda: no se gasta un crédito en un número mal transcrito, ni
+        # en una guía aérea de un pedido marítimo (o al revés, 21/10).
         logger.warning("ShipsGo: no se da de alta %s %r — %s", tipo, numero, veredicto.motivo)
         return ResultadoRegistroEmbarque(False, RECHAZO_REFERENCIA_INVALIDA)
 

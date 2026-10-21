@@ -299,11 +299,30 @@ describe('sin identificador: no rastreable (RN-02, §4.7)', () => {
     expect(await screen.findByText('BL MEDU1234567 · MSC BRUNELLA')).toBeInTheDocument()
   })
 
-  it('en un pedido aéreo la primera opción es la guía madre', async () => {
+  // Solo los tipos de la vía del pedido (21/10/2026).
+  it('en un pedido aéreo solo ofrece guías aéreas, la madre primero', async () => {
     vi.mocked(obtenerPedido).mockResolvedValue(detalle({ ...SIN_RASTREO, via_transporte: 'AEREO' }))
     montar()
 
-    expect(await screen.findByLabelText('Tipo')).toHaveValue('MAWB')
+    const tipo = await screen.findByLabelText('Tipo')
+    expect(tipo).toHaveValue('MAWB')
+    expect(
+      within(tipo)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['MAWB (guía madre)', 'HAWB (guía hija)'])
+  })
+
+  it('en un pedido marítimo no ofrece guías aéreas', async () => {
+    vi.mocked(obtenerPedido).mockResolvedValue(detalle(SIN_RASTREO))
+    montar()
+
+    const tipo = await screen.findByLabelText('Tipo')
+    expect(
+      within(tipo)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['BL', 'Contenedor', 'Booking'])
   })
 
   it('si el backend rechaza la referencia, muestra el motivo', async () => {

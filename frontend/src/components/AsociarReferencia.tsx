@@ -16,18 +16,26 @@ import { mensajeDeError } from '@/services/api'
 import { asociarReferencia } from '@/services/pedidos'
 import type { TipoReferencia, Via } from '@/types/api'
 
-/** Las del aéreo primero si el pedido es aéreo: es lo que se va a elegir. */
+/**
+ * Solo los tipos de la vía del pedido (21/10/2026): una guía aérea en un
+ * marítimo, o un BL en un aéreo, iría a la fuente equivocada. El backend lo
+ * rechaza igual (`referencia.tipos_de_via`); aquí ni se ofrece.
+ */
 function tipos(via: Via): Array<[TipoReferencia, string]> {
-  const maritimos: Array<[TipoReferencia, string]> = [
-    ['BL', 'BL'],
-    ['CONTENEDOR', 'Contenedor'],
-    ['BOOKING', 'Booking'],
-  ]
-  const aereos: Array<[TipoReferencia, string]> = [
-    ['MAWB', 'MAWB (guía madre)'],
-    ['HAWB', 'HAWB (guía hija)'],
-  ]
-  return via === 'AEREO' ? [...aereos, ...maritimos] : [...maritimos, ...aereos]
+  if (via === 'AEREO') {
+    return [
+      ['MAWB', 'MAWB (guía madre)'],
+      ['HAWB', 'HAWB (guía hija)'],
+    ]
+  }
+  if (via === 'MARITIMO') {
+    return [
+      ['BL', 'BL'],
+      ['CONTENEDOR', 'Contenedor'],
+      ['BOOKING', 'Booking'],
+    ]
+  }
+  return [] // la vía terrestre no se rastrea
 }
 
 /** El mínimo del backend (`auditoria.LONGITUD_MINIMA_MOTIVO`). */
@@ -36,12 +44,12 @@ const MOTIVO_MINIMO = 5
 export function AsociarReferencia({ idPedido, via }: { idPedido: number; via: Via }) {
   const queryClient = useQueryClient()
   const opciones = tipos(via)
-  const [tipo, setTipo] = useState<TipoReferencia>(opciones[0][0])
+  const [tipo, setTipo] = useState<TipoReferencia | undefined>(opciones[0]?.[0])
   const [numero, setNumero] = useState('')
   const [motivo, setMotivo] = useState('')
 
   const asociar = useMutation({
-    mutationFn: () => asociarReferencia(idPedido, { tipo, numero, motivo }),
+    mutationFn: () => asociarReferencia(idPedido, { tipo: tipo!, numero, motivo }),
     // Cambió la etapa: grilla, KPIs, arribos y bitácora se vuelven a pedir.
     onSuccess: (detalle) => refrescarTrasIntervenir(queryClient, detalle),
   })
@@ -52,6 +60,10 @@ export function AsociarReferencia({ idPedido, via }: { idPedido: number; via: Vi
   }
 
   const completo = numero.trim() !== '' && motivo.trim().length >= MOTIVO_MINIMO
+
+  if (tipo === undefined) {
+    return <p className="text-xs text-slate-400">La vía terrestre no se rastrea.</p>
+  }
 
   return (
     <form onSubmit={enviar} aria-label="Asociar identificador de rastreo" className="space-y-2">
@@ -75,7 +87,7 @@ export function AsociarReferencia({ idPedido, via }: { idPedido: number; via: Vi
           <input
             value={numero}
             onChange={(e) => setNumero(e.target.value.slice(0, 40))}
-            placeholder="COSU6508789000"
+            placeholder={via === 'AEREO' ? '020-25244995' : 'COSU6508789000'}
             autoComplete="off"
             className="mt-0.5 rounded bg-panel-cabecera px-2 py-1 text-sm text-white placeholder:text-slate-500"
           />

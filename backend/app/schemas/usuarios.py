@@ -30,6 +30,17 @@ class UsuarioPublico(BaseModel):
     ultimo_acceso: dt.datetime | None
 
 
+class UsuarioAdministrado(UsuarioPublico):
+    """Lo que ve el Administrador en «Usuarios» (`US-62`): además, si está bloqueada."""
+
+    bloqueado_hasta: dt.datetime | None = Field(
+        description=(
+            "Hasta cuándo la bloquean los intentos fallidos. Puede estar en el pasado: "
+            "el bloqueo ya venció y la cuenta entra."
+        )
+    )
+
+
 class SesionIniciada(BaseModel):
     token: str = Field(description="Enviar como `Authorization: Bearer <token>`.")
     tipo: Literal["bearer"] = "bearer"
@@ -81,6 +92,7 @@ __all__ = [
     "NuevaContrasena",
     "Rol",
     "SesionIniciada",
+    "UsuarioAdministrado",
     "UsuarioCambios",
     "UsuarioNuevo",
     "UsuarioPublico",

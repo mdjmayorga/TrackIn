@@ -256,16 +256,20 @@ async def test_un_pedido_cerrado_no_admite_la_confirmacion(api, sesion) -> None:
     assert "RN-13" in respuesta.json()["detail"]
 
 
-async def test_solo_logistica_confirma(api, sesion) -> None:
+# Compras hace en el detalle lo mismo que el Administrador (decisión del 21/10/2026).
+@pytest.mark.parametrize(
+    ("rol", "esperado"), [("COMPRAS", 200), ("PLANIFICACION", 403), ("PLANTA", 403)]
+)
+async def test_confirman_logistica_y_compras(api, sesion, rol, esperado) -> None:
     cliente, como = api
     pedido = await _pedido(sesion)
-    await como("COMPRAS")
+    await como(rol)
 
     respuesta = await cliente.post(
         _url(pedido, "desembarco"), json={"ata": LLEGADA.isoformat(), "motivo": MOTIVO}
     )
 
-    assert respuesta.status_code == 403
+    assert respuesta.status_code == esperado
 
 
 async def test_un_pedido_que_no_existe_da_404(api) -> None:
@@ -298,10 +302,11 @@ async def test_tras_el_desembarco_se_pasa_a_aduana(api, sesion) -> None:
 
 
 @pytest.mark.parametrize(
-    ("rol", "esperado"), [("PLANIFICACION", 200), ("LOGISTICA", 200), ("COMPRAS", 403)]
+    ("rol", "esperado"),
+    [("PLANIFICACION", 200), ("LOGISTICA", 200), ("COMPRAS", 200), ("PLANTA", 403)],
 )
-async def test_pasa_a_aduana_planificacion_o_logistica(api, sesion, rol, esperado) -> None:
-    """Planificación ejecuta el paso a aduana (04/09; `US-43`, `US-48`)."""
+async def test_pasan_a_aduana_planificacion_logistica_y_compras(api, sesion, rol, esperado) -> None:
+    """Planificación ejecuta el paso a aduana (04/09; `US-43`, `US-48`); Compras, desde el 21/10."""
     cliente, como = api
     pedido = await _pedido(sesion)
     await cliente.post(
@@ -550,14 +555,15 @@ async def test_los_datos_invalidos_se_rechazan(api, sesion, datos, esperado) -> 
     assert esperado in respuesta.text
 
 
-async def test_solo_logistica_recibe(api, sesion) -> None:
+@pytest.mark.parametrize(("rol", "esperado"), [("COMPRAS", 200), ("PLANIFICACION", 403)])
+async def test_reciben_logistica_y_compras(api, sesion, rol, esperado) -> None:
     cliente, como = api
     pedido = await _en_aduana(sesion)
-    await como("PLANIFICACION")
+    await como(rol)
 
     respuesta = await cliente.post(_url(pedido, "recepcion"), json=_recepcion("100"))
 
-    assert respuesta.status_code == 403
+    assert respuesta.status_code == esperado
 
 
 async def test_recibido_sigue_activo_pero_ya_no_se_rastrea(api, sesion) -> None:
@@ -758,8 +764,10 @@ async def test_los_datos_invalidos_de_la_liberacion_se_rechazan(
     assert esperado in respuesta.text
 
 
-@pytest.mark.parametrize(("rol", "esperado"), [("PLANIFICACION", 200), ("COMPRAS", 403)])
-async def test_libera_planificacion_o_logistica(api, sesion, rol, esperado) -> None:
+@pytest.mark.parametrize(
+    ("rol", "esperado"), [("PLANIFICACION", 200), ("COMPRAS", 200), ("PLANTA", 403)]
+)
+async def test_liberan_planificacion_logistica_y_compras(api, sesion, rol, esperado) -> None:
     cliente, como = api
     pedido = await _recibido(api, sesion)
     await como(rol)
@@ -883,14 +891,15 @@ async def test_un_pedido_cerrado_no_se_ajusta(api, sesion) -> None:
     assert "RN-13" in respuesta.json()["detail"]
 
 
-async def test_solo_logistica_ajusta(api, sesion) -> None:
+@pytest.mark.parametrize(("rol", "esperado"), [("COMPRAS", 200), ("PLANIFICACION", 403)])
+async def test_ajustan_logistica_y_compras(api, sesion, rol, esperado) -> None:
     cliente, como = api
     pedido = await _proyectado(sesion)
-    await como("PLANIFICACION")
+    await como(rol)
 
     respuesta = await cliente.post(_url(pedido, "ajuste-manual"), json=_ajuste(3))
 
-    assert respuesta.status_code == 403
+    assert respuesta.status_code == esperado
 
 
 # --- US-20: asociar el identificador de rastreo -------------------------------------
@@ -978,6 +987,22 @@ async def test_un_pedido_cerrado_no_admite_asociacion(api, sesion) -> None:
     assert respuesta.status_code == 409
 
 
+async def test_una_guia_aerea_no_se_asocia_a_un_pedido_maritimo(api, sesion) -> None:
+    """21/10: el detalle rechaza la HAWB de un marítimo y dice qué tipos sirven."""
+    cliente, _ = api
+    pedido = await _pedido(sesion)  # CRMOB, marítimo
+
+    respuesta = await cliente.post(
+        _url(pedido, "referencia"),
+        json={"tipo": "HAWB", "numero": "ZIVHYD017", "motivo": MOTIVO_REFERENCIA},
+    )
+
+    assert respuesta.status_code == 422
+    assert "no corresponde a un pedido marítimo" in respuesta.json()["detail"]
+    await sesion.refresh(pedido)
+    assert pedido.id_elemento_rastreado is None
+
+
 @pytest.mark.parametrize(("rol", "esperado"), [("COMPRAS", 200), ("PLANIFICACION", 403)])
 async def test_asocian_logistica_y_compras(api, sesion, rol, esperado) -> None:
     cliente, como = api
@@ -986,7 +1011,31 @@ async def test_asocian_logistica_y_compras(api, sesion, rol, esperado) -> None:
 
     respuesta = await cliente.post(
         _url(pedido, "referencia"),
-        json={"tipo": "MAWB", "numero": "02050685434", "motivo": MOTIVO_REFERENCIA},
+        json={"tipo": "BL", "numero": "COSU6508789000", "motivo": MOTIVO_REFERENCIA},
     )
 
     assert respuesta.status_code == esperado
+
+
+# --- Compras, igual que el Administrador en el detalle (21/10/2026) -----------------
+
+
+async def test_compras_lleva_un_pedido_de_la_llegada_al_cierre(api, sesion) -> None:
+    """Las cinco acciones del detalle, todas como Compras, y la bitácora lo dice."""
+    cliente, como = api
+    await como("COMPRAS")
+    pedido = await _pedido(sesion, cantidad_pedida=Decimal("100.000"))
+
+    pasos = [
+        ("desembarco", {"ata": LLEGADA.isoformat(), "motivo": MOTIVO}),
+        ("paso-aduanal", {"motivo": "Documentos entregados al agente"}),
+        ("recepcion", _recepcion("100")),
+        ("liberacion-calidad", _liberacion("100")),
+    ]
+    for accion, cuerpo in pasos:
+        respuesta = await cliente.post(_url(pedido, accion), json=cuerpo)
+        assert respuesta.status_code == 200, (accion, respuesta.text)
+
+    assert respuesta.json()["estado_calculado"] == "CERRADO"
+    bitacora = (await cliente.get(_url(pedido, "bitacora"))).json()
+    assert {a["usuario"] for a in bitacora} == {"compras.us14"}

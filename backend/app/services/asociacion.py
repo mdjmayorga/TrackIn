@@ -78,7 +78,9 @@ async def asociar_referencia(
     Devuelve el veredicto de la validación. Si la referencia no es válida, el
     pedido **no se toca** y el motivo explica por qué.
     """
-    resultado = validar_referencia(tipo, numero)
+    # La vía del pedido decide qué tipos admite (21/10): vale para la carga y para
+    # la asociación a mano, que pasan las dos por aquí.
+    resultado = validar_referencia(tipo, numero, pedido.via_transporte)
     if not resultado.valida:
         logger.info("Pedido %s: referencia rechazada — %s", pedido, resultado.motivo)
         return resultado

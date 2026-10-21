@@ -292,6 +292,43 @@ async def test_un_administrador_no_puede_desactivarse_a_si_mismo(api, sesion) ->
     assert respuesta.status_code == 409
 
 
+# --- US-62: la pantalla «Usuarios» ---------------------------------------------------
+
+
+async def test_la_lista_dice_si_una_cuenta_esta_bloqueada(api, sesion) -> None:
+    token = await _admin(api, sesion)
+    cuenta = await _usuario(sesion)
+    hasta = dt.datetime.now(dt.UTC) + dt.timedelta(minutes=15)
+    cuenta.bloqueado_hasta = hasta
+    await sesion.flush()
+
+    filas = (await api.get("/api/v1/usuarios", headers=_con(token))).json()
+
+    fila = next(f for f in filas if f["usuario"] == "logistica.prueba")
+    assert dt.datetime.fromisoformat(fila["bloqueado_hasta"]) == hasta
+    assert "hash_contrasena" not in fila
+
+
+async def test_cambiar_el_correo_a_uno_que_ya_usa_otra_cuenta_da_409(api, sesion) -> None:
+    """Antes de `US-62` esto llegaba al índice único de la base y respondía 500."""
+    token = await _admin(api, sesion)
+    primera = await _usuario(sesion, "primera.prueba")
+    primera.correo = "repetido@gutis.com"
+    segunda = await _usuario(sesion, "segunda.prueba")
+    await sesion.flush()
+
+    repetido = await api.patch(
+        f"/api/v1/usuarios/{segunda.id}", json={"correo": "Repetido@gutis.com"}, headers=_con(token)
+    )
+    el_suyo = await api.patch(
+        f"/api/v1/usuarios/{primera.id}", json={"correo": "repetido@gutis.com"}, headers=_con(token)
+    )
+
+    assert repetido.status_code == 409
+    assert "repetido@gutis.com" in repetido.json()["detail"]
+    assert el_suyo.status_code == 200  # volver a guardar el propio no es un conflicto
+
+
 # --- US-61: cambiar la propia contraseña ------------------------------------------
 
 NUEVA = "otra-clave-larga"

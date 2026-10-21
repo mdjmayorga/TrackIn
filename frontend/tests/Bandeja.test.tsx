@@ -159,9 +159,11 @@ describe('bandeja de arribos pendientes (US-48)', () => {
   })
 
   it('para un rol que no gestiona aduana, explica de quién es y no consulta', async () => {
-    montar(<Bandeja />, 'COMPRAS')
+    montar(<Bandeja />, 'PLANTA')
 
-    expect(screen.getByText(/La bandeja es de Planificación y Logística/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/La bandeja es de Planificación, Logística y Compras/),
+    ).toBeInTheDocument()
     expect(listarPedidos).not.toHaveBeenCalled()
   })
 })
@@ -179,9 +181,20 @@ describe('contador del encabezado (US-48)', () => {
     expect(enlace).toHaveAttribute('href', '/bandeja')
   })
 
-  it('Compras no lo ve: no puede resolver esos pendientes', async () => {
-    vi.mocked(listarPedidos).mockResolvedValue(pagina([]))
+  it('Compras también lo ve, desde el 21/10: gestiona los arribos', async () => {
+    vi.mocked(listarPedidos).mockImplementation(async (_consulta, filtros) =>
+      filtros?.etapa === 'EN_DESTINO' ? pagina([], { total: 2 }) : pagina([]),
+    )
     montar(<Dashboard />, 'COMPRAS')
+
+    expect(
+      await screen.findByRole('link', { name: 'Arribos pendientes (2 pendientes)' }),
+    ).toBeInTheDocument()
+  })
+
+  it('Planta no lo ve: no puede resolver esos pendientes', async () => {
+    vi.mocked(listarPedidos).mockResolvedValue(pagina([]))
+    montar(<Dashboard />, 'PLANTA')
 
     expect(await screen.findByRole('button', { name: 'Configuración' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Arribos pendientes/ })).toBeNull()

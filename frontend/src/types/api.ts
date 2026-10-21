@@ -54,6 +54,12 @@ export interface UsuarioPublico {
   ultimo_acceso: string | null
 }
 
+/** Una fila de «Usuarios» (`US-62`, solo Administrador). */
+export interface UsuarioAdministrado extends UsuarioPublico {
+  /** Hasta cuándo la bloquean los intentos fallidos; en el pasado, ya venció. */
+  bloqueado_hasta: string | null
+}
+
 /** Respuesta de `POST /api/v1/auth/login`. */
 export interface SesionIniciada {
   token: string

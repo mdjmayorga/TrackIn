@@ -130,8 +130,9 @@ afterEach(() => {
 })
 
 describe('quién ve qué', () => {
-  it('Logística: las cinco acciones', () => {
-    montar()
+  // Compras, igual que el Administrador y Logística, desde el 21/10/2026.
+  it.each(['LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'] as const)('%s: las cinco acciones', (rol) => {
+    montar(detalle(), rol)
 
     expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual([
       'Confirmar desembarco',
@@ -151,8 +152,8 @@ describe('quién ve qué', () => {
     ])
   })
 
-  it('Compras no interviene: no hay barra', () => {
-    montar(detalle(), 'COMPRAS')
+  it('Planta no interviene: no hay barra', () => {
+    montar(detalle(), 'PLANTA')
 
     expect(screen.queryByRole('region', { name: 'Acciones del pedido' })).toBeNull()
   })
