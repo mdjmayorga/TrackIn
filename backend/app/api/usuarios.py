@@ -37,6 +37,27 @@ async def _usuario(db: AsyncSession, id_usuario: int) -> Usuario:
     return usuario
 
 
+async def _sin_choques(
+    db: AsyncSession,
+    *,
+    usuario: str | None = None,
+    correo: str | None = None,
+    excepto: int | None = None,
+) -> None:
+    """409 si el usuario o el correo ya los usa otra cuenta, **en cualquiera de los dos campos**.
+
+    Se entra con el usuario o con el correo (21/10/2026), así que un mismo texto
+    no puede identificar a dos cuentas: ni el usuario de una puede ser el correo
+    de otra, ni al revés. Recibe los valores ya en minúsculas.
+    """
+    otras = select(Usuario).where(Usuario.id != excepto) if excepto else select(Usuario)
+    for valor in (v for v in (usuario, correo) if v):
+        if await db.scalar(otras.where(func.lower(Usuario.usuario) == valor)):
+            raise HTTPException(status.HTTP_409_CONFLICT, f"Ya existe el usuario {valor}.")
+        if await db.scalar(otras.where(func.lower(Usuario.correo) == valor)):
+            raise HTTPException(status.HTTP_409_CONFLICT, f"Ya existe una cuenta con {valor}.")
+
+
 @router.get("", response_model=list[UsuarioAdministrado], summary="Listar usuarios")
 async def listar_usuarios(
     _: Annotated[Autenticado, Depends(solo_administrador)],
@@ -59,12 +80,8 @@ async def crear_usuario(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> UsuarioAdministrado:
     nombre = datos.usuario.strip().lower()
-    if await db.scalar(select(Usuario).where(func.lower(Usuario.usuario) == nombre)):
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Ya existe el usuario {nombre}.")
-    if datos.correo and await db.scalar(
-        select(Usuario).where(func.lower(Usuario.correo) == datos.correo.strip().lower())
-    ):
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Ya existe una cuenta con {datos.correo}.")
+    correo = datos.correo.strip().lower() if datos.correo else None
+    await _sin_choques(db, usuario=nombre, correo=correo)
     try:
         hash_contrasena = autenticacion.hashear(datos.contrasena)
     except autenticacion.ContrasenaDebil as exc:
@@ -72,7 +89,7 @@ async def crear_usuario(
     usuario = Usuario(
         usuario=nombre,
         nombre_completo=datos.nombre_completo.strip(),
-        correo=datos.correo.strip().lower() if datos.correo else None,
+        correo=correo,
         rol=datos.rol,
         hash_contrasena=hash_contrasena,
     )
@@ -84,7 +101,7 @@ async def crear_usuario(
 @router.patch(
     "/{id_usuario}",
     response_model=UsuarioAdministrado,
-    summary="Cambiar nombre, correo, rol o estado",
+    summary="Cambiar usuario, nombre, correo, rol o estado",
     description="Un Administrador no puede quitarse el rol ni desactivarse a sí mismo.",
 )
 async def actualizar_usuario(
@@ -104,15 +121,22 @@ async def actualizar_usuario(
             status.HTTP_409_CONFLICT,
             "Un Administrador no puede desactivarse ni quitarse el rol a sí mismo.",
         )
+    if cambios.usuario is not None:
+        nuevo = cambios.usuario.strip().lower()
+        if len(nuevo) < 3:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "El usuario debe tener al menos 3 caracteres.",
+            )
+        # Ni el usuario ni el correo de otra cuenta: se entra con cualquiera de los dos.
+        await _sin_choques(db, usuario=nuevo, excepto=usuario.id)
+        usuario.usuario = nuevo
     if "nombre_completo" in enviados and cambios.nombre_completo is not None:
         usuario.nombre_completo = cambios.nombre_completo.strip()
     if "correo" in enviados:
         correo = cambios.correo.strip().lower() if cambios.correo else None
         # Igual que al crear: sin esto, el único de la base respondería 500.
-        if correo and await db.scalar(
-            select(Usuario).where(func.lower(Usuario.correo) == correo, Usuario.id != usuario.id)
-        ):
-            raise HTTPException(status.HTTP_409_CONFLICT, f"Ya existe una cuenta con {correo}.")
+        await _sin_choques(db, correo=correo, excepto=usuario.id)
         usuario.correo = correo
     if cambios.rol is not None:
         usuario.rol = cambios.rol

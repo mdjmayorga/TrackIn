@@ -53,11 +53,16 @@ ESPERA_INICIAL_S = 150
 REINTENTOS_POLL = 4
 ESPERA_ENTRE_POLL_S = 60
 
-AEREA = {"etiqueta": "Lufthansa Cargo (MAWB)", "via": "air",
-         "cuerpo": {"awb_number": "02050685434"}}
-MARITIMA = {"etiqueta": "COSCO (BL + contenedor)", "via": "ocean",
-            "cuerpo": {"booking_number": "COSU6508789000",
-                       "container_number": "TGBU4872990"}}
+AEREA = {
+    "etiqueta": "Lufthansa Cargo (MAWB)",
+    "via": "air",
+    "cuerpo": {"awb_number": "02050685434"},
+}
+MARITIMA = {
+    "etiqueta": "COSCO (BL + contenedor)",
+    "via": "ocean",
+    "cuerpo": {"booking_number": "COSU6508789000", "container_number": "TGBU4872990"},
+}
 
 # Campo -> quien lo exige en TrackIn. Igual que en la fase 3d, para poder
 # comparar la via aerea contra la maritima en la misma tabla.
@@ -109,21 +114,29 @@ def extraer(envio: dict, geo: dict) -> dict:
             hallado["etd_atd"] = {"valor": origen[clave], "de": "route.origen." + clave}
             break
     # `date_of_rcf` es "Received from Flight": el hito de llegada en lo aereo.
-    for clave in ("date_of_discharge_predicted", "date_of_discharge",
-                  "date_of_rcf_initial", "date_of_rcf"):
+    for clave in (
+        "date_of_discharge_predicted",
+        "date_of_discharge",
+        "date_of_rcf_initial",
+        "date_of_rcf",
+    ):
         if destino.get(clave):
             hallado["eta"] = {"valor": destino[clave], "de": "route.destino." + clave}
             break
     loc = destino.get("location") or {}
     if loc.get("code") or loc.get("iata"):
-        hallado["destino"] = {"valor": loc.get("code") or loc.get("iata"),
-                              "de": "route.destino.location"}
+        hallado["destino"] = {
+            "valor": loc.get("code") or loc.get("iata"),
+            "de": "route.destino.location",
+        }
 
     # En lo aereo el transportista vive arriba del todo, no en los movimientos.
     linea = envio.get("airline") or envio.get("carrier") or {}
     if linea.get("name"):
-        hallado["identificador"] = {"valor": str(linea.get("iata") or linea.get("scac"))
-                                    + " · " + linea["name"], "de": "airline/carrier"}
+        hallado["identificador"] = {
+            "valor": str(linea.get("iata") or linea.get("scac")) + " · " + linea["name"],
+            "de": "airline/carrier",
+        }
 
     unidades = envio.get("containers") or envio.get("packages") or envio.get("legs") or []
     movimientos = []
@@ -132,9 +145,15 @@ def extraer(envio: dict, geo: dict) -> dict:
     movimientos = movimientos or envio.get("movements") or envio.get("events") or []
     if movimientos:
         act = [m for m in movimientos if m.get("status") == "ACT"]
-        hallado["hitos"] = {"valor": str(len(movimientos)) + " eventos (" + str(len(act))
-                            + " ACT / " + str(len(movimientos) - len(act)) + " EST)",
-                            "de": "movements[]"}
+        hallado["hitos"] = {
+            "valor": str(len(movimientos))
+            + " eventos ("
+            + str(len(act))
+            + " ACT / "
+            + str(len(movimientos) - len(act))
+            + " EST)",
+            "de": "movements[]",
+        }
         nombres = []
         for m in movimientos:
             v = m.get("vessel") or m.get("flight") or m.get("flight_number")
@@ -142,20 +161,28 @@ def extraer(envio: dict, geo: dict) -> dict:
             if n and n not in nombres:
                 nombres.append(n)
         if nombres:
-            hallado["transporte"] = {"valor": " -> ".join(str(n) for n in nombres),
-                                     "de": "movements[].vessel/flight"}
+            hallado["transporte"] = {
+                "valor": " -> ".join(str(n) for n in nombres),
+                "de": "movements[].vessel/flight",
+            }
 
-    for f in (geo.get("features") or []):
+    for f in geo.get("features") or []:
         pr = f.get("properties") or {}
         act = pr.get("current")
         if act and act.get("coordinates"):
-            hallado["posicion"] = {"valor": str(act["coordinates"]),
-                                   "de": "geojson properties.current.coordinates"}
+            hallado["posicion"] = {
+                "valor": str(act["coordinates"]),
+                "de": "geojson properties.current.coordinates",
+            }
         v = pr.get("vessel") or pr.get("flight") or {}
         if isinstance(v, dict) and (v.get("imo") or v.get("icao24")):
-            hallado.setdefault("identificador", {
-                "valor": str(v.get("imo") or v.get("icao24")),
-                "de": "geojson properties.vessel/flight"})
+            hallado.setdefault(
+                "identificador",
+                {
+                    "valor": str(v.get("imo") or v.get("icao24")),
+                    "de": "geojson properties.vessel/flight",
+                },
+            )
         if f.get("geometry", {}).get("type") == "LineString":
             hallado.setdefault("trayecto", {"valor": "LineString", "de": "geojson geometry"})
     return hallado
@@ -166,23 +193,33 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="TASK-28 fase 3e: altas pendientes")
     parser.add_argument("--network", choices=["personal", "gutis"], required=True)
-    parser.add_argument("--solo-poll", action="store_true",
-                        help="no crea nada: re-analiza los embarques ya dados de alta")
+    parser.add_argument(
+        "--solo-poll",
+        action="store_true",
+        help="no crea nada: re-analiza los embarques ya dados de alta",
+    )
     args = parser.parse_args()
 
     env = load_env()
     token = (env.get("SHIPSGO_API_TOKEN") or env.get("SHIPSGO_SECRET") or "").strip()
-    h = {"X-Shipsgo-User-Token": token, "Content-Type": "application/json",
-         "Accept": "application/json"}
+    h = {
+        "X-Shipsgo-User-Token": token,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
 
     print(SEP)
     print(" TrackIn - TASK-28 Fase 3e: MAWB aereo y BL de COSCO")
     print(SEP)
     print("  Cuenta nueva. Dos altas, ni una mas.")
 
-    evidencia: dict = {"spike": "TASK-28", "fase": "3e-altas-pendientes",
-                       "timestamp_utc": utc_now(), "network_profile": args.network,
-                       "embarques": []}
+    evidencia: dict = {
+        "spike": "TASK-28",
+        "fase": "3e-altas-pendientes",
+        "timestamp_utc": utc_now(),
+        "network_profile": args.network,
+        "embarques": [],
+    }
     creados = []
 
     with httpx.Client() as cliente:
@@ -190,29 +227,45 @@ def main() -> int:
         print("  A. ALTAS")
         print(SUB)
         if args.solo_poll:
-            previo = json.loads((Path(__file__).resolve().parent / "output"
-                                 / ("07_pendientes_" + args.network + ".json")
-                                 ).read_text(encoding="utf-8"))
+            previo = json.loads(
+                (
+                    Path(__file__).resolve().parent
+                    / "output"
+                    / ("07_pendientes_" + args.network + ".json")
+                ).read_text(encoding="utf-8")
+            )
             for e in previo["embarques"]:
                 if e.get("id"):
                     ref = AEREA if e["via"] == "air" else MARITIMA
                     creados.append((ref, e["id"]))
-                    evidencia["embarques"].append({k: v for k, v in e.items()
-                                                   if k in ("etiqueta", "via", "peticion",
-                                                            "status", "id", "respuesta_alta")})
+                    evidencia["embarques"].append(
+                        {
+                            k: v
+                            for k, v in e.items()
+                            if k
+                            in ("etiqueta", "via", "peticion", "status", "id", "respuesta_alta")
+                        }
+                    )
             print("  --solo-poll: reusando " + str(len(creados)) + " embarques ya creados.")
 
-        for ref in ([] if args.solo_poll else (AEREA, MARITIMA)):
+        for ref in [] if args.solo_poll else (AEREA, MARITIMA):
             r = llamar(cliente, "POST", BASE + "/" + ref["via"] + "/shipments", h, ref["cuerpo"])
-            envio = ((r.get("json") or {}).get("shipment") or {})
+            envio = (r.get("json") or {}).get("shipment") or {}
             sid = envio.get("id")
             estado = "id=" + str(sid) if sid else json.dumps(r.get("json") or {})[:90]
             print("  {:<26} [{}] {}".format(ref["etiqueta"], r.get("status"), estado))
             if sid:
                 creados.append((ref, sid))
-            evidencia["embarques"].append({"etiqueta": ref["etiqueta"], "via": ref["via"],
-                                           "peticion": ref["cuerpo"], "status": r.get("status"),
-                                           "id": sid, "respuesta_alta": r.get("json")})
+            evidencia["embarques"].append(
+                {
+                    "etiqueta": ref["etiqueta"],
+                    "via": ref["via"],
+                    "peticion": ref["cuerpo"],
+                    "status": r.get("status"),
+                    "id": sid,
+                    "respuesta_alta": r.get("json"),
+                }
+            )
 
         if not creados:
             print("\n  Ninguna alta prospero. Revisar creditos de la cuenta nueva.")
@@ -223,8 +276,11 @@ def main() -> int:
         print("  B. MADURACION Y POLL")
         print(SUB)
         if not args.solo_poll:
-            print("  La fase 3d midio ~90 s de NEW a datos completos. Esperando "
-                  + str(ESPERA_INICIAL_S) + " s...")
+            print(
+                "  La fase 3d midio ~90 s de NEW a datos completos. Esperando "
+                + str(ESPERA_INICIAL_S)
+                + " s..."
+            )
             time.sleep(ESPERA_INICIAL_S)
 
         for ref, sid in creados:
@@ -233,10 +289,12 @@ def main() -> int:
             for intento in range(1, REINTENTOS_POLL + 1):
                 envio = (llamar(cliente, "GET", url, h).get("json") or {}).get("shipment") or {}
                 geo = (llamar(cliente, "GET", url + "/geojson", h).get("json") or {}).get(
-                    "geojson") or {}
+                    "geojson"
+                ) or {}
                 estado = envio.get("status")
-                print("  " + ref["etiqueta"] + "  intento " + str(intento)
-                      + "  estado=" + str(estado))
+                print(
+                    "  " + ref["etiqueta"] + "  intento " + str(intento) + "  estado=" + str(estado)
+                )
                 if estado and estado != "NEW":
                     break
                 if intento < REINTENTOS_POLL:
@@ -253,8 +311,12 @@ def main() -> int:
                     print(f"  [no] {campo:<14} ausente · {quien}")
             for e in evidencia["embarques"]:
                 if e.get("id") == sid:
-                    e.update(estado_final=envio.get("status"), campos=campos,
-                             payload_shipment=envio, payload_geojson=geo)
+                    e.update(
+                        estado_final=envio.get("status"),
+                        campos=campos,
+                        payload_shipment=envio,
+                        payload_geojson=geo,
+                    )
 
     print(SEP)
     print("  VEREDICTO")
@@ -264,8 +326,11 @@ def main() -> int:
             print("  " + e["etiqueta"] + ": alta rechazada (" + str(e.get("status")) + ")")
             continue
         n = len(e.get("campos") or {})
-        print("  {:<26} estado {:<10} {} de {} campos".format(
-            e["etiqueta"], str(e.get("estado_final")), n, len(EXIGIDOS)))
+        print(
+            "  {:<26} estado {:<10} {} de {} campos".format(
+                e["etiqueta"], str(e.get("estado_final")), n, len(EXIGIDOS)
+            )
+        )
     print(SEP)
 
     save_evidence("task28", "07_pendientes_" + args.network + ".json", evidencia)

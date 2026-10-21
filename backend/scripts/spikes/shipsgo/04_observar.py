@@ -111,11 +111,15 @@ def resumir_maritimo(envio: dict[str, Any]) -> dict[str, Any]:
     pod_codigo = (pod.get("location") or {}).get("code")
     movimientos = [m for c in envio.get("containers") or [] for m in c.get("movements") or []]
     ultimo = ultimo_real(movimientos)
-    buques = sorted({
-        (m.get("vessel") or {}).get("name", "") + " / IMO " + str((m.get("vessel") or {}).get("imo"))
-        for m in movimientos
-        if m.get("vessel")
-    })
+    buques = sorted(
+        {
+            (m.get("vessel") or {}).get("name", "")
+            + " / IMO "
+            + str((m.get("vessel") or {}).get("imo"))
+            for m in movimientos
+            if m.get("vessel")
+        }
+    )
     return {
         "status": envio.get("status"),
         "etapa_propuesta": ETAPA_MARITIMA.get(str(envio.get("status")), "?"),
@@ -134,9 +138,13 @@ def resumir_maritimo(envio: dict[str, Any]) -> dict[str, Any]:
         "movimientos_act": sum(1 for m in movimientos if m.get("status") == "ACT"),
         "movimientos_est": sum(1 for m in movimientos if m.get("status") == "EST"),
         "ultimo_evento": (
-            {"evento": ultimo.get("event"), "lugar": (ultimo.get("location") or {}).get("code"),
-             "instante": ultimo.get("timestamp")}
-            if ultimo else None
+            {
+                "evento": ultimo.get("event"),
+                "lugar": (ultimo.get("location") or {}).get("code"),
+                "instante": ultimo.get("timestamp"),
+            }
+            if ultimo
+            else None
         ),
         "buques": buques,
         "checked_at": envio.get("checked_at"),
@@ -171,9 +179,14 @@ def resumir_aereo(envio: dict[str, Any]) -> dict[str, Any]:
         "movimientos_est": sum(1 for m in movimientos if m.get("status") == "EST"),
         "eventos_reales": [m.get("event") for m in movimientos if m.get("status") == "ACT"],
         "ultimo_evento": (
-            {"evento": ultimo.get("event"), "lugar": (ultimo.get("location") or {}).get("iata"),
-             "vuelo": ultimo.get("flight"), "instante": ultimo.get("timestamp")}
-            if ultimo else None
+            {
+                "evento": ultimo.get("event"),
+                "lugar": (ultimo.get("location") or {}).get("iata"),
+                "vuelo": ultimo.get("flight"),
+                "instante": ultimo.get("timestamp"),
+            }
+            if ultimo
+            else None
         ),
         "vuelos": sorted({str(m.get("flight")) for m in movimientos if m.get("flight")}),
         "checked_at": envio.get("checked_at"),
@@ -198,19 +211,21 @@ def cambios(antes: dict[str, Any], ahora: dict[str, Any]) -> dict[str, list[Any]
     """Campos que cambiaron, sin contar la antiguedad, que cambia siempre."""
     ignorar = {"horas_desde_checked"}
     return {
-        k: [antes.get(k), v]
-        for k, v in ahora.items()
-        if k not in ignorar and antes.get(k) != v
+        k: [antes.get(k), v] for k, v in ahora.items() if k not in ignorar and antes.get(k) != v
     }
 
 
 def main() -> int:
     parser = parser_base("Spike TASK-28 ShipsGo Fase 4: observar envios")
-    parser.add_argument("--solo", action="append", metavar="ALIAS", help="Solo este alias (repetible).")
+    parser.add_argument(
+        "--solo", action="append", metavar="ALIAS", help="Solo este alias (repetible)."
+    )
     args = parser.parse_args()
 
     if not REGISTRO.is_file():
-        sys.exit("[FATAL] No hay envios registrados. Correr antes shipsgo/03_crear_envios.py --confirmar")
+        sys.exit(
+            "[FATAL] No hay envios registrados. Correr antes shipsgo/03_crear_envios.py --confirmar"
+        )
     envios = json.loads(REGISTRO.read_text(encoding="utf-8"))["envios"]
     if args.solo:
         envios = {a: e for a, e in envios.items() if a in args.solo}
@@ -227,10 +242,13 @@ def main() -> int:
 
     fallidos = 0
     SERIE.parent.mkdir(parents=True, exist_ok=True)
-    with httpx.Client(
-        headers={"X-Shipsgo-User-Token": token, "Accept": "application/json"},
-        timeout=TIMEOUT,
-    ) as client, SERIE.open("a", encoding="utf-8") as serie:
+    with (
+        httpx.Client(
+            headers={"X-Shipsgo-User-Token": token, "Accept": "application/json"},
+            timeout=TIMEOUT,
+        ) as client,
+        SERIE.open("a", encoding="utf-8") as serie,
+    ):
         for alias, envio in envios.items():
             path = envio["endpoint"] + "/" + str(envio["shipment_id"])
             response, diag = llamar(client, "GET", BASE + path)
@@ -243,11 +261,22 @@ def main() -> int:
             if not diag.get("ok") or not isinstance(cuerpo, dict) or not cuerpo.get("shipment"):
                 fallidos += 1
                 print("  [FALLO] " + str(diag.get("status_code") or diag.get("error_category")))
-                serie.write(json.dumps({"observado_utc": observado, "alias": alias,
-                                        "network": args.network, "diag": diag}) + "\n")
+                serie.write(
+                    json.dumps(
+                        {
+                            "observado_utc": observado,
+                            "alias": alias,
+                            "network": args.network,
+                            "diag": diag,
+                        }
+                    )
+                    + "\n"
+                )
                 continue
 
-            guardar_crudo("shipsgo", "04_" + alias + "_" + observado.replace(":", "")[:15] + ".json", cuerpo)
+            guardar_crudo(
+                "shipsgo", "04_" + alias + "_" + observado.replace(":", "")[:15] + ".json", cuerpo
+            )
             detalle = cuerpo["shipment"]
             resumen = (resumir_aereo if envio["via"] == "AEREO" else resumir_maritimo)(detalle)
 
@@ -266,15 +295,21 @@ def main() -> int:
             else:
                 print("  Sin cambios desde " + anterior["observado_utc"] + ".")
 
-            serie.write(json.dumps({
-                "observado_utc": observado,
-                "alias": alias,
-                "via": envio["via"],
-                "network": args.network,
-                "latencia_ms": diag.get("elapsed_ms"),
-                "resumen": resumen,
-                "cambios": diferencias,
-            }, ensure_ascii=False) + "\n")
+            serie.write(
+                json.dumps(
+                    {
+                        "observado_utc": observado,
+                        "alias": alias,
+                        "via": envio["via"],
+                        "network": args.network,
+                        "latencia_ms": diag.get("elapsed_ms"),
+                        "resumen": resumen,
+                        "cambios": diferencias,
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
 
     print(SEP)
     print("  " + str(len(envios) - fallidos) + " de " + str(len(envios)) + " envios observados.")

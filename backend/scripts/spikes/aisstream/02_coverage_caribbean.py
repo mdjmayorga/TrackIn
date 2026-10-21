@@ -63,7 +63,7 @@ OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 CARIBBEAN_BBOX = [[[7.0, -90.0], [25.0, -59.0]]]
 
 # Puerto Moin / Limon: destino maritimo de las importaciones de Gutis.
-MOIN = {"lat": 10.00, "lon": -83.08, "radius_deg": 0.45}   # ~50 km
+MOIN = {"lat": 10.00, "lon": -83.08, "radius_deg": 0.45}  # ~50 km
 # Aproximacion amplia: corredor de espera y fondeo frente a la costa caribe.
 LIMON_APPROACH = {"lat": 10.0, "lon": -83.0, "radius_deg": 1.5}  # ~165 km
 
@@ -83,7 +83,10 @@ def classify_zone(lat: float | None, lon: float | None) -> str:
         return "sin_posicion"
     if distance_deg(lat, lon, MOIN["lat"], MOIN["lon"]) <= MOIN["radius_deg"]:
         return "moin"
-    if distance_deg(lat, lon, LIMON_APPROACH["lat"], LIMON_APPROACH["lon"]) <= LIMON_APPROACH["radius_deg"]:
+    if (
+        distance_deg(lat, lon, LIMON_APPROACH["lat"], LIMON_APPROACH["lon"])
+        <= LIMON_APPROACH["radius_deg"]
+    ):
         return "aproximacion_limon"
     return "caribe"
 
@@ -115,8 +118,7 @@ async def capture(api_key: str, raw_path: Path) -> dict:
 
     try:
         websocket = await asyncio.wait_for(
-            connect(WS_URL, open_timeout=CONNECT_TIMEOUT_S,
-                    close_timeout=2, ping_interval=None),
+            connect(WS_URL, open_timeout=CONNECT_TIMEOUT_S, close_timeout=2, ping_interval=None),
             timeout=CONNECT_TIMEOUT_S + 5,
         )
     except Exception as exc:  # noqa: BLE001
@@ -176,10 +178,15 @@ async def capture(api_key: str, raw_path: Path) -> dict:
                 now = time.perf_counter()
                 if now - last_report >= 30:
                     elapsed = int(now - started)
-                    print("    {:>3}s  {:>6} mensajes  {:>5} buques  moin={} aprox={}".format(
-                        elapsed, stats["messages"], len(stats["mmsi_seen"]),
-                        stats["zones"].get("moin", 0),
-                        stats["zones"].get("aproximacion_limon", 0)))
+                    print(
+                        "    {:>3}s  {:>6} mensajes  {:>5} buques  moin={} aprox={}".format(
+                            elapsed,
+                            stats["messages"],
+                            len(stats["mmsi_seen"]),
+                            stats["zones"].get("moin", 0),
+                            stats["zones"].get("aproximacion_limon", 0),
+                        )
+                    )
                     last_report = now
 
         stats["ok"] = stats["messages"] > 0
@@ -226,12 +233,19 @@ def main() -> int:
         for err in stats["server_errors"][:3]:
             print("  El servidor respondio: " + err)
         print(SEP)
-        save_evidence("aisstream", "02_coverage_" + args.network + ".json", {
-            "spike": "TG-10", "phase": "2-coverage-caribbean",
-            "timestamp_utc": timestamp, "network_profile": args.network,
-            "error": stats.get("error"), "server_errors": stats["server_errors"],
-            "passed": False,
-        })
+        save_evidence(
+            "aisstream",
+            "02_coverage_" + args.network + ".json",
+            {
+                "spike": "TG-10",
+                "phase": "2-coverage-caribbean",
+                "timestamp_utc": timestamp,
+                "network_profile": args.network,
+                "error": stats.get("error"),
+                "server_errors": stats["server_errors"],
+                "passed": False,
+            },
+        )
         return 1
 
     # --- Resumen -----------------------------------------------------------
@@ -246,8 +260,11 @@ def main() -> int:
     print("  Mensajes capturados  : {}".format(total))
     print("  Duracion             : {} s".format(elapsed))
     print("  Tasa                 : {:.1f} msg/s".format(total / elapsed if elapsed else 0))
-    print("  Volumen              : {:.1f} KB  ({:.2f} KB/s)".format(
-        stats["bytes"] / 1024, stats["bytes"] / 1024 / elapsed if elapsed else 0))
+    print(
+        "  Volumen              : {:.1f} KB  ({:.2f} KB/s)".format(
+            stats["bytes"] / 1024, stats["bytes"] / 1024 / elapsed if elapsed else 0
+        )
+    )
     print("  Buques unicos (MMSI) : {}".format(unique_mmsi))
     if unique_mmsi:
         print("  Mensajes por buque   : {:.1f} en {} s".format(total / unique_mmsi, elapsed))
@@ -266,8 +283,11 @@ def main() -> int:
         count = stats["zones"].get(zone, 0)
         ships = len(stats["mmsi_by_zone"].get(zone, set()))
         pct = 100.0 * count / total if total else 0.0
-        print("  {:<32} {:>6} msg ({:>5.1f}%)  {:>4} buques".format(
-            zone_labels[zone], count, pct, ships))
+        print(
+            "  {:<32} {:>6} msg ({:>5.1f}%)  {:>4} buques".format(
+                zone_labels[zone], count, pct, ships
+            )
+        )
 
     print()
     print(SUB)
@@ -292,14 +312,20 @@ def main() -> int:
         print("  Moin recibe pocos buques por dia, no es trafico continuo.")
     elif moin_ships == 0:
         verdict = "cobertura_aproximacion"
-        print("  Hay {} buques en la aproximacion a Limon pero ninguno dentro del".format(
-            approach_ships))
+        print(
+            "  Hay {} buques en la aproximacion a Limon pero ninguno dentro del".format(
+                approach_ships
+            )
+        )
         print("  radio de Moin. Coherente con un puerto de bajo trafico: los buques")
         print("  se detectan en ruta, no necesariamente atracados.")
     else:
         verdict = "cobertura_util"
-        print("  {} buques dentro del radio de Puerto Moin y {} en aproximacion.".format(
-            moin_ships, approach_ships))
+        print(
+            "  {} buques dentro del radio de Puerto Moin y {} en aproximacion.".format(
+                moin_ships, approach_ships
+            )
+        )
         print("  La cobertura AIS sirve para seguir un embarque hasta el destino.")
 
     print()

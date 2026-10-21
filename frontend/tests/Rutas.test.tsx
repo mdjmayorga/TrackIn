@@ -68,7 +68,7 @@ describe('rutas protegidas', () => {
     montar('/')
 
     expect(screen.getByRole('heading', { name: 'TrackIn' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Usuario')).toBeInTheDocument()
+    expect(screen.getByLabelText('Usuario o correo')).toBeInTheDocument()
   })
 
   // Con más plazo que el de omisión (5 s): la carga diferida más el clic en el
@@ -104,7 +104,7 @@ describe('rutas protegidas', () => {
     )
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
-    expect(await screen.findByLabelText('Usuario')).toBeInTheDocument()
+    expect(await screen.findByLabelText('Usuario o correo')).toBeInTheDocument()
     expect(sesionActual()).toBeNull()
   })
 })
@@ -116,7 +116,7 @@ describe('pantalla de login', () => {
     })
     montar('/')
 
-    await userEvent.type(screen.getByLabelText('Usuario'), 'compras@gutis.com')
+    await userEvent.type(screen.getByLabelText('Usuario o correo'), 'compras@gutis.com')
     await userEvent.type(screen.getByLabelText('Contraseña'), 'una-clave-larga')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
@@ -144,7 +144,7 @@ describe('pantalla de login', () => {
     )
     montar('/login')
 
-    await userEvent.type(screen.getByLabelText('Usuario'), 'x')
+    await userEvent.type(screen.getByLabelText('Usuario o correo'), 'x')
     await userEvent.type(screen.getByLabelText('Contraseña'), 'y')
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 

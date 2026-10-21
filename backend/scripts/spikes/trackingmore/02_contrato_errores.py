@@ -51,12 +51,28 @@ def main() -> int:
     )
 
     casos: list[dict[str, Any]] = [
-        {"nombre": "sin_clave", "clave": None, "metodo": "GET", "path": "/couriers/all",
-         "esperado": "401"},
-        {"nombre": "clave_invalida", "clave": "trackin-spike-clave-invalida-0000", "metodo": "GET",
-         "path": "/couriers/all", "esperado": "401"},
-        {"nombre": "crear_tracking_sin_campos", "clave": clave, "metodo": "POST",
-         "path": "/trackings/create", "json": {}, "esperado": "4xx de validacion"},
+        {
+            "nombre": "sin_clave",
+            "clave": None,
+            "metodo": "GET",
+            "path": "/couriers/all",
+            "esperado": "401",
+        },
+        {
+            "nombre": "clave_invalida",
+            "clave": "trackin-spike-clave-invalida-0000",
+            "metodo": "GET",
+            "path": "/couriers/all",
+            "esperado": "401",
+        },
+        {
+            "nombre": "crear_tracking_sin_campos",
+            "clave": clave,
+            "metodo": "POST",
+            "path": "/trackings/create",
+            "json": {},
+            "esperado": "4xx de validacion",
+        },
     ]
 
     resultados: list[dict[str, Any]] = []
@@ -66,7 +82,11 @@ def main() -> int:
             if caso["clave"]:
                 cabeceras["Tracking-Api-Key"] = caso["clave"]
             response, diag = llamar(
-                client, caso["metodo"], BASE + caso["path"], headers=cabeceras, json=caso.get("json")
+                client,
+                caso["metodo"],
+                BASE + caso["path"],
+                headers=cabeceras,
+                json=caso.get("json"),
             )
             diag["caso"] = caso["nombre"]
             diag["esperado"] = caso["esperado"]
@@ -75,7 +95,9 @@ def main() -> int:
                 diag["meta"] = cuerpo.get("meta")
             elif response is not None:
                 diag["cuerpo_texto"] = response.text[:300]
-            imprimir_diag(diag, "CASO - " + caso["nombre"] + "  (esperado: " + caso["esperado"] + ")")
+            imprimir_diag(
+                diag, "CASO - " + caso["nombre"] + "  (esperado: " + caso["esperado"] + ")"
+            )
             print("  Meta        : " + str(diag.get("meta") or diag.get("cuerpo_texto")))
             resultados.append(diag)
 
@@ -84,9 +106,13 @@ def main() -> int:
     print(SEP)
     print("  {:<30} {:<8} {}".format("Caso", "HTTP", "meta"))
     for r in resultados:
-        print("  {:<30} {:<8} {}".format(
-            r["caso"], str(r.get("status_code", r.get("error_category"))), str(r.get("meta"))[:60]
-        ))
+        print(
+            "  {:<30} {:<8} {}".format(
+                r["caso"],
+                str(r.get("status_code", r.get("error_category"))),
+                str(r.get("meta"))[:60],
+            )
+        )
     print()
     print("  Para el adaptador: el HTTP no basta, hay que clasificar por meta.code.")
     print(SEP)

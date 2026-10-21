@@ -65,24 +65,39 @@ def extraer(envio: dict, geo: dict) -> dict:
     descarga = ruta.get("port_of_discharge") or {}
 
     if carga.get("date_of_loading"):
-        hallado["etd_atd"] = {"valor": carga["date_of_loading"],
-                              "de": "route.port_of_loading.date_of_loading"}
+        hallado["etd_atd"] = {
+            "valor": carga["date_of_loading"],
+            "de": "route.port_of_loading.date_of_loading",
+        }
     if descarga.get("date_of_discharge_predicted"):
-        hallado["eta"] = {"valor": descarga["date_of_discharge_predicted"],
-                          "de": "route.port_of_discharge.date_of_discharge_predicted"}
+        hallado["eta"] = {
+            "valor": descarga["date_of_discharge_predicted"],
+            "de": "route.port_of_discharge.date_of_discharge_predicted",
+        }
     if descarga.get("location", {}).get("code"):
-        hallado["puerto_destino"] = {"valor": descarga["location"]["code"],
-                                     "de": "route.port_of_discharge.location.code"}
+        hallado["puerto_destino"] = {
+            "valor": descarga["location"]["code"],
+            "de": "route.port_of_discharge.location.code",
+        }
     if ruta.get("transit_time") is not None:
-        hallado["transito"] = {"valor": str(ruta["transit_time"]) + " dias, "
-                               + str(ruta.get("transit_percentage")) + "%",
-                               "de": "route.transit_time"}
+        hallado["transito"] = {
+            "valor": str(ruta["transit_time"])
+            + " dias, "
+            + str(ruta.get("transit_percentage"))
+            + "%",
+            "de": "route.transit_time",
+        }
     if movimientos:
         actuales = [m for m in movimientos if m.get("status") == "ACT"]
-        hallado["hitos"] = {"valor": str(len(movimientos)) + " eventos ("
-                            + str(len(actuales)) + " ACT / "
-                            + str(len(movimientos) - len(actuales)) + " EST)",
-                            "de": "containers[].movements[]"}
+        hallado["hitos"] = {
+            "valor": str(len(movimientos))
+            + " eventos ("
+            + str(len(actuales))
+            + " ACT / "
+            + str(len(movimientos) - len(actuales))
+            + " EST)",
+            "de": "containers[].movements[]",
+        }
         # El cambio de buque entre tramos ES el transbordo de US-30.
         buques = []
         for m in movimientos:
@@ -91,25 +106,35 @@ def extraer(envio: dict, geo: dict) -> dict:
             if nombre and nombre not in buques:
                 buques.append(nombre)
         if buques:
-            hallado["buque"] = {"valor": " -> ".join(buques),
-                                "de": "containers[].movements[].vessel.name"}
+            hallado["buque"] = {
+                "valor": " -> ".join(buques),
+                "de": "containers[].movements[].vessel.name",
+            }
             if len(buques) > 1:
-                hallado["transbordo"] = {"valor": str(len(buques) - 1) + " cambio(s) de nave",
-                                         "de": "cambio de vessel entre movements (US-30)"}
+                hallado["transbordo"] = {
+                    "valor": str(len(buques) - 1) + " cambio(s) de nave",
+                    "de": "cambio de vessel entre movements (US-30)",
+                }
 
-    for f in (geo.get("features") or []):
+    for f in geo.get("features") or []:
         props = f.get("properties") or {}
         actual = props.get("current")
         if actual and actual.get("coordinates"):
-            hallado["posicion"] = {"valor": str(actual["coordinates"]),
-                                   "de": "geojson features[].properties.current.coordinates"}
+            hallado["posicion"] = {
+                "valor": str(actual["coordinates"]),
+                "de": "geojson features[].properties.current.coordinates",
+            }
         vessel = props.get("vessel")
         if isinstance(vessel, dict) and vessel.get("imo") and "imo" not in hallado:
-            hallado["imo"] = {"valor": str(vessel["imo"]),
-                              "de": "geojson features[].properties.vessel.imo"}
+            hallado["imo"] = {
+                "valor": str(vessel["imo"]),
+                "de": "geojson features[].properties.vessel.imo",
+            }
         if f.get("geometry", {}).get("type") == "LineString" and "trayecto" not in hallado:
-            hallado["trayecto"] = {"valor": "LineString(s) PAST/CURRENT/FUTURE",
-                                   "de": "geojson features[].geometry"}
+            hallado["trayecto"] = {
+                "valor": "LineString(s) PAST/CURRENT/FUTURE",
+                "de": "geojson features[].geometry",
+            }
     return hallado
 
 
@@ -153,12 +178,20 @@ def main() -> int:
         for sid in ids:
             base = BASE_SG + "/ocean/shipments/" + str(sid)
             envio = cliente.get(base, headers=h, timeout=TIMEOUT).json().get("shipment") or {}
-            geo = cliente.get(base + "/geojson", headers=h,
-                              timeout=TIMEOUT).json().get("geojson") or {}
+            geo = (
+                cliente.get(base + "/geojson", headers=h, timeout=TIMEOUT).json().get("geojson")
+                or {}
+            )
 
             print(SUB)
-            print("  Embarque " + str(sid) + "  ·  " + str(envio.get("container_number"))
-                  + "  ·  estado " + str(envio.get("status")))
+            print(
+                "  Embarque "
+                + str(sid)
+                + "  ·  "
+                + str(envio.get("container_number"))
+                + "  ·  estado "
+                + str(envio.get("status"))
+            )
             print(SUB)
             campos = extraer(envio, geo)
             for campo in EXIGIDOS:
@@ -167,9 +200,16 @@ def main() -> int:
                     print("       {:<15} <- {}".format("", campos[campo]["de"]))
                 else:
                     print("  [no] {:<15} {}".format(campo, "ausente · " + EXIGIDOS[campo]))
-            resultados.append({"id": sid, "contenedor": envio.get("container_number"),
-                               "estado": envio.get("status"), "campos": campos,
-                               "payload_shipment": envio, "payload_geojson": geo})
+            resultados.append(
+                {
+                    "id": sid,
+                    "contenedor": envio.get("container_number"),
+                    "estado": envio.get("status"),
+                    "campos": campos,
+                    "payload_shipment": envio,
+                    "payload_geojson": geo,
+                }
+            )
 
     presentes = sorted({c for r in resultados for c in r["campos"]})
     ausentes = [c for c in EXIGIDOS if c not in presentes]
@@ -184,12 +224,19 @@ def main() -> int:
     print("  que es justo para lo que RN-16 las necesitaba. US-08 se mantiene Could.")
     print(SEP)
 
-    save_evidence("task28", "06_payload_" + args.network + ".json", {
-        "spike": "TASK-28", "fase": "3d-payload-maduro",
-        "solo_lectura": True, "embarques": resultados,
-        "campos_presentes": presentes, "campos_ausentes": ausentes,
-        "generado": utc_now(),
-    })
+    save_evidence(
+        "task28",
+        "06_payload_" + args.network + ".json",
+        {
+            "spike": "TASK-28",
+            "fase": "3d-payload-maduro",
+            "solo_lectura": True,
+            "embarques": resultados,
+            "campos_presentes": presentes,
+            "campos_ausentes": ausentes,
+            "generado": utc_now(),
+        },
+    )
     return 0
 
 

@@ -86,8 +86,8 @@ OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 # Por eso van DOS cajas estrictamente pacificas, y ninguna pasa de lon -83.6 en
 # la costa rica ni de lat 9.0 frente a Panama (Colon esta a 9.35 y es Caribe).
 PACIFICO_BBOX = [
-    [[5.0, -92.0], [11.5, -83.6]],   # costa pacifica de CR y Nicaragua
-    [[6.5, -80.3], [9.0, -78.0]],    # Golfo de Panama / entrada pacifica del Canal
+    [[5.0, -92.0], [11.5, -83.6]],  # costa pacifica de CR y Nicaragua
+    [[6.5, -80.3], [9.0, -78.0]],  # Golfo de Panama / entrada pacifica del Canal
 ]
 
 # El destino real, con el radio de geocerca del maestro (10 km ~ 0.09 grados).
@@ -121,7 +121,10 @@ def clasificar_zona(lat: float | None, lon: float | None) -> str:
         return "sin_posicion"
     if distancia_deg(lat, lon, CALDERA["lat"], CALDERA["lon"]) <= CALDERA["radio_deg"]:
         return "caldera"
-    if distancia_deg(lat, lon, GOLFO_NICOYA["lat"], GOLFO_NICOYA["lon"]) <= GOLFO_NICOYA["radio_deg"]:
+    if (
+        distancia_deg(lat, lon, GOLFO_NICOYA["lat"], GOLFO_NICOYA["lon"])
+        <= GOLFO_NICOYA["radio_deg"]
+    ):
         return "golfo_nicoya"
     if distancia_deg(lat, lon, BALBOA["lat"], BALBOA["lon"]) <= BALBOA["radio_deg"]:
         return "balboa_control"
@@ -160,8 +163,7 @@ async def capturar(api_key: str, bbox: list, clasificar, ruta_cruda: Path, etiqu
 
     try:
         websocket = await asyncio.wait_for(
-            connect(WS_URL, open_timeout=TIMEOUT_CONEXION_S,
-                    close_timeout=2, ping_interval=None),
+            connect(WS_URL, open_timeout=TIMEOUT_CONEXION_S, close_timeout=2, ping_interval=None),
             timeout=TIMEOUT_CONEXION_S + 5,
         )
     except Exception as exc:
@@ -170,8 +172,13 @@ async def capturar(api_key: str, bbox: list, clasificar, ruta_cruda: Path, etiqu
 
     try:
         await websocket.send(json.dumps(suscripcion))
-        print("  [" + etiqueta + "] suscripcion enviada. Capturando "
-              + str(SEGUNDOS_CAPTURA) + " s...")
+        print(
+            "  ["
+            + etiqueta
+            + "] suscripcion enviada. Capturando "
+            + str(SEGUNDOS_CAPTURA)
+            + " s..."
+        )
 
         limite = time.perf_counter() + SEGUNDOS_CAPTURA
         ultimo_reporte = time.perf_counter()
@@ -216,8 +223,11 @@ async def capturar(api_key: str, bbox: list, clasificar, ruta_cruda: Path, etiqu
 
                 ahora = time.perf_counter()
                 if ahora - ultimo_reporte >= 30:
-                    print("    {:>3}s  {:>6} msg  {:>4} buques".format(
-                        int(ahora - inicio), stats["mensajes"], len(stats["mmsi_vistos"])))
+                    print(
+                        "    {:>3}s  {:>6} msg  {:>4} buques".format(
+                            int(ahora - inicio), stats["mensajes"], len(stats["mmsi_vistos"])
+                        )
+                    )
                     ultimo_reporte = ahora
 
         stats["ok"] = stats["mensajes"] > 0
@@ -253,42 +263,61 @@ def veredicto(stats: dict, base: dict) -> tuple[str, str]:
     if not stats.get("ok"):
         return "INVALIDA", "No llego ningun mensaje del Pacifico: el problema es la conexion."
     if not cuenta_viva:
-        return ("CUENTA_DEGRADADA",
-                "El Caribe rindio " + str(msg_caribe) + " mensajes hoy contra los "
-                + str(BASELINE_TG10_MENSAJES) + " que TG-10 midio el 18/08 en la misma caja "
-                "y el mismo tiempo. La cuenta de AISStream no esta entregando datos, asi que "
-                "la captura del Pacifico no puede decidir nada sobre Caldera. Es exactamente "
-                "el hallazgo que TG-10 dejo pendiente en 'No es la red: es la cuenta', y se "
-                "cierra revisando el consumo del plan gratuito en aisstream.io.")
+        return (
+            "CUENTA_DEGRADADA",
+            "El Caribe rindio "
+            + str(msg_caribe)
+            + " mensajes hoy contra los "
+            + str(BASELINE_TG10_MENSAJES)
+            + " que TG-10 midio el 18/08 en la misma caja "
+            "y el mismo tiempo. La cuenta de AISStream no esta entregando datos, asi que "
+            "la captura del Pacifico no puede decidir nada sobre Caldera. Es exactamente "
+            "el hallazgo que TG-10 dejo pendiente en 'No es la red: es la cuenta', y se "
+            "cierra revisando el consumo del plan gratuito en aisstream.io.",
+        )
     if control == 0 and caldera == 0 and nicoya == 0:
         # Con la cuenta probada viva por la linea base, el cero en Balboa deja de
         # ser un fallo de la prueba y pasa a ser el hallazgo mas fuerte: si la
         # entrada del Canal esta muda, el hueco no es de Caldera sino regional.
-        return ("SIN_COBERTURA_REGIONAL",
-                "Cero buques en Caldera, en el Golfo de Nicoya y tambien en Balboa, la entrada "
-                "pacifica del Canal de Panama, mientras el Caribe rendia " + str(msg_caribe)
-                + " mensajes con la misma llave y en los mismos 3 minutos. No es que Caldera "
-                "este oscuro: el feed gratuito de AISStream no cubre el Pacifico oriental. "
-                "El arribo maritimo es manual en los dos puertos.")
+        return (
+            "SIN_COBERTURA_REGIONAL",
+            "Cero buques en Caldera, en el Golfo de Nicoya y tambien en Balboa, la entrada "
+            "pacifica del Canal de Panama, mientras el Caribe rendia "
+            + str(msg_caribe)
+            + " mensajes con la misma llave y en los mismos 3 minutos. No es que Caldera "
+            "este oscuro: el feed gratuito de AISStream no cubre el Pacifico oriental. "
+            "El arribo maritimo es manual en los dos puertos.",
+        )
     if control == 0:
-        return ("INVALIDA",
-                "Cero buques en el control de Balboa pero si en la zona de Caldera. "
-                "Combinacion inesperada: revisar las cajas antes de concluir.")
+        return (
+            "INVALIDA",
+            "Cero buques en el control de Balboa pero si en la zona de Caldera. "
+            "Combinacion inesperada: revisar las cajas antes de concluir.",
+        )
     if caldera > 0:
-        return ("HAY_COBERTURA",
-                "Se vieron " + str(caldera) + " buques dentro de la geocerca de Caldera, con "
-                + str(control) + " en el control. El arribo por geocerca (RN-05 / US-11) es "
-                "viable en el Pacifico, a diferencia de Moin.")
+        return (
+            "HAY_COBERTURA",
+            "Se vieron "
+            + str(caldera)
+            + " buques dentro de la geocerca de Caldera, con "
+            + str(control)
+            + " en el control. El arribo por geocerca (RN-05 / US-11) es "
+            "viable en el Pacifico, a diferencia de Moin.",
+        )
     if nicoya > 0:
-        return ("PARCIAL",
-                "Cero buques en la geocerca de Caldera pero " + str(nicoya) + " en el Golfo de "
-                "Nicoya, con " + str(control) + " en el control. Hay senal en la zona: hace "
-                "falta una captura larga antes de concluir, porque 3 min pueden no cubrir un "
-                "atraque.")
-    return ("SIN_COBERTURA",
-            "Cero buques en Caldera y en el Golfo de Nicoya, con " + str(control) + " en el "
-            "control de Balboa y la cuenta entregando datos. Es un hueco real de cobertura, "
-            "igual que Moin: el arribo maritimo es manual en los dos puertos.")
+        return (
+            "PARCIAL",
+            "Cero buques en la geocerca de Caldera pero " + str(nicoya) + " en el Golfo de "
+            "Nicoya, con " + str(control) + " en el control. Hay senal en la zona: hace "
+            "falta una captura larga antes de concluir, porque 3 min pueden no cubrir un "
+            "atraque.",
+        )
+    return (
+        "SIN_COBERTURA",
+        "Cero buques en Caldera y en el Golfo de Nicoya, con " + str(control) + " en el "
+        "control de Balboa y la cuenta entregando datos. Es un hueco real de cobertura, "
+        "igual que Moin: el arribo maritimo es manual en los dos puertos.",
+    )
 
 
 def main() -> int:
@@ -299,8 +328,11 @@ def main() -> int:
     timestamp = header(
         "TrackIn - Spike TASK-28 - Fase 3a: cobertura AIS en Caldera",
         args.network,
-        {"Llave": mask(api_key), "Captura": str(SEGUNDOS_CAPTURA) + " s",
-         "Control": "Balboa (entrada pacifica del Canal)"},
+        {
+            "Llave": mask(api_key),
+            "Captura": str(SEGUNDOS_CAPTURA) + " s",
+            "Control": "Balboa (entrada pacifica del Canal)",
+        },
     )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -309,19 +341,34 @@ def main() -> int:
     print(SUB)
     print("  CAPTURA A - Pacifico (Caldera + control Balboa)")
     print(SUB)
-    stats = asyncio.run(capturar(api_key, PACIFICO_BBOX, clasificar_zona,
-                                 ruta_cruda, "pacifico"))
+    stats = asyncio.run(capturar(api_key, PACIFICO_BBOX, clasificar_zona, ruta_cruda, "pacifico"))
 
     print(SUB)
     print("  CAPTURA B - Caribe, linea base del mismo dia")
     print(SUB)
-    print("  TG-10 midio " + str(BASELINE_TG10_MENSAJES) + " mensajes en "
-          + str(SEGUNDOS_CAPTURA) + " s sobre esta misma caja el 18/08.")
-    base = asyncio.run(capturar(api_key, CARIBE_BBOX, clasificar_caribe,
-                                OUTPUT_DIR / ("03_caribe_base_raw_" + args.network + ".jsonl"),
-                                "caribe-base"))
-    print("  Hoy: " + str(base.get("mensajes", 0)) + " mensajes, "
-          + str(len(base.get("mmsi_vistos", set()))) + " buques.")
+    print(
+        "  TG-10 midio "
+        + str(BASELINE_TG10_MENSAJES)
+        + " mensajes en "
+        + str(SEGUNDOS_CAPTURA)
+        + " s sobre esta misma caja el 18/08."
+    )
+    base = asyncio.run(
+        capturar(
+            api_key,
+            CARIBE_BBOX,
+            clasificar_caribe,
+            OUTPUT_DIR / ("03_caribe_base_raw_" + args.network + ".jsonl"),
+            "caribe-base",
+        )
+    )
+    print(
+        "  Hoy: "
+        + str(base.get("mensajes", 0))
+        + " mensajes, "
+        + str(len(base.get("mmsi_vistos", set())))
+        + " buques."
+    )
 
     if stats.get("error"):
         print("  [!] " + stats["error"])
@@ -333,12 +380,21 @@ def main() -> int:
     print(SUB)
     print("  {:<18} {:>9} {:>9}".format("zona", "mensajes", "buques"))
     for zona in ("caldera", "golfo_nicoya", "balboa_control", "pacifico_abierto", "sin_posicion"):
-        print("  {:<18} {:>9} {:>9}".format(
-            zona, stats["zonas"].get(zona, 0), buques_por_zona.get(zona, 0)))
+        print(
+            "  {:<18} {:>9} {:>9}".format(
+                zona, stats["zonas"].get(zona, 0), buques_por_zona.get(zona, 0)
+            )
+        )
     print()
-    print("  Total: " + str(stats["mensajes"]) + " mensajes, "
-          + str(len(stats["mmsi_vistos"])) + " buques unicos en "
-          + str(stats.get("segundos", 0)) + " s")
+    print(
+        "  Total: "
+        + str(stats["mensajes"])
+        + " mensajes, "
+        + str(len(stats["mmsi_vistos"]))
+        + " buques unicos en "
+        + str(stats.get("segundos", 0))
+        + " s"
+    )
 
     codigo, explicacion = veredicto(stats, base)
     print(SEP)

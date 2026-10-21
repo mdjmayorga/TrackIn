@@ -46,7 +46,16 @@ from _comercial import (  # noqa: E402
     parser_base,
     problema_mawb,
 )
-from _common import SEP, SPIKES_DIR, header, load_env, mask, require, save_evidence, utc_now  # noqa: E402
+from _common import (
+    SEP,
+    SPIKES_DIR,
+    header,
+    load_env,
+    mask,
+    require,
+    save_evidence,
+    utc_now,
+)  # noqa: E402
 
 BASE = "https://api.trackingmore.com/v4"
 REGISTRO = SPIKES_DIR / "trackingmore" / "output" / "awb_consultadas.json"
@@ -66,9 +75,15 @@ def claves_de(valor: Any, profundidad: int = 0) -> Any:
 
 def main() -> int:
     parser = parser_base("Spike TASK-28 TrackingMore Fase 3: consultar AWB reales")
-    parser.add_argument("--confirmar", action="store_true", help="Consultar (50 creditos cada una).")
-    parser.add_argument("--solo", action="append", metavar="ALIAS", help="Solo este alias (repetible).")
-    parser.add_argument("--repetir", action="store_true", help="Consultar aunque ya se haya consultado.")
+    parser.add_argument(
+        "--confirmar", action="store_true", help="Consultar (50 creditos cada una)."
+    )
+    parser.add_argument(
+        "--solo", action="append", metavar="ALIAS", help="Solo este alias (repetible)."
+    )
+    parser.add_argument(
+        "--repetir", action="store_true", help="Consultar aunque ya se haya consultado."
+    )
     args = parser.parse_args()
 
     env = load_env()
@@ -83,7 +98,10 @@ def main() -> int:
     timestamp = header(
         "TrackIn - Spike TASK-28 - TrackingMore - Fase 3: consultar AWB",
         args.network,
-        {"api_key": mask(clave), "modo": "CONSULTAR" if args.confirmar else "solo plan (sin --confirmar)"},
+        {
+            "api_key": mask(clave),
+            "modo": "CONSULTAR" if args.confirmar else "solo plan (sin --confirmar)",
+        },
     )
 
     plan = []
@@ -103,21 +121,40 @@ def main() -> int:
             omitidas.append({**ref.resumen(), "motivo": motivo})
         else:
             plan.append(ref)
-        print("  {:<16} {:<6} {:<16} {}".format(
-            ref.alias, ref.tipo, ref.enmascarada, motivo or "consultar en /v4/awb"
-        ))
+        print(
+            "  {:<16} {:<6} {:<16} {}".format(
+                ref.alias, ref.tipo, ref.enmascarada, motivo or "consultar en /v4/awb"
+            )
+        )
 
     print()
-    print("  Costo maximo: " + str(len(plan) * COSTO_AWB) + " creditos (" + str(COSTO_AWB) + " por guia).")
+    print(
+        "  Costo maximo: "
+        + str(len(plan) * COSTO_AWB)
+        + " creditos ("
+        + str(COSTO_AWB)
+        + " por guia)."
+    )
     print("  Revisar en el panel de TrackingMore cuantos trae la prueba antes de confirmar.")
     if not args.confirmar or not plan:
-        print("  " + ("Modo plan: no se llamo a la API." if not args.confirmar else "Nada que consultar."))
+        print(
+            "  "
+            + ("Modo plan: no se llamo a la API." if not args.confirmar else "Nada que consultar.")
+        )
         print(SEP)
-        save_evidence("trackingmore", "03_awb_plan_" + args.network + ".json", {
-            "spike": "TASK-28", "proveedor": "trackingmore", "phase": "3-consultar-awb-plan",
-            "timestamp_utc": timestamp, "network_profile": args.network,
-            "plan": [r.resumen() for r in plan], "omitidas": omitidas,
-        })
+        save_evidence(
+            "trackingmore",
+            "03_awb_plan_" + args.network + ".json",
+            {
+                "spike": "TASK-28",
+                "proveedor": "trackingmore",
+                "phase": "3-consultar-awb-plan",
+                "timestamp_utc": timestamp,
+                "network_profile": args.network,
+                "plan": [r.resumen() for r in plan],
+                "omitidas": omitidas,
+            },
+        )
         return 0
 
     resultados: list[dict[str, Any]] = []
@@ -141,12 +178,20 @@ def main() -> int:
                 diag["meta"] = cuerpo.get("meta")
                 diag["estructura_data"] = claves_de(cuerpo.get("data"))
                 guardar_crudo("trackingmore", "03_" + ref.alias + ".json", cuerpo)
-                registro[ref.alias] = {**ref.resumen(), "consultado_utc": utc_now(), "meta": cuerpo.get("meta")}
+                registro[ref.alias] = {
+                    **ref.resumen(),
+                    "consultado_utc": utc_now(),
+                    "meta": cuerpo.get("meta"),
+                }
                 REGISTRO.parent.mkdir(parents=True, exist_ok=True)
-                REGISTRO.write_text(json.dumps(registro, indent=2, ensure_ascii=False), encoding="utf-8")
+                REGISTRO.write_text(
+                    json.dumps(registro, indent=2, ensure_ascii=False), encoding="utf-8"
+                )
             elif response is not None:
                 diag["cuerpo_texto"] = response.text[:300]
-            imprimir_diag(diag, "AWB - " + ref.alias + " (" + ref.tipo + " " + ref.enmascarada + ")")
+            imprimir_diag(
+                diag, "AWB - " + ref.alias + " (" + ref.tipo + " " + ref.enmascarada + ")"
+            )
             print("  Meta        : " + str(diag.get("meta") or diag.get("cuerpo_texto")))
             if diag.get("estructura_data"):
                 print("  Estructura  : " + json.dumps(diag["estructura_data"])[:400])
@@ -158,16 +203,20 @@ def main() -> int:
     print(SEP)
 
     sello = timestamp.replace(":", "").replace("-", "")[:15]
-    save_evidence("trackingmore", "03_awb_" + args.network + "_" + sello + ".json", {
-        "spike": "TASK-28",
-        "proveedor": "trackingmore",
-        "phase": "3-consultar-awb",
-        "timestamp_utc": timestamp,
-        "finished_utc": utc_now(),
-        "network_profile": args.network,
-        "consultas": resultados,
-        "omitidas": omitidas,
-    })
+    save_evidence(
+        "trackingmore",
+        "03_awb_" + args.network + "_" + sello + ".json",
+        {
+            "spike": "TASK-28",
+            "proveedor": "trackingmore",
+            "phase": "3-consultar-awb",
+            "timestamp_utc": timestamp,
+            "finished_utc": utc_now(),
+            "network_profile": args.network,
+            "consultas": resultados,
+            "omitidas": omitidas,
+        },
+    )
     return 0 if all(r.get("ok") for r in resultados) else 1
 
 

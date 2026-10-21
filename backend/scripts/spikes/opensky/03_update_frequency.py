@@ -56,8 +56,7 @@ from _common import (  # noqa: E402
 )
 
 TOKEN_URL = (
-    "https://auth.opensky-network.org/auth/realms/opensky-network"
-    "/protocol/openid-connect/token"
+    "https://auth.opensky-network.org/auth/realms/opensky-network" "/protocol/openid-connect/token"
 )
 STATES_URL = "https://opensky-network.org/api/states/all"
 CR_BBOX = {"lamin": 8.0, "lomin": -86.0, "lamax": 11.3, "lomax": -82.5}
@@ -125,16 +124,27 @@ def fetch(token: str) -> dict:
     credits_remaining = int(remaining) if remaining and remaining.isdigit() else None
 
     if response.status_code == 429:
-        return {"ok": False, "error_category": "rate_limited",
-                "error_detail": "Cuota agotada", "credits_remaining": credits_remaining}
+        return {
+            "ok": False,
+            "error_category": "rate_limited",
+            "error_detail": "Cuota agotada",
+            "credits_remaining": credits_remaining,
+        }
     if response.status_code != 200:
-        return {"ok": False, "error_category": "http_" + str(response.status_code),
-                "error_detail": response.text[:200], "credits_remaining": credits_remaining}
+        return {
+            "ok": False,
+            "error_category": "http_" + str(response.status_code),
+            "error_detail": response.text[:200],
+            "credits_remaining": credits_remaining,
+        }
     try:
         payload = response.json()
     except ValueError:
-        return {"ok": False, "error_category": "invalid_json",
-                "error_detail": "200 sin JSON valido"}
+        return {
+            "ok": False,
+            "error_category": "invalid_json",
+            "error_detail": "200 sin JSON valido",
+        }
 
     return {
         "ok": True,
@@ -156,8 +166,14 @@ def main() -> int:
         args.network,
         {
             "client_id": mask(client_id),
-            "muestreo": str(SAMPLES) + " muestras cada " + str(INTERVAL_S)
-                        + " s (~" + str(duration_min) + " min, " + str(SAMPLES) + " creditos)",
+            "muestreo": str(SAMPLES)
+            + " muestras cada "
+            + str(INTERVAL_S)
+            + " s (~"
+            + str(duration_min)
+            + " min, "
+            + str(SAMPLES)
+            + " creditos)",
         },
     )
 
@@ -198,7 +214,9 @@ def main() -> int:
             failures.append({"sample": i, **result})
             progress += "x"
 
-        print("\r  [{}{}] {}/{}".format(progress, " " * (SAMPLES - i), i, SAMPLES), end="", flush=True)
+        print(
+            "\r  [{}{}] {}/{}".format(progress, " " * (SAMPLES - i), i, SAMPLES), end="", flush=True
+        )
         if i < SAMPLES:
             time.sleep(INTERVAL_S)
     print()
@@ -207,10 +225,18 @@ def main() -> int:
         print(SEP)
         print("  Fase 3 NO superada: no se registro ninguna aeronave.")
         print(SEP)
-        save_evidence("opensky", "03_frequency_" + args.network + ".json", {
-            "spike": "TG-11", "phase": "3-update-frequency", "timestamp_utc": timestamp,
-            "network_profile": args.network, "failures": failures, "passed": False,
-        })
+        save_evidence(
+            "opensky",
+            "03_frequency_" + args.network + ".json",
+            {
+                "spike": "TG-11",
+                "phase": "3-update-frequency",
+                "timestamp_utc": timestamp,
+                "network_profile": args.network,
+                "failures": failures,
+                "passed": False,
+            },
+        )
         return 1
 
     # --- Analisis por aeronave --------------------------------------------
@@ -227,16 +253,18 @@ def main() -> int:
         # Cuantas muestras consecutivas repitieron el mismo time_position.
         repeats = len(positions) - len(distinct)
 
-        per_aircraft.append({
-            "icao24": icao24,
-            "callsign": callsigns.get(icao24),
-            "samples_seen": len(positions),
-            "distinct_positions": len(distinct),
-            "repeated_samples": repeats,
-            "median_delta_s": statistics.median(deltas) if deltas else None,
-            "min_delta_s": min(deltas) if deltas else None,
-            "max_delta_s": max(deltas) if deltas else None,
-        })
+        per_aircraft.append(
+            {
+                "icao24": icao24,
+                "callsign": callsigns.get(icao24),
+                "samples_seen": len(positions),
+                "distinct_positions": len(distinct),
+                "repeated_samples": repeats,
+                "median_delta_s": statistics.median(deltas) if deltas else None,
+                "min_delta_s": min(deltas) if deltas else None,
+                "max_delta_s": max(deltas) if deltas else None,
+            }
+        )
 
     per_aircraft.sort(key=lambda a: -a["samples_seen"])
 
@@ -244,18 +272,27 @@ def main() -> int:
     print("  ACTUALIZACION POR AERONAVE (top 12 por presencia)")
     print(SUB)
     row = "  {:<8} {:<9} {:>8} {:>10} {:>10} {:>9} {:>9}"
-    print(row.format("icao24", "callsign", "muestras", "posic.dist", "repetidas",
-                     "delta_med", "delta_max"))
+    print(
+        row.format(
+            "icao24", "callsign", "muestras", "posic.dist", "repetidas", "delta_med", "delta_max"
+        )
+    )
     for entry in per_aircraft[:12]:
-        print(row.format(
-            entry["icao24"],
-            (entry["callsign"] or "(nulo)")[:9],
-            entry["samples_seen"],
-            entry["distinct_positions"],
-            entry["repeated_samples"],
-            "{:.0f}s".format(entry["median_delta_s"]) if entry["median_delta_s"] is not None else "-",
-            "{:.0f}s".format(entry["max_delta_s"]) if entry["max_delta_s"] is not None else "-",
-        ))
+        print(
+            row.format(
+                entry["icao24"],
+                (entry["callsign"] or "(nulo)")[:9],
+                entry["samples_seen"],
+                entry["distinct_positions"],
+                entry["repeated_samples"],
+                (
+                    "{:.0f}s".format(entry["median_delta_s"])
+                    if entry["median_delta_s"] is not None
+                    else "-"
+                ),
+                "{:.0f}s".format(entry["max_delta_s"]) if entry["max_delta_s"] is not None else "-",
+            )
+        )
 
     # --- Agregados globales ------------------------------------------------
     tracked = [a for a in per_aircraft if a["samples_seen"] >= SAMPLES // 2]
@@ -271,13 +308,22 @@ def main() -> int:
     print("  Muestras validas       : {}/{}".format(SAMPLES - len(failures), SAMPLES))
     print("  Aeronaves observadas   : {}".format(len(per_aircraft)))
     print("  Seguidas >50% del test : {}".format(len(tracked)))
-    print("  Creditos consumidos    : {}".format(
-        (credits_start - credits_end + 1) if (credits_start and credits_end) else "-"))
+    print(
+        "  Creditos consumidos    : {}".format(
+            (credits_start - credits_end + 1) if (credits_start and credits_end) else "-"
+        )
+    )
     if global_median is not None:
-        print("  Delta entre posiciones : mediana={:.0f}s  min={:.0f}s  max={:.0f}s".format(
-            global_median, min(all_deltas), max(all_deltas)))
-    print("  Muestras redundantes   : {}/{} ({:.1f}%) devolvieron una posicion ya vista".format(
-        total_repeats, total_samples, repeat_ratio))
+        print(
+            "  Delta entre posiciones : mediana={:.0f}s  min={:.0f}s  max={:.0f}s".format(
+                global_median, min(all_deltas), max(all_deltas)
+            )
+        )
+    print(
+        "  Muestras redundantes   : {}/{} ({:.1f}%) devolvieron una posicion ya vista".format(
+            total_repeats, total_samples, repeat_ratio
+        )
+    )
 
     # --- Recomendacion de polling -----------------------------------------
     print(SEP)
@@ -293,8 +339,11 @@ def main() -> int:
     print("  [!] Ese piso NO es utilizable: consume la cuota completa y no deja")
     print("      credito para /flights/*, reintentos ni un segundo bounding box.")
     print()
-    print("  Reserva para otras llamadas: {:.0f}% ({:.0f} creditos)".format(
-        RESERVE_RATIO * 100, DAILY_CREDITS * RESERVE_RATIO))
+    print(
+        "  Reserva para otras llamadas: {:.0f}% ({:.0f} creditos)".format(
+            RESERVE_RATIO * 100, DAILY_CREDITS * RESERVE_RATIO
+        )
+    )
     print("  Presupuesto de polling     : {:.0f} consultas/dia".format(polling_budget))
     print("  => intervalo sostenible 24/7: {:.0f}s".format(sustainable_interval))
     print()
@@ -310,10 +359,16 @@ def main() -> int:
         print("  INTERVALO RECOMENDADO      : {:.0f}s en operacion continua".format(recommended))
         print()
         if repeat_ratio > 35:
-            print("  El {:.0f}% de las consultas de esta prueba devolvio una posicion ya".format(
-                repeat_ratio))
-            print("  conocida: sondear cada {}s es mas rapido de lo que el servidor".format(
-                INTERVAL_S))
+            print(
+                "  El {:.0f}% de las consultas de esta prueba devolvio una posicion ya".format(
+                    repeat_ratio
+                )
+            )
+            print(
+                "  conocida: sondear cada {}s es mas rapido de lo que el servidor".format(
+                    INTERVAL_S
+                )
+            )
             print("  actualiza. El limite real lo pone la cuota, no la frescura del dato.")
         else:
             print("  La redundancia es baja: el servidor actualiza a un ritmo cercano al")
@@ -323,9 +378,14 @@ def main() -> int:
         # no hace falta sondear de madrugada si no hay vuelo en curso.
         for window_h in (8, 12):
             window_interval = (window_h * 3600) / polling_budget
-            print("  Alternativa: sondear solo {}h/dia (ventana de vuelos activos)".format(window_h))
-            print("               => se puede bajar a {:.0f}s sin exceder el presupuesto.".format(
-                max(global_median, window_interval)))
+            print(
+                "  Alternativa: sondear solo {}h/dia (ventana de vuelos activos)".format(window_h)
+            )
+            print(
+                "               => se puede bajar a {:.0f}s sin exceder el presupuesto.".format(
+                    max(global_median, window_interval)
+                )
+            )
     print(SEP)
 
     evidence = {

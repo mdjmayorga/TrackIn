@@ -61,8 +61,7 @@ from _common import (  # noqa: E402
 )
 
 TOKEN_URL = (
-    "https://auth.opensky-network.org/auth/realms/opensky-network"
-    "/protocol/openid-connect/token"
+    "https://auth.opensky-network.org/auth/realms/opensky-network" "/protocol/openid-connect/token"
 )
 BASE = "https://opensky-network.org/api"
 TIMEOUT = 30.0
@@ -92,8 +91,11 @@ def get_token(client_id: str, client_secret: str) -> str:
     try:
         response = httpx.post(
             TOKEN_URL,
-            data={"grant_type": "client_credentials",
-                  "client_id": client_id, "client_secret": client_secret},
+            data={
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
             timeout=TIMEOUT,
         )
     except Exception as exc:  # noqa: BLE001
@@ -113,8 +115,12 @@ def query(token: str, path: str, params: dict) -> dict:
 
     started = time.perf_counter()
     try:
-        response = httpx.get(BASE + path, params=params,
-                             headers={"Authorization": "Bearer " + token}, timeout=TIMEOUT)
+        response = httpx.get(
+            BASE + path,
+            params=params,
+            headers={"Authorization": "Bearer " + token},
+            timeout=TIMEOUT,
+        )
     except Exception as exc:  # noqa: BLE001
         category, explanation = describe_http_error(exc)
         return {"ok": False, "error_category": category, "error_detail": explanation}
@@ -161,8 +167,11 @@ def main() -> int:
     print(SUB)
     print("  TARIFA POR TAMANO DE BOUNDING BOX (/states/all)")
     print(SUB)
-    print("  {:<15} {:>12} {:>9} {:>9} {:>10} {:>8}".format(
-        "zona", "area_deg2", "aeronaves", "costo", "esperado", "coincide"))
+    print(
+        "  {:<15} {:>12} {:>9} {:>9} {:>10} {:>8}".format(
+            "zona", "area_deg2", "aeronaves", "costo", "esperado", "coincide"
+        )
+    )
 
     # Llamada de calibracion: fija la linea base del contador. Su propio costo
     # no se puede medir porque no hay lectura anterior con la cual restar.
@@ -187,20 +196,31 @@ def main() -> int:
         coincide = "si" if cost == expected else "NO"
         if cost == expected:
             matches += 1
-        print("  {:<15} {:>12.0f} {:>9} {:>9} {:>10} {:>8}".format(
-            name, area, result.get("item_count", 0),
-            cost if cost is not None else "-", expected, coincide))
-        measurements.append({
-            "zone": name, "bbox": box, "ok": True,
-            "area_deg2": round(area, 1),
-            "aircraft": result.get("item_count", 0),
-            "measured_cost": cost,
-            "expected_cost": expected,
-            "matches_hypothesis": cost == expected,
-            "credits_remaining": remaining,
-            "response_bytes": result.get("response_bytes"),
-            "elapsed_ms": result.get("elapsed_ms"),
-        })
+        print(
+            "  {:<15} {:>12.0f} {:>9} {:>9} {:>10} {:>8}".format(
+                name,
+                area,
+                result.get("item_count", 0),
+                cost if cost is not None else "-",
+                expected,
+                coincide,
+            )
+        )
+        measurements.append(
+            {
+                "zone": name,
+                "bbox": box,
+                "ok": True,
+                "area_deg2": round(area, 1),
+                "aircraft": result.get("item_count", 0),
+                "measured_cost": cost,
+                "expected_cost": expected,
+                "matches_hypothesis": cost == expected,
+                "credits_remaining": remaining,
+                "response_bytes": result.get("response_bytes"),
+                "elapsed_ms": result.get("elapsed_ms"),
+            }
+        )
 
     # --- Costo de /tracks/all ---------------------------------------------
     print(SUB)
@@ -213,12 +233,14 @@ def main() -> int:
         if t_base["credits_remaining"] and t_second["credits_remaining"]:
             tracks_cost = t_base["credits_remaining"] - t_second["credits_remaining"]
         print("  calibracion    creditos_rest={}".format(t_base["credits_remaining"]))
-        print("  medicion       creditos_rest={}   costo={}".format(
-            t_second["credits_remaining"], tracks_cost))
+        print(
+            "  medicion       creditos_rest={}   costo={}".format(
+                t_second["credits_remaining"], tracks_cost
+            )
+        )
     else:
         failed = t_base if not t_base.get("ok") else t_second
-        print("  [FALLO] {} - {}".format(
-            failed.get("status_code"), failed.get("error_detail")))
+        print("  [FALLO] {} - {}".format(failed.get("status_code"), failed.get("error_detail")))
 
     # --- Lectura -----------------------------------------------------------
     print(SEP)
@@ -226,12 +248,18 @@ def main() -> int:
     print(SEP)
     valid = [m for m in measurements if m.get("ok") and m.get("measured_cost") is not None]
     if len(valid) == matches and valid:
-        print("  El esquema escalonado por area se CONFIRMA en los {} tramos medidos:".format(
-            len(valid)))
+        print(
+            "  El esquema escalonado por area se CONFIRMA en los {} tramos medidos:".format(
+                len(valid)
+            )
+        )
         print("    <25 grados^2 -> 1 | <400 -> 2 | <2500 -> 3 | resto -> 4")
     elif valid:
-        print("  El esquema escalonado NO se confirma del todo: {}/{} tramos coinciden.".format(
-            matches, len(valid)))
+        print(
+            "  El esquema escalonado NO se confirma del todo: {}/{} tramos coinciden.".format(
+                matches, len(valid)
+            )
+        )
         print("  Los costos reales medidos son los de la tabla de arriba; usar esos.")
     else:
         print("  No se pudo medir ningun tramo.")

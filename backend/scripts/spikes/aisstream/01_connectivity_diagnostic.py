@@ -80,9 +80,20 @@ CONNECT_TIMEOUT_S = 15
 # Emisores publicos conocidos. Si el emisor NO contiene ninguno de estos,
 # probablemente sea una CA corporativa haciendo inspeccion TLS.
 PUBLIC_CA_HINTS = (
-    "let's encrypt", "lets encrypt", "digicert", "sectigo", "globalsign",
-    "amazon", "google trust", "cloudflare", "isrg", "comodo", "godaddy",
-    "entrust", "baltimore", "starfield",
+    "let's encrypt",
+    "lets encrypt",
+    "digicert",
+    "sectigo",
+    "globalsign",
+    "amazon",
+    "google trust",
+    "cloudflare",
+    "isrg",
+    "comodo",
+    "godaddy",
+    "entrust",
+    "baltimore",
+    "starfield",
 )
 
 
@@ -92,8 +103,11 @@ def layer_dns() -> dict:
     try:
         infos = socket.getaddrinfo(WS_HOST, PORT, proto=socket.IPPROTO_TCP)
     except socket.gaierror as exc:
-        return {"ok": False, "error": "gaierror: " + str(exc),
-                "diagnosis": "DNS bloqueado o sin resolucion. El firewall filtra por dominio."}
+        return {
+            "ok": False,
+            "error": "gaierror: " + str(exc),
+            "diagnosis": "DNS bloqueado o sin resolucion. El firewall filtra por dominio.",
+        }
     addresses = sorted({info[4][0] for info in infos})
     return {
         "ok": True,
@@ -110,11 +124,13 @@ def layer_tcp(address: str) -> dict:
     try:
         sock.connect((address, PORT))
     except socket.timeout:
-        return {"ok": False, "error": "timeout",
-                "diagnosis": "El firewall descarta los SYN en silencio (no hay RST)."}
+        return {
+            "ok": False,
+            "error": "timeout",
+            "diagnosis": "El firewall descarta los SYN en silencio (no hay RST).",
+        }
     except OSError as exc:
-        return {"ok": False, "error": str(exc),
-                "diagnosis": "Conexion rechazada activamente."}
+        return {"ok": False, "error": str(exc), "diagnosis": "Conexion rechazada activamente."}
     finally:
         sock.close()
     return {"ok": True, "elapsed_ms": round((time.perf_counter() - started) * 1000, 1)}
@@ -137,12 +153,18 @@ def layer_tls() -> dict:
                 version = tls.version()
                 cipher = tls.cipher()
     except ssl.SSLCertVerificationError as exc:
-        return {"ok": False, "error": "cert_verification: " + str(exc),
-                "diagnosis": "El certificado no valida contra las CA del sistema. "
-                             "Sintoma tipico de inspeccion TLS corporativa."}
+        return {
+            "ok": False,
+            "error": "cert_verification: " + str(exc),
+            "diagnosis": "El certificado no valida contra las CA del sistema. "
+            "Sintoma tipico de inspeccion TLS corporativa.",
+        }
     except (ssl.SSLError, socket.timeout, OSError) as exc:
-        return {"ok": False, "error": type(exc).__name__ + ": " + str(exc),
-                "diagnosis": "Fallo el handshake TLS."}
+        return {
+            "ok": False,
+            "error": type(exc).__name__ + ": " + str(exc),
+            "diagnosis": "Fallo el handshake TLS.",
+        }
 
     issuer_parts = []
     for entry in cert.get("issuer", ()):
@@ -168,8 +190,8 @@ def layer_tls() -> dict:
         "issuer_is_public_ca": is_public,
         "diagnosis": (
             "Certificado de CA publica: NO hay inspeccion TLS en el camino."
-            if is_public else
-            "[!] El emisor NO parece una CA publica. Hay un intermediario "
+            if is_public
+            else "[!] El emisor NO parece una CA publica. Hay un intermediario "
             "reescribiendo el TLS (proxy corporativo con inspeccion)."
         ),
     }
@@ -183,8 +205,11 @@ def layer_https() -> dict:
     try:
         response = httpx.get(HTTPS_URL, timeout=CONNECT_TIMEOUT_S, follow_redirects=True)
     except Exception as exc:  # noqa: BLE001
-        return {"ok": False, "error": type(exc).__name__ + ": " + str(exc)[:150],
-                "diagnosis": "Ni el HTTPS normal pasa: el bloqueo es del dominio entero."}
+        return {
+            "ok": False,
+            "error": type(exc).__name__ + ": " + str(exc)[:150],
+            "diagnosis": "Ni el HTTPS normal pasa: el bloqueo es del dominio entero.",
+        }
     return {
         "ok": True,
         "status_code": response.status_code,
@@ -230,10 +255,14 @@ async def layers_ws_and_data(api_key: str) -> tuple[dict, dict]:
             subscription = {"APIKey": api_key, "BoundingBoxes": GLOBAL_BBOX}
             await websocket.send(json.dumps(subscription))
             data_result["subscription_sent"] = {
-                "BoundingBoxes": GLOBAL_BBOX, "APIKey": "(enmascarada)"
+                "BoundingBoxes": GLOBAL_BBOX,
+                "APIKey": "(enmascarada)",
             }
-            print("  Capa 6 suscripcion enviada  ...  esperando frames hasta {} s".format(
-                WAIT_FIRST_MESSAGE_S))
+            print(
+                "  Capa 6 suscripcion enviada  ...  esperando frames hasta {} s".format(
+                    WAIT_FIRST_MESSAGE_S
+                )
+            )
 
             wait_started = time.perf_counter()
             deadline = wait_started + WAIT_FIRST_MESSAGE_S
@@ -261,10 +290,16 @@ async def layers_ws_and_data(api_key: str) -> tuple[dict, dict]:
                         # hay que detectarlo, no contarlo como dato valido.
                         if isinstance(parsed, dict) and parsed.get("error"):
                             data_result["server_error"] = parsed["error"]
-                        data_result["messages"].append({
-                            "MessageType": parsed.get("MessageType") if isinstance(parsed, dict) else None,
-                            "keys": sorted(parsed.keys())[:12] if isinstance(parsed, dict) else None,
-                        })
+                        data_result["messages"].append(
+                            {
+                                "MessageType": (
+                                    parsed.get("MessageType") if isinstance(parsed, dict) else None
+                                ),
+                                "keys": (
+                                    sorted(parsed.keys())[:12] if isinstance(parsed, dict) else None
+                                ),
+                            }
+                        )
 
                 if data_result["message_count"] >= 25:
                     break
@@ -287,18 +322,23 @@ async def layers_ws_and_data(api_key: str) -> tuple[dict, dict]:
     except asyncio.TimeoutError:
         # Solo es fallo de handshake si el handshake no habia completado ya.
         if not ws_result.get("ok"):
-            ws_result = {"ok": False, "error": "open_timeout",
-                         "diagnosis": "El handshake WebSocket no completo a tiempo. "
-                                      "Proxy que no soporta o no permite el Upgrade."}
+            ws_result = {
+                "ok": False,
+                "error": "open_timeout",
+                "diagnosis": "El handshake WebSocket no completo a tiempo. "
+                "Proxy que no soporta o no permite el Upgrade.",
+            }
         else:
             data_result.setdefault("note", "Timeout despues de un handshake exitoso.")
     except Exception as exc:  # noqa: BLE001
         if not ws_result.get("ok"):
-            ws_result = {"ok": False, "error": type(exc).__name__ + ": " + str(exc)[:200],
-                         "diagnosis": "Fallo la conexion WebSocket."}
+            ws_result = {
+                "ok": False,
+                "error": type(exc).__name__ + ": " + str(exc)[:200],
+                "diagnosis": "Fallo la conexion WebSocket.",
+            }
         else:
-            data_result.setdefault(
-                "note", "Excepcion tras el handshake: " + type(exc).__name__)
+            data_result.setdefault("note", "Excepcion tras el handshake: " + type(exc).__name__)
 
     return ws_result, data_result
 
@@ -324,8 +364,11 @@ def main() -> int:
     dns = layer_dns()
     layers["1_dns"] = dns
     if dns["ok"]:
-        print("  Capa 1 DNS                 [OK]   {} -> {}".format(
-            WS_HOST, ", ".join(dns["addresses"])))
+        print(
+            "  Capa 1 DNS                 [OK]   {} -> {}".format(
+                WS_HOST, ", ".join(dns["addresses"])
+            )
+        )
     else:
         print("  Capa 1 DNS                 [FALLO] {}".format(dns["error"]))
         print("         {}".format(dns["diagnosis"]))
@@ -344,8 +387,9 @@ def main() -> int:
     tls = layer_tls()
     layers["3_tls"] = tls
     if tls["ok"]:
-        print("  Capa 3 TLS                 [OK]   {} / {}".format(
-            tls["tls_version"], tls["cipher"]))
+        print(
+            "  Capa 3 TLS                 [OK]   {} / {}".format(tls["tls_version"], tls["cipher"])
+        )
         print("         Emisor : {}".format(tls["issuer"]))
         print("         {}".format(tls["diagnosis"]))
     else:
@@ -368,10 +412,17 @@ def main() -> int:
                 return await layers_ws_and_data(api_key)
         except TimeoutError:
             return (
-                {"ok": False, "error": "hard_timeout",
-                 "diagnosis": "La conexion no completo dentro del limite duro."},
-                {"ok": False, "message_count": 0, "messages": [],
-                 "note": "Cortado por el limite duro externo."},
+                {
+                    "ok": False,
+                    "error": "hard_timeout",
+                    "diagnosis": "La conexion no completo dentro del limite duro.",
+                },
+                {
+                    "ok": False,
+                    "message_count": 0,
+                    "messages": [],
+                    "note": "Cortado por el limite duro externo.",
+                },
             )
 
     ws_result, data_result = asyncio.run(guarded())
@@ -379,20 +430,27 @@ def main() -> int:
     layers["6_data"] = data_result
 
     if not ws_result.get("ok"):
-        print("  Capa 5 WS handshake        [FALLO] {}".format(
-            str(ws_result.get("error"))[:110]))
+        print("  Capa 5 WS handshake        [FALLO] {}".format(str(ws_result.get("error"))[:110]))
         print("         {}".format(ws_result.get("diagnosis")))
     elif data_result.get("ok"):
-        print("  Capa 6 primer frame        [OK]   {} mensajes en {} s "
-              "(primero a los {} ms)".format(
-                  data_result["message_count"], data_result["waited_s"],
-                  data_result.get("first_message_latency_ms")))
+        print(
+            "  Capa 6 primer frame        [OK]   {} mensajes en {} s "
+            "(primero a los {} ms)".format(
+                data_result["message_count"],
+                data_result["waited_s"],
+                data_result.get("first_message_latency_ms"),
+            )
+        )
     else:
-        print("  Capa 6 primer frame        [FALLO] 0 mensajes en {} s".format(
-            data_result.get("waited_s")))
+        print(
+            "  Capa 6 primer frame        [FALLO] 0 mensajes en {} s".format(
+                data_result.get("waited_s")
+            )
+        )
         if data_result.get("server_error"):
-            print("         El servidor respondio con error: {}".format(
-                data_result["server_error"]))
+            print(
+                "         El servidor respondio con error: {}".format(data_result["server_error"])
+            )
 
     # --- Veredicto ---------------------------------------------------------
     print(SEP)

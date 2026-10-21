@@ -12,6 +12,8 @@ export interface UsuarioNuevo {
 }
 
 export interface CambiosUsuario {
+  /** Nombre de inicio de sesión nuevo; las sesiones abiertas siguen (21/10). */
+  usuario?: string
   nombre_completo?: string
   correo?: string | null
   rol?: Rol

@@ -80,12 +80,19 @@ async def capture(api_key: str) -> dict:
     from websockets.asyncio.client import connect
 
     stats: dict = {
-        "ok": False, "messages": 0, "bytes": 0,
-        "target_messages": 0, "control_messages": 0, "other_messages": 0,
-        "target_ships": set(), "control_ships": set(),
-        "target_types": Counter(), "target_detail": [],
+        "ok": False,
+        "messages": 0,
+        "bytes": 0,
+        "target_messages": 0,
+        "control_messages": 0,
+        "other_messages": 0,
+        "target_ships": set(),
+        "control_ships": set(),
+        "target_types": Counter(),
+        "target_detail": [],
         "min_km_to_moin": float("inf"),
-        "server_errors": [], "reconnects": 0,
+        "server_errors": [],
+        "reconnects": 0,
     }
 
     subscription = {
@@ -103,8 +110,13 @@ async def capture(api_key: str) -> dict:
         websocket = None
         try:
             websocket = await asyncio.wait_for(
-                connect(WS_URL, open_timeout=CONNECT_TIMEOUT_S,
-                        close_timeout=2, ping_interval=20, ping_timeout=20),
+                connect(
+                    WS_URL,
+                    open_timeout=CONNECT_TIMEOUT_S,
+                    close_timeout=2,
+                    ping_interval=20,
+                    ping_timeout=20,
+                ),
                 timeout=CONNECT_TIMEOUT_S + 5,
             )
         except Exception as exc:  # noqa: BLE001
@@ -151,16 +163,21 @@ async def capture(api_key: str) -> dict:
                     stats["target_types"][parsed.get("MessageType") or "?"] += 1
                     if mmsi:
                         stats["target_ships"].add(mmsi)
-                    km = (((lat - MOIN_POINT["lat"]) ** 2
-                           + (lon - MOIN_POINT["lon"]) ** 2) ** 0.5) * 111.0
+                    km = (
+                        ((lat - MOIN_POINT["lat"]) ** 2 + (lon - MOIN_POINT["lon"]) ** 2) ** 0.5
+                    ) * 111.0
                     stats["min_km_to_moin"] = min(stats["min_km_to_moin"], km)
                     if len(stats["target_detail"]) < 25:
-                        stats["target_detail"].append({
-                            "mmsi": mmsi,
-                            "name": (meta.get("ShipName") or "").strip() or None,
-                            "lat": lat, "lon": lon, "km_to_moin": round(km),
-                            "type": parsed.get("MessageType"),
-                        })
+                        stats["target_detail"].append(
+                            {
+                                "mmsi": mmsi,
+                                "name": (meta.get("ShipName") or "").strip() or None,
+                                "lat": lat,
+                                "lon": lon,
+                                "km_to_moin": round(km),
+                                "type": parsed.get("MessageType"),
+                            }
+                        )
                 elif in_bbox(lat, lon, ZONE_CONTROL["bbox"]):
                     stats["control_messages"] += 1
                     if mmsi:
@@ -170,11 +187,16 @@ async def capture(api_key: str) -> dict:
 
                 now = time.perf_counter()
                 if now - last_report >= REPORT_EVERY_S:
-                    print("    {:>4.0f} min   CR+NI: {:>3} msg / {:>2} buques   "
-                          "control: {:>4} msg / {:>3} buques".format(
-                              (now - started) / 60, stats["target_messages"],
-                              len(stats["target_ships"]), stats["control_messages"],
-                              len(stats["control_ships"])))
+                    print(
+                        "    {:>4.0f} min   CR+NI: {:>3} msg / {:>2} buques   "
+                        "control: {:>4} msg / {:>3} buques".format(
+                            (now - started) / 60,
+                            stats["target_messages"],
+                            len(stats["target_ships"]),
+                            stats["control_messages"],
+                            len(stats["control_ships"]),
+                        )
+                    )
                     last_report = now
         finally:
             try:
@@ -216,12 +238,17 @@ def main() -> int:
     print(SUB)
     print("  RESULTADO tras {:.0f} minutos".format(elapsed / 60))
     print(SUB)
-    print("  {:<40} {:>6} msg   {:>4} buques".format(
-        "CR + Nicaragua (sin Panama)", stats["target_messages"], target_ships))
-    print("  {:<40} {:>6} msg   {:>4} buques".format(
-        "Control - Cartagena", stats["control_messages"], control_ships))
-    print("  {:<40} {:>6} msg".format("Fuera de ambas / sin posicion",
-                                      stats["other_messages"]))
+    print(
+        "  {:<40} {:>6} msg   {:>4} buques".format(
+            "CR + Nicaragua (sin Panama)", stats["target_messages"], target_ships
+        )
+    )
+    print(
+        "  {:<40} {:>6} msg   {:>4} buques".format(
+            "Control - Cartagena", stats["control_messages"], control_ships
+        )
+    )
+    print("  {:<40} {:>6} msg".format("Fuera de ambas / sin posicion", stats["other_messages"]))
     print("  Buque mas cercano a Puerto Moin: {}".format(nearest_txt))
     print("  Reconexiones durante la captura : {}".format(stats["reconnects"]))
 
@@ -229,9 +256,16 @@ def main() -> int:
         print()
         print("  Detecciones en la zona de interes:")
         for entry in stats["target_detail"]:
-            print("    MMSI {}  {:<22} {:.3f}, {:.3f}  a {} km de Moin  {}".format(
-                entry["mmsi"], (entry["name"] or "?")[:22], entry["lat"], entry["lon"],
-                entry["km_to_moin"], entry["type"]))
+            print(
+                "    MMSI {}  {:<22} {:.3f}, {:.3f}  a {} km de Moin  {}".format(
+                    entry["mmsi"],
+                    (entry["name"] or "?")[:22],
+                    entry["lat"],
+                    entry["lon"],
+                    entry["km_to_moin"],
+                    entry["type"],
+                )
+            )
 
     # --- Lectura -----------------------------------------------------------
     print(SEP)
@@ -244,21 +278,30 @@ def main() -> int:
         print("  El control no recibio datos: el test no es concluyente. Repetir.")
     elif target_ships == 0:
         verdict = "sin_cobertura_confirmado"
-        print("  En {:.0f} minutos, el control detecto {} buques y la costa caribe de".format(
-            elapsed / 60, control_ships))
+        print(
+            "  En {:.0f} minutos, el control detecto {} buques y la costa caribe de".format(
+                elapsed / 60, control_ships
+            )
+        )
         print("  Costa Rica y Nicaragua CERO.")
         print()
         print("  Un buque Clase A atracado o fondeado transmite cada ~3 min: en esta")
-        print("  ventana habria emitido ~{} veces. No aparecio ni uno en {} km de".format(
-            expected_static_emissions, "cientos de"))
+        print(
+            "  ventana habria emitido ~{} veces. No aparecio ni uno en {} km de".format(
+                expected_static_emissions, "cientos de"
+            )
+        )
         print("  costa, incluyendo dos puertos activos (Moin y Limon).")
         print()
         print("  => Conclusion SOLIDA: no hay receptores AIS cubriendo la costa caribe")
         print("     de Costa Rica en el plan gratuito de AISStream.")
     else:
         verdict = "cobertura_detectada"
-        print("  Se detectaron {} buques en la zona en {:.0f} minutos.".format(
-            target_ships, elapsed / 60))
+        print(
+            "  Se detectaron {} buques en la zona en {:.0f} minutos.".format(
+                target_ships, elapsed / 60
+            )
+        )
         print("  El mas cercano a Moin quedo a {}.".format(nearest_txt))
         print("  La conclusion de las fases 2 y 4 era PREMATURA: hay cobertura, aunque")
         print("  escasa. Revisar el detalle de arriba para ver de que tipo de")

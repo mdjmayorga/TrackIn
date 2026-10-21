@@ -18,6 +18,7 @@ import { Link, Navigate } from 'react-router-dom'
 
 import { NOMBRES_ROL, puedeAdministrarUsuarios } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
+import { EntradaContrasena } from '@/components/EntradaContrasena'
 import { mensajeDeError } from '@/services/api'
 import {
   type CambiosUsuario,
@@ -156,7 +157,10 @@ function FormularioAlta({
       aria-label="Nueva cuenta"
       className="grid max-w-3xl gap-3 rounded border border-panel-borde bg-panel-superficie p-4 sm:grid-cols-2"
     >
-      <Campo etiqueta="Usuario" ayuda="Al menos 3 caracteres; se guarda en minúsculas.">
+      <Campo
+        etiqueta="Usuario"
+        ayuda="Al menos 3 caracteres, en minúsculas. Se entra con el usuario o con el correo."
+      >
         <input
           value={usuario}
           maxLength={50}
@@ -186,20 +190,20 @@ function FormularioAlta({
         <SelectorRol valor={rol} onCambio={setRol} conVacio />
       </Campo>
       <Campo etiqueta="Contraseña inicial" ayuda={`Al menos ${LONGITUD_MINIMA} caracteres.`}>
-        <input
-          type="password"
-          value={contrasena}
+        <EntradaContrasena
+          nombre="contraseña inicial"
+          valor={contrasena}
+          onCambio={setContrasena}
           autoComplete="new-password"
-          onChange={(e) => setContrasena(e.target.value)}
           className={ESTILO_CAMPO}
         />
       </Campo>
       <Campo etiqueta="Repita la contraseña inicial">
-        <input
-          type="password"
-          value={repetida}
+        <EntradaContrasena
+          nombre="repetición de la contraseña inicial"
+          valor={repetida}
+          onCambio={setRepetida}
           autoComplete="new-password"
-          onChange={(e) => setRepetida(e.target.value)}
           className={ESTILO_CAMPO}
         />
       </Campo>
@@ -374,17 +378,24 @@ function FormularioEdicion({
   propia: boolean
   onListo: () => void
 }) {
+  const [usuario, setUsuario] = useState(cuenta.usuario)
   const [nombre, setNombre] = useState(cuenta.nombre_completo)
   const [correo, setCorreo] = useState(cuenta.correo ?? '')
   const [rol, setRol] = useState<Rol>(cuenta.rol)
   const guardar = useActualizar(cuenta.id, onListo)
 
-  // Solo se manda lo que cambió.
+  // Solo se manda lo que cambió. El usuario se guarda en minúsculas (21/10).
   const cambios: CambiosUsuario = {}
+  const usuarioNuevo = usuario.trim().toLowerCase()
+  if (usuarioNuevo !== cuenta.usuario) cambios.usuario = usuarioNuevo
   if (nombre.trim() !== cuenta.nombre_completo) cambios.nombre_completo = nombre.trim()
   if ((correo.trim() || null) !== cuenta.correo) cambios.correo = correo.trim() || null
   if (rol !== cuenta.rol) cambios.rol = rol
-  const listo = Object.keys(cambios).length > 0 && nombre.trim() !== '' && !guardar.isPending
+  const listo =
+    Object.keys(cambios).length > 0 &&
+    usuarioNuevo.length >= 3 &&
+    nombre.trim() !== '' &&
+    !guardar.isPending
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -395,8 +406,20 @@ function FormularioEdicion({
     <form
       onSubmit={enviar}
       aria-label={`Editar ${cuenta.usuario}`}
-      className="grid max-w-3xl gap-3 sm:grid-cols-3"
+      className="grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-4"
     >
+      <Campo
+        etiqueta="Usuario"
+        ayuda="Al menos 3 caracteres. Se sigue entrando también con el correo."
+      >
+        <input
+          value={usuario}
+          maxLength={50}
+          autoComplete="off"
+          onChange={(e) => setUsuario(e.target.value)}
+          className={ESTILO_CAMPO}
+        />
+      </Campo>
       <Campo etiqueta="Nombre completo">
         <input
           value={nombre}
@@ -420,7 +443,7 @@ function FormularioEdicion({
       >
         <SelectorRol valor={rol} onCambio={(r) => setRol(r as Rol)} deshabilitado={propia} />
       </Campo>
-      <div className="space-y-3 sm:col-span-3">
+      <div className="space-y-3 sm:col-span-2 lg:col-span-4">
         <Error mutacion={guardar} />
         <Botones listo={listo} guardando={guardar.isPending} texto="Guardar" onCancelar={onListo} />
       </div>
@@ -512,20 +535,20 @@ function FormularioReinicio({
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Campo etiqueta="Contraseña nueva" ayuda={`Al menos ${LONGITUD_MINIMA} caracteres.`}>
-          <input
-            type="password"
-            value={contrasena}
+          <EntradaContrasena
+            nombre="contraseña nueva"
+            valor={contrasena}
+            onCambio={setContrasena}
             autoComplete="new-password"
-            onChange={(e) => setContrasena(e.target.value)}
             className={ESTILO_CAMPO}
           />
         </Campo>
         <Campo etiqueta="Repita la contraseña nueva">
-          <input
-            type="password"
-            value={repetida}
+          <EntradaContrasena
+            nombre="repetición de la contraseña nueva"
+            valor={repetida}
+            onCambio={setRepetida}
             autoComplete="new-password"
-            onChange={(e) => setRepetida(e.target.value)}
             className={ESTILO_CAMPO}
           />
         </Campo>

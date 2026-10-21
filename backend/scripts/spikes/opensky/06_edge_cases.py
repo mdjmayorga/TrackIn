@@ -56,8 +56,7 @@ from _common import (  # noqa: E402
 )
 
 TOKEN_URL = (
-    "https://auth.opensky-network.org/auth/realms/opensky-network"
-    "/protocol/openid-connect/token"
+    "https://auth.opensky-network.org/auth/realms/opensky-network" "/protocol/openid-connect/token"
 )
 BASE = "https://opensky-network.org/api"
 TIMEOUT = 30.0
@@ -76,8 +75,11 @@ def get_token(client_id: str, client_secret: str) -> str:
     try:
         response = httpx.post(
             TOKEN_URL,
-            data={"grant_type": "client_credentials",
-                  "client_id": client_id, "client_secret": client_secret},
+            data={
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
             timeout=TIMEOUT,
         )
     except Exception as exc:  # noqa: BLE001
@@ -101,8 +103,7 @@ def probe(token: str | None, path: str, params: dict, title: str, expectation: s
     import httpx
 
     headers = {"Authorization": "Bearer " + token} if token else {}
-    result: dict = {"case": title, "endpoint": path, "params": params,
-                    "expectation": expectation}
+    result: dict = {"case": title, "endpoint": path, "params": params, "expectation": expectation}
 
     started = time.perf_counter()
     try:
@@ -167,8 +168,12 @@ def continuity_test(token: str) -> dict:
     import httpx
 
     def snapshot() -> tuple[dict[str, dict], int | None]:
-        response = httpx.get(BASE + "/states/all", params=CR_BBOX,
-                             headers={"Authorization": "Bearer " + token}, timeout=TIMEOUT)
+        response = httpx.get(
+            BASE + "/states/all",
+            params=CR_BBOX,
+            headers={"Authorization": "Bearer " + token},
+            timeout=TIMEOUT,
+        )
         if response.status_code != 200:
             return {}, None
         payload = response.json()
@@ -197,13 +202,15 @@ def continuity_test(token: str) -> dict:
     for icao24 in disappeared:
         entry = first[icao24]
         staleness = (t1 - entry["last_contact"]) if (t1 and entry["last_contact"]) else None
-        detail.append({
-            "icao24": icao24,
-            "callsign": entry["callsign"],
-            "was_on_ground": entry["on_ground"],
-            "altitude_m": entry["altitude_m"],
-            "staleness_at_disappearance_s": staleness,
-        })
+        detail.append(
+            {
+                "icao24": icao24,
+                "callsign": entry["callsign"],
+                "was_on_ground": entry["on_ground"],
+                "altitude_m": entry["altitude_m"],
+                "staleness_at_disappearance_s": staleness,
+            }
+        )
 
     return {
         "gap_seconds": CONTINUITY_GAP_S,
@@ -236,29 +243,59 @@ def main() -> int:
     print(SUB)
     print("  CASOS DE DATOS AUSENTES")
     print(SUB)
-    cases.append(probe(token, "/states/all", {"icao24": "ffffff"},
-                       "icao24 inexistente", "lista vacia o null"))
-    cases.append(probe(token, "/states/all", EMPTY_BBOX,
-                       "bbox sin trafico (Pacifico sur)", "lista vacia o null"))
+    cases.append(
+        probe(
+            token, "/states/all", {"icao24": "ffffff"}, "icao24 inexistente", "lista vacia o null"
+        )
+    )
+    cases.append(
+        probe(
+            token,
+            "/states/all",
+            EMPTY_BBOX,
+            "bbox sin trafico (Pacifico sur)",
+            "lista vacia o null",
+        )
+    )
 
     print(SUB)
     print("  CASOS DE AUTENTICACION")
     print(SUB)
-    cases.append(probe("token.invalido.aproposito", "/states/all", CR_BBOX,
-                       "token invalido", "401 con cuerpo distinguible"))
+    cases.append(
+        probe(
+            "token.invalido.aproposito",
+            "/states/all",
+            CR_BBOX,
+            "token invalido",
+            "401 con cuerpo distinguible",
+        )
+    )
 
     print(SUB)
     print("  CASOS DE PARAMETROS INVALIDOS")
     print(SUB)
     # Ventana desalineada que toca 3 dias UTC: el error de la Fase 4.
-    cases.append(probe(token, "/flights/aircraft",
-                       {"icao24": "0ac9e1", "begin": now - 47 * 3600, "end": now},
-                       "ventana de 3 particiones", "400 con mensaje explicativo"))
-    cases.append(probe(token, "/flights/arrival",
-                       {"airport": "XXXX", "begin": now - 86400, "end": now},
-                       "aeropuerto inexistente", "404 o 200 vacio"))
-    cases.append(probe(token, "/flights/arrival", {"airport": "MROC"},
-                       "falta parametro begin/end", "400"))
+    cases.append(
+        probe(
+            token,
+            "/flights/aircraft",
+            {"icao24": "0ac9e1", "begin": now - 47 * 3600, "end": now},
+            "ventana de 3 particiones",
+            "400 con mensaje explicativo",
+        )
+    )
+    cases.append(
+        probe(
+            token,
+            "/flights/arrival",
+            {"airport": "XXXX", "begin": now - 86400, "end": now},
+            "aeropuerto inexistente",
+            "404 o 200 vacio",
+        )
+    )
+    cases.append(
+        probe(token, "/flights/arrival", {"airport": "MROC"}, "falta parametro begin/end", "400")
+    )
 
     print(SUB)
     print("  CONTINUIDAD DE SEGUIMIENTO (senal perdida real)")
@@ -267,14 +304,22 @@ def main() -> int:
 
     print()
     print("  Persistieron : {}".format(continuity["persisted"]))
-    print("  Desaparecieron: {}  ({}% de la primera muestra)".format(
-        continuity["disappeared"], continuity["churn_pct"]))
+    print(
+        "  Desaparecieron: {}  ({}% de la primera muestra)".format(
+            continuity["disappeared"], continuity["churn_pct"]
+        )
+    )
     print("  Aparecieron  : {}".format(continuity["appeared"]))
     for entry in continuity["disappeared_detail"]:
-        print("    -> {} / {}   alt={}   en_tierra={}   staleness_al_desaparecer={}s".format(
-            entry["icao24"], entry["callsign"] or "(nulo)",
-            entry["altitude_m"], entry["was_on_ground"],
-            entry["staleness_at_disappearance_s"]))
+        print(
+            "    -> {} / {}   alt={}   en_tierra={}   staleness_al_desaparecer={}s".format(
+                entry["icao24"],
+                entry["callsign"] or "(nulo)",
+                entry["altitude_m"],
+                entry["was_on_ground"],
+                entry["staleness_at_disappearance_s"],
+            )
+        )
 
     # --- Lectura -----------------------------------------------------------
     print(SEP)
@@ -291,13 +336,19 @@ def main() -> int:
         print("      El modulo de Sprint 3 debe normalizar null -> [] al deserializar.")
 
     auth_case = cases[2]
-    print("  Token invalido -> {}. Distinguible de un fallo de red por el codigo".format(
-        auth_case.get("outcome")))
+    print(
+        "  Token invalido -> {}. Distinguible de un fallo de red por el codigo".format(
+            auth_case.get("outcome")
+        )
+    )
     print("  HTTP, no por timeout: se puede reintentar con token nuevo sin backoff.")
 
     print()
-    print("  SENAL PERDIDA: {}% de las aeronaves desaparecio del bbox en {} s.".format(
-        continuity["churn_pct"], CONTINUITY_GAP_S))
+    print(
+        "  SENAL PERDIDA: {}% de las aeronaves desaparecio del bbox en {} s.".format(
+            continuity["churn_pct"], CONTINUITY_GAP_S
+        )
+    )
     print("  La API NO distingue entre 'salio del area', 'aterrizo' y 'se perdio la")
     print("  senal': simplemente deja de listarla. Para el dashboard son estados muy")
     print("  distintos. Recomendacion para Sprint 3:")

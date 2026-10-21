@@ -212,6 +212,30 @@ describe('informe de la carga', () => {
   })
 })
 
+describe('las terrestres, fuera del alcance (21/10)', () => {
+  it('tienen su propio motivo y dicen que no hay nada que corregir', () => {
+    render(
+      <InformeCarga
+        carga={carga({
+          por_motivo: { via_fuera_de_alcance: 4 },
+          incidencias: [
+            {
+              clave: '4500017780-10',
+              motivo: 'via_fuera_de_alcance',
+              detalle:
+                'vía terrestre: fuera del alcance de TrackIn, que sigue envíos aéreos y marítimos',
+              consecuencia: 'no_entro',
+            },
+          ],
+        })}
+      />,
+    )
+
+    expect(screen.getAllByText(/Vía fuera del alcance/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/No hay nada que corregir/)).toBeInTheDocument()
+  })
+})
+
 describe('apoyos', () => {
   it('los motivos conocidos se traducen; los otros se leen igual', () => {
     expect(nombreMotivo('sin_via_transporte')).toBe('Sin vía de transporte')

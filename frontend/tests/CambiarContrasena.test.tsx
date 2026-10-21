@@ -115,3 +115,19 @@ describe('cambiar la propia contraseña (US-61)', () => {
     expect(screen.queryByRole('status')).toBeNull()
   })
 })
+
+describe('ver lo que se escribe (21/10)', () => {
+  it('cada uno de los tres campos tiene su ojo, y dice de cuál es', async () => {
+    montar()
+
+    for (const [etiqueta, boton] of [
+      ['Contraseña actual', 'Mostrar contraseña actual'],
+      ['Contraseña nueva', 'Mostrar contraseña nueva'],
+      ['Repita la contraseña nueva', 'Mostrar repetición de la contraseña nueva'],
+    ]) {
+      expect(campo(etiqueta)).toHaveAttribute('type', 'password')
+      await userEvent.click(screen.getByRole('button', { name: boton }))
+      expect(campo(etiqueta)).toHaveAttribute('type', 'text')
+    }
+  })
+})

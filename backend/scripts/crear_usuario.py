@@ -29,8 +29,6 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from sqlalchemy import func, select  # noqa: E402
-
 from app.db.session import AsyncSessionLocal, dispose_engine, engine  # noqa: E402
 from app.models.enums import ROLES  # noqa: E402
 from app.models.usuario import Usuario  # noqa: E402
@@ -55,15 +53,19 @@ async def principal(args: argparse.Namespace) -> int:
         return 1
 
     nombre = args.usuario.strip().lower()
+    correo = args.correo.strip().lower() if args.correo else None
     async with AsyncSessionLocal() as sesion:
-        if await sesion.scalar(select(Usuario).where(func.lower(Usuario.usuario) == nombre)):
-            print(f"Ya existe el usuario {nombre}.", file=sys.stderr)
-            return 1
+        # Se entra con el usuario o con el correo (21/10): ninguno de los dos
+        # puede coincidir con el usuario ni con el correo de otra cuenta.
+        for valor in (v for v in (nombre, correo) if v):
+            if await autenticacion.buscar_cuenta(sesion, valor):
+                print(f"Ya hay una cuenta con el usuario o el correo {valor}.", file=sys.stderr)
+                return 1
         sesion.add(
             Usuario(
                 usuario=nombre,
                 nombre_completo=args.nombre,
-                correo=args.correo.lower() if args.correo else None,
+                correo=correo,
                 rol=args.rol,
                 hash_contrasena=hash_contrasena,
             )

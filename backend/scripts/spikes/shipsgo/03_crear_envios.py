@@ -60,7 +60,16 @@ from _comercial import (  # noqa: E402
     parser_base,
     problema_de_formato,
 )
-from _common import SEP, SPIKES_DIR, header, load_env, mask, require, save_evidence, utc_now  # noqa: E402
+from _common import (
+    SEP,
+    SPIKES_DIR,
+    header,
+    load_env,
+    mask,
+    require,
+    save_evidence,
+    utc_now,
+)  # noqa: E402
 
 BASE = "https://api.shipsgo.com/v2"
 REGISTRO = SPIKES_DIR / "shipsgo" / "output" / "envios_creados.json"
@@ -108,9 +117,15 @@ def guardar_registro(registro: dict[str, Any]) -> None:
 
 def main() -> int:
     parser = parser_base("Spike TASK-28 ShipsGo Fase 3: registrar referencias reales")
-    parser.add_argument("--confirmar", action="store_true", help="Crear los envios (gasta creditos).")
-    parser.add_argument("--solo", action="append", metavar="ALIAS", help="Solo este alias (repetible).")
-    parser.add_argument("--forzar", action="store_true", help="Enviar aunque falle el digito de control.")
+    parser.add_argument(
+        "--confirmar", action="store_true", help="Crear los envios (gasta creditos)."
+    )
+    parser.add_argument(
+        "--solo", action="append", metavar="ALIAS", help="Solo este alias (repetible)."
+    )
+    parser.add_argument(
+        "--forzar", action="store_true", help="Enviar aunque falle el digito de control."
+    )
     args = parser.parse_args()
 
     env = load_env()
@@ -120,7 +135,10 @@ def main() -> int:
     timestamp = header(
         "TrackIn - Spike TASK-28 - ShipsGo - Fase 3: registrar referencias",
         args.network,
-        {"token": mask(token), "modo": "CREAR" if args.confirmar else "solo plan (sin --confirmar)"},
+        {
+            "token": mask(token),
+            "modo": "CREAR" if args.confirmar else "solo plan (sin --confirmar)",
+        },
     )
 
     registro = cargar_registro()
@@ -141,8 +159,16 @@ def main() -> int:
             decision = resultado
         else:
             plan.append((ref, *resultado))
-            decision = "crear en " + resultado[0] + (" (BL enviado como booking)" if ref.tipo == "BL" else "")
-        print("  {:<16} {:<10} {:<11} {:<16} {}".format(ref.alias, ref.via, ref.tipo, ref.enmascarada, decision))
+            decision = (
+                "crear en "
+                + resultado[0]
+                + (" (BL enviado como booking)" if ref.tipo == "BL" else "")
+            )
+        print(
+            "  {:<16} {:<10} {:<11} {:<16} {}".format(
+                ref.alias, ref.via, ref.tipo, ref.enmascarada, decision
+            )
+        )
 
     print()
     print("  Costo maximo: " + str(len(plan)) + " credito(s). La cuenta gratuita trae 3.")
@@ -178,11 +204,17 @@ def main() -> int:
                         "respuesta": cuerpo.get("message"),
                     }
                     guardar_registro(registro)
-                guardar_crudo("shipsgo", "03_" + ref.alias + ".json", {"status": diag.get("status_code"), "cuerpo": cuerpo})
+                guardar_crudo(
+                    "shipsgo",
+                    "03_" + ref.alias + ".json",
+                    {"status": diag.get("status_code"), "cuerpo": cuerpo},
+                )
             elif response is not None:
                 diag["mensaje"] = response.text[:300]
 
-            imprimir_diag(diag, "CREAR - " + ref.alias + " (" + ref.tipo + " " + ref.enmascarada + ")")
+            imprimir_diag(
+                diag, "CREAR - " + ref.alias + " (" + ref.tipo + " " + ref.enmascarada + ")"
+            )
             print("  Mensaje     : " + str(diag.get("mensaje")))
             resultados.append(diag)
 
@@ -196,9 +228,11 @@ def main() -> int:
     for r in resultados:
         costo = (r.get("saldo") or {}).get("X-Shipsgo-Credits-Cost", "?")
         restante = (r.get("saldo") or {}).get("X-Shipsgo-Credits-Remaining", "?")
-        print("  {:<16} HTTP {:<5} {:<20} costo {} / restan {}".format(
-            r["alias"], str(r.get("status_code")), str(r.get("mensaje"))[:20], costo, restante
-        ))
+        print(
+            "  {:<16} HTTP {:<5} {:<20} costo {} / restan {}".format(
+                r["alias"], str(r.get("status_code")), str(r.get("mensaje"))[:20], costo, restante
+            )
+        )
     print()
     print("  Siguiente paso: shipsgo/04_observar.py, hoy y varias veces al dia durante la")
     print("  semana. Un envio recien creado puede tardar horas en traer movimientos.")

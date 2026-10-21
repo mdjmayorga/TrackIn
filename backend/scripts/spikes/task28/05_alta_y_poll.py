@@ -70,8 +70,10 @@ AEREA = {"etiqueta": "Lufthansa Cargo", "awb_number": "02050685434"}
 # Campos que TrackIn necesita, y quien los exige. Se buscan por nombre en
 # cualquier nivel del payload: lo que importa es si el dato viene o no.
 CAMPOS_TRACKIN = {
-    "posicion": (["latitude", "lat", "longitude", "lon", "lng"],
-                 "historial_tracking.posicion / mapa (RF-16)"),
+    "posicion": (
+        ["latitude", "lat", "longitude", "lon", "lng"],
+        "historial_tracking.posicion / mapa (RF-16)",
+    ),
     "velocidad": (["speed", "sog", "speed_over_ground"], "RN-16 y US-08 (ETA estimada)"),
     "rumbo": (["course", "cog", "heading"], "historial_tracking.rumbo"),
     "eta": (["eta", "estimated_arrival", "estimated_time_of_arrival"], "RN-01 fecha proyectada"),
@@ -123,15 +125,19 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="TASK-28 fase 3c: alta y poll")
     parser.add_argument("--network", choices=["personal", "gutis"], required=True)
-    parser.add_argument("--limpiar", action="store_true",
-                        help="borra los embarques creados al terminar")
+    parser.add_argument(
+        "--limpiar", action="store_true", help="borra los embarques creados al terminar"
+    )
     args = parser.parse_args()
 
     env = load_env()
     sg = (env.get("SHIPSGO_API_TOKEN") or env.get("SHIPSGO_SECRET") or "").strip()
     tm = (env.get("TRACKINGMORE_API_KEY") or env.get("TRACKINGMORE_SECRET") or "").strip()
-    h_sg = {"X-Shipsgo-User-Token": sg, "Content-Type": "application/json",
-            "Accept": "application/json"}
+    h_sg = {
+        "X-Shipsgo-User-Token": sg,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
     h_tm = {"Tracking-Api-Key": tm, "Content-Type": "application/json"}
 
     print(SEP)
@@ -140,9 +146,14 @@ def main() -> int:
     print("  Red: " + args.network + "  |  4 altas: 3 maritimas + 1 aerea")
     print("  Referencias validadas en local antes de gastar (fase 3b).")
 
-    evidencia: dict = {"spike": "TASK-28", "fase": "3c-alta-y-poll",
-                       "timestamp_utc": utc_now(), "network_profile": args.network,
-                       "altas": [], "trackingmore": {}}
+    evidencia: dict = {
+        "spike": "TASK-28",
+        "fase": "3c-alta-y-poll",
+        "timestamp_utc": utc_now(),
+        "network_profile": args.network,
+        "altas": [],
+        "trackingmore": {},
+    }
     creados: list[tuple[str, int]] = []
 
     with httpx.Client() as cliente:
@@ -153,26 +164,40 @@ def main() -> int:
         for ref in MARITIMAS:
             cuerpo = {k: v for k, v in ref.items() if k != "etiqueta"}
             r = llamar(cliente, "POST", BASE_SG + "/ocean/shipments", h_sg, cuerpo)
-            envio = ((r.get("json") or {}).get("shipment") or {})
+            envio = (r.get("json") or {}).get("shipment") or {}
             sid = envio.get("id")
             if sid:
                 creados.append(("ocean", sid))
             print("  {:<18} [{}] id={}".format(ref["etiqueta"], r.get("status"), sid))
-            evidencia["altas"].append({"tipo": "ocean", "etiqueta": ref["etiqueta"],
-                                       "peticion": cuerpo, "status": r.get("status"),
-                                       "id": sid, "respuesta": r.get("json")})
+            evidencia["altas"].append(
+                {
+                    "tipo": "ocean",
+                    "etiqueta": ref["etiqueta"],
+                    "peticion": cuerpo,
+                    "status": r.get("status"),
+                    "id": sid,
+                    "respuesta": r.get("json"),
+                }
+            )
 
-        r = llamar(cliente, "POST", BASE_SG + "/air/shipments", h_sg,
-                   {"awb_number": AEREA["awb_number"]})
-        envio = ((r.get("json") or {}).get("shipment") or {})
+        r = llamar(
+            cliente, "POST", BASE_SG + "/air/shipments", h_sg, {"awb_number": AEREA["awb_number"]}
+        )
+        envio = (r.get("json") or {}).get("shipment") or {}
         sid_aereo = envio.get("id")
         if sid_aereo:
             creados.append(("air", sid_aereo))
         print("  {:<18} [{}] id={}".format(AEREA["etiqueta"], r.get("status"), sid_aereo))
-        evidencia["altas"].append({"tipo": "air", "etiqueta": AEREA["etiqueta"],
-                                   "peticion": {"awb_number": AEREA["awb_number"]},
-                                   "status": r.get("status"), "id": sid_aereo,
-                                   "respuesta": r.get("json")})
+        evidencia["altas"].append(
+            {
+                "tipo": "air",
+                "etiqueta": AEREA["etiqueta"],
+                "peticion": {"awb_number": AEREA["awb_number"]},
+                "status": r.get("status"),
+                "id": sid_aereo,
+                "respuesta": r.get("json"),
+            }
+        )
 
         # --- B. Maduracion y poll ----------------------------------------
         print(SUB)
@@ -185,40 +210,75 @@ def main() -> int:
             r = llamar(cliente, "GET", BASE_SG + "/" + tipo + "/shipments/" + str(sid), h_sg)
             payload = r.get("json") or {}
             campos = buscar_campos(payload, {})
-            print("  " + tipo + "/" + str(sid) + "  [" + str(r.get("status")) + "]  campos: "
-                  + (", ".join(sorted(campos)) if campos else "NINGUNO de los de TrackIn"))
+            print(
+                "  "
+                + tipo
+                + "/"
+                + str(sid)
+                + "  ["
+                + str(r.get("status"))
+                + "]  campos: "
+                + (", ".join(sorted(campos)) if campos else "NINGUNO de los de TrackIn")
+            )
             for entrada in evidencia["altas"]:
                 if entrada.get("id") == sid:
-                    entrada["poll"] = {"status": r.get("status"),
-                                       "campos_trackin": campos,
-                                       "payload": payload}
+                    entrada["poll"] = {
+                        "status": r.get("status"),
+                        "campos_trackin": campos,
+                        "payload": payload,
+                    }
 
         # --- C. TrackingMore con el MAWB ---------------------------------
         print(SUB)
         print("  C. TRACKINGMORE CON EL MISMO MAWB")
         print(SUB)
-        det = llamar(cliente, "POST", BASE_TM + "/couriers/detect", h_tm,
-                     {"tracking_number": AEREA["awb_number"]})
+        det = llamar(
+            cliente,
+            "POST",
+            BASE_TM + "/couriers/detect",
+            h_tm,
+            {"tracking_number": AEREA["awb_number"]},
+        )
         propuestos = [c.get("courier_code") for c in ((det.get("json") or {}).get("data") or [])]
         print("  detect propone: " + (", ".join(propuestos[:5]) if propuestos else "nada"))
 
         alta_tm = None
         if propuestos:
-            alta_tm = llamar(cliente, "POST", BASE_TM + "/trackings/create", h_tm,
-                             {"tracking_number": AEREA["awb_number"],
-                              "courier_code": propuestos[0]})
-            print("  create con '" + propuestos[0] + "' -> [" + str(alta_tm.get("status"))
-                  + "] " + json.dumps((alta_tm.get("json") or {}).get("meta") or {})[:160])
+            alta_tm = llamar(
+                cliente,
+                "POST",
+                BASE_TM + "/trackings/create",
+                h_tm,
+                {"tracking_number": AEREA["awb_number"], "courier_code": propuestos[0]},
+            )
+            print(
+                "  create con '"
+                + propuestos[0]
+                + "' -> ["
+                + str(alta_tm.get("status"))
+                + "] "
+                + json.dumps((alta_tm.get("json") or {}).get("meta") or {})[:160]
+            )
             if alta_tm.get("ok"):
                 time.sleep(10)
-                lec = llamar(cliente, "GET", BASE_TM + "/trackings/get?tracking_numbers="
-                             + AEREA["awb_number"], h_tm)
+                lec = llamar(
+                    cliente,
+                    "GET",
+                    BASE_TM + "/trackings/get?tracking_numbers=" + AEREA["awb_number"],
+                    h_tm,
+                )
                 campos = buscar_campos(lec.get("json") or {}, {})
-                print("  poll -> [" + str(lec.get("status")) + "]  campos: "
-                      + (", ".join(sorted(campos)) if campos else "NINGUNO"))
-                evidencia["trackingmore"]["poll"] = {"status": lec.get("status"),
-                                                     "campos_trackin": campos,
-                                                     "payload": lec.get("json")}
+                print(
+                    "  poll -> ["
+                    + str(lec.get("status"))
+                    + "]  campos: "
+                    + (", ".join(sorted(campos)) if campos else "NINGUNO")
+                )
+                evidencia["trackingmore"]["poll"] = {
+                    "status": lec.get("status"),
+                    "campos_trackin": campos,
+                    "payload": lec.get("json"),
+                }
         evidencia["trackingmore"].update({"detect_propuestos": propuestos, "create": alta_tm})
 
         # --- D. Limpieza opcional ----------------------------------------
@@ -237,7 +297,7 @@ def main() -> int:
     print(SEP)
     union: dict[str, str] = {}
     for entrada in evidencia["altas"]:
-        for campo in (entrada.get("poll", {}).get("campos_trackin") or {}):
+        for campo in entrada.get("poll", {}).get("campos_trackin") or {}:
             union[campo] = entrada["etiqueta"]
     for campo, (_, quien) in CAMPOS_TRACKIN.items():
         marca = "SI " if campo in union else "no "

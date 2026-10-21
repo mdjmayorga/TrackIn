@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { useSesion } from '@/auth/useSesion'
+import { EntradaContrasena } from '@/components/EntradaContrasena'
 import { mensajeDeError } from '@/services/api'
 import { iniciarSesion } from '@/services/auth'
 
@@ -25,7 +26,6 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [mostrarAyuda, setMostrarAyuda] = useState(false)
-  const [verContrasena, setVerContrasena] = useState(false)
 
   if (sesion) return <Navigate to={destino} replace />
 
@@ -64,13 +64,15 @@ export default function Login() {
           </p>
         </header>
 
+        {/* Se entra con el nombre de usuario o con el correo de la cuenta (21/10). */}
         <label className="block text-base font-semibold" htmlFor="usuario">
-          Usuario
+          Usuario o correo
         </label>
         <input
           id="usuario"
           autoComplete="username"
           required
+          maxLength={120}
           placeholder="usuario@gutis/gutiscorp.com"
           value={usuario}
           onChange={(e) => setUsuario(e.target.value)}
@@ -80,27 +82,17 @@ export default function Login() {
         <label className="mt-6 block text-base font-semibold" htmlFor="contrasena">
           Contraseña
         </label>
-        <div className="relative mt-2">
-          <input
+        <div className="mt-2">
+          <EntradaContrasena
             id="contrasena"
-            type={verContrasena ? 'text' : 'password'}
             autoComplete="current-password"
             required
             placeholder="Su contraseña"
-            value={contrasena}
-            onChange={(e) => setContrasena(e.target.value)}
-            className="w-full rounded-xl border border-slate-600 bg-slate-800/95 py-4 pl-5 pr-14 text-white placeholder:text-slate-400 focus:border-marca-400 focus:outline-none"
+            valor={contrasena}
+            onCambio={setContrasena}
+            icono="grande"
+            className="w-full rounded-xl border border-slate-600 bg-slate-800/95 py-4 pl-5 text-white placeholder:text-slate-400 focus:border-marca-400 focus:outline-none"
           />
-          <button
-            type="button"
-            onClick={() => setVerContrasena((v) => !v)}
-            aria-label={verContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            aria-pressed={verContrasena}
-            aria-controls="contrasena"
-            className="absolute inset-y-0 right-0 flex w-14 items-center justify-center rounded-r-xl text-slate-300 hover:text-white focus:text-white focus:outline-none"
-          >
-            <IconoOjo tachado={verContrasena} />
-          </button>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
@@ -141,25 +133,5 @@ export default function Login() {
         </button>
       </form>
     </main>
-  )
-}
-
-/** Ojo abierto para «mostrar»; tachado cuando la contraseña ya está a la vista. */
-function IconoOjo({ tachado }: { tachado: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="h-6 w-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
-      <circle cx="12" cy="12" r="3" />
-      {tachado && <path d="M3 3l18 18" />}
-    </svg>
   )
 }

@@ -138,8 +138,15 @@ def cargar_referencias() -> list[Referencia]:
             continue
         if tipo not in TIPOS_POR_VIA[via]:
             print(
-                "  [!] referencias.json: '" + alias + "' tipo " + repr(tipo)
-                + " no aplica a " + via + " (admitidos: " + ", ".join(TIPOS_POR_VIA[via]) + ")"
+                "  [!] referencias.json: '"
+                + alias
+                + "' tipo "
+                + repr(tipo)
+                + " no aplica a "
+                + via
+                + " (admitidos: "
+                + ", ".join(TIPOS_POR_VIA[via])
+                + ")"
             )
             continue
 
@@ -210,7 +217,11 @@ def problema_mawb(numero: str) -> str | None:
     serial = digitos[3:]
     esperado = int(serial[:7]) % 7
     if esperado != int(serial[7]):
-        return "digito de control del serial invalido (esperado " + str(esperado) + "); puede ser un HAWB"
+        return (
+            "digito de control del serial invalido (esperado "
+            + str(esperado)
+            + "); puede ser un HAWB"
+        )
     return None
 
 

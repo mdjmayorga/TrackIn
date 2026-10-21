@@ -185,16 +185,37 @@ def probar_shipsgo(cliente, token: str | None, nombre_var: str) -> dict:
     h_mal = {"X-Shipsgo-User-Token": LLAVE_FALSA, "Accept": "application/json"}
 
     sondas = [
-        sondear(cliente, "GET", base + "/ocean/shipments?limit=1", {"Accept": "application/json"},
-                "0 sin credencial"),
-        sondear(cliente, "GET", base + "/ocean/shipments?limit=1", h_ok,
-                "1 listado oceano (llave buena)"),
-        sondear(cliente, "GET", base + "/air/shipments?limit=1", h_ok,
-                "2 listado aereo (llave buena)"),
-        sondear(cliente, "GET", base + "/ocean/shipments?limit=1", h_mal,
-                "3 listado oceano (llave mala)"),
-        sondear(cliente, "GET", base + "/ocean/shipments?containerNumber=" + CONTENEDOR_INEXISTENTE,
-                h_ok, "4 contenedor inexistente"),
+        sondear(
+            cliente,
+            "GET",
+            base + "/ocean/shipments?limit=1",
+            {"Accept": "application/json"},
+            "0 sin credencial",
+        ),
+        sondear(
+            cliente,
+            "GET",
+            base + "/ocean/shipments?limit=1",
+            h_ok,
+            "1 listado oceano (llave buena)",
+        ),
+        sondear(
+            cliente, "GET", base + "/air/shipments?limit=1", h_ok, "2 listado aereo (llave buena)"
+        ),
+        sondear(
+            cliente,
+            "GET",
+            base + "/ocean/shipments?limit=1",
+            h_mal,
+            "3 listado oceano (llave mala)",
+        ),
+        sondear(
+            cliente,
+            "GET",
+            base + "/ocean/shipments?containerNumber=" + CONTENEDOR_INEXISTENTE,
+            h_ok,
+            "4 contenedor inexistente",
+        ),
     ]
     return {"credencial": nombre_var, "base_url": base, "sondas": sondas}
 
@@ -214,15 +235,23 @@ def probar_trackingmore(cliente, key: str | None, nombre_var: str) -> dict:
     h_mal = {"Tracking-Api-Key": LLAVE_FALSA, "Content-Type": "application/json"}
 
     sondas = [
-        sondear(cliente, "GET", base + "/couriers/all", {"Content-Type": "application/json"},
-                "0 sin credencial"),
+        sondear(
+            cliente,
+            "GET",
+            base + "/couriers/all",
+            {"Content-Type": "application/json"},
+            "0 sin credencial",
+        ),
         # couriers/all es el sondeo barato: valida la llave sin crear nada.
-        sondear(cliente, "GET", base + "/couriers/all", h_ok,
-                "1 listado couriers (llave buena)"),
-        sondear(cliente, "GET", base + "/couriers/all", h_mal,
-                "2 listado couriers (llave mala)"),
-        sondear(cliente, "GET", base + "/trackings/get?tracking_numbers=" + AWB_INEXISTENTE,
-                h_ok, "3 AWB inexistente (lectura)"),
+        sondear(cliente, "GET", base + "/couriers/all", h_ok, "1 listado couriers (llave buena)"),
+        sondear(cliente, "GET", base + "/couriers/all", h_mal, "2 listado couriers (llave mala)"),
+        sondear(
+            cliente,
+            "GET",
+            base + "/trackings/get?tracking_numbers=" + AWB_INEXISTENTE,
+            h_ok,
+            "3 AWB inexistente (lectura)",
+        ),
     ]
     return {"credencial": nombre_var, "base_url": base, "sondas": sondas}
 

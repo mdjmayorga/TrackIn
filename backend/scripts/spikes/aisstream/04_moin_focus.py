@@ -116,8 +116,7 @@ async def capture(api_key: str) -> dict:
     started = time.perf_counter()
     try:
         websocket = await asyncio.wait_for(
-            connect(WS_URL, open_timeout=CONNECT_TIMEOUT_S,
-                    close_timeout=2, ping_interval=None),
+            connect(WS_URL, open_timeout=CONNECT_TIMEOUT_S, close_timeout=2, ping_interval=None),
             timeout=CONNECT_TIMEOUT_S + 5,
         )
     except Exception as exc:  # noqa: BLE001
@@ -126,8 +125,11 @@ async def capture(api_key: str) -> dict:
 
     try:
         await websocket.send(json.dumps(subscription))
-        print("  Suscrito a 2 zonas. Capturando {} s ({:.0f} min)...".format(
-            CAPTURE_SECONDS, CAPTURE_SECONDS / 60))
+        print(
+            "  Suscrito a 2 zonas. Capturando {} s ({:.0f} min)...".format(
+                CAPTURE_SECONDS, CAPTURE_SECONDS / 60
+            )
+        )
 
         deadline = time.perf_counter() + CAPTURE_SECONDS
         last_report = time.perf_counter()
@@ -179,20 +181,25 @@ async def capture(api_key: str) -> dict:
                     if mmsi:
                         stats["pa_ships"].add(mmsi)
 
-                distance_km = (((lat - MOIN_POINT["lat"]) ** 2
-                                + (lon - MOIN_POINT["lon"]) ** 2) ** 0.5) * 111.0
+                distance_km = (
+                    ((lat - MOIN_POINT["lat"]) ** 2 + (lon - MOIN_POINT["lon"]) ** 2) ** 0.5
+                ) * 111.0
                 stats["min_distance_to_moin_km"] = min(
-                    stats["min_distance_to_moin_km"], distance_km)
+                    stats["min_distance_to_moin_km"], distance_km
+                )
 
                 if len(stats["target_samples"]) < 15:
-                    stats["target_samples"].append({
-                        "mmsi": mmsi,
-                        "name": (meta.get("ShipName") or "").strip() or None,
-                        "lat": lat, "lon": lon,
-                        "country": "CR" if lon < CR_PA_BORDER_LON else "PA",
-                        "km_to_moin": round(distance_km),
-                        "type": parsed.get("MessageType"),
-                    })
+                    stats["target_samples"].append(
+                        {
+                            "mmsi": mmsi,
+                            "name": (meta.get("ShipName") or "").strip() or None,
+                            "lat": lat,
+                            "lon": lon,
+                            "country": "CR" if lon < CR_PA_BORDER_LON else "PA",
+                            "km_to_moin": round(distance_km),
+                            "type": parsed.get("MessageType"),
+                        }
+                    )
             elif in_bbox(lat, lon, ZONE_CONTROL["bbox"]):
                 stats["control_messages"] += 1
                 if mmsi:
@@ -202,10 +209,16 @@ async def capture(api_key: str) -> dict:
 
             now = time.perf_counter()
             if now - last_report >= 60:
-                print("    {:>4.0f}s   interes: {:>4} msg / {:>3} buques   "
-                      "control: {:>4} msg / {:>3} buques".format(
-                          now - started, stats["target_messages"], len(stats["target_ships"]),
-                          stats["control_messages"], len(stats["control_ships"])))
+                print(
+                    "    {:>4.0f}s   interes: {:>4} msg / {:>3} buques   "
+                    "control: {:>4} msg / {:>3} buques".format(
+                        now - started,
+                        stats["target_messages"],
+                        len(stats["target_ships"]),
+                        stats["control_messages"],
+                        len(stats["control_ships"]),
+                    )
+                )
                 last_report = now
 
         stats["ok"] = True
@@ -239,10 +252,18 @@ def main() -> int:
 
     if not stats["ok"] and stats.get("error"):
         print("  [FALLO] " + stats["error"])
-        save_evidence("aisstream", "04_moin_" + args.network + ".json", {
-            "spike": "TG-10", "phase": "4-moin-focus", "timestamp_utc": timestamp,
-            "network_profile": args.network, "error": stats["error"], "passed": False,
-        })
+        save_evidence(
+            "aisstream",
+            "04_moin_" + args.network + ".json",
+            {
+                "spike": "TG-10",
+                "phase": "4-moin-focus",
+                "timestamp_utc": timestamp,
+                "network_profile": args.network,
+                "error": stats["error"],
+                "passed": False,
+            },
+        )
         return 1
 
     target_ships = len(stats["target_ships"])
@@ -253,21 +274,36 @@ def main() -> int:
     print(SUB)
     print("  RESULTADO")
     print(SUB)
-    print("  {:<34} {:>6} msg   {:>4} buques".format(
-        "ZONA DE INTERES (Moin/Limon)", stats["target_messages"], target_ships))
-    print("  {:<34} {:>6} msg   {:>4} buques".format(
-        "ZONA DE CONTROL (Cartagena)", stats["control_messages"], control_ships))
+    print(
+        "  {:<34} {:>6} msg   {:>4} buques".format(
+            "ZONA DE INTERES (Moin/Limon)", stats["target_messages"], target_ships
+        )
+    )
+    print(
+        "  {:<34} {:>6} msg   {:>4} buques".format(
+            "ZONA DE CONTROL (Cartagena)", stats["control_messages"], control_ships
+        )
+    )
     print("  {:<34} {:>6} msg".format("Fuera de ambas / sin posicion", stats["other_messages"]))
-    print("  {:<34} {:>6} msg   {:.2f} msg/s".format(
-        "TOTAL", stats["messages"], stats["messages"] / elapsed if elapsed else 0))
+    print(
+        "  {:<34} {:>6} msg   {:.2f} msg/s".format(
+            "TOTAL", stats["messages"], stats["messages"] / elapsed if elapsed else 0
+        )
+    )
 
     if stats["target_samples"]:
         print()
         print("  Buques detectados en la zona de interes:")
         for sample in stats["target_samples"]:
-            print("    MMSI {}  {:<22} {:.3f}, {:.3f}  {}".format(
-                sample["mmsi"], (sample["name"] or "?")[:22],
-                sample["lat"], sample["lon"], sample["type"]))
+            print(
+                "    MMSI {}  {:<22} {:.3f}, {:.3f}  {}".format(
+                    sample["mmsi"],
+                    (sample["name"] or "?")[:22],
+                    sample["lat"],
+                    sample["lon"],
+                    sample["type"],
+                )
+            )
 
     # --- Lectura -----------------------------------------------------------
     print(SEP)
@@ -281,10 +317,16 @@ def main() -> int:
 
     print()
     print("  Desglose de la zona de interes:")
-    print("    Costa Rica (lon < {}): {:>4} msg   {:>3} buques".format(
-        CR_PA_BORDER_LON, stats["cr_messages"], cr_ships))
-    print("    Panama     (lon >= {}): {:>4} msg   {:>3} buques".format(
-        CR_PA_BORDER_LON, stats["pa_messages"], pa_ships))
+    print(
+        "    Costa Rica (lon < {}): {:>4} msg   {:>3} buques".format(
+            CR_PA_BORDER_LON, stats["cr_messages"], cr_ships
+        )
+    )
+    print(
+        "    Panama     (lon >= {}): {:>4} msg   {:>3} buques".format(
+            CR_PA_BORDER_LON, stats["pa_messages"], pa_ships
+        )
+    )
     print("    Buque mas cercano a Puerto Moin: {}".format(nearest_txt))
     print()
 
@@ -294,13 +336,12 @@ def main() -> int:
         print("  pudo fallar la suscripcion o la conexion. Repetir.")
     elif cr_ships == 0:
         verdict = "sin_cobertura_costa_rica_confirmado"
-        print("  CONCLUYENTE: el control detecto {} buques y Costa Rica CERO.".format(
-            control_ships))
+        print(
+            "  CONCLUYENTE: el control detecto {} buques y Costa Rica CERO.".format(control_ships)
+        )
         if pa_ships:
-            print("  Los {} buques de la zona son PANAMENOS (Bocas del Toro), no".format(
-                pa_ships))
-            print("  costarricenses. El buque mas cercano a Moin quedo a {}.".format(
-                nearest_txt))
+            print("  Los {} buques de la zona son PANAMENOS (Bocas del Toro), no".format(pa_ships))
+            print("  costarricenses. El buque mas cercano a Moin quedo a {}.".format(nearest_txt))
         print()
         print("  => NO hay cobertura AIS en la costa caribe de Costa Rica en el plan")
         print("     gratuito. El AIS terrestre es VHF (40-70 km desde costa) y el")
@@ -313,8 +354,11 @@ def main() -> int:
         print("  ultimo tramo. Hay que decidir con Compras si eso alcanza.")
     else:
         verdict = "cobertura_costa_rica_confirmada"
-        print("  Hay cobertura costarricense: {} buques en {:.0f} minutos.".format(
-            cr_ships, elapsed / 60))
+        print(
+            "  Hay cobertura costarricense: {} buques en {:.0f} minutos.".format(
+                cr_ships, elapsed / 60
+            )
+        )
         print("  Buque mas cercano a Moin: {}.".format(nearest_txt))
     print(SEP)
 
@@ -339,9 +383,12 @@ def main() -> int:
         "panama_ships": len(stats["pa_ships"]),
         "nearest_ship_to_moin_km": (
             round(stats["min_distance_to_moin_km"])
-            if stats["min_distance_to_moin_km"] != float("inf") else None),
+            if stats["min_distance_to_moin_km"] != float("inf")
+            else None
+        ),
         "false_positive_note": (
-            "La primera corrida conto buques panamenos de Bocas del Toro como cobertura costarricense. El bbox de interes cruza la frontera; por eso se subdivide por longitud."),
+            "La primera corrida conto buques panamenos de Bocas del Toro como cobertura costarricense. El bbox de interes cruza la frontera; por eso se subdivide por longitud."
+        ),
         "target_message_types": dict(stats["target_types"]),
         "target_samples": stats["target_samples"],
         "control_messages": stats["control_messages"],

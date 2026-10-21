@@ -55,7 +55,9 @@ PAGINA = 100  # maximo que admite el parametro take
 TOPE_ITEMS = 5000  # defensa contra un meta.more que nunca se apague
 
 
-def paginar(client: Any, path: str, clave: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def paginar(
+    client: Any, path: str, clave: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Recorre un listado con skip/take hasta que meta.more sea falso."""
     items: list[dict[str, Any]] = []
     diags: list[dict[str, Any]] = []
@@ -108,7 +110,9 @@ def main() -> int:
         if response is not None and auth["ok"]:
             cuerpo = cuerpo_json(response) or {}
             envios_existentes = len(cuerpo.get("shipments") or [])
-            print("  Envios      : " + str(envios_existentes) + " en la primera pagina de la cuenta")
+            print(
+                "  Envios      : " + str(envios_existentes) + " en la primera pagina de la cuenta"
+            )
         elif response is not None:
             auth["cuerpo"] = response.text[:300]
             print("  Respuesta   : " + response.text[:200])
@@ -116,11 +120,19 @@ def main() -> int:
         # --- Paso 2 y 3: catalogos --------------------------------------------
         navieras, diags_navieras = paginar(client, "/ocean/carriers", "carriers")
         imprimir_diag(diags_navieras[0], "PASO 2 - GET /ocean/carriers (primera pagina)")
-        print("  Navieras    : " + str(len(navieras)) + " en " + str(len(diags_navieras)) + " paginas")
+        print(
+            "  Navieras    : " + str(len(navieras)) + " en " + str(len(diags_navieras)) + " paginas"
+        )
 
         aerolineas, diags_aerolineas = paginar(client, "/air/airlines", "airlines")
         imprimir_diag(diags_aerolineas[0], "PASO 3 - GET /air/airlines (primera pagina)")
-        print("  Aerolineas  : " + str(len(aerolineas)) + " en " + str(len(diags_aerolineas)) + " paginas")
+        print(
+            "  Aerolineas  : "
+            + str(len(aerolineas))
+            + " en "
+            + str(len(diags_aerolineas))
+            + " paginas"
+        )
 
     # --- Paso 4: cobertura ----------------------------------------------------
     cob_navieras = cobertura(
@@ -145,8 +157,11 @@ def main() -> int:
         print("  catalogos respondieron. Revisar arriba las navieras y aerolineas en [NO]")
         print("  ANTES de gastar creditos con referencias de esos transportistas.")
     elif not auth.get("ok"):
-        print("  Fase 1 NO superada: la autenticacion fallo ("
-              + str(auth.get("status_code") or auth.get("error_category")) + ").")
+        print(
+            "  Fase 1 NO superada: la autenticacion fallo ("
+            + str(auth.get("status_code") or auth.get("error_category"))
+            + ")."
+        )
         print("  401/403 apunta al token; un error de red, a la red. Comparar con la otra red.")
     else:
         print("  Fase 1 NO superada: autentico, pero algun catalogo vino vacio.")

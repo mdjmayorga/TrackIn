@@ -116,6 +116,13 @@ ETAPA_INICIAL = "SIN_TRACKING"
 #: resolver desde un archivo sucio.
 RECHAZO_SIN_VIA = "sin_via_transporte"
 RECHAZO_SIN_DESTINO = "sin_destino_resoluble"
+#: La vía terrestre no se rastrea (14/10/2026): compras regionales de Guatemala y
+#: México. Hasta el 21/10 salía como «sin destino», que no explicaba la causa y
+#: parecía algo que corregir en SAP.
+RECHAZO_VIA_FUERA_DE_ALCANCE = "via_fuera_de_alcance"
+VIAS_RASTREADAS = ("AEREO", "MARITIMO")
+#: Las vías como se leen en el informe de la carga.
+_NOMBRE_VIA = {"AEREO": "aéreo", "MARITIMO": "marítimo", "TERRESTRE": "terrestre"}
 #: Cómo empieza el detalle de una línea cuyo destino dio la fuente (`US-52`):
 #: el archivo no lo decía. Se reporta para que Logística lo complete.
 PREFIJO_DESTINO_DE_LA_FUENTE = "según ShipsGo"
@@ -317,15 +324,16 @@ async def resolver_destino(
     if len(candidatos) == 1:
         return candidatos[0], "inferido de la vía"
 
+    # Para quien corrige SAP (21/10): qué puertos podían ser y por qué ninguno.
+    nombres = sorted(d.nombre for d in candidatos)
+    lista = f"{', '.join(nombres[:-1])} ni {nombres[-1]}"
     razon = (
-        f"y el incoterm {incoterm!r} no nombra ninguno"
+        f"el incoterm «{incoterm}» no nombra {lista}"
         if incoterm
-        else "y no hay incoterm que lo nombre"
+        else f"no hay incoterm que nombre {lista}"
     )
-    return (
-        None,
-        f"sin destino y la vía {via} tiene {len(candidatos)} posibles {razon}: no se adivina",
-    )
+    nombre_via = _NOMBRE_VIA.get(via, via.lower()).capitalize()
+    return None, f"{nombre_via} sin puerto de llegada: {razon}, y no se adivina cuál"
 
 
 @dataclass(frozen=True, slots=True)
@@ -390,10 +398,23 @@ async def _resolver(
     # `PENDIENTE` no es una vía, es la ausencia de una.
     via = normalizacion.normalizar_via(crudo.via_transporte)
     if via is None:
+        # El texto lo lee quien corrige SAP: sin `None` ni comillas de Python.
+        escrita = (crudo.via_transporte or "").strip()
         return (
             None,
             RECHAZO_SIN_VIA,
-            f"la vía {crudo.via_transporte!r} no es una vía de transporte",
+            (
+                f"«{escrita}» no es una vía de transporte: se espera Aéreo o Marítimo"
+                if escrita
+                else "la línea no trae vía de transporte"
+            ),
+        )
+    if via not in VIAS_RASTREADAS:
+        return (
+            None,
+            RECHAZO_VIA_FUERA_DE_ALCANCE,
+            f"vía {_NOMBRE_VIA.get(via, via.lower())}: fuera del alcance de TrackIn, "
+            "que sigue envíos aéreos y marítimos",
         )
 
     del_archivo, detalle_archivo = await resolver_destino(
@@ -768,6 +789,7 @@ __all__ = [
     "ETAPA_INICIAL",
     "RECHAZO_SIN_DESTINO",
     "RECHAZO_SIN_VIA",
+    "RECHAZO_VIA_FUERA_DE_ALCANCE",
     "LineaRechazada",
     "ResolutorDestino",
     "ResultadoCarga",

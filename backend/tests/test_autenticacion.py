@@ -435,3 +435,134 @@ async def test_sin_sesion_no_se_cambia(api) -> None:
     )
 
     assert respuesta.status_code == 401
+
+
+# --- Entrar con el usuario o con el correo (21/10/2026) ------------------------------
+
+
+async def _compras(sesion) -> Usuario:
+    cuenta = await _usuario(sesion, "equipo de compras", "COMPRAS")
+    cuenta.correo = "compras@gutis.com"
+    await sesion.flush()
+    return cuenta
+
+
+@pytest.mark.parametrize("identificador", ["equipo de compras", "compras@gutis.com"])
+async def test_se_entra_con_el_usuario_o_con_el_correo(api, sesion, identificador) -> None:
+    await _compras(sesion)
+
+    respuesta = await _login(api, usuario=identificador)
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["usuario"]["usuario"] == "equipo de compras"
+
+
+async def test_el_correo_no_distingue_mayusculas_ni_espacios(api, sesion) -> None:
+    await _compras(sesion)
+
+    assert (await _login(api, usuario="  Compras@Gutis.COM ")).status_code == 200
+
+
+async def test_fallar_con_el_correo_cuenta_para_el_bloqueo_de_esa_cuenta(api, sesion) -> None:
+    cuenta = await _compras(sesion)
+
+    respuesta = await _login(api, usuario="compras@gutis.com", clave="no-es-esta-clave")
+
+    assert respuesta.status_code == 401
+    assert respuesta.json()["detail"] == MENSAJE_CREDENCIALES
+    await sesion.refresh(cuenta)
+    assert cuenta.intentos_fallidos == 1
+
+
+async def test_un_correo_largo_cabe_en_el_login(api, sesion) -> None:
+    """El campo aceptaba 50 caracteres, el largo de un usuario; un correo llega a 120."""
+    cuenta = await _usuario(sesion, "largo")
+    cuenta.correo = "planificacion.y.compras.internacionales@laboratoriosgutis.example.com"
+    await sesion.flush()
+
+    assert (await _login(api, usuario=cuenta.correo)).status_code == 200
+
+
+async def test_el_usuario_de_una_cuenta_no_puede_ser_el_correo_de_otra(api, sesion) -> None:
+    """Si no, «compras@gutis.com» identificaría a dos cuentas en el login."""
+    token = await _admin(api, sesion)
+    await _compras(sesion)
+    nuevo = {"nombre_completo": "Otra", "rol": "LOGISTICA", "contrasena": "otra-clave-larga"}
+
+    usuario_ajeno = await api.post(
+        "/api/v1/usuarios", json={**nuevo, "usuario": "compras@gutis.com"}, headers=_con(token)
+    )
+    correo_ajeno = await api.post(
+        "/api/v1/usuarios",
+        json={**nuevo, "usuario": "otra.cuenta", "correo": "Equipo de Compras"},
+        headers=_con(token),
+    )
+
+    assert usuario_ajeno.status_code == 409
+    assert correo_ajeno.status_code == 409
+
+
+async def test_editar_el_correo_al_usuario_de_otra_cuenta_da_409(api, sesion) -> None:
+    token = await _admin(api, sesion)
+    await _compras(sesion)
+    otra = await _usuario(sesion, "otra.cuenta")
+
+    respuesta = await api.patch(
+        f"/api/v1/usuarios/{otra.id}", json={"correo": "equipo de compras"}, headers=_con(token)
+    )
+
+    assert respuesta.status_code == 409
+
+
+async def test_el_administrador_cambia_el_nombre_de_usuario(api, sesion) -> None:
+    """21/10: «compras@gutis.com» pasa a «equipo de compras», y se entra con los dos."""
+    token = await _admin(api, sesion)
+    cuenta = await _usuario(sesion, "compras.vieja", "COMPRAS")
+    cuenta.correo = "compras@gutis.com"
+    await sesion.flush()
+    sesion_abierta = (await _login(api, usuario="compras.vieja")).json()["token"]
+
+    respuesta = await api.patch(
+        f"/api/v1/usuarios/{cuenta.id}",
+        json={"usuario": " Equipo de Compras "},
+        headers=_con(token),
+    )
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["usuario"] == "equipo de compras"
+    assert (await _login(api, usuario="equipo de compras")).status_code == 200
+    assert (await _login(api, usuario="compras@gutis.com")).status_code == 200
+    assert (await _login(api, usuario="compras.vieja")).status_code == 401
+    # Es la misma cuenta: quien ya estaba dentro sigue dentro.
+    assert (await api.get("/api/v1/auth/yo", headers=_con(sesion_abierta))).status_code == 200
+
+
+@pytest.mark.parametrize(
+    ("nuevo", "esperado"),
+    [("admin.prueba", 409), ("otra@gutis.com", 409), ("ab", 422)],
+)
+async def test_un_nombre_de_usuario_ocupado_o_corto_se_rechaza(
+    api, sesion, nuevo, esperado
+) -> None:
+    token = await _admin(api, sesion)
+    otra = await _usuario(sesion, "otra.cuenta")
+    otra.correo = "otra@gutis.com"
+    cuenta = await _usuario(sesion, "renombrar.prueba")
+    await sesion.flush()
+
+    respuesta = await api.patch(
+        f"/api/v1/usuarios/{cuenta.id}", json={"usuario": nuevo}, headers=_con(token)
+    )
+
+    assert respuesta.status_code == esperado
+
+
+async def test_guardar_el_mismo_nombre_de_usuario_no_es_un_conflicto(api, sesion) -> None:
+    token = await _admin(api, sesion)
+    cuenta = await _usuario(sesion, "sin.cambio")
+
+    respuesta = await api.patch(
+        f"/api/v1/usuarios/{cuenta.id}", json={"usuario": "SIN.CAMBIO"}, headers=_con(token)
+    )
+
+    assert respuesta.status_code == 200

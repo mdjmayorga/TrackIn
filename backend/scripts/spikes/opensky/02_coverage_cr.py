@@ -62,8 +62,7 @@ from _common import (  # noqa: E402
 )
 
 TOKEN_URL = (
-    "https://auth.opensky-network.org/auth/realms/opensky-network"
-    "/protocol/openid-connect/token"
+    "https://auth.opensky-network.org/auth/realms/opensky-network" "/protocol/openid-connect/token"
 )
 STATES_URL = "https://opensky-network.org/api/states/all"
 
@@ -74,7 +73,12 @@ CR_BBOX = {"lamin": 8.0, "lomin": -86.0, "lamax": 11.3, "lomax": -82.5}
 # trafico sin invadir el area del otro aeropuerto.
 AIRPORTS = {
     "MROC": {"name": "Juan Santamaria (SJO)", "lat": 9.9939, "lon": -84.2088, "radius_deg": 0.25},
-    "MRLB": {"name": "Daniel Oduber, Liberia (LIR)", "lat": 10.5933, "lon": -85.5444, "radius_deg": 0.25},
+    "MRLB": {
+        "name": "Daniel Oduber, Liberia (LIR)",
+        "lat": 10.5933,
+        "lon": -85.5444,
+        "radius_deg": 0.25,
+    },
 }
 
 SAMPLES = 5
@@ -85,10 +89,22 @@ TIMEOUT = 20.0
 # La API entrega listas posicionales, no objetos: documentarlo aca evita
 # errores de off-by-one al leer el codigo despues.
 IDX = {
-    "icao24": 0, "callsign": 1, "origin_country": 2, "time_position": 3,
-    "last_contact": 4, "longitude": 5, "latitude": 6, "baro_altitude": 7,
-    "on_ground": 8, "velocity": 9, "true_track": 10, "vertical_rate": 11,
-    "sensors": 12, "geo_altitude": 13, "squawk": 14, "spi": 15,
+    "icao24": 0,
+    "callsign": 1,
+    "origin_country": 2,
+    "time_position": 3,
+    "last_contact": 4,
+    "longitude": 5,
+    "latitude": 6,
+    "baro_altitude": 7,
+    "on_ground": 8,
+    "velocity": 9,
+    "true_track": 10,
+    "vertical_rate": 11,
+    "sensors": 12,
+    "geo_altitude": 13,
+    "squawk": 14,
+    "spi": 15,
     "position_source": 16,
 }
 
@@ -118,7 +134,10 @@ def get_token(client_id: str, client_secret: str) -> str:
 
     if response.status_code != 200:
         sys.exit(
-            "[FATAL] Token HTTP " + str(response.status_code) + ": " + response.text[:200]
+            "[FATAL] Token HTTP "
+            + str(response.status_code)
+            + ": "
+            + response.text[:200]
             + "\n        Correr primero 01_auth_test.py para diagnosticar."
         )
     token = response.json().get("access_token")
@@ -149,19 +168,20 @@ def fetch_sample(token: str, index: int) -> dict:
     sample["credits_remaining"] = int(remaining) if remaining and remaining.isdigit() else None
 
     if response.status_code == 429:
-        sample.update(ok=False, error_category="rate_limited",
-                      error_detail="Cuota diaria agotada")
+        sample.update(ok=False, error_category="rate_limited", error_detail="Cuota diaria agotada")
         return sample
     if response.status_code != 200:
-        sample.update(ok=False, error_category="http_" + str(response.status_code),
-                      error_detail=response.text[:200])
+        sample.update(
+            ok=False,
+            error_category="http_" + str(response.status_code),
+            error_detail=response.text[:200],
+        )
         return sample
 
     try:
         payload = response.json()
     except ValueError:
-        sample.update(ok=False, error_category="invalid_json",
-                      error_detail="200 sin JSON valido")
+        sample.update(ok=False, error_category="invalid_json", error_detail="200 sin JSON valido")
         return sample
 
     sample.update(ok=True, server_time=payload.get("time"), states=payload.get("states") or [])
@@ -181,6 +201,7 @@ def distance_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def classify(state: list, server_time: int | None) -> dict:
     """Extrae y clasifica una aeronave a partir de su array de estado."""
+
     def field(name: str):
         idx = IDX[name]
         return state[idx] if len(state) > idx else None
@@ -244,8 +265,14 @@ def main() -> int:
         {
             "client_id": mask(client_id),
             "bbox": json.dumps(CR_BBOX),
-            "muestras": str(SAMPLES) + " cada " + str(INTERVAL_S) + " s (~"
-                        + str(SAMPLES * INTERVAL_S // 60) + " min, " + str(SAMPLES) + " creditos)",
+            "muestras": str(SAMPLES)
+            + " cada "
+            + str(INTERVAL_S)
+            + " s (~"
+            + str(SAMPLES * INTERVAL_S // 60)
+            + " min, "
+            + str(SAMPLES)
+            + " creditos)",
         },
     )
 
@@ -267,14 +294,20 @@ def main() -> int:
             for entry in aircraft:
                 zones[entry["zone"]] = zones.get(entry["zone"], 0) + 1
             zone_txt = ", ".join(k + "=" + str(v) for k, v in sorted(zones.items()))
-            print("  Muestra {}/{}  [OK]   {:>3} aeronaves   creditos={}   {}".format(
-                i, SAMPLES, len(aircraft), sample.get("credits_remaining"), zone_txt))
+            print(
+                "  Muestra {}/{}  [OK]   {:>3} aeronaves   creditos={}   {}".format(
+                    i, SAMPLES, len(aircraft), sample.get("credits_remaining"), zone_txt
+                )
+            )
             sample["aircraft_count"] = len(aircraft)
             del sample["states"]  # se guardan clasificadas mas abajo
         else:
             aircraft_by_sample.append([])
-            print("  Muestra {}/{}  [FALLO] {} - {}".format(
-                i, SAMPLES, sample.get("error_category"), sample.get("error_detail")))
+            print(
+                "  Muestra {}/{}  [FALLO] {} - {}".format(
+                    i, SAMPLES, sample.get("error_category"), sample.get("error_detail")
+                )
+            )
         samples.append(sample)
 
         if i < SAMPLES:
@@ -285,10 +318,18 @@ def main() -> int:
         print(SEP)
         print("  Fase 2 NO superada: ninguna muestra valida.")
         print(SEP)
-        save_evidence("opensky", "02_coverage_" + args.network + ".json", {
-            "spike": "TG-11", "phase": "2-coverage-cr", "timestamp_utc": timestamp,
-            "network_profile": args.network, "samples": samples, "passed": False,
-        })
+        save_evidence(
+            "opensky",
+            "02_coverage_" + args.network + ".json",
+            {
+                "spike": "TG-11",
+                "phase": "2-coverage-cr",
+                "timestamp_utc": timestamp,
+                "network_profile": args.network,
+                "samples": samples,
+                "passed": False,
+            },
+        )
         return 1
 
     # --- Agregacion --------------------------------------------------------
@@ -318,15 +359,19 @@ def main() -> int:
         "sin_altitud": sum(1 for e in unique.values() if e["altitude_m"] is None),
         "sin_velocidad": sum(1 for e in unique.values() if e["velocity_ms"] is None),
     }
-    staleness_values = [e["staleness_s"] for e in unique.values()
-                        if isinstance(e["staleness_s"], (int, float))]
+    staleness_values = [
+        e["staleness_s"] for e in unique.values() if isinstance(e["staleness_s"], (int, float))
+    ]
 
     print(SUB)
     print("  RESUMEN DE COBERTURA")
     print(SUB)
     print("  Muestras validas      : {}/{}".format(len(valid), SAMPLES))
-    print("  Aeronaves por muestra : min={} max={} media={:.1f}".format(
-        min(counts), max(counts), statistics.mean(counts)))
+    print(
+        "  Aeronaves por muestra : min={} max={} media={:.1f}".format(
+            min(counts), max(counts), statistics.mean(counts)
+        )
+    )
     print("  Aeronaves unicas      : {} (consolidadas por icao24)".format(total_unique))
     print()
     print("  Por zona:")
@@ -349,8 +394,11 @@ def main() -> int:
     print()
     if staleness_values:
         print("  Frescura de la posicion (server_time - last_contact):")
-        print("    min={:.0f}s  mediana={:.0f}s  max={:.0f}s".format(
-            min(staleness_values), statistics.median(staleness_values), max(staleness_values)))
+        print(
+            "    min={:.0f}s  mediana={:.0f}s  max={:.0f}s".format(
+                min(staleness_values), statistics.median(staleness_values), max(staleness_values)
+            )
+        )
     else:
         print("  Frescura: no se pudo calcular (faltan last_contact o server_time)")
 
@@ -389,8 +437,11 @@ def main() -> int:
         "network_profile": args.network,
         "bbox": CR_BBOX,
         "airports": AIRPORTS,
-        "config": {"samples": SAMPLES, "interval_s": INTERVAL_S,
-                   "approach_ceiling_m": APPROACH_CEILING_M},
+        "config": {
+            "samples": SAMPLES,
+            "interval_s": INTERVAL_S,
+            "approach_ceiling_m": APPROACH_CEILING_M,
+        },
         "samples": samples,
         "aircraft_per_sample": counts,
         "unique_aircraft_count": total_unique,

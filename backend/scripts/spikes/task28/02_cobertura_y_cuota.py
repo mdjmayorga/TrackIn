@@ -75,21 +75,34 @@ PAGINA = 25  # fijo en ShipsGo: limit/size/perPage se ignoran
 # la IATA y son los que aparecen en la guia madre.
 AEROLINEAS_OBJETIVO = {
     "tramo largo India": [
-        ("020", "Lufthansa Cargo"), ("098", "Air India"), ("176", "Emirates"),
-        ("157", "Qatar Airways"), ("235", "Turkish Cargo"), ("607", "Etihad"),
+        ("020", "Lufthansa Cargo"),
+        ("098", "Air India"),
+        ("176", "Emirates"),
+        ("157", "Qatar Airways"),
+        ("235", "Turkish Cargo"),
+        ("607", "Etihad"),
     ],
     "tramo largo China": [
-        ("784", "China Southern"), ("112", "China Eastern / China Cargo"),
-        ("999", "Air China"), ("160", "Cathay"), ("297", "China Airlines"),
+        ("784", "China Southern"),
+        ("112", "China Eastern / China Cargo"),
+        ("999", "Air China"),
+        ("160", "Cathay"),
+        ("297", "China Airlines"),
         ("180", "Korean Air"),
     ],
     "tramo Europa": [
-        ("075", "Iberia"), ("057", "KLM (dentro de Air France)"),
-        ("074", "Air France"), ("125", "British Airways / IAG Cargo"),
+        ("075", "Iberia"),
+        ("057", "KLM (dentro de Air France)"),
+        ("074", "Air France"),
+        ("125", "British Airways / IAG Cargo"),
     ],
     "tramo final a SJO": [
-        ("001", "American"), ("016", "United"), ("134", "Avianca"),
-        ("230", "Copa"), ("006", "Delta"), ("045", "LATAM"),
+        ("001", "American"),
+        ("016", "United"),
+        ("134", "Avianca"),
+        ("230", "Copa"),
+        ("006", "Delta"),
+        ("045", "LATAM"),
     ],
 }
 
@@ -158,8 +171,12 @@ def catalogo_shipsgo(cliente, headers: dict, base: str) -> tuple[list[dict], dic
     ultimo_remaining = None
 
     while skip < 5000:
-        reg = pedir(cliente, base + "/air/airlines?skip=" + str(skip), headers,
-                    "GET /air/airlines?skip=" + str(skip))
+        reg = pedir(
+            cliente,
+            base + "/air/airlines?skip=" + str(skip),
+            headers,
+            "GET /air/airlines?skip=" + str(skip),
+        )
         llamadas += 1
         ultimo_remaining = reg.get("ratelimit_remaining") or ultimo_remaining
         if reg.get("status") == 429:
@@ -193,8 +210,14 @@ def cruzar(catalogo: list[dict]) -> dict:
         for prefijo, quien in objetivos:
             hit = por_prefijo.get(prefijo)
             if hit:
-                encontradas.append({"prefijo": prefijo, "buscada": quien,
-                                    "catalogo": hit.get("name"), "iata": hit.get("iata")})
+                encontradas.append(
+                    {
+                        "prefijo": prefijo,
+                        "buscada": quien,
+                        "catalogo": hit.get("name"),
+                        "iata": hit.get("iata"),
+                    }
+                )
             else:
                 faltantes.append({"prefijo": prefijo, "buscada": quien})
         resultado[tramo] = {"encontradas": encontradas, "faltantes": faltantes}
@@ -236,8 +259,13 @@ def main() -> int:
         con_prefijo = sum(1 for a in catalogo if a.get("prefixes"))
         print("  Aerolineas unicas : " + str(len(catalogo)))
         print("  Con prefijo MAWB  : " + str(con_prefijo))
-        print("  Llamadas gastadas : " + str(meta_cat["llamadas"])
-              + "  (remaining " + str(meta_cat["remaining_final"]) + ")")
+        print(
+            "  Llamadas gastadas : "
+            + str(meta_cat["llamadas"])
+            + "  (remaining "
+            + str(meta_cat["remaining_final"])
+            + ")"
+        )
 
         cobertura = cruzar(catalogo)
         print()
@@ -245,11 +273,20 @@ def main() -> int:
         for tramo, res in cobertura.items():
             total_ok += len(res["encontradas"])
             total_falta += len(res["faltantes"])
-            print(f"  {tramo:<22} {len(res['encontradas'])}/"
-                  f"{len(res['encontradas']) + len(res['faltantes'])}")
+            print(
+                f"  {tramo:<22} {len(res['encontradas'])}/"
+                f"{len(res['encontradas']) + len(res['faltantes'])}"
+            )
             for e in res["encontradas"]:
-                print("      + " + e["prefijo"] + "  " + str(e["catalogo"])
-                      + " (" + str(e["iata"]) + ")")
+                print(
+                    "      + "
+                    + e["prefijo"]
+                    + "  "
+                    + str(e["catalogo"])
+                    + " ("
+                    + str(e["iata"])
+                    + ")"
+                )
             for f in res["faltantes"]:
                 print("      - " + f["prefijo"] + "  " + f["buscada"] + "  sin prefijo en catalogo")
 
@@ -286,14 +323,18 @@ def main() -> int:
         for ruta in CANDIDATOS_AIRE_TM:
             reg = pedir(cliente, base_tm + ruta, h_tm, "GET " + ruta)
             real = existe_de_verdad(reg)
-            print(f"  {ruta:<26} [{reg.get('status')}] "
-                  + ("existe" if real else "NO existe (200 vacio o 404)"))
+            print(
+                f"  {ruta:<26} [{reg.get('status')}] "
+                + ("existe" if real else "NO existe (200 vacio o 404)")
+            )
             sondas_aire.append({k: v for k, v in reg.items() if k != "json"} | {"existe": real})
 
         hay_aire_tm = any(s["existe"] for s in sondas_aire) or "air" in tipos
         print()
-        print("  Veredicto: " + ("hay catalogo aereo" if hay_aire_tm else
-                                 "NO hay catalogo de carga aerea accesible"))
+        print(
+            "  Veredicto: "
+            + ("hay catalogo aereo" if hay_aire_tm else "NO hay catalogo de carga aerea accesible")
+        )
         evidencia["trackingmore_aire"] = {
             "couriers_totales": len(data),
             "por_tipo": tipos,
@@ -305,9 +346,13 @@ def main() -> int:
         print(SUB)
         print("  C. CUOTA")
         print(SUB)
-        print("  ShipsGo : limite " + str(catalogo and meta_cat["remaining_final"] and "100")
-              + " por ventana; " + str(meta_cat["llamadas"])
-              + " llamadas seguidas no dispararon ningun 429,")
+        print(
+            "  ShipsGo : limite "
+            + str(catalogo and meta_cat["remaining_final"] and "100")
+            + " por ventana; "
+            + str(meta_cat["llamadas"])
+            + " llamadas seguidas no dispararon ningun 429,"
+        )
         print("            y el contador se reinicio entre corridas -> ventana CORTA.")
         print("            No expone x-ratelimit-reset: la duracion exacta queda abierta.")
 
@@ -315,8 +360,10 @@ def main() -> int:
         for ruta in CANDIDATOS_SALDO_TM:
             reg = pedir(cliente, base_tm + ruta, h_tm, "GET " + ruta)
             real = existe_de_verdad(reg)
-            print(f"  TrackingMore {ruta:<18} [{reg.get('status')}] "
-                  + ("existe" if real else "NO existe (200 vacio o 404)"))
+            print(
+                f"  TrackingMore {ruta:<18} [{reg.get('status')}] "
+                + ("existe" if real else "NO existe (200 vacio o 404)")
+            )
             saldo.append({k: v for k, v in reg.items() if k != "json"} | {"existe": real})
 
         if not any(s["existe"] for s in saldo):
@@ -336,10 +383,17 @@ def main() -> int:
     print(SEP)
     print("  RESULTADO")
     print(SEP)
-    print("  ShipsGo Air  : " + str(total_ok) + "/" + str(total_ok + total_falta)
-          + " prefijos objetivo en catalogo")
-    print("  TrackingMore : " + ("catalogo aereo accesible" if hay_aire_tm
-                                 else "sin catalogo de carga aerea por API"))
+    print(
+        "  ShipsGo Air  : "
+        + str(total_ok)
+        + "/"
+        + str(total_ok + total_falta)
+        + " prefijos objetivo en catalogo"
+    )
+    print(
+        "  TrackingMore : "
+        + ("catalogo aereo accesible" if hay_aire_tm else "sin catalogo de carga aerea por API")
+    )
     print("  La decision 'ShipsGo para todo' vs 'ShipsGo + TrackingMore' se toma")
     print("  al cierre del sprint, con la fase 3 (MAWB real) hecha en las dos.")
     print(SEP)

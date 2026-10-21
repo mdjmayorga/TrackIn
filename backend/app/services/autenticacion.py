@@ -130,6 +130,29 @@ async def _registrar_fallo(sesion_bd: AsyncSession, cuenta: Usuario, ahora: dt.d
 _HASH_SEÑUELO = _HASHER.hash(secrets.token_urlsafe(16))
 
 
+async def buscar_cuenta(sesion_bd: AsyncSession, identificador: str) -> Usuario | None:
+    """La cuenta por su nombre de usuario **o** su correo, sin distinguir mayúsculas.
+
+    Se entra con cualquiera de los dos (pedido del 21/10/2026): «equipo de
+    compras» o «compras@gutis.com». Primero se mira el usuario y después el
+    correo. No hay ambigüedad posible porque la API no deja que el usuario de
+    una cuenta sea el correo de otra (`api/usuarios.py`).
+    """
+    clave = identificador.strip().lower()
+    if not clave:
+        return None
+    por_usuario = await sesion_bd.scalar(
+        select(Usuario).where(func.lower(Usuario.usuario) == clave)
+    )
+    if por_usuario is not None:
+        return por_usuario
+    # Anotado: con la columna nullable, mypy deduce `Any` para el resultado.
+    por_correo: Usuario | None = await sesion_bd.scalar(
+        select(Usuario).where(func.lower(Usuario.correo) == clave)
+    )
+    return por_correo
+
+
 async def iniciar_sesion(
     sesion_bd: AsyncSession,
     usuario: str,
@@ -144,9 +167,7 @@ async def iniciar_sesion(
     cuenta queda bloqueada. El contador vuelve a cero al entrar bien.
     """
     ahora = instante or dt.datetime.now(dt.UTC)
-    cuenta = await sesion_bd.scalar(
-        select(Usuario).where(func.lower(Usuario.usuario) == usuario.strip().lower())
-    )
+    cuenta = await buscar_cuenta(sesion_bd, usuario)
     if cuenta is None:
         _verificar(_HASH_SEÑUELO, contrasena)
         raise CredencialesInvalidas()
@@ -319,6 +340,7 @@ __all__ = [
     "CuentaBloqueada",
     "SesionAbierta",
     "SesionInvalida",
+    "buscar_cuenta",
     "cambiar_contrasena",
     "cerrar_sesion",
     "cerrar_sesiones_de",

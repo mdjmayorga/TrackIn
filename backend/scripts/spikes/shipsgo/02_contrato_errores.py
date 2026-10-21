@@ -134,8 +134,12 @@ def main() -> int:
                 # Un caso que no deberia crear nada y devuelve un envio es la
                 # alarma de esta fase: queda registrado para borrarlo a mano.
                 if isinstance(cuerpo, dict) and cuerpo.get("shipment"):
-                    creados.append({"caso": caso["nombre"], "shipment_id": cuerpo["shipment"].get("id")})
-            imprimir_diag(diag, "CASO - " + caso["nombre"] + "  (esperado: " + caso["esperado"] + ")")
+                    creados.append(
+                        {"caso": caso["nombre"], "shipment_id": cuerpo["shipment"].get("id")}
+                    )
+            imprimir_diag(
+                diag, "CASO - " + caso["nombre"] + "  (esperado: " + caso["esperado"] + ")"
+            )
             if "mensaje" in diag:
                 print("  Mensaje     : " + str(diag["mensaje"])[:200])
             resultados.append(diag)
@@ -145,14 +149,24 @@ def main() -> int:
     print(SEP)
     print("  LECTURA")
     print(SEP)
-    print("  Saldo antes  : " + (str(saldo_antes) if saldo_antes else "la API no lo expone en lecturas"))
-    print("  Saldo despues: " + (str(saldo_despues) if saldo_despues else "la API no lo expone en lecturas"))
+    print(
+        "  Saldo antes  : "
+        + (str(saldo_antes) if saldo_antes else "la API no lo expone en lecturas")
+    )
+    print(
+        "  Saldo despues: "
+        + (str(saldo_despues) if saldo_despues else "la API no lo expone en lecturas")
+    )
     print()
     print("  {:<40} {:<8} {}".format("Caso", "HTTP", "Mensaje"))
     for r in resultados:
-        print("  {:<40} {:<8} {}".format(
-            r["caso"], str(r.get("status_code", r.get("error_category"))), str(r.get("mensaje", ""))[:40]
-        ))
+        print(
+            "  {:<40} {:<8} {}".format(
+                r["caso"],
+                str(r.get("status_code", r.get("error_category"))),
+                str(r.get("mensaje", ""))[:40],
+            )
+        )
     print()
     if creados:
         print("  [!!] ALGUN CASO CREO UN ENVIO. Revisar y borrarlo en el panel de ShipsGo:")

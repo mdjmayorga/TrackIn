@@ -185,6 +185,30 @@ describe('Usuarios (US-62)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Ya existe el usuario planif.')
   })
 
+  it('cambia el nombre de usuario, en minúsculas', async () => {
+    vi.mocked(actualizarUsuario).mockResolvedValue(cuenta({ usuario: 'equipo de compras' }))
+    montar()
+
+    await userEvent.click((await fila('compras@gutis.com')).getByRole('button', { name: 'Editar' }))
+    const campo = screen.getByLabelText(/^Usuario/)
+    await userEvent.clear(campo)
+    await userEvent.type(campo, 'Equipo de Compras')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    expect(actualizarUsuario).toHaveBeenCalledWith(2, { usuario: 'equipo de compras' })
+  })
+
+  it('un nombre de usuario de menos de 3 caracteres no se puede guardar', async () => {
+    montar()
+
+    await userEvent.click((await fila('compras@gutis.com')).getByRole('button', { name: 'Editar' }))
+    const campo = screen.getByLabelText(/^Usuario/)
+    await userEvent.clear(campo)
+    await userEvent.type(campo, 'ab')
+
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled()
+  })
+
   it('editar manda solo lo que cambió', async () => {
     vi.mocked(actualizarUsuario).mockResolvedValue(cuenta({ rol: 'LOGISTICA' }))
     montar()
@@ -245,5 +269,31 @@ describe('Usuarios (US-62)', () => {
     await userEvent.click(enviar[enviar.length - 1])
 
     expect(reiniciarContrasena).toHaveBeenCalledWith(2, 'clave-nueva-larga')
+  })
+})
+
+describe('ver la contraseña en «Usuarios» (21/10)', () => {
+  it('al reiniciarla, los dos campos tienen su ojo', async () => {
+    montar()
+
+    await userEvent.click(
+      (await fila('compras@gutis.com')).getByRole('button', { name: 'Reiniciar contraseña' }),
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña nueva' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Mostrar repetición de la contraseña nueva' }),
+    )
+
+    expect(screen.getByLabelText(/^Contraseña nueva/)).toHaveAttribute('type', 'text')
+    expect(screen.getByLabelText(/^Repita la contraseña nueva/)).toHaveAttribute('type', 'text')
+  })
+
+  it('al crear la cuenta, la contraseña inicial también', async () => {
+    montar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Crear cuenta' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña inicial' }))
+
+    expect(screen.getByLabelText(/^Contraseña inicial/)).toHaveAttribute('type', 'text')
   })
 })

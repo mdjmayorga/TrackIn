@@ -150,7 +150,10 @@ def describe_http_error(exc: Exception) -> tuple[str, str]:
     if isinstance(exc, httpx.ConnectError):
         detail = str(exc).lower()
         if "name" in detail or "resolve" in detail or "getaddrinfo" in detail:
-            return "dns_error", "No se pudo resolver el hostname (posible DNS corporativo bloqueando)"
+            return (
+                "dns_error",
+                "No se pudo resolver el hostname (posible DNS corporativo bloqueando)",
+            )
         return "connect_error", "No se pudo establecer la conexion TCP/TLS"
     if isinstance(exc, httpx.ProxyError):
         return "proxy_error", "Fallo el proxy configurado en el sistema"

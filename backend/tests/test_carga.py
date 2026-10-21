@@ -26,6 +26,7 @@ from app.services.ingesta.carga import (
     RECHAZO_REFERENCIA_INVALIDA,
     RECHAZO_SIN_DESTINO,
     RECHAZO_SIN_VIA,
+    RECHAZO_VIA_FUERA_DE_ALCANCE,
     LineaRechazada,
     ResultadoCarga,
     cargar,
@@ -285,7 +286,23 @@ class TestCargarPedido:
 
         assert pedido is None
         assert estado == RECHAZO_SIN_VIA
-        assert "no es una vía de transporte" in detalle
+        assert detalle == "«PENDIENTE» no es una vía de transporte: se espera Aéreo o Marítimo"
+
+    async def test_sin_via_escrita_lo_dice_sin_mostrar_none(self, sesion) -> None:
+        """21/10: el informe decía «la vía None no es una vía de transporte»."""
+        pedido, estado, detalle = await cargar_pedido(sesion, _crudo(via_transporte=None))
+
+        assert pedido is None
+        assert estado == RECHAZO_SIN_VIA
+        assert detalle == "la línea no trae vía de transporte"
+
+    async def test_la_via_terrestre_se_rechaza_por_estar_fuera_del_alcance(self, sesion) -> None:
+        """21/10: antes salía «sin destino», como si hubiera que corregir algo en SAP."""
+        pedido, estado, detalle = await cargar_pedido(sesion, _crudo(via_transporte="Terrestre"))
+
+        assert pedido is None
+        assert estado == RECHAZO_VIA_FUERA_DE_ALCANCE
+        assert detalle.startswith("vía terrestre: fuera del alcance de TrackIn")
 
     async def test_sin_destino_resoluble_se_rechaza_con_motivo(self, sesion) -> None:
         """Marítimo sin nada que desambigüe el puerto: se rechaza, no se elige.
@@ -360,7 +377,7 @@ class TestCargarLote:
         resultado = await cargar(sesion, FuenteSemilla())
 
         motivos = {(r.oc_numero, r.motivo) for r in resultado.rechazadas}
-        assert ("4500019110", RECHAZO_SIN_DESTINO) in motivos  # terrestre, sin puerto
+        assert ("4500019110", RECHAZO_VIA_FUERA_DE_ALCANCE) in motivos  # terrestre
         assert ("4500019233", RECHAZO_SIN_VIA) in motivos  # vía `PENDIENTE`
         assert all(r.detalle for r in resultado.rechazadas)
 

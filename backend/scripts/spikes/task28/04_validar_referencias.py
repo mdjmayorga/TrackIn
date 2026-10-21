@@ -76,7 +76,7 @@ def digito_iso6346(codigo: str) -> int:
     total = 0
     for i, ch in enumerate(codigo[:10]):
         valor = VALOR_LETRA[ch] if ch.isalpha() else int(ch)
-        total += valor * (2 ** i)
+        total += valor * (2**i)
     return total % 11 % 10
 
 
@@ -118,8 +118,13 @@ def clasificar(ref: str, aerolineas: dict[str, dict], con_contenedor: bool = Fal
         if res["valido"]:
             res["notas"].append("ISO 6346 correcto (digito de control " + str(real) + ")")
         else:
-            res["notas"].append("digito de control " + str(real) + ", deberia ser "
-                                + str(esperado) + " - error de transcripcion")
+            res["notas"].append(
+                "digito de control "
+                + str(real)
+                + ", deberia ser "
+                + str(esperado)
+                + " - error de transcripcion"
+            )
         return res
 
     if RE_SOLO_DIGITOS.match(ref):
@@ -127,9 +132,11 @@ def clasificar(ref: str, aerolineas: dict[str, dict], con_contenedor: bool = Fal
             # Venia junto a un contenedor: es el booking de la naviera, no una guia.
             res["tipo"] = "BOOKING"
             res["valido"] = True
-            res["notas"].append("serie de " + str(len(ref)) + " digitos emparejada con un "
-                                "contenedor: es el booking maritimo. No lleva digito de "
-                                "control verificable en local")
+            res["notas"].append(
+                "serie de " + str(len(ref)) + " digitos emparejada con un "
+                "contenedor: es el booking maritimo. No lleva digito de "
+                "control verificable en local"
+            )
             return res
 
         # Un MAWB son 11 digitos. Con 10, hay dos hipotesis que probar.
@@ -144,11 +151,20 @@ def clasificar(ref: str, aerolineas: dict[str, dict], con_contenedor: bool = Fal
                 res["aerolinea"] = aerolinea.get("name")
                 res["iata"] = aerolinea.get("iata")
                 if cand != ref:
-                    res["notas"].append("se restauro un cero a la izquierda que Excel "
-                                        "se habia comido: " + ref + " -> " + cand)
+                    res["notas"].append(
+                        "se restauro un cero a la izquierda que Excel "
+                        "se habia comido: " + ref + " -> " + cand
+                    )
                     res["referencia_corregida"] = cand
-                res["notas"].append("prefijo " + prefijo + " = " + str(aerolinea.get("name"))
-                                    + "; digito de control " + str(control) + " correcto")
+                res["notas"].append(
+                    "prefijo "
+                    + prefijo
+                    + " = "
+                    + str(aerolinea.get("name"))
+                    + "; digito de control "
+                    + str(control)
+                    + " correcto"
+                )
                 return res
 
         # No cuadra como MAWB. Decir QUE se probo y por que fallo cada cosa:
@@ -160,33 +176,59 @@ def clasificar(ref: str, aerolineas: dict[str, dict], con_contenedor: bool = Fal
             cero = ref.zfill(11)
             duenno = aerolineas.get(cero[:3])
             if duenno:
-                res["notas"].append("probado con un cero delante (" + cero + "): prefijo "
-                                    + cero[:3] + " = " + str(duenno.get("name")) + ", pero el "
-                                    "digito de control seria " + str(digito_mawb(cero[3:10]))
-                                    + " y trae " + cero[10])
+                res["notas"].append(
+                    "probado con un cero delante ("
+                    + cero
+                    + "): prefijo "
+                    + cero[:3]
+                    + " = "
+                    + str(duenno.get("name"))
+                    + ", pero el "
+                    "digito de control seria "
+                    + str(digito_mawb(cero[3:10]))
+                    + " y trae "
+                    + cero[10]
+                )
             else:
-                res["notas"].append("probado con un cero delante (" + cero + "): el prefijo "
-                                    + cero[:3] + " no esta en el catalogo")
+                res["notas"].append(
+                    "probado con un cero delante ("
+                    + cero
+                    + "): el prefijo "
+                    + cero[:3]
+                    + " no esta en el catalogo"
+                )
             falta = aerolineas.get(ref[:3])
             if falta:
-                res["notas"].append("probado como MAWB sin su digito de control: prefijo "
-                                    + ref[:3] + " = " + str(falta.get("name"))
-                                    + ", quedaria " + ref + str(digito_mawb(ref[3:10])))
+                res["notas"].append(
+                    "probado como MAWB sin su digito de control: prefijo "
+                    + ref[:3]
+                    + " = "
+                    + str(falta.get("name"))
+                    + ", quedaria "
+                    + ref
+                    + str(digito_mawb(ref[3:10]))
+                )
             else:
-                res["notas"].append("probado como MAWB sin su digito de control: el prefijo "
-                                    + ref[:3] + " tampoco esta en el catalogo")
+                res["notas"].append(
+                    "probado como MAWB sin su digito de control: el prefijo "
+                    + ref[:3]
+                    + " tampoco esta en el catalogo"
+                )
 
         if len(ref) == 11:
             if ref[:3] not in aerolineas:
                 res["notas"].append("el prefijo " + ref[:3] + " no esta en el catalogo")
             else:
                 serie, control = ref[3:10], int(ref[10])
-                res["notas"].append("el prefijo " + ref[:3] + " si existe, pero el digito de "
-                                    "control es " + str(control) + " y deberia ser "
-                                    + str(digito_mawb(serie)))
+                res["notas"].append(
+                    "el prefijo " + ref[:3] + " si existe, pero el digito de "
+                    "control es " + str(control) + " y deberia ser " + str(digito_mawb(serie))
+                )
 
-        res["notas"].append("ninguna hipotesis cuadra: es un HAWB del agente de carga. "
-                            "Pedirle el MAWB o la correspondencia HAWB/MAWB (TASK-30)")
+        res["notas"].append(
+            "ninguna hipotesis cuadra: es un HAWB del agente de carga. "
+            "Pedirle el MAWB o la correspondencia HAWB/MAWB (TASK-30)"
+        )
         return res
 
     m = RE_BL_SCAC.match(ref)
@@ -194,14 +236,18 @@ def clasificar(ref: str, aerolineas: dict[str, dict], con_contenedor: bool = Fal
         res["tipo"] = "BL_O_BOOKING"
         res["scac"] = m.group(1)
         res["valido"] = True
-        res["notas"].append("cuatro letras de naviera (" + m.group(1) + ") mas serie; "
-                            "no lleva digito de control verificable en local")
+        res["notas"].append(
+            "cuatro letras de naviera (" + m.group(1) + ") mas serie; "
+            "no lleva digito de control verificable en local"
+        )
         return res
 
     res["tipo"] = "BOOKING"
     res["valido"] = True
-    res["notas"].append("serie numerica sin prefijo de naviera: booking. No hay nada "
-                        "que validar en local; lo confirma el proveedor")
+    res["notas"].append(
+        "serie numerica sin prefijo de naviera: booking. No hay nada "
+        "que validar en local; lo confirma el proveedor"
+    )
     return res
 
 
@@ -230,9 +276,14 @@ def main() -> int:
     print(SEP)
     print(" TrackIn - TASK-28 Fase 3b: validacion local de referencias")
     print(SEP)
-    print("  Catalogo de aerolineas: "
-          + (str(len(aerolineas)) + " prefijos" if aerolineas
-             else "NO disponible - correr antes la fase 2"))
+    print(
+        "  Catalogo de aerolineas: "
+        + (
+            str(len(aerolineas)) + " prefijos"
+            if aerolineas
+            else "NO disponible - correr antes la fase 2"
+        )
+    )
     print("  Referencias a validar : " + str(len(sueltas)))
     print(SUB)
 
@@ -257,14 +308,18 @@ def main() -> int:
     print("  Para revision             : " + str(len(revisar)))
     print(SEP)
 
-    save_evidence("task28", "04_referencias.json", {
-        "spike": "TASK-28",
-        "fase": "3b-validacion-local",
-        "sin_llamadas_externas": True,
-        "prefijos_en_catalogo": len(aerolineas),
-        "resultados": resultados,
-        "generado": utc_now(),
-    })
+    save_evidence(
+        "task28",
+        "04_referencias.json",
+        {
+            "spike": "TASK-28",
+            "fase": "3b-validacion-local",
+            "sin_llamadas_externas": True,
+            "prefijos_en_catalogo": len(aerolineas),
+            "resultados": resultados,
+            "generado": utc_now(),
+        },
+    )
     return 0
 
 

@@ -1773,6 +1773,42 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 >
 > Backend: 1 311 pruebas. Frontend: 235.
 >
+> **21/10: se entra con el nombre de usuario o con el correo.** «equipo de compras» o
+> «compras@gutis.com», sin distinguir mayúsculas. El login busca primero por usuario y
+> después por correo (`autenticacion.buscar_cuenta`); un fallo con el correo cuenta para el
+> bloqueo de esa cuenta, y el mensaje de error sigue siendo el mismo falle lo que falle.
+>
+> - **Para que un texto no identifique a dos cuentas**, el usuario de una ya no puede ser el
+>   correo de otra, ni al revés: la API responde 409 al crear y al editar, y
+>   `scripts/crear_usuario.py` lo rechaza también. En `trackin_dev` no había ningún choque.
+> - **El campo del login acepta 120 caracteres**, el largo de un correo; antes eran 50, el de
+>   un usuario. Su rótulo pasa a «Usuario o correo».
+>
+> Backend: 1 318 pruebas. Frontend: 235.
+>
+> **21/10: el Administrador puede cambiar el nombre de usuario** desde «Editar» en
+> «Usuarios» (`PATCH /usuarios/{id}` con `usuario`). Se guarda en minúsculas, con al menos 3
+> caracteres, y no puede ser el usuario ni el correo de otra cuenta. Las sesiones abiertas
+> siguen, porque es la misma cuenta. La bitácora muestra el nombre nuevo también en las
+> intervenciones anteriores: registra la cuenta por su id, no por el texto. Sirve para
+> pasar la cuenta de Compras de `compras@gutis.com` a «equipo de compras» y entrar con
+> cualquiera de los dos. Backend: 1 323 pruebas. Frontend: 237.
+>
+> **21/10: mensajes del informe de carga**, revisados con la recarga del WK38:
+>
+> - **Vía terrestre:** motivo propio, «Vía fuera del alcance», con «No hay nada que
+>   corregir». Antes salía como «sin destino», que parecía algo que arreglar en SAP. Es un
+>   criterio de `US-59` que se adelantó. En el WK38: 9 líneas.
+> - **Sin vía:** «la línea no trae vía de transporte» o ««N/A» no es una vía de transporte:
+>   se espera Aéreo o Marítimo». Antes decía «la vía None no es una vía de transporte».
+> - **Marítimo sin puerto:** «Marítimo sin puerto de llegada: el incoterm «EXW» no nombra
+>   Moín, Puerto Caldera ni Puerto Limón, y no se adivina cuál». La sugerencia de la pantalla
+>   pide el BL o el puerto en el incoterm, y avisa que con EXW, FCA o FOB el incoterm nombra el
+>   origen y no el destino.
+>
+> Cambian los textos, no lo que entra: el WK38 sigue rechazando 373 líneas (273 sin vía, 91
+> marítimas sin puerto, 9 terrestres). Backend: 1 325 pruebas. Frontend: 243.
+>
 > **En espera de la reunión con Ventas (14/10):**
 >
 > - **Frecuencia de carga del Z-tracking y quién la sube** — para el aviso de «hace falta
@@ -3568,7 +3604,7 @@ exactamente qué dato está mal antes de que un pedido entre con información eq
   - **Referencia de embarque**: el formato de su tipo (`TASK-30`)
 - Dado un campo con formato inválido, cuando se carga, entonces la línea **no entra** y el informe dice la OC y posición (u hoja y fila), **qué campo**, **qué valor traía** y **qué se esperaba**; el resto del lote sigue (RN-17)
 - Dado un archivo cuyos encabezados no coinciden con la plantilla, cuando se carga, entonces se rechaza entero con la lista de columnas que faltan o sobran, sin tocar ningún pedido
-- Dada una línea con vía **Terrestre**, cuando se carga, entonces no entra y el informe dice «vía terrestre: fuera del alcance de TrackIn», en lugar del «sin destino» que da hoy y que no explica la causa (decisión del 14/10)
+- ✅ ~~Dada una línea con vía **Terrestre**, cuando se carga, entonces no entra y el informe dice «vía terrestre: fuera del alcance de TrackIn», en lugar del «sin destino» que da hoy y que no explica la causa (decisión del 14/10)~~ — **hecho el 21/10**, adelantado: motivo propio `via_fuera_de_alcance`
 
 | | |
 |---|---|

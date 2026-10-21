@@ -51,8 +51,7 @@ OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 
 # Tipos que llevan la informacion que TrackIn necesita para ligar nave y carga.
 STATIC_TYPES = {"ShipStaticData", "StaticDataReport"}
-POSITION_TYPES = {"PositionReport", "StandardClassBPositionReport",
-                  "ExtendedClassBPositionReport"}
+POSITION_TYPES = {"PositionReport", "StandardClassBPositionReport", "ExtendedClassBPositionReport"}
 
 # Celdas de 2 grados para el mapa de calor de cobertura.
 GRID_DEG = 2.0
@@ -196,9 +195,11 @@ def main() -> int:
         "UnknownMessage": "no decodificado por AISStream",
     }
     for msg_type, count in types.most_common():
-        print("  {:<32} {:>6} ({:>5.1f}%)  {}".format(
-            msg_type, count, 100.0 * count / total,
-            usefulness.get(msg_type, "")))
+        print(
+            "  {:<32} {:>6} ({:>5.1f}%)  {}".format(
+                msg_type, count, 100.0 * count / total, usefulness.get(msg_type, "")
+            )
+        )
 
     # --- Identificacion nave-carga ----------------------------------------
     with_imo = [s for s in ship_info.values() if s.get("imo")]
@@ -210,12 +211,19 @@ def main() -> int:
     print(SUB)
     print("  IDENTIFICACION NAVE <-> CARGA  (sobre {} buques)".format(unique_ships))
     print(SUB)
-    for label, subset in (("con MMSI", ship_info), ("con nombre", with_name),
-                          ("con IMO", with_imo), ("con destino", with_dest),
-                          ("con ETA", with_eta)):
+    for label, subset in (
+        ("con MMSI", ship_info),
+        ("con nombre", with_name),
+        ("con IMO", with_imo),
+        ("con destino", with_dest),
+        ("con ETA", with_eta),
+    ):
         count = len(subset)
-        print("  {:<16} {:>4} / {:<4} ({:>5.1f}%)".format(
-            label, count, unique_ships, 100.0 * count / unique_ships if unique_ships else 0))
+        print(
+            "  {:<16} {:>4} / {:<4} ({:>5.1f}%)".format(
+                label, count, unique_ships, 100.0 * count / unique_ships if unique_ships else 0
+            )
+        )
 
     if with_dest:
         print()
@@ -225,10 +233,13 @@ def main() -> int:
             eta_txt = ""
             if isinstance(eta, dict):
                 eta_txt = "  ETA {}-{} {}:{:02d}".format(
-                    eta.get("Month"), eta.get("Day"), eta.get("Hour"), eta.get("Minute") or 0)
-            print("    MMSI {}  {:<22} -> {:<20}{}".format(
-                ship["mmsi"], (ship.get("name") or "?")[:22],
-                ship["destination"][:20], eta_txt))
+                    eta.get("Month"), eta.get("Day"), eta.get("Hour"), eta.get("Minute") or 0
+                )
+            print(
+                "    MMSI {}  {:<22} -> {:<20}{}".format(
+                    ship["mmsi"], (ship.get("name") or "?")[:22], ship["destination"][:20], eta_txt
+                )
+            )
 
     # --- Frecuencia por buque ---------------------------------------------
     intervals: list[float] = []
@@ -238,7 +249,8 @@ def main() -> int:
         if len(stamps) >= 2:
             ordered = sorted(stamps)
             intervals.extend(
-                (b - a).total_seconds() for a, b in zip(ordered, ordered[1:])
+                (b - a).total_seconds()
+                for a, b in zip(ordered, ordered[1:])
                 if (b - a).total_seconds() > 0
             )
 
@@ -246,15 +258,24 @@ def main() -> int:
     print(SUB)
     print("  FRECUENCIA POR EMBARCACION")
     print(SUB)
-    print("  Buques con 1 solo mensaje : {} / {}".format(
-        sum(1 for c in repeat_counts if c == 1), unique_ships))
+    print(
+        "  Buques con 1 solo mensaje : {} / {}".format(
+            sum(1 for c in repeat_counts if c == 1), unique_ships
+        )
+    )
     print("  Buques con 2 o mas        : {}".format(sum(1 for c in repeat_counts if c > 1)))
-    print("  Mensajes por buque        : media {:.1f}, max {}".format(
-        statistics.mean(repeat_counts) if repeat_counts else 0,
-        max(repeat_counts) if repeat_counts else 0))
+    print(
+        "  Mensajes por buque        : media {:.1f}, max {}".format(
+            statistics.mean(repeat_counts) if repeat_counts else 0,
+            max(repeat_counts) if repeat_counts else 0,
+        )
+    )
     if intervals:
-        print("  Intervalo entre mensajes  : mediana {:.0f}s  min {:.0f}s  max {:.0f}s".format(
-            statistics.median(intervals), min(intervals), max(intervals)))
+        print(
+            "  Intervalo entre mensajes  : mediana {:.0f}s  min {:.0f}s  max {:.0f}s".format(
+                statistics.median(intervals), min(intervals), max(intervals)
+            )
+        )
     else:
         print("  Intervalo entre mensajes  : no calculable (casi ningun buque repitio)")
 
@@ -271,44 +292,63 @@ def main() -> int:
     print()
     print("  {:<18} {:>8} {:>8}".format("celda (lat,lon)", "msgs", "buques"))
     for (clat, clon), count in top_cells:
-        print("  {:<18} {:>8} {:>8}".format(
-            "{:+.0f}, {:+.0f}".format(clat, clon), count, len(grid_ships[(clat, clon)])))
+        print(
+            "  {:<18} {:>8} {:>8}".format(
+                "{:+.0f}, {:+.0f}".format(clat, clon), count, len(grid_ships[(clat, clon)])
+            )
+        )
 
     print()
     print(SEP)
     print("  LECTURA")
     print(SEP)
 
-    single_ratio = (sum(1 for c in repeat_counts if c == 1) / unique_ships * 100
-                    if unique_ships else 0)
+    single_ratio = (
+        sum(1 for c in repeat_counts if c == 1) / unique_ships * 100 if unique_ships else 0
+    )
 
     if single_ratio > 70 and concentration < 70:
         anomaly = "muestreo_del_plan"
-        print("  El {:.0f}% de los buques aparece UNA sola vez y los mensajes estan".format(
-            single_ratio))
+        print(
+            "  El {:.0f}% de los buques aparece UNA sola vez y los mensajes estan".format(
+                single_ratio
+            )
+        )
         print("  repartidos entre {} celdas sin concentrarse en la costa.".format(occupied))
         print("  => Apunta a que el plan gratuito de AISStream ENTREGA UNA MUESTRA")
         print("     del flujo, no el stream completo. Hay que confirmarlo con el")
         print("     soporte o la documentacion del plan antes de dimensionar Sprint 3.")
     elif concentration >= 70:
         anomaly = "cobertura_costera"
-        print("  Los mensajes se concentran en pocas celdas ({:.0f}% en 8 celdas).".format(
-            concentration))
+        print(
+            "  Los mensajes se concentran en pocas celdas ({:.0f}% en 8 celdas).".format(
+                concentration
+            )
+        )
         print("  => Apunta a COBERTURA de receptores, no a limitacion del plan: el AIS")
         print("     terrestre es VHF y solo alcanza 40-70 km desde la costa. En mar")
         print("     abierto hace falta AIS satelital, que el plan gratuito no cubre.")
     else:
         anomaly = "indeterminado"
-        print("  Los indicadores no son concluyentes: {:.0f}% de buques con un solo".format(
-            single_ratio))
-        print("  mensaje y {:.0f}% de concentracion. Repetir con captura mas larga.".format(
-            concentration))
+        print(
+            "  Los indicadores no son concluyentes: {:.0f}% de buques con un solo".format(
+                single_ratio
+            )
+        )
+        print(
+            "  mensaje y {:.0f}% de concentracion. Repetir con captura mas larga.".format(
+                concentration
+            )
+        )
 
     print()
     print("  PARA TrackIn:")
     print("    - Los datos de carga (IMO, destino, ETA) SOLO viajan en ShipStaticData,")
-    print("      que representa el {:.0f}% de los mensajes. Hay que persistirlos aparte".format(
-        100.0 * types.get("ShipStaticData", 0) / total))
+    print(
+        "      que representa el {:.0f}% de los mensajes. Hay que persistirlos aparte".format(
+            100.0 * types.get("ShipStaticData", 0) / total
+        )
+    )
     print("      y no esperarlos en cada posicion.")
     print("    - El campo Destination es TEXTO LIBRE escrito por la tripulacion:")
     print("      no se puede parsear como codigo de puerto sin normalizar.")

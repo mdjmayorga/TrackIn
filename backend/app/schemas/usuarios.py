@@ -11,7 +11,12 @@ Rol = Literal["COMPRAS", "LOGISTICA", "PLANIFICACION", "ADMINISTRADOR", "PLANTA"
 
 
 class Credenciales(BaseModel):
-    usuario: str = Field(min_length=1, max_length=50)
+    usuario: str = Field(
+        min_length=1,
+        # Hasta el largo de un correo: se entra con el usuario o con el correo (21/10).
+        max_length=120,
+        description="El nombre de usuario o el correo de la cuenta.",
+    )
     contrasena: str = Field(min_length=1, max_length=200)
     recordar: bool = Field(
         default=False, description="«Recordar sesión»: no cierra por inactividad."
@@ -73,6 +78,15 @@ class UsuarioNuevo(BaseModel):
 
 
 class UsuarioCambios(BaseModel):
+    usuario: str | None = Field(
+        default=None,
+        min_length=3,
+        max_length=50,
+        description=(
+            "Nombre de inicio de sesión nuevo (21/10). Las sesiones abiertas siguen; la "
+            "bitácora muestra el nombre nuevo, porque registra la cuenta y no el texto."
+        ),
+    )
     nombre_completo: str | None = Field(default=None, min_length=1, max_length=120)
     correo: str | None = Field(default=None, max_length=120)
     rol: Rol | None = None

@@ -95,14 +95,18 @@ def main() -> int:
     # paqueteria con algo de carga, o si tiene navieras y aerolineas de verdad.
     tipos = Counter(str(c.get("courier_type") or c.get("type") or "-") for c in couriers)
     print()
-    print("  Tipos en el catalogo: " + ", ".join(t + "=" + str(n) for t, n in tipos.most_common(10)))
+    print(
+        "  Tipos en el catalogo: " + ", ".join(t + "=" + str(n) for t, n in tipos.most_common(10))
+    )
 
     cob_navieras = cobertura(
         couriers, NAVIERAS_OBJETIVO, lambda c: {str(c.get("courier_code") or "").upper()}
     )
     imprimir_cobertura(cob_navieras, "PASO 3a - Navieras objetivo en el catalogo")
     cob_aerolineas = cobertura(couriers, AEROLINEAS_OBJETIVO, lambda _c: set())
-    imprimir_cobertura(cob_aerolineas, "PASO 3b - Aerolineas objetivo (no concluyente, ver docstring)")
+    imprimir_cobertura(
+        cob_aerolineas, "PASO 3b - Aerolineas objetivo (no concluyente, ver docstring)"
+    )
 
     passed = bool(auth.get("ok")) and bool(couriers)
     print(SEP)
@@ -112,8 +116,12 @@ def main() -> int:
         print("  Fase 1 SUPERADA desde red " + args.network + ": la clave sirve y el catalogo")
         print("  respondio. Las navieras en [NO] no se pueden rastrear por contenedor aqui.")
     else:
-        print("  Fase 1 NO superada: " + str(auth.get("status_code") or auth.get("error_category"))
-              + " / meta " + str(meta))
+        print(
+            "  Fase 1 NO superada: "
+            + str(auth.get("status_code") or auth.get("error_category"))
+            + " / meta "
+            + str(meta)
+        )
     print(SEP)
 
     evidencia = {

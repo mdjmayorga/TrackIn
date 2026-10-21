@@ -59,7 +59,7 @@ WS_URL = "wss://stream.aisstream.io/v0/stream"
 ACTIVE_BBOX = [[[9.0, -78.0], [12.5, -73.0]]]
 
 CONNECT_TIMEOUT_S = 15
-PROBE_WAIT_S = 25       # espera de datos en pruebas de error
+PROBE_WAIT_S = 25  # espera de datos en pruebas de error
 RECONNECT_CYCLES = 3
 WATCHDOG_SECONDS = 120  # ventana para medir gaps entre mensajes
 
@@ -69,8 +69,7 @@ async def open_ws():
     from websockets.asyncio.client import connect
 
     return await asyncio.wait_for(
-        connect(WS_URL, open_timeout=CONNECT_TIMEOUT_S,
-                close_timeout=2, ping_interval=None),
+        connect(WS_URL, open_timeout=CONNECT_TIMEOUT_S, close_timeout=2, ping_interval=None),
         timeout=CONNECT_TIMEOUT_S + 5,
     )
 
@@ -90,8 +89,13 @@ async def probe_subscription(subscription: dict, label: str, wait_s: int) -> dic
     Distingue tres desenlaces: error explicito, cierre de la conexion, o
     silencio. Para el modulo real son casos muy distintos.
     """
-    result: dict = {"label": label, "messages": 0, "server_error": None,
-                    "closed_by_server": False, "waited_s": wait_s}
+    result: dict = {
+        "label": label,
+        "messages": 0,
+        "server_error": None,
+        "closed_by_server": False,
+        "waited_s": wait_s,
+    }
     websocket = None
     try:
         websocket = await open_ws()
@@ -166,8 +170,7 @@ async def probe_concurrent(api_key: str) -> dict:
                     break
             return total
 
-        counts = await asyncio.gather(count(first, 25), count(second, 25),
-                                      return_exceptions=True)
+        counts = await asyncio.gather(count(first, 25), count(second, 25), return_exceptions=True)
         result["messages_conn_1"] = counts[0] if isinstance(counts[0], int) else 0
         result["messages_conn_2"] = counts[1] if isinstance(counts[1], int) else 0
         result["both_received"] = result["messages_conn_1"] > 0 and result["messages_conn_2"] > 0
@@ -207,9 +210,14 @@ async def probe_reconnect(api_key: str, cycles: int) -> dict:
         finally:
             if websocket is not None:
                 abort(websocket)
-        print("    ciclo {}: conexion {} ms, primer dato {} ms  {}".format(
-            cycle, entry.get("connect_ms", "-"), entry.get("first_message_ms", "-"),
-            "OK" if entry.get("ok") else "FALLO"))
+        print(
+            "    ciclo {}: conexion {} ms, primer dato {} ms  {}".format(
+                cycle,
+                entry.get("connect_ms", "-"),
+                entry.get("first_message_ms", "-"),
+                "OK" if entry.get("ok") else "FALLO",
+            )
+        )
         attempts.append(entry)
         await asyncio.sleep(2)
     return {"attempts": attempts}
@@ -269,9 +277,11 @@ def main() -> int:
     print(SUB)
     print("  A. API KEY INVALIDA")
     print(SUB)
-    results["a_invalid_key"] = asyncio.run(probe_subscription(
-        {"APIKey": "0" * 40, "BoundingBoxes": ACTIVE_BBOX},
-        "api_key_invalida", PROBE_WAIT_S))
+    results["a_invalid_key"] = asyncio.run(
+        probe_subscription(
+            {"APIKey": "0" * 40, "BoundingBoxes": ACTIVE_BBOX}, "api_key_invalida", PROBE_WAIT_S
+        )
+    )
     print("  Desenlace: {}".format(results["a_invalid_key"]["outcome"]))
     if results["a_invalid_key"].get("server_error"):
         print("  El servidor dijo: {}".format(results["a_invalid_key"]["server_error"]))
@@ -281,9 +291,13 @@ def main() -> int:
     print(SUB)
     print("  B. SUSCRIPCION MALFORMADA")
     print(SUB)
-    results["b_malformed"] = asyncio.run(probe_subscription(
-        {"APIKey": api_key, "BoundingBoxes": "esto-no-es-un-bbox"},
-        "suscripcion_malformada", PROBE_WAIT_S))
+    results["b_malformed"] = asyncio.run(
+        probe_subscription(
+            {"APIKey": api_key, "BoundingBoxes": "esto-no-es-un-bbox"},
+            "suscripcion_malformada",
+            PROBE_WAIT_S,
+        )
+    )
     print("  Desenlace: {}".format(results["b_malformed"]["outcome"]))
     if results["b_malformed"].get("server_error"):
         print("  El servidor dijo: {}".format(results["b_malformed"]["server_error"]))
@@ -296,10 +310,14 @@ def main() -> int:
     results["c_concurrent"] = asyncio.run(probe_concurrent(api_key))
     concurrent = results["c_concurrent"]
     if concurrent.get("both_opened"):
-        print("  Conexion 1: {} mensajes   Conexion 2: {} mensajes".format(
-            concurrent.get("messages_conn_1"), concurrent.get("messages_conn_2")))
-        print("  Ambas recibieron datos: {}".format(
-            "SI" if concurrent.get("both_received") else "NO"))
+        print(
+            "  Conexion 1: {} mensajes   Conexion 2: {} mensajes".format(
+                concurrent.get("messages_conn_1"), concurrent.get("messages_conn_2")
+            )
+        )
+        print(
+            "  Ambas recibieron datos: {}".format("SI" if concurrent.get("both_received") else "NO")
+        )
     else:
         print("  No se pudieron abrir las dos: {}".format(concurrent.get("error")))
 
@@ -314,9 +332,14 @@ def main() -> int:
     results["e_watchdog"] = asyncio.run(probe_watchdog(api_key, WATCHDOG_SECONDS))
     watchdog = results["e_watchdog"]
     if watchdog.get("messages"):
-        print("  {} mensajes   mediana {} s   p95 {} s   maximo {} s".format(
-            watchdog["messages"], watchdog.get("median_gap_s"),
-            watchdog.get("p95_gap_s"), watchdog.get("max_gap_s")))
+        print(
+            "  {} mensajes   mediana {} s   p95 {} s   maximo {} s".format(
+                watchdog["messages"],
+                watchdog.get("median_gap_s"),
+                watchdog.get("p95_gap_s"),
+                watchdog.get("max_gap_s"),
+            )
+        )
     else:
         print("  Sin mensajes: {}".format(watchdog.get("error", "silencio")))
 
@@ -332,19 +355,25 @@ def main() -> int:
         print("     arranque: si no llega nada en los primeros N segundos tras conectar,")
         print("     tratarlo como fallo de credencial y alertar, no reintentar en bucle.")
     else:
-        print("  1. Una API key invalida produce: {}. Se puede detectar y alertar".format(
-            key_outcome))
+        print(
+            "  1. Una API key invalida produce: {}. Se puede detectar y alertar".format(key_outcome)
+        )
         print("     sin ambiguedad, en vez de reintentar indefinidamente.")
 
     reconnects = results["d_reconnect"]["attempts"]
     successful = [a for a in reconnects if a.get("ok")]
     if successful:
-        avg_recovery = statistics.mean(
-            a["connect_ms"] + a["first_message_ms"] for a in successful)
-        print("  2. La reconexion es fiable: {}/{} ciclos con datos, recuperacion media".format(
-            len(successful), len(reconnects)))
-        print("     de {:.0f} ms. Backoff exponencial arrancando en 1 s, techo 60 s.".format(
-            avg_recovery))
+        avg_recovery = statistics.mean(a["connect_ms"] + a["first_message_ms"] for a in successful)
+        print(
+            "  2. La reconexion es fiable: {}/{} ciclos con datos, recuperacion media".format(
+                len(successful), len(reconnects)
+            )
+        )
+        print(
+            "     de {:.0f} ms. Backoff exponencial arrancando en 1 s, techo 60 s.".format(
+                avg_recovery
+            )
+        )
     else:
         print("  2. Ningun ciclo de reconexion recupero datos: revisar antes de disenar.")
 
@@ -352,8 +381,11 @@ def main() -> int:
     if max_gap:
         suggested = max(30, round(max_gap * 3))
         print("  3. Watchdog de socket zombi: el gap maximo real fue {} s.".format(max_gap))
-        print("     Umbral sugerido {} s sin mensajes = conexion muerta -> reconectar.".format(
-            suggested))
+        print(
+            "     Umbral sugerido {} s sin mensajes = conexion muerta -> reconectar.".format(
+                suggested
+            )
+        )
         print("     Un umbral menor daria falsos positivos en zonas de poco trafico.")
     else:
         print("  3. No se pudo medir el gap entre mensajes: no fijar watchdog a ciegas.")

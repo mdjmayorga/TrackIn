@@ -14,6 +14,7 @@ import { useMutation } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { EntradaContrasena } from '@/components/EntradaContrasena'
 import { mensajeDeError } from '@/services/api'
 import { cambiarContrasena } from '@/services/auth'
 
@@ -87,6 +88,7 @@ export default function CambiarContrasena() {
           <Campo
             id="actual"
             etiqueta="Contraseña actual"
+            nombre="contraseña actual"
             valor={actual}
             onCambio={setActual}
             autocompletar="current-password"
@@ -94,6 +96,7 @@ export default function CambiarContrasena() {
           <Campo
             id="nueva"
             etiqueta="Contraseña nueva"
+            nombre="contraseña nueva"
             ayuda={`Al menos ${LONGITUD_MINIMA} caracteres.`}
             valor={nueva}
             onCambio={setNueva}
@@ -102,6 +105,7 @@ export default function CambiarContrasena() {
           <Campo
             id="repetida"
             etiqueta="Repita la contraseña nueva"
+            nombre="repetición de la contraseña nueva"
             valor={repetida}
             onCambio={setRepetida}
             autocompletar="new-password"
@@ -134,27 +138,31 @@ export default function CambiarContrasena() {
 interface CampoProps {
   id: string
   etiqueta: string
+  /** Lo que nombra el botón del ojo: «Mostrar contraseña nueva». */
+  nombre: string
   ayuda?: string
   valor: string
   onCambio: (valor: string) => void
   autocompletar: 'current-password' | 'new-password'
 }
 
-function Campo({ id, etiqueta, ayuda, valor, onCambio, autocompletar }: CampoProps) {
+function Campo({ id, etiqueta, nombre, ayuda, valor, onCambio, autocompletar }: CampoProps) {
   return (
     <div>
       <label htmlFor={id} className="block text-sm text-slate-300">
         {etiqueta}
       </label>
-      <input
-        id={id}
-        type="password"
-        autoComplete={autocompletar}
-        value={valor}
-        maxLength={200}
-        onChange={(e) => onCambio(e.target.value)}
-        className="mt-1 w-full rounded bg-panel-cabecera px-3 py-2 text-white"
-      />
+      <div className="mt-1">
+        <EntradaContrasena
+          id={id}
+          nombre={nombre}
+          autoComplete={autocompletar}
+          valor={valor}
+          maxLength={200}
+          onCambio={onCambio}
+          className="w-full rounded bg-panel-cabecera px-3 py-2 text-white"
+        />
+      </div>
       {ayuda && <p className="mt-1 text-xs text-slate-500">{ayuda}</p>}
     </div>
   )

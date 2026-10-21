@@ -61,8 +61,7 @@ from _common import (  # noqa: E402
 )
 
 TOKEN_URL = (
-    "https://auth.opensky-network.org/auth/realms/opensky-network"
-    "/protocol/openid-connect/token"
+    "https://auth.opensky-network.org/auth/realms/opensky-network" "/protocol/openid-connect/token"
 )
 STATES_URL = "https://opensky-network.org/api/states/all"
 
@@ -124,31 +123,45 @@ def fetch_token(client_id: str, client_secret: str) -> tuple[str | None, dict]:
     diag.update(status_code=response.status_code, elapsed_ms=elapsed_ms)
 
     if response.status_code == 401:
-        diag.update(ok=False, error_category="unauthorized",
-                    error_detail="client_id o client_secret invalidos")
+        diag.update(
+            ok=False,
+            error_category="unauthorized",
+            error_detail="client_id o client_secret invalidos",
+        )
         return None, diag
     if response.status_code == 400:
-        diag.update(ok=False, error_category="bad_request",
-                    error_detail="Peticion mal formada o grant_type no habilitado: "
-                                 + response.text[:200])
+        diag.update(
+            ok=False,
+            error_category="bad_request",
+            error_detail="Peticion mal formada o grant_type no habilitado: " + response.text[:200],
+        )
         return None, diag
     if response.status_code != 200:
-        diag.update(ok=False, error_category="http_" + str(response.status_code),
-                    error_detail=response.text[:200])
+        diag.update(
+            ok=False,
+            error_category="http_" + str(response.status_code),
+            error_detail=response.text[:200],
+        )
         return None, diag
 
     try:
         payload = response.json()
     except ValueError:
-        diag.update(ok=False, error_category="invalid_json",
-                    error_detail="La respuesta 200 no era JSON. "
-                                 "Sintoma tipico de portal cautivo o proxy corporativo.")
+        diag.update(
+            ok=False,
+            error_category="invalid_json",
+            error_detail="La respuesta 200 no era JSON. "
+            "Sintoma tipico de portal cautivo o proxy corporativo.",
+        )
         return None, diag
 
     token = payload.get("access_token")
     if not token:
-        diag.update(ok=False, error_category="no_token",
-                    error_detail="JSON sin access_token: " + str(list(payload.keys())))
+        diag.update(
+            ok=False,
+            error_category="no_token",
+            error_detail="JSON sin access_token: " + str(list(payload.keys())),
+        )
         return None, diag
 
     diag.update(
@@ -193,33 +206,49 @@ def call_states(token: str | None, label: str) -> dict:
     # Headers de cuota: los nombres varian segun despliegue, capturamos todo
     # lo que suene a limite para no perder el dato en Fase 5.
     quota_headers = {
-        k: v for k, v in response.headers.items()
+        k: v
+        for k, v in response.headers.items()
         if "rate" in k.lower() or "limit" in k.lower() or "remaining" in k.lower()
     }
     diag["quota_headers"] = quota_headers
 
     if response.status_code == 401:
-        diag.update(ok=False, error_category="unauthorized",
-                    error_detail="Token rechazado por la API de estados")
+        diag.update(
+            ok=False,
+            error_category="unauthorized",
+            error_detail="Token rechazado por la API de estados",
+        )
         return diag
     if response.status_code == 403:
-        diag.update(ok=False, error_category="forbidden",
-                    error_detail="Cuenta sin permiso para esta consulta")
+        diag.update(
+            ok=False,
+            error_category="forbidden",
+            error_detail="Cuenta sin permiso para esta consulta",
+        )
         return diag
     if response.status_code == 429:
-        diag.update(ok=False, error_category="rate_limited",
-                    error_detail="Cuota agotada: " + response.text[:200])
+        diag.update(
+            ok=False,
+            error_category="rate_limited",
+            error_detail="Cuota agotada: " + response.text[:200],
+        )
         return diag
     if response.status_code != 200:
-        diag.update(ok=False, error_category="http_" + str(response.status_code),
-                    error_detail=response.text[:200])
+        diag.update(
+            ok=False,
+            error_category="http_" + str(response.status_code),
+            error_detail=response.text[:200],
+        )
         return diag
 
     try:
         payload = response.json()
     except ValueError:
-        diag.update(ok=False, error_category="invalid_json",
-                    error_detail="200 sin JSON valido. Posible proxy interceptando.")
+        diag.update(
+            ok=False,
+            error_category="invalid_json",
+            error_detail="200 sin JSON valido. Posible proxy interceptando.",
+        )
         return diag
 
     states = payload.get("states") or []
@@ -230,7 +259,8 @@ def call_states(token: str | None, label: str) -> dict:
         server_time=server_time,
         server_time_utc=(
             datetime.fromtimestamp(server_time, tz=timezone.utc).isoformat(timespec="seconds")
-            if isinstance(server_time, (int, float)) else None
+            if isinstance(server_time, (int, float))
+            else None
         ),
         response_bytes=len(response.content),
     )
@@ -270,29 +300,51 @@ def main() -> int:
     if token:
         print("  Tipo        : " + str(token_diag.get("token_type")))
         print("  expires_in  : " + str(token_diag.get("expires_in_s")) + " s")
-        print("  Token       : " + str(token_diag.get("token_masked"))
-              + "  (" + str(token_diag.get("token_length")) + " chars)")
+        print(
+            "  Token       : "
+            + str(token_diag.get("token_masked"))
+            + "  ("
+            + str(token_diag.get("token_length"))
+            + " chars)"
+        )
         claims = decode_jwt_claims(token)
         if "error" not in claims:
             iat, exp = claims.get("iat"), claims.get("exp")
             if isinstance(iat, int) and isinstance(exp, int):
                 ttl_info = {
-                    "iat_utc": datetime.fromtimestamp(iat, tz=timezone.utc).isoformat(timespec="seconds"),
-                    "exp_utc": datetime.fromtimestamp(exp, tz=timezone.utc).isoformat(timespec="seconds"),
+                    "iat_utc": datetime.fromtimestamp(iat, tz=timezone.utc).isoformat(
+                        timespec="seconds"
+                    ),
+                    "exp_utc": datetime.fromtimestamp(exp, tz=timezone.utc).isoformat(
+                        timespec="seconds"
+                    ),
                     "ttl_seconds": exp - iat,
                     "ttl_minutes": round((exp - iat) / 60, 1),
                 }
-                print("  TTL real    : " + str(ttl_info["ttl_minutes"]) + " min"
-                      + "  (expira " + ttl_info["exp_utc"] + ")")
+                print(
+                    "  TTL real    : "
+                    + str(ttl_info["ttl_minutes"])
+                    + " min"
+                    + "  (expira "
+                    + ttl_info["exp_utc"]
+                    + ")"
+                )
             print("  Cliente     : " + str(claims.get("azp") or claims.get("clientId") or "-"))
         else:
             print("  [!] " + str(claims["error"]))
 
     # --- Paso 2: llamada autenticada --------------------------------------
-    auth_call = call_states(token, "autenticada") if token else {
-        "label": "autenticada", "ok": False, "skipped": True,
-        "error_category": "sin_token", "error_detail": "No se obtuvo token en el paso 1",
-    }
+    auth_call = (
+        call_states(token, "autenticada")
+        if token
+        else {
+            "label": "autenticada",
+            "ok": False,
+            "skipped": True,
+            "error_category": "sin_token",
+            "error_detail": "No se obtuvo token en el paso 1",
+        }
+    )
     if not auth_call.get("skipped"):
         print_result(auth_call, "PASO 2 - GET /states/all sobre Costa Rica (autenticada)")
         if auth_call.get("ok"):
@@ -319,8 +371,9 @@ def main() -> int:
     passed = bool(token) and bool(auth_call.get("ok"))
 
     if passed:
-        print("  Fase 1 SUPERADA: OAuth2 autentica y la API responde desde red "
-              + args.network + ".")
+        print(
+            "  Fase 1 SUPERADA: OAuth2 autentica y la API responde desde red " + args.network + "."
+        )
         count = auth_call.get("aircraft_count", 0)
         if count == 0:
             print("  [!] 0 aeronaves en el bbox de Costa Rica en este instante.")
@@ -349,9 +402,11 @@ def main() -> int:
         "token_request": token_diag,
         # `azp` y `clientId` son el client ID de OpenSky: se enmascaran igual
         # que el token, porque esta salida se versiona (`US-17`, 29/09/2026).
-        "jwt_claims": {k: (mask(str(v)) if k in ("azp", "clientId") else v)
-                       for k, v in claims.items()
-                       if k in ("iat", "exp", "azp", "clientId", "scope", "typ")},
+        "jwt_claims": {
+            k: (mask(str(v)) if k in ("azp", "clientId") else v)
+            for k, v in claims.items()
+            if k in ("iat", "exp", "azp", "clientId", "scope", "typ")
+        },
         "token_ttl": ttl_info,
         "authenticated_call": auth_call,
         "anonymous_call": anon_call,

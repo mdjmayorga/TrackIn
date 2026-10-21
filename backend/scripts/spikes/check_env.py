@@ -62,8 +62,19 @@ SEP = "=" * 72
 SUB = "-" * 72
 
 PLACEHOLDERS = {
-    "changeme", "change_me", "your_key_here", "your_api_key", "tu_api_key",
-    "xxx", "xxxx", "todo", "tbd", "replace_me", "<your_key>", "none", "null",
+    "changeme",
+    "change_me",
+    "your_key_here",
+    "your_api_key",
+    "tu_api_key",
+    "xxx",
+    "xxxx",
+    "todo",
+    "tbd",
+    "replace_me",
+    "<your_key>",
+    "none",
+    "null",
 }
 
 REQUIRED_PACKAGES = ["httpx", "websockets", "dotenv"]
@@ -81,8 +92,9 @@ def shape(value: str) -> str:
 
     if "@" in value:
         return "parece un correo"
-    if re.fullmatch(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
-                    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", value):
+    if re.fullmatch(
+        r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-" r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", value
+    ):
         return "UUID"
     if re.fullmatch(r"[0-9a-fA-F]+", value):
         return "hexadecimal"
@@ -152,7 +164,9 @@ def diagnose(name: str, raw_value: str | None) -> dict:
 
     for quote in ('"', "'"):
         if len(value) >= 2 and value.startswith(quote) and value.endswith(quote):
-            issues.append("esta envuelto en comillas " + quote + " (dotenv las quita, pero revisalo)")
+            issues.append(
+                "esta envuelto en comillas " + quote + " (dotenv las quita, pero revisalo)"
+            )
             value = value[1:-1]
 
     if not value:
@@ -194,7 +208,14 @@ def print_var(diag: dict, expected_len: int | None = None) -> None:
     print("  {:<26} {:<10} {:<16} {}".format(diag["name"], status, masked, length))
     pad = " " * 26 + " " * 11
     if expected_len and diag["present"] and diag["length"] != expected_len:
-        print("  " + pad + "-> longitud esperada ~" + str(expected_len) + ", hay " + str(diag["length"]))
+        print(
+            "  "
+            + pad
+            + "-> longitud esperada ~"
+            + str(expected_len)
+            + ", hay "
+            + str(diag["length"])
+        )
     for issue in diag["issues"]:
         print("  " + pad + "-> " + issue)
 
@@ -271,7 +292,9 @@ def main() -> int:
     if not ais["present"]:
         blocking.append("Falta AISSTREAM_API_KEY: TG-10 no puede arrancar.")
     elif any("placeholder" in i for i in ais["issues"]):
-        blocking.append("AISSTREAM_API_KEY es un placeholder sin reemplazar: TG-10 no puede arrancar.")
+        blocking.append(
+            "AISSTREAM_API_KEY es un placeholder sin reemplazar: TG-10 no puede arrancar."
+        )
     elif ais["issues"]:
         warnings.append("AISSTREAM_API_KEY tiene problemas de formato (ver detalle arriba).")
 
@@ -340,7 +363,11 @@ def main() -> int:
                 )
         else:
             warnings.append(
-                proveedor + ": sin credencial (" + canonico + " ni " + alterno
+                proveedor
+                + ": sin credencial ("
+                + canonico
+                + " ni "
+                + alterno
                 + "). TASK-28 no puede pasar de la fase 0."
             )
         task28[proveedor] = {"variable_usada": usado, **strip_name(diag)}
