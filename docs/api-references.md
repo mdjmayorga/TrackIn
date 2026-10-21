@@ -1092,6 +1092,42 @@ Lo medido: el contador se reinició entre dos corridas separadas por minutos, y
 más de 200 llamadas seguidas nunca dispararon un `429`. **La ventana es corta**
 —del orden del minuto— pero la duración exacta queda abierta.
 
+### ShipsGo Embed — el mapa en vivo, en el detalle del pedido (21/10/2026)
+
+**Qué es.** Una actualización de ShipsGo habilita, con la compra de créditos, un
+mapa en vivo embebible en una aplicación propia. La cuenta de Gutis ya lo tiene
+con los 50 créditos del 23/09. TrackIn lo usa en la **especificación del pedido**
+(el detalle), desde el 21/10/2026, verificado con el BL `COSU6508789000` (OC
+4500016185-10).
+
+| | |
+|---|---|
+| Dirección | `https://embed.shipsgo.com/?token={token}&tabs=none&transport={ocean\|air}&query={referencia}` |
+| Token | **Propio del Embed**, distinto del de la API. Solo muestra el mapa: no da de alta ni gasta créditos. Va en el navegador (`VITE_SHIPSGO_EMBED_TOKEN`) |
+| Protección | La lista «Allowed HTTP Origins» de la cuenta: el mapa carga solo dentro de los orígenes autorizados. En desarrollo, `http://localhost:5173` y `http://127.0.0.1:5173` |
+| Qué muestra | Buque o vuelo, puertos de carga y descarga, ETA y trayecto recorrido y por recorrer |
+| Costo | Ninguno adicional: el crédito de cada envío ya incluye el mapa, las notificaciones y la API hasta el final del viaje |
+
+**Cuándo lo muestra TrackIn** (`frontend/src/utils/mapaShipsGo.ts`): el pedido
+tiene un BL, contenedor, booking o MAWB **y** ShipsGo ya respondió por esa
+referencia, que es la prueba de que está dado de alta. Da igual si el envío está en
+tránsito o ya llegó. Si no se cumple —sin referencia, solo HAWB (la sigue TICA, sin
+mapa) o sin alta todavía— el detalle muestra el mapa propio.
+
+**Dónde no se usa: los mapas del panel** (`US-25`, `US-26`). Tienen que pintar el
+semáforo de TrackIn, responder a los filtros del panel y mostrar **pedidos**, no
+embarques; el Embed no hace ninguna de las tres cosas. Esos mapas siguen siendo
+propios, con Leaflet y los datos que ya entrega la API de ShipsGo (`/geojson`).
+
+**Pendiente para producción:** el dominio definitivo en «Allowed HTTP Origins» y
+verificar que la red de Gutis deja pasar `embed.shipsgo.com`. Queda por ver si
+ShipsGo conserva indefinidamente los envíos terminados: si los archiva, el mapa de
+un pedido viejo saldría vacío.
+
+Fuentes: [Live map](https://help.shipsgo.com/article/51-how-can-i-view-my-shipment-on-the-live-map),
+[pestañas del Embed](https://help.shipsgo.com/article/58-manage-air-and-ocean-tabs-in-the-shipsgo-embed-map),
+[orígenes del iframe](https://help.shipsgo.com/article/90-using-multiple-domains-in-shipsgo-embed-iframe).
+
 ---
 
 ## TrackingMore — tracking por número de guía

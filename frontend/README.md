@@ -45,6 +45,7 @@ Para que el dashboard muestre datos, el backend tiene que estar corriendo en
 | Variable | Default | Para qué |
 |---|---|---|
 | `VITE_API_URL` | `http://localhost:8000` | URL base de la API |
+| `VITE_SHIPSGO_EMBED_TOKEN` | vacío | Token del ShipsGo Embed: el mapa en vivo del detalle del pedido. **No es el de la API.** Vacío, el detalle usa solo el mapa propio |
 
 Dos cosas importantes:
 

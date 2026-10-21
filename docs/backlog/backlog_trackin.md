@@ -115,9 +115,9 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
-| `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | 10h | RF-22 (Media en SRS) / CU-09 |
+| `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed |
 | `US-30` | Actualizar la nave asignada ante un transbordo | Story | OE2 | **Should** | Sprint 7 | 10h | RF-26 / CU-10 · ⚠️ **reestimar**: la fase 3 midió que ShipsGo trae el transbordo en el payload (hasta 3 naves en un envío), así que puede pasar de captura manual a detección automática |
-| `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido | Story | OE3 | **Should** | Sprint 7 | 8h | Reunión Logística 03/09 / RF-05 (ampliado) |
+| `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido | Story | OE3 | **Should** | Sprint 7 | ~~8h~~ 4h | Reunión Logística 03/09 / RF-05 (ampliado) · **mapa en vivo de ShipsGo en el detalle, funcionando desde el 21/10** (ShipsGo Embed) |
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` |
 | `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
 | `TASK-07` | Manual de instalacion local | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
@@ -2188,6 +2188,13 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 
 **7 items · 62 h estimadas · capacidad 65 h — dentro de capacidad.** US-28 paso al Sprint 6 el 25/08, integrada al dashboard. `US-59` (+8 h, plantilla y validación del Z-tracking) entró el 08/10.
 
+> **Recontado el 21/10/2026: 9 ítems · 67 h**, 2 sobre la capacidad. El encabezado de arriba
+> no se había actualizado: sumando la tabla daba 76 h —`US-25` 12, `US-26` 8, `US-27` 6,
+> `US-29` 10, `US-30` 10, `US-44` 8, `US-33` 6, `US-59` 8, `TASK-10` 8—. Bajan `US-44`
+> (8 → 4 h) y `US-29` (10 → 5 h) gracias al **ShipsGo Embed**: el mapa en vivo del envío
+> ya funciona en el detalle del pedido, con el trayecto que da ShipsGo. El adelanto del
+> Sprint 6 alcanza para empezar los mapas antes del 02/11.
+
 > **Hito: compra de los créditos de ShipsGo, ~06/11**, una semana antes de la entrega (acuerdo
 > con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
 > créditos actuales; esa semana queda para la carga inicial de altas y para registrar el
@@ -2659,14 +2666,18 @@ seguimiento** de ese envío en particular, para saber de dónde viene y por dón
 - Dado un pedido, cuando abro su detalle, entonces muestra el país de origen normalizado (maestro de TASK-29)
 - Dado un pedido con posición, cuando abro su detalle, entonces muestra un mapa centrado en ese envío con su última posición y, si existe, su trayecto (depende de US-29/RF-22)
 
-> **21/10/2026: prototipo con el ShipsGo Embed.** La cuenta de ShipsGo trae un mapa en vivo
+> **21/10/2026: ✅ mapa en vivo de ShipsGo en el detalle, funcionando.** Verificado en el
+> navegador con la OC 4500016185-10 (BL `COSU6508789000`), sin gastar créditos. Lo que falta
+> de la historia es el país de origen en el detalle.
+>
+> **Cómo se llegó.** La cuenta de ShipsGo trae un mapa en vivo
 > embebible (`embed.shipsgo.com`), con un token propio, distinto del de la API, y una lista
 > de «Allowed HTTP Origins». El detalle lo muestra en lugar del mapa propio cuando el pedido
 > tiene un BL, contenedor, booking o MAWB que ShipsGo ya respondió: buque o vuelo, puertos,
 > ETA y trayecto. Los demás siguen con el mapa propio. Token en `VITE_SHIPSGO_EMBED_TOKEN`
-> (`frontend/.env`, fuera de git). Si el prototipo se valida, el trayecto de este criterio
-> lo resuelve ShipsGo: **reestimar de 8 h a ~4 h**, y `US-29` de 10 h a ~5 h, porque el
-> trayecto pasado y futuro llega en el GeoJSON de ShipsGo. **Los mapas del panel**
+> (`frontend/.env`, fuera de git). El trayecto de este criterio lo resuelve ShipsGo:
+> **reestimada de 8 h a 4 h**, y `US-29` de 10 h a 5 h, porque el trayecto pasado y futuro
+> llega en el GeoJSON de ShipsGo. **Los mapas del panel**
 > (`US-25`, `US-26`) **siguen siendo propios**: tienen que pintar el semáforo de TrackIn,
 > responder a los filtros y mostrar pedidos, no embarques.
 >

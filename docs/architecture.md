@@ -209,6 +209,7 @@ Tres reglas que la implementación fija y conviene no perder:
 | **Carga de pedidos por datos semilla** (`TASK-03`) | El adaptador de ingesta existe desde el Sprint 3 con semilla. **No es una función de usuario**: es un habilitador. El adaptador de SAP se enchufa después en el mismo puerto |
 | **Sin autenticación en la práctica** (decisión del 25/08) | No hay componente de identidad en el alcance. La entidad `usuarios` existe igual, porque RF-14 la necesita para la auditoría. La costura queda: el control de acceso se antepone a los routers cuando el Centro de Competencias lo implemente |
 | **Parámetros fuera del código** (RNF-07, RNF-15) | El motor lee umbrales y frecuencias de `parametros_sistema` en cada ciclo, no de constantes |
+| **Mapa en vivo de ShipsGo en el detalle** (21/10/2026) | **Única excepción** a «el navegador solo habla con la API de TrackIn»: el detalle del pedido embebe `embed.shipsgo.com` en un iframe, con un token propio del Embed —no el de la API— restringido por los orígenes autorizados en la cuenta. No pasa por el backend ni toca la base: es presentación. Los mapas del panel siguen siendo propios. Ver [`api-references.md`](api-references.md) §ShipsGo Embed |
 
 ### 1.7 Puntos abiertos que deja `TASK-20`
 

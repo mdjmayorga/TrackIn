@@ -91,6 +91,12 @@ levantarla a mano en cada sesión de trabajo.
 - [ ] Postgres **no** expuesto a la red pública
 - [ ] Respaldo automático verificado con una restauración de prueba
 - [ ] Credenciales de AISStream y OpenSky de producción cargadas
+- [ ] **ShipsGo Embed** (mapa en vivo del detalle, 21/10/2026): el dominio público de
+      TrackIn agregado en «Allowed HTTP Origins» de la cuenta de ShipsGo, y
+      `VITE_SHIPSGO_EMBED_TOKEN` en el build del frontend. Verificar que la red de
+      Gutis deja pasar `embed.shipsgo.com`: si la bloquea, el recuadro del mapa sale
+      vacío, y hay que construir con el token vacío para que el detalle use el mapa
+      propio
 
 ## Build de las imágenes
 
