@@ -1808,13 +1808,45 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 >
 > Cambian los textos, no lo que entra: el WK38 sigue rechazando 373 líneas (273 sin vía, 91
 > marítimas sin puerto, 9 terrestres). Backend: 1 325 pruebas. Frontend: 243.
+
+## Respuestas de Compras — 21/10/2026
+
+La reunión pasó al 22/10 por temas logísticos; dos respuestas llegaron antes.
+
+| # | Respuesta | Efecto |
+|---|---|---|
+| 1 | **El BL y la MAWB vienen en el Z-tracking a partir de la semana del 26/10** | Cierra lo pedido el 29/09 y el 06/10. Con las referencias, la carga asocia el rastreo sola (`US-01`, `US-52`), ShipsGo completa el destino que el archivo no dice (`US-54`) —resuelve las marítimas EXW, FCA y FOB que hoy se rechazan— y el mapa en vivo del detalle (`US-44`) aparece en esos pedidos. **`US-55` deja de estar bloqueada**: la prueba real usa uno o dos de esos pedidos. La cantidad de altas de la carga inicial (~06/11) se puede medir con el primer archivo |
+| 2 | **El Z-tracking se carga una vez al mes**, y lo hacen los usuarios de Compras | Fija el aviso de `US-23` y cambia cómo se dan de alta los embarques. Ver abajo |
+
+### Lo que implica la carga mensual
+
+- **El rastreo no envejece; los datos del archivo, sí.** La posición, la ETA y los hitos los
+  trae el worker de ShipsGo y TICA a toda hora. Lo que sale **solo** del Z-tracking —pedidos
+  nuevos, fecha comprometida (columna R), cantidades, cierres en SAP— puede tener hasta un
+  mes de atraso, y el semáforo se calcula con la fecha comprometida que haya.
+- **Un aéreo puede llegar antes de existir en TrackIn.** Un pedido que se crea en SAP y
+  viaja por avión entre dos cargas entra ya llegado, o no entra, y no pasa por la bandeja
+  de arribos mientras viaja. Con los marítimos, de varias semanas de tránsito, el efecto
+  es menor. Es lo que conviene llevar a Compras el 22/10: **¿alcanza una vez al mes para
+  los aéreos, o conviene cada quince días?**
+- **Las altas en ShipsGo llegan en bloque**, no repartidas: 70 a 110 embarques al mes
+  entrarían el día de la carga. El aviso de `altas_maximas_dia` (5 al día) saltaría todos
+  los meses. Tiene que medirse contra la carga, no contra el día —o subirse el día de la
+  carga, como ya se previó para la carga inicial—, y la acción de alta masiva que se anotó
+  para la carga inicial sirve igual cada mes. Se resuelve en `US-55` y `US-57`.
+- **`US-23` queda definida:** el encabezado muestra la fecha de la última carga y avisa
+  cuando pasa más de un mes desde ella (umbral parametrizable, por omisión 35 días). Ya no
+  espera a la reunión.
+
 >
 > **En espera de la reunión con Ventas (14/10):**
 >
-> - **Frecuencia de carga del Z-tracking y quién la sube** — para el aviso de «hace falta
->   cargar» de `US-23`.
+> - ✅ ~~**Frecuencia de carga del Z-tracking y quién la sube** — para el aviso de «hace falta
+>   cargar» de `US-23`.~~ **Respondida el 21/10: una vez al mes, la hacen los usuarios de
+>   Compras.** Ver «Respuestas de Compras — 21/10/2026».
 > - **Qué 1 o 2 pedidos reales dar de alta en ShipsGo** con los 49 créditos — para la prueba
->   real de `US-55`.
+>   real de `US-55`. **Se destraba la semana del 26/10**, cuando el Z-tracking empiece a traer
+>   BL y MAWB.
 
 #### TASK-05 — Andamiaje del frontend React con TypeScript, Vite y Tailwind
 
@@ -2090,6 +2122,20 @@ Como usuario, quiero saber de cuando son los datos que estoy viendo, para juzgar
 | Estimacion | 4 h |
 | Origen en el SRS | RF-20 / RNF-12 |
 | Etiquetas | `frontend,ux` |
+
+> **Criterios agregados el 21/10/2026** (respuesta de Compras: el Z-tracking se carga una vez
+> al mes, desde la interfaz, por los usuarios de Compras):
+>
+> - Dada una carga del Z-tracking, cuando abro el dashboard, entonces el encabezado muestra
+>   también la fecha de la **última carga** y quién la hizo (`US-58` ya la registra)
+> - Dado que pasaron más días que el umbral desde la última carga (`dias_aviso_carga`, por
+>   omisión 35: un mes más unos días de margen), cuando abro el dashboard, entonces el
+>   encabezado avisa que hace falta cargar el Z-tracking, y a Compras le ofrece el enlace a
+>   «Cargar Z-tracking»
+> - Dado que nunca se cargó desde la interfaz, cuando abro el dashboard, entonces lo dice, en
+>   vez de mostrar una fecha vacía
+>
+> **Ya no espera la reunión con Compras.**
 
 #### US-24 — Aplicar el semáforo de estados de forma consistente
 
@@ -3493,7 +3539,9 @@ Consecuencias para el plan:
 >   aéreas en 47 OC, 19 marítimas en 4 OC— **solo 1 tiene referencia**, un BL ya registrado.
 >   Con ese archivo, la carga inicial no daría de alta nada. Si cada OC fuera un embarque
 >   serían ~51 créditos, menos del 5 % del paquete; la cifra real sale del Z-tracking de
->   noviembre, con las referencias llenas.
+>   noviembre, con las referencias llenas. **Actualizado el 21/10:** el BL y la MAWB empiezan a
+>   venir la semana del 26/10, así que la cifra se puede medir con ese archivo, antes de la
+>   compra.
 
 ### Lo que el MAWB cambia en el plan
 
