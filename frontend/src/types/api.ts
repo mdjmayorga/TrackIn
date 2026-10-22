@@ -298,6 +298,18 @@ export interface CargaResumen {
   entraron_sin_rastreo: number
 }
 
+/** `GET /api/v1/cargas/estado` (`US-23`): la carga semanal del Z-tracking. */
+export interface EstadoCargas {
+  /** Al día, toca cargar (antes del día límite), atrasada (después) o nunca cargada. */
+  situacion: 'AL_DIA' | 'TOCA_CARGAR' | 'ATRASADA' | 'NUNCA'
+  /** La última carga **aplicada**. */
+  ultima: CargaResumen | null
+  /** El lunes de la semana en curso, `AAAA-MM-DD`. */
+  semana_desde: string
+  /** Último día para cargar: 1 lunes … 7 domingo. */
+  dia_limite: number
+}
+
 export interface IncidenciaCarga {
   /** `OC-posición`, o `hoja!fila` si la fila no tenía OC. */
   clave: string

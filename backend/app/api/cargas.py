@@ -19,8 +19,8 @@ from app.api.dependencias import COMPRAS, Autenticado, requiere_rol, usuario_act
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.carga_ztracking import CargaZTracking
-from app.schemas.cargas import CargaDetalle, CargaResumen
-from app.services.ingesta import carga_archivo
+from app.schemas.cargas import CargaDetalle, CargaResumen, EstadoCargas
+from app.services.ingesta import carga_archivo, frescura
 from app.services.ingesta.carga import ResolutorDestino
 from app.services.rastreo import transporte_http
 from app.services.rastreo.destino_shipsgo import ResolutorDestinoShipsGo
@@ -127,6 +127,30 @@ async def listar_cargas(
         .limit(limite)
     )
     return list(filas)
+
+
+# Antes de `/{id_carga}`: si no, «estado» se intentaría leer como número de carga.
+@router.get(
+    "/estado",
+    response_model=EstadoCargas,
+    summary="¿Está cargado el Z-tracking de esta semana?",
+    description=(
+        "SAP se actualiza los lunes y Compras carga el Z-tracking a más tardar el día límite "
+        "(`dia_limite_carga`, martes por omisión; acuerdo del 22/10/2026). Lo usa el "
+        "encabezado del panel (`US-23`). Cualquier rol lo ve."
+    ),
+)
+async def estado_cargas(
+    _: Annotated[Autenticado, Depends(usuario_actual)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> EstadoCargas:
+    estado = await frescura.estado_semanal(db)
+    return EstadoCargas(
+        situacion=estado.situacion,
+        ultima=CargaResumen.model_validate(estado.ultima) if estado.ultima else None,
+        semana_desde=estado.semana_desde,
+        dia_limite=estado.dia_limite,
+    )
 
 
 @router.get(

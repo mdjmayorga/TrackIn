@@ -64,4 +64,18 @@ class CargaDetalle(CargaResumen):
     avisos: list[Aviso] = Field(default_factory=list)
 
 
-__all__ = ["Autor", "Aviso", "CargaDetalle", "CargaResumen", "Incidencia"]
+class EstadoCargas(BaseModel):
+    """¿Está cargado el Z-tracking de esta semana? (`US-23`, acuerdo del 22/10/2026)."""
+
+    situacion: Literal["AL_DIA", "TOCA_CARGAR", "ATRASADA", "NUNCA"] = Field(
+        description=(
+            "`AL_DIA`: hay carga aplicada desde el lunes. `TOCA_CARGAR`: no la hay, pero no "
+            "pasó el día límite. `ATRASADA`: ya pasó. `NUNCA`: nunca se cargó desde TrackIn."
+        )
+    )
+    ultima: CargaResumen | None = Field(description="La última carga **aplicada**.")
+    semana_desde: dt.date = Field(description="El lunes de la semana en curso, en Costa Rica.")
+    dia_limite: int = Field(ge=1, le=7, description="Último día para cargar: 1 lunes … 7 domingo.")
+
+
+__all__ = ["Autor", "Aviso", "CargaDetalle", "CargaResumen", "EstadoCargas", "Incidencia"]

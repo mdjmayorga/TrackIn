@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { esPantallaPlanta, puedeVerBandeja } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { EstadoShipsGo } from '@/components/EstadoShipsGo'
+import { FrescuraDatos } from '@/components/FrescuraDatos'
 import { CintaKpis } from '@/components/CintaKpis'
 import { MapaBase } from '@/components/MapaBase'
 import { MenuConfiguracion } from '@/components/MenuConfiguracion'
@@ -131,8 +132,10 @@ export default function Dashboard() {
           <p className="mt-1 text-lg text-slate-300">Tracking aéreo-marítimo</p>
         </div>
 
-        <div className="flex lg:justify-end">
+        <div className="flex flex-col items-start gap-1.5 lg:items-end">
           <EstadoShipsGo />
+          {/* De cuándo son los datos: el rastreo y la carga semanal (`US-23`). */}
+          {sesion && <FrescuraDatos rol={sesion.usuario.rol} />}
         </div>
       </header>
 

@@ -92,7 +92,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-20` | Consultar el detalle completo de un pedido ✅ | Story | OE3 | **Must** | Sprint 6 | 10h | RF-05 / CU-03 · ✅ terminada 15/10, adelantada |
 | `US-21` | Filtrar el dashboard de forma transversal y coherente ✅ | Story | OE3 | **Must** | Sprint 6 | 12h | RF-19 / CU-04 / RNF-02 · ✅ terminada 14/10, adelantada |
 | `US-22` | Mostrar la cinta de indicadores KPI ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | RF-15 · ✅ terminada 13/10, adelantada |
-| `US-23` | Indicar la frescura de los datos en el encabezado | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 |
+| `US-23` | Indicar la frescura de los datos en el encabezado ✅ | Story | OE3 | **Should** | Sprint 6 | 4h | RF-20 / RNF-12 · carga semanal (22/10) · ✅ terminada 22/10 |
 | `US-24` | Aplicar el semaforo de estados de forma consistente ✅ | Story | OE3 | **Must** | Sprint 6 | 4h | RNF-08 / RN-02 a RN-15 · ✅ terminada 20/10 |
 | `US-43` | Ofrecer las dos grillas del Figma: completa en el panel y simple para la pantalla de planta ✅ | Story | OE3 | **Must** | Sprint 6 | ~~10h~~ ~~3h~~ 5h | Reunión Logística 03/09 · **reducida al Figma el 14/10** · +2 h por el rol `PLANTA` (20/10) · ✅ terminada 20/10 |
 | `US-48` | Bandeja de arribos pendientes de gestión para Planificación ✅ | Story | OE3 | **Must** | Sprint 6 | 6h | RF-32 (nuevo, 04/09) · aviso interno, sin correo · ✅ terminada 20/10 |
@@ -109,14 +109,15 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` |
 | `US-60` | Acciones del detalle: confirmar desembarco, pasar a aduana, recibir, ajustar días y liberar ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | 15/10: los endpoints existían desde el Sprint 5; las pantallas, no · ✅ terminada 15/10 |
 | `US-61` | Cambiar la propia contraseña ✅ | Story | OE3 | **Should** | Sprint 6 | 4h | 20/10: creación de la cuenta de Compras · hoy solo el Administrador reinicia contraseñas · ✅ terminada 20/10 |
+| `US-63` | OC, POS y SOLPED en la grilla de la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | 4h | Reunión con Compras 22/10 · solo planta: Compras no ve la SOLPED |
 | `US-62` | Administrar usuarios desde la interfaz ✅ | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no · ✅ terminada 21/10 |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
-| `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed |
-| `US-30` | Actualizar la nave asignada ante un transbordo | Story | OE2 | **Should** | Sprint 7 | 10h | RF-26 / CU-10 · ⚠️ **reestimar**: la fase 3 midió que ShipsGo trae el transbordo en el payload (hasta 3 naves en un envío), así que puede pasar de captura manual a detección automática |
+| `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed · 22/10: la línea de tiempo del detalle suma los hitos del viaje, transbordos incluidos |
+| `US-30` | Registrar los transbordos: automáticos desde ShipsGo, a mano solo las excepciones | Story | OE2 | **Should** | Sprint 7 | ~~10h~~ 6h | RF-26 / CU-10 · **replanteada el 22/10**: con BL, contenedor o MAWB el transbordo lo informa ShipsGo y se registra solo; la captura manual queda para los pedidos sin referencia y el paso de guía hija a madre |
 | `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido | Story | OE3 | **Should** | Sprint 7 | ~~8h~~ 4h | Reunión Logística 03/09 / RF-05 (ampliado) · **mapa en vivo de ShipsGo en el detalle, funcionando desde el 21/10** (ShipsGo Embed) |
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` |
 | `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
@@ -1748,6 +1749,20 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > **21/10: `US-62` terminada. Hechas: 98 de 112 h.** Pendientes: `US-55` (6), `US-23` (4),
 > `US-57` (4), las tres a la espera de la reunión con Compras del 21/10.
 >
+> **22/10, tras la reunión con Compras: entra `US-63` (4 h). El sprint queda en 17 ítems ·
+> 116 h, con 98 hechas.** Pendientes: `US-55` (6), `US-23` (4), `US-57` (4), `US-63` (4).
+> `US-23` y `US-63` se pueden hacer ya; `US-55` y `US-57` se construyen ya y se prueban con
+> la primera carga real, desde el 27/10.
+>
+> **22/10: `US-23` terminada. Hechas: 102 de 116 h.** Pendientes: `US-63` (4), `US-55` (6),
+> `US-57` (4).
+>
+> **`US-63` quedó a medias, guardada en un `git stash`** («US-63 en curso (SOLPED en planta)…»):
+> lector, DTO, modelo, carga, API y una migración. **Al recuperarla, renumerar su migración**:
+> se llama `0023_solicitud_pedido` y revisa `0022`, pero `0023` ya es `0023_dia_limite_carga`
+> de `US-23`. Tiene que pasar a `0024_solicitud_pedido`, con `down_revision =
+> "0023_dia_limite_carga"`. Falta además el frontend (grilla de planta) y las pruebas.
+>
 > **Decisión del 21/10: Compras hace en el detalle del pedido lo mismo que el
 > Administrador.** Las cinco acciones —confirmar desembarco, pasar a proceso aduanal,
 > registrar la recepción (también con cierre forzado), registrar la liberación de Calidad y
@@ -1816,9 +1831,12 @@ La reunión pasó al 22/10 por temas logísticos; dos respuestas llegaron antes.
 | # | Respuesta | Efecto |
 |---|---|---|
 | 1 | **El BL y la MAWB vienen en el Z-tracking a partir de la semana del 26/10** | Cierra lo pedido el 29/09 y el 06/10. Con las referencias, la carga asocia el rastreo sola (`US-01`, `US-52`), ShipsGo completa el destino que el archivo no dice (`US-54`) —resuelve las marítimas EXW, FCA y FOB que hoy se rechazan— y el mapa en vivo del detalle (`US-44`) aparece en esos pedidos. **`US-55` deja de estar bloqueada**: la prueba real usa uno o dos de esos pedidos. La cantidad de altas de la carga inicial (~06/11) se puede medir con el primer archivo |
-| 2 | **El Z-tracking se carga una vez al mes**, y lo hacen los usuarios de Compras | Fija el aviso de `US-23` y cambia cómo se dan de alta los embarques. Ver abajo |
+| 2 | ~~**El Z-tracking se carga una vez al mes**, y lo hacen los usuarios de Compras~~ | **Reemplazada el 22/10: semanal.** Ver «Reunión con Compras — 22/10/2026» |
 
-### Lo que implica la carga mensual
+### Lo que implicaba la carga mensual
+
+> **Superado el 22/10: la carga pasa a ser semanal.** Se conserva el análisis porque es el que
+> llevó a la pregunta, y la semanal resuelve casi todo lo que aquí preocupaba.
 
 - **El rastreo no envejece; los datos del archivo, sí.** La posición, la ETA y los hitos los
   trae el worker de ShipsGo y TICA a toda hora. Lo que sale **solo** del Z-tracking —pedidos
@@ -1838,12 +1856,78 @@ La reunión pasó al 22/10 por temas logísticos; dos respuestas llegaron antes.
   cuando pasa más de un mes desde ella (umbral parametrizable, por omisión 35 días). Ya no
   espera a la reunión.
 
+## Reunión con Compras — 22/10/2026
+
+| # | Respuesta | Efecto |
+|---|---|---|
+| 1 | **El Z-tracking se actualiza en SAP todos los lunes, y Compras lo carga en TrackIn a más tardar el martes** | Reemplaza la carga mensual del 21/10. Ver abajo |
+| 2 | **La pantalla de planta muestra también OC, POS y SOLPED** (el número de la solicitud de pedido), en columnas de su grilla. Compras **no** ve la SOLPED | Historia nueva, `US-63` |
+| 3 | **El martes 27/10 hay otra reunión, en la que Compras entrega el Excel del Z-tracking final.** Desde ahí se cargan datos reales | Primera carga real; ver abajo |
+
+### Lo que implica la carga semanal
+
+- **El hueco de los aéreos casi desaparece.** Con la mensual, un aéreo podía llegar antes de
+  existir en TrackIn. Con la semanal, a lo sumo una semana de atraso: un aéreo que se crea y
+  vuela en la misma semana todavía puede entrar ya llegado, pero es el caso raro, no el
+  habitual.
+- **`US-23` cambia de umbral a calendario.** Ya no es «más de 35 días desde la última carga»:
+  es «la carga de esta semana». El lunes y el martes, si todavía no se cargó desde el lunes,
+  el encabezado recuerda que toca cargar; **desde el miércoles, avisa que falta la carga de la
+  semana**. El día límite es un parámetro (`dia_limite_carga`, por omisión martes), por si
+  el acuerdo cambia.
+- **Las altas en ShipsGo siguen en bloque, pero chicas:** 70 a 110 embarques al mes son unos
+  20 a 25 por carga semanal. El aviso de `altas_maximas_dia` (5) seguiría saltando cada
+  martes, así que se mantiene lo anotado para `US-55` y `US-57`: medirlo por carga, con la
+  alta masiva y la confirmación del costo.
+
+### La primera carga real, desde el 27/10
+
+- **El Excel final define la plantilla de `US-59`.** El lector busca las columnas por nombre,
+  así que debería leerlo sin cambios; si cambió algún rótulo, se ajusta el mapeo antes de
+  cargar. **Primero se ensaya en una transacción revertida**, como con el WK38, y se revisa
+  el informe de rechazos con Compras.
+- **Coincide con la llegada de los BL y MAWB.** Esa carga es la que permite la prueba real de
+  `US-55`, medir las altas de la carga inicial antes de la compra (~06/11) y ver el primer
+  transbordo real (`US-30`).
+- **La base de desarrollo tiene hoy los datos del WK38 de septiembre.** Para empezar limpio
+  con el archivo final hay que decidir si se vacían los pedidos de prueba antes de la carga
+  real: la auditoría es inmutable y conserva las intervenciones hechas sobre ellos.
+
+### `US-63` — OC, POS y SOLPED en la grilla de la pantalla de planta
+
+Como usuario de planta, quiero ver la orden de compra, su posición y la solicitud de pedido
+en la grilla de la pantalla, para ubicar cada material con los números que se manejan en
+planta.
+
+**Criterios de aceptación**
+
+- Dado el Z-tracking, cuando se carga, entonces se guarda el número de la **solicitud de
+  pedido** de cada línea (columna «Solicitud de pedido»), y una línea sin SOLPED entra igual
+- Dada la pantalla de planta (rol `PLANTA`, `US-43`), cuando se abre, entonces su grilla
+  muestra **OC · POS · SOLPED · Material · Etapa · Cumplimiento**
+- Dado cualquier otro rol, cuando abre el panel, entonces su grilla no cambia: las nueve
+  columnas del Figma, sin SOLPED
+- Dada una línea sin SOLPED, cuando se muestra, entonces la celda lleva el guion de «sin dato»
+
+| | |
+|---|---|
+| Tipo | Story · OE3 · **Must** · Sprint 6 · 4 h |
+| Origen | Reunión con Compras, 22/10/2026 |
+| Depende de | `US-43` (hecha), `US-31` (lector del Z-tracking) |
+| Toca | Lector (`ztracking.COLUMNAS`), migración con `pedidos_transito.solicitud_pedido`, resumen de la API, grilla simple |
+
+> **Ojo con la posición repetida.** El archivo trae `Posición` dos veces: la de la OC y la de
+> la SOLPED (lo resolvió el lector en el Sprint 4). Aquí se pide solo el **número** de la
+> SOLPED, no su posición ni sus fechas (confirmado el 22/10). Se verifica contra el Excel
+> final del 27/10, por si el rótulo cambió.
+
 >
 > **En espera de la reunión con Ventas (14/10):**
 >
 > - ✅ ~~**Frecuencia de carga del Z-tracking y quién la sube** — para el aviso de «hace falta
->   cargar» de `US-23`.~~ **Respondida el 21/10: una vez al mes, la hacen los usuarios de
->   Compras.** Ver «Respuestas de Compras — 21/10/2026».
+>   cargar» de `US-23`.~~ **Respondida el 21/10 (mensual) y corregida el 22/10: SAP se
+>   actualiza los lunes y Compras lo carga a más tardar el martes.** Ver «Reunión con Compras
+>   — 22/10/2026».
 > - **Qué 1 o 2 pedidos reales dar de alta en ShipsGo** con los 49 créditos — para la prueba
 >   real de `US-55`. **Se destraba la semana del 26/10**, cuando el Z-tracking empiece a traer
 >   BL y MAWB.
@@ -2123,19 +2207,44 @@ Como usuario, quiero saber de cuando son los datos que estoy viendo, para juzgar
 | Origen en el SRS | RF-20 / RNF-12 |
 | Etiquetas | `frontend,ux` |
 
-> **Criterios agregados el 21/10/2026** (respuesta de Compras: el Z-tracking se carga una vez
-> al mes, desde la interfaz, por los usuarios de Compras):
+> **Criterios agregados el 21/10/2026 y corregidos el 22/10** (Compras: SAP se actualiza los
+> lunes y el Z-tracking se carga en TrackIn a más tardar el martes):
 >
 > - Dada una carga del Z-tracking, cuando abro el dashboard, entonces el encabezado muestra
 >   también la fecha de la **última carga** y quién la hizo (`US-58` ya la registra)
-> - Dado que pasaron más días que el umbral desde la última carga (`dias_aviso_carga`, por
->   omisión 35: un mes más unos días de margen), cuando abro el dashboard, entonces el
->   encabezado avisa que hace falta cargar el Z-tracking, y a Compras le ofrece el enlace a
->   «Cargar Z-tracking»
+> - Dado que es lunes o martes y no hay carga desde el lunes, cuando abro el dashboard,
+>   entonces el encabezado recuerda que toca cargar el Z-tracking de la semana
+> - Dado que es miércoles o después y no hay carga desde el lunes de esa semana, cuando abro
+>   el dashboard, entonces el encabezado **avisa que falta la carga de la semana**, y a Compras
+>   le ofrece el enlace a «Cargar Z-tracking». El día límite es un parámetro
+>   (`dia_limite_carga`, por omisión martes); la semana se cuenta en hora de Costa Rica
 > - Dado que nunca se cargó desde la interfaz, cuando abro el dashboard, entonces lo dice, en
 >   vez de mostrar una fecha vacía
 >
 > **Ya no espera la reunión con Compras.**
+
+> **✅ Terminada el 22/10/2026.** Bajo la insignia de ShipsGo del encabezado, como el «Última
+> actualización» del Figma:
+>
+> - **Última consulta a ShipsGo**, con fecha, hora y antigüedad («hace 3 min»). Es el último
+>   dato válido: si la fuente falla, la insignia dice «ShipsGo con fallas» y esta línea da la
+>   antigüedad de lo último bueno (segundo criterio original).
+> - **Última carga del Z-tracking**, con fecha, hora y quién la hizo; o «nunca se cargó desde
+>   TrackIn».
+> - **El aviso de la carga semanal**, calculado en el backend en hora de Costa Rica
+>   (`GET /api/v1/cargas/estado`, `services/ingesta/frescura.py`): al día no dice nada; el lunes
+>   y el martes sin carga, «Toca cargar el Z-tracking de esta semana (a más tardar el
+>   martes)»; desde el miércoles, «Falta la carga del Z-tracking de esta semana», en rojo. A
+>   Compras y al Administrador les ofrece el enlace a «Cargar Z-tracking»; los demás ven el
+>   aviso sin enlace. Solo cuentan las cargas **aplicadas**: un archivo rechazado no cambió
+>   nada.
+> - **El día límite es el parámetro `dia_limite_carga`** (1 lunes … 7 domingo, por omisión 2),
+>   sembrado por la migración `0023`. Se refresca solo cada 5 minutos y al cargar un archivo.
+>
+> En `trackin_dev` todavía no hay cargas hechas desde la interfaz: el encabezado mostrará
+> «nunca se cargó desde TrackIn» hasta la primera carga real del 27/10.
+>
+> Backend: 1 335 pruebas. Frontend: 256 pruebas, 95,6 %.
 
 #### US-24 — Aplicar el semáforo de estados de forma consistente
 
@@ -2240,6 +2349,9 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > (8 → 4 h) y `US-29` (10 → 5 h) gracias al **ShipsGo Embed**: el mapa en vivo del envío
 > ya funciona en el detalle del pedido, con el trayecto que da ShipsGo. El adelanto del
 > Sprint 6 alcanza para empezar los mapas antes del 02/11.
+>
+> **22/10: 63 h**, dentro de la capacidad: `US-30` baja de 10 a 6 h al replantearse como
+> detección automática del transbordo desde ShipsGo.
 
 > **Hito: compra de los créditos de ShipsGo, ~06/11**, una semana antes de la entrega (acuerdo
 > con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
@@ -2331,6 +2443,21 @@ Como usuario de Logística, quiero ver el recorrido histórico de un pedido, par
 | Estimacion | 10 h |
 | Origen en el SRS | RF-22 (Media en SRS) / CU-09 |
 
+> **Replanteada el 22/10/2026: una sola línea de tiempo.** La del detalle del pedido muestra
+> hoy solo las intervenciones manuales de la bitácora (RF-14). Con ShipsGo, los hitos del
+> viaje ya llegan en cada consulta. Esta historia los suma a la misma línea, en orden, para
+> que se lea el viaje completo sin cambiar de vista. El trayecto sobre el mapa ya lo resuelve
+> el ShipsGo Embed en el detalle (21/10). Criterios que se agregan:
+>
+> - Dado un pedido rastreado por ShipsGo, cuando abro su detalle, entonces la línea de tiempo
+>   intercala las intervenciones manuales con los hitos del viaje —carga, zarpe,
+>   **transbordos** (`US-30`), llegada y descarga—, cada uno con su fecha y su origen (la
+>   fuente o la persona que lo registró)
+> - Dado un hito que la fuente corrige o retira, cuando vuelve a consultarse, entonces la línea
+>   de tiempo muestra el dato vigente y no lo duplica
+> - Dado un pedido sin rastreo, cuando abro su detalle, entonces la línea de tiempo muestra
+>   solo las intervenciones, como hoy
+>
 > **Se mantiene en `Could` (decision B3 del 01/09).** Se evaluo subirla porque el detalle de pedido ofrecia un enlace «ver historial» que ninguna historia comprometida construye. **Se resolvio al reves: se quita el enlace del detalle** y esta historia sigue siendo la valvula de escape del Sprint 7.
 >
 > Consecuencia para `US-20` y `US-37`: el conteo de posiciones plegadas se muestra como dato informativo, **sin accion asociada**. Si RF-22 se considera incumplido por eso, hay que reabrir la decision.
@@ -2355,6 +2482,30 @@ Como usuario de Logística, quiero sustituir la nave de un pedido cuando hay tra
 | Estimacion | 10 h |
 | Origen en el SRS | RF-26 / CU-10 |
 | Etiquetas | `backend,manual,tracking` |
+
+> **Replanteada el 22/10/2026: el transbordo es automático para lo que rastrea ShipsGo.**
+> Esta historia se escribió cuando el rastreo iba a ser **por buque**, con AIS: cambiar de nave
+> obligaba a cambiar lo que se rastreaba, y alguien tenía que capturarlo. Con ShipsGo se rastrea
+> **el embarque** —BL, contenedor o MAWB—, que no cambia en un transbordo, y la fuente informa
+> la nave nueva. El rastreo ya sigue solo (medido en `TASK-28` con `MRSU8132490`, tres naves),
+> y el worker actualiza la nave y el IMO actuales en cada consulta y detecta el transbordo
+> (`colector_shipsgo`, `ShipsGoLectura.hay_transbordo`). Lo que falta es **guardarlo y
+> mostrarlo**. Criterios vigentes, en lugar de los de arriba:
+>
+> - Dado un envío que ShipsGo informa con un cambio de nave, cuando el worker lo consulta,
+>   entonces se registra el transbordo una sola vez —nave anterior, nave nueva, fecha y, si
+>   la fuente lo da, el puerto— sin que nadie lo capture
+> - Dado el transbordo registrado, cuando abro el detalle, entonces aparece en la línea de
+>   tiempo (`US-29`) y el bloque de rastreo muestra la nave vigente
+> - Dadas varias líneas de OC en el mismo BL, cuando hay transbordo, entonces todas lo
+>   muestran, porque comparten el embarque
+> - **A mano, solo las excepciones:** un pedido sin referencia que se sigue por la nave, y el
+>   paso de la guía hija a la guía madre de abajo. Esa captura conserva el tramo anterior en
+>   `pedido_elemento_rastreado`, como pedía el criterio original
+>
+> **Estimación: 10 h → 6 h**: ya no hace falta la pantalla de captura completa. **Por
+> verificar con el primer BL con transbordo** (llegan desde la semana del 26/10): si ShipsGo
+> informa el puerto del transbordo o solo el cambio de nave.
 
 > **Agregado el 21/10/2026: pasar de la guía hija a la guía madre.** Cuando TICA resuelve la
 > MAWB de una HAWB (`US-49`), hoy no hay cómo seguir el envío por esa guía madre en

@@ -1,7 +1,7 @@
 /** Subida del Excel del Z-tracking y su historial (`/api/v1/cargas`, `US-58`). */
 
 import { API_V1, api } from '@/services/api'
-import type { CargaDetalle, CargaResumen } from '@/types/api'
+import type { CargaDetalle, CargaResumen, EstadoCargas } from '@/types/api'
 
 /**
  * El WK38 real tarda ~2 s, pero con ShipsGo completando destinos puede tardar
@@ -22,6 +22,12 @@ export async function subirZtracking(archivo: File): Promise<CargaDetalle> {
 
 export async function listarCargas(): Promise<CargaResumen[]> {
   const { data } = await api.get<CargaResumen[]>(`${API_V1}/cargas`)
+  return data
+}
+
+/** Si el Z-tracking de esta semana ya se cargó (`US-23`). */
+export async function obtenerEstadoCargas(): Promise<EstadoCargas> {
+  const { data } = await api.get<EstadoCargas>(`${API_V1}/cargas/estado`)
   return data
 }
 

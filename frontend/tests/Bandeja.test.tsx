@@ -31,6 +31,13 @@ vi.mock('@/services/acciones', async (original) => ({
   pasarAAduana: vi.fn(),
 }))
 
+// El encabezado pide si el Z-tracking de la semana está cargado (`US-23`): sin
+// esto la prueba intentaría salir a la red.
+vi.mock('@/services/cargas', async (original) => ({
+  ...(await original<typeof import('@/services/cargas')>()),
+  obtenerEstadoCargas: vi.fn(() => new Promise(() => undefined)),
+}))
+
 vi.mock('@/services/health', () => ({ obtenerHealth: vi.fn() }))
 
 /** Lo que pide la bandeja: los llegados, lo más antiguo primero. */

@@ -532,13 +532,15 @@ Definition of Done:
 
 Origen en el SRS: RF-22 (Media en SRS) / CU-09
 MoSCoW: Could","Medium","Sprint 7","OE3-Frontend","frontend,mapas,auditoria","10h","mamayorga"
-"Story","US-30 Actualizar la nave asignada ante un transbordo","Como usuario de Logistica, quiero sustituir la nave de un pedido cuando hay transbordo, para seguir rastreandolo en el tramo vigente.
+"Story","US-30 Registrar los transbordos: automaticos desde ShipsGo, a mano solo las excepciones","Como usuario de Logistica, quiero que el sistema registre los transbordos de un envio, para ver en que nave viaja la carga y cuando cambio, sin capturarlo a mano.
+
+Replanteada el 22/10/2026: con BL, contenedor o MAWB se rastrea el embarque, que no cambia en un transbordo, y ShipsGo informa la nave nueva.
 
 Criterios de aceptacion (Gherkin):
-- Dado un pedido maritimo con nave, cuando registro la nueva nave, el puerto y la fecha, entonces el rastreo pasa a la nave nueva
-- Dado el tramo anterior, cuando se cierra, entonces su historial de posiciones se conserva asociado a ese tramo
-- Dadas varias lineas de OC que comparten la nave anterior, cuando aplico el transbordo, entonces puedo aplicarlo en bloque
-- Dado un identificador desconocido por la fuente AIS, cuando lo registro, entonces se acepta y se advierte que no habra lectura hasta que la fuente lo reporte
+- Dado un envio que ShipsGo informa con un cambio de nave, cuando el worker lo consulta, entonces se registra el transbordo una sola vez (nave anterior, nave nueva, fecha y, si la fuente lo da, el puerto) sin que nadie lo capture
+- Dado el transbordo registrado, cuando abro el detalle, entonces aparece en la linea de tiempo (US-29) y el bloque de rastreo muestra la nave vigente
+- Dadas varias lineas de OC en el mismo BL, cuando hay transbordo, entonces todas lo muestran
+- A mano, solo las excepciones: un pedido sin referencia que se sigue por la nave, y el paso de la guia hija a la guia madre; esa captura conserva el tramo anterior
 
 Definition of Done:
 - Codigo con pruebas unitarias (cobertura minima 70%)
@@ -547,7 +549,7 @@ Definition of Done:
 - Merge a rama principal sin errores de CI
 
 Origen en el SRS: RF-26 / CU-10
-MoSCoW: Should","High","Sprint 7","OE2-Backend","backend,manual,tracking","10h","mamayorga"
+MoSCoW: Should","High","Sprint 7","OE2-Backend","backend,tracking,shipsgo","6h","mamayorga"
 "Task","TASK-06 Pruebas de integracion extremo a extremo","Como desarrollador, quiero pruebas que recorran el flujo completo, para demostrar que el sistema opera de punta a punta.
 
 Criterios de aceptacion (Gherkin):
@@ -786,3 +788,4 @@ MoSCoW: Must","Highest","Sprint 4","OE2-Backend","backend,tracking,aereo,awb,shi
 "Story","US-60 Acciones del detalle: confirmar desembarco, pasar a aduana, recibir, ajustar dias y liberar","Como usuario de Logistica o Planificacion, quiero registrar desde el detalle del pedido la llegada, la aduana, la recepcion y la liberacion, y ajustar la fecha. Acciones segun rol y etapa, deshabilitadas con el porque cuando no aplican; motivo obligatorio (RF-14); reemplazo de llegada confirmada con confirmacion; recepcion bajo el minimo de RN-10 ofrece cierre forzado; el paso a aduana lo ejecuta Planificacion (y Logistica). Transbordo queda en US-30. Los endpoints existian desde el Sprint 5; las pantallas, no. 15/10/2026.","Highest","Sprint 6","OE3-Frontend","frontend,intervenciones,roles","8h","mamayorga"
 "Story","US-61 Cambiar la propia contrasena","Como usuario de cualquier rol, quiero cambiar mi contrasena desde TrackIn, para no depender del Administrador y poder reemplazar la contrasena inicial. Pide la actual, la nueva y su repeticion; la actual incorrecta cuenta para el bloqueo; minimo 10 caracteres y distinta de la actual; al cambiarla se cierran las demas sesiones de la cuenta y la actual sigue abierta; queda en la bitacora sin la contrasena. Decidido 20/10: en la cuenta compartida de Compras cualquiera puede cambiarla y todas las demas deben entrar con la nueva; sus sesiones se cierran. Endpoint nuevo POST /api/v1/auth/contrasena. 20/10/2026.","High","Sprint 6","OE3-Frontend","backend,frontend,autenticacion,usuarios","4h","mamayorga"
 "Story","US-62 Administrar usuarios desde la interfaz","Como Administrador, quiero crear y mantener las cuentas desde TrackIn, para no usar la consola ni la API. Lista con rol, estado y bloqueo; alta con contrasena inicial; cambio de nombre, correo y rol; desactivar con confirmacion, sin borrar, y reactivar; reiniciar contrasena advirtiendo que cierra todas las sesiones; solo Administrador; no permite desactivarse ni quitarse el rol a si mismo. Solo frontend: los endpoints existen desde US-42. 20/10/2026.","High","Sprint 6","OE3-Frontend","frontend,usuarios,roles","5h","mamayorga"
+"Story","US-63 OC, POS y SOLPED en la grilla de la pantalla de planta","Como usuario de planta, quiero ver la orden de compra, su posicion y la solicitud de pedido en la grilla de la pantalla, para ubicar cada material con los numeros que se manejan en planta. La carga guarda el numero de la solicitud de pedido (columna Solicitud de pedido); la grilla de planta muestra OC, POS, SOLPED, Material, Etapa y Cumplimiento; los demas roles no cambian (Compras no ve la SOLPED); sin SOLPED, guion. Solo el numero, no su posicion ni sus fechas. Reunion con Compras 22/10/2026.","Highest","Sprint 6","OE3-Frontend","backend,frontend,ingesta,pantalla-planta","4h","mamayorga"

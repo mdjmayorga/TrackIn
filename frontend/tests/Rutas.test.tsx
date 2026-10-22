@@ -26,6 +26,13 @@ vi.mock('@/services/pedidos', () => ({
     .mockResolvedValue({ hoy: '2026-10-13', horizonte_dias: 7, items: [] }),
 }))
 
+// El encabezado pide si el Z-tracking de la semana está cargado (`US-23`): sin
+// esto la prueba intentaría salir a la red.
+vi.mock('@/services/cargas', async (original) => ({
+  ...(await original<typeof import('@/services/cargas')>()),
+  obtenerEstadoCargas: vi.fn(() => new Promise(() => undefined)),
+}))
+
 vi.mock('@/services/health', () => ({
   obtenerHealth: vi.fn().mockResolvedValue({
     status: 'ok',

@@ -213,6 +213,20 @@ CATALOGO: Final[dict[str, Parametro]] = {
             "todas las personas que la usan suman al mismo contador."
         ),
     ),
+    # --- Frescura del Z-tracking (`US-23`) ----------------------------------
+    # Reunión con Compras del 22/10/2026: SAP se actualiza los lunes y Compras
+    # carga el Z-tracking en TrackIn a más tardar el martes.
+    "dia_limite_carga": Parametro(
+        clave="dia_limite_carga",
+        defecto=2,
+        tipo_dato="ENTERO",
+        descripcion=(
+            "Último día de la semana para cargar el Z-tracking, de 1 (lunes) a 7 "
+            "(domingo). Hasta ese día, el encabezado recuerda que toca cargar; "
+            "después, avisa que falta la carga de la semana. Acuerdo del 22/10/2026: "
+            "a más tardar el martes (2)."
+        ),
+    ),
     "login_bloqueo_min": Parametro(
         clave="login_bloqueo_min",
         defecto=15,
