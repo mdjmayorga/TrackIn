@@ -1715,7 +1715,7 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `US-61` Cambiar la propia contraseña | ✅ 20/10 |
 > | `US-62` Administrar usuarios | ✅ 21/10 |
 > | `US-55` Alta en ShipsGo desde el sistema | ✅ Construida 26/10. Prueba real con un BL del Excel final |
-> | `US-57` Saldo de créditos (nueva, 06/10) | ✅ Construida 26/10. Falta registrar los 49 créditos como el paquete vigente |
+> | `US-57` Saldo de créditos (nueva, 06/10) | ✅ 26/10. Los 49 créditos de prueba quedaron registrados como el paquete vigente |
 >
 > El diseño del dashboard quedó aprobado por los usuarios clave el 06/10.
 >
@@ -1765,9 +1765,9 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > **26/10: `US-55` construida. Hechas: 112 de 116 h.** Pendiente: `US-57` (4), y la prueba real
 > de `US-55` con un BL del Excel final.
 >
-> **26/10: `US-57` construida. Hechas: 116 de 116 h.** Quedan dos pruebas con datos reales:
-> registrar los 49 créditos de prueba como el paquete vigente y dar de alta 1 o 2 BL del Excel
-> final del Z-tracking (desde el 27/10).
+> **26/10: `US-57` terminada. Hechas: 116 de 116 h.** Compras registró los 49 créditos de
+> prueba como el paquete vigente el 26/10 a las 10:35. Queda una prueba con datos reales: dar
+> de alta 1 o 2 BL del Excel final del Z-tracking (desde el 27/10).
 >
 > **Decisión del 21/10: Compras hace en el detalle del pedido lo mismo que el
 > Administrador.** Las cinco acciones —confirmar desembarco, pasar a proceso aduanal,
@@ -3812,8 +3812,25 @@ cuando se estén agotando, para comprar a tiempo y no dejar embarques sin rastre
 >   Compras y el Administrador. `GET /shipsgo/altas/pendientes` trae el saldo.
 > - **Pruebas:** 19 de backend (`test_creditos.py`) y 2 más en `test_altas_api.py`; 5 de
 >   frontend en `AltasShipsGo.test.tsx` y 4 en `AvisoCreditos.test.tsx`.
-> - **Pendiente con datos reales:** registrar hoy los 49 créditos de prueba (sin vencimiento),
->   y el ~06/11 el paquete de 1 100 con vencimiento a 12 meses y el tope diario nuevo.
+> - **Registrado el 26/10/2026, 10:35:** Compras cargó los 49 créditos de prueba —compra del
+>   23/09/2026, sin vencimiento— como el primer paquete. Desde ese momento descuentan las altas.
+>
+> **Dónde queda y cómo se registra lo próximo** (explicado a Compras el 26/10):
+>
+> - **La información** vive en la tabla `paquetes_creditos`: una fila por compra, la más
+>   reciente es la vigente. No se edita ni se borra: es la historia de lo comprado. El saldo no
+>   se guarda, se calcula cada vez con la auditoría.
+> - **Se consulta** en *Ajustes Z-tracking → Altas en ShipsGo*, sección «Créditos de ShipsGo»
+>   (saldo, usados, datos del paquete). En el panel la franja solo aparece cuando hay que
+>   avisar; con los 49 aparecerá cerca de los 40 usados (80 %). `/health` lo informa en
+>   `creditos_shipsgo`.
+> - **Los créditos nuevos se registran** en la misma pantalla, con «Registrar paquete
+>   comprado». Para la compra de ~06/11: 1 100 créditos, la fecha de compra, vencimiento a 12
+>   meses y el nuevo tope diario de altas (p. ej. 30). Lo que quede de los 49 se suma solo
+>   (1 100 ≥ 50 % de 49); el formulario lo anticipa antes de guardar.
+> - **Lo pueden registrar** Compras y el Administrador. Un registro equivocado no se edita: se
+>   corrige registrando otro, que pasa a ser el vigente. Ojo: un paquete de corrección también
+>   arrastra el saldo si cumple la regla del 50 %.
 
 ---
 
