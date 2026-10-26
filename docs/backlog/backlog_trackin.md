@@ -1714,8 +1714,8 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > | `US-43` Grilla simple y rol `PLANTA` | ✅ 20/10 |
 > | `US-61` Cambiar la propia contraseña | ✅ 20/10 |
 > | `US-62` Administrar usuarios | ✅ 21/10 |
-> | `US-55` Alta en ShipsGo desde el sistema | Pendiente. Prueba real en el sprint, con los 49 créditos que quedan |
-> | `US-57` Saldo de créditos (nueva, 06/10) | Pendiente. Los 49 créditos se registran como el paquete vigente |
+> | `US-55` Alta en ShipsGo desde el sistema | ✅ Construida 26/10. Prueba real con un BL del Excel final |
+> | `US-57` Saldo de créditos (nueva, 06/10) | ✅ Construida 26/10. Falta registrar los 49 créditos como el paquete vigente |
 >
 > El diseño del dashboard quedó aprobado por los usuarios clave el 06/10.
 >
@@ -1764,6 +1764,10 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 >
 > **26/10: `US-55` construida. Hechas: 112 de 116 h.** Pendiente: `US-57` (4), y la prueba real
 > de `US-55` con un BL del Excel final.
+>
+> **26/10: `US-57` construida. Hechas: 116 de 116 h.** Quedan dos pruebas con datos reales:
+> registrar los 49 créditos de prueba como el paquete vigente y dar de alta 1 o 2 BL del Excel
+> final del Z-tracking (desde el 27/10).
 >
 > **Decisión del 21/10: Compras hace en el detalle del pedido lo mismo que el
 > Administrador.** Las cinco acciones —confirmar desembarco, pasar a proceso aduanal,
@@ -3659,7 +3663,7 @@ real que recorre solo el rastreo automático.
 | `alembic check` ve comentarios de columna que el modelo no declara, el índice `ix_pedidos_transito_ausentes` ausente del modelo y el tipo de `sesiones.id` | Que una migración autogenerada borre ese índice | Antes de autogenerar otra migración |
 | El modelo documenta `uq_maestro_destinos_id_via` y el FK compuesto de §2.7, que **no existen** en la base; en cambio hay un índice GIST que el documento desaconseja | Documentación que no describe la base real | Revisión de `TASK-01` |
 | El diccionario y el modelo divergen en `usuarios`, `elementos_rastreados` y `salud_fuentes` (`scripts/check_docs_model.py`) | Documentación desfasada | Junto con la anterior |
-| `altas_maximas_dia` sigue en 5 | Avisaría en días normales con 70–110 embarques al mes | `US-57`, al comprar los créditos |
+| `altas_maximas_dia` sigue en 5 | Avisaría en días normales con 70–110 embarques al mes | Al registrar el paquete de 1 100 (~06/11): el formulario de `US-57` sube el tope en el mismo paso |
 
 ---
 
@@ -3782,6 +3786,34 @@ cuando se estén agotando, para comprar a tiempo y no dejar embarques sin rastre
 > de KPIs y la grilla, centrada en la página**, visible solo para Compras y el Administrador.
 > Además del aviso en `/health` y el log del criterio de arriba, que solo ve quien administra
 > el servidor. Se construye con esta historia.
+
+> **✅ Construida el 26/10/2026.**
+>
+> - **El saldo se calcula, no se guarda.** Tabla nueva `paquetes_creditos` (migración
+>   `0025_paquetes_creditos`): cada compra registrada es una fila y la última es la vigente.
+>   Saldo = lo comprado + lo arrastrado − las altas que costaron crédito desde que se registró,
+>   contadas en la auditoría (`campo_afectado = 'shipsgo_alta'`, el mismo criterio del tope
+>   diario). Las altas que respondieron 409 y las asociaciones manuales no descuentan.
+> - **Niveles:** sin paquete, en orden, por vencer (60 días o menos, con saldo), bajo (80 % o
+>   más consumido), agotado y vencido.
+> - **Arrastre:** al registrar un paquete nuevo se suma lo que quedaba del anterior si la compra
+>   es de al menos el 50 % de aquel y no había vencido. El formulario anticipa si se va a sumar
+>   o no («para arrastrarlos hay que comprar al menos 550»).
+> - **Antes de gastar:** con un paquete registrado, si lo marcado supera el saldo o el paquete
+>   venció, el alta pide marcar «Entiendo que pueden fallar» (409 `requiere_aceptar_saldo` en la
+>   API). Sin paquete registrado no se frena: TrackIn no sabe el saldo.
+> - **Dónde se ve:** la franja del panel (ámbar; roja si se agotó o venció), la sección
+>   «Créditos de ShipsGo» arriba de «Altas en ShipsGo» con el registro de paquetes, el campo
+>   `creditos_shipsgo` de `/health` y un `WARNING` en el log después de cada alta que deja el
+>   saldo bajo, agotado o vencido.
+> - **El tope diario:** el formulario del paquete tiene un campo opcional que sube
+>   `altas_maximas_dia` en la misma transacción.
+> - **API:** `GET /api/v1/shipsgo/creditos` y `POST /api/v1/shipsgo/creditos/paquetes`, para
+>   Compras y el Administrador. `GET /shipsgo/altas/pendientes` trae el saldo.
+> - **Pruebas:** 19 de backend (`test_creditos.py`) y 2 más en `test_altas_api.py`; 5 de
+>   frontend en `AltasShipsGo.test.tsx` y 4 en `AvisoCreditos.test.tsx`.
+> - **Pendiente con datos reales:** registrar hoy los 49 créditos de prueba (sin vencimiento),
+>   y el ~06/11 el paquete de 1 100 con vencimiento a 12 meses y el tope diario nuevo.
 
 ---
 

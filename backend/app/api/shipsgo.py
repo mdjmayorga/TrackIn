@@ -1,4 +1,5 @@
-"""`/api/v1/shipsgo/altas` — dar de alta embarques en ShipsGo desde TrackIn (`US-55`).
+"""`/api/v1/shipsgo` — dar de alta embarques en ShipsGo desde TrackIn (`US-55`) y
+llevar el saldo de créditos (`US-57`).
 
 Lo autorizan Compras y el Administrador (reunión con Compras del 29/09/2026). La
 lista de pendientes es gratis: listar la cuenta y el catálogo de aerolíneas no
@@ -21,13 +22,17 @@ from app.db.session import get_db
 from app.schemas.shipsgo import (
     AltasHechas,
     AltasPendientes,
+    EstadoCreditosOut,
     LineaPendiente,
+    PaqueteCreditosOut,
+    PaqueteNuevo,
     ReferenciaPendiente,
     ResultadoAlta,
+    SaldoInsuficiente,
     SolicitudAltas,
     TopeSuperado,
 )
-from app.services import planificador
+from app.services import creditos, planificador
 from app.services.rastreo import altas, shipsgo_aerolineas, transporte_http
 from app.services.rastreo.indice_shipsgo import clave_referencia, indice_shipsgo
 from app.services.rastreo.shipsgo_aerolineas import CatalogoAerolineas
@@ -89,6 +94,78 @@ def _pendiente(p: altas.Pendiente) -> ReferenciaPendiente:
     )
 
 
+def _creditos(actual: creditos.EstadoCreditos) -> EstadoCreditosOut:
+    paquete = actual.paquete
+    return EstadoCreditosOut(
+        nivel=actual.nivel,
+        mensaje=actual.mensaje,
+        paquete=(
+            PaqueteCreditosOut(
+                cantidad=paquete.cantidad,
+                saldo_arrastrado=paquete.saldo_arrastrado,
+                comprado_en=paquete.comprado_en,
+                vence_en=paquete.vence_en,
+                registrado_en=paquete.registrado_en,
+                registrado_por=paquete.usuario.nombre_completo,
+            )
+            if paquete
+            else None
+        ),
+        disponible=actual.disponible,
+        consumidos=actual.consumidos,
+        saldo=actual.saldo,
+        porcentaje_consumido=actual.porcentaje_consumido,
+        dias_para_vencer=actual.dias_para_vencer,
+        recompra_minima=actual.recompra_minima,
+    )
+
+
+@router.get(
+    "/creditos",
+    response_model=EstadoCreditosOut,
+    summary="Saldo de créditos de ShipsGo",
+    description=(
+        "Lo disponible del paquete vigente menos las altas que costaron desde que se "
+        "registró, y el aviso que corresponde: 80 % consumido, agotado, vencido o a 60 días "
+        "del vencimiento (`US-57`). No consulta ShipsGo."
+    ),
+)
+async def saldo_creditos(
+    _: Annotated[Autenticado, Depends(compras)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> EstadoCreditosOut:
+    return _creditos(await creditos.estado(db))
+
+
+@router.post(
+    "/creditos/paquetes",
+    response_model=EstadoCreditosOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar un paquete de créditos comprado",
+    description=(
+        "Queda como vigente. El saldo del anterior se suma si la compra es de al menos el "
+        "50 % de aquel y no había vencido (condición de ShipsGo del 07/10/2026). Con "
+        "`altas_maximas_dia`, sube el tope diario de altas en el mismo paso."
+    ),
+)
+async def registrar_paquete(
+    datos: PaqueteNuevo,
+    quien: Annotated[Autenticado, Depends(compras)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> EstadoCreditosOut:
+    await creditos.registrar_paquete(
+        db,
+        cantidad=datos.cantidad,
+        comprado_en=datos.comprado_en,
+        vence_en=datos.vence_en,
+        id_usuario=quien.usuario.id,
+        nota=datos.nota,
+        altas_maximas_dia=datos.altas_maximas_dia,
+    )
+    await db.commit()
+    return _creditos(await creditos.estado(db))
+
+
 @router.get(
     "/altas/pendientes",
     response_model=AltasPendientes,
@@ -112,6 +189,7 @@ async def listar_pendientes(
         creditos_necesarios=sum(1 for p in lista if p.ofrecible),
         altas_hoy=await planificador.altas_del_dia(db),
         altas_maximas_dia=politica.altas_maximas_dia,
+        creditos=_creditos(await creditos.estado(db)),
     )
 
 
@@ -124,7 +202,10 @@ async def listar_pendientes(
         "igual al número de referencias, y pasar el tope diario exige `superar_tope`."
     ),
     responses={
-        409: {"model": TopeSuperado, "description": "Pasa del tope diario y no se aceptó."},
+        409: {
+            "model": TopeSuperado | SaldoInsuficiente,
+            "description": "Pasa del tope diario, o el saldo no alcanza, y no se aceptó.",
+        },
         422: {"description": "Una referencia no está pendiente, o el costo no se confirmó."},
         503: {"description": "ShipsGo sin configurar o sin responder."},
     },
@@ -174,10 +255,30 @@ async def dar_de_alta(
             ).model_dump(),
         )
 
+    # `US-57`: con un paquete registrado, se advierte antes de gastar lo que no hay.
+    saldo = await creditos.estado(db)
+    sin_saldo = saldo.paquete is not None and (
+        saldo.nivel in {"VENCIDO", "AGOTADO"} or len(elegidas) > saldo.saldo
+    )
+    if sin_saldo and not solicitud.aceptar_saldo:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=SaldoInsuficiente(
+                detail=(
+                    f"{saldo.mensaje} Estas altas necesitan {len(elegidas)} y el saldo "
+                    f"registrado es {max(saldo.saldo, 0)}. Confirme si quiere seguir igual."
+                ),
+                saldo=saldo.saldo,
+                nivel=saldo.nivel,
+            ).model_dump(),
+        )
+
     hechos = await altas.dar_de_alta(
         db, cliente, elegidas, id_usuario=quien.usuario.id, catalogo=catalogo
     )
     await db.commit()
+    # Lo dice el log si después de estas altas el saldo pide atención (`US-57`).
+    await creditos.avisar_en_log(db)
     return AltasHechas(
         resultados=[
             ResultadoAlta(

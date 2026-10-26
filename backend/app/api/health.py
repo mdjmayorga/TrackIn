@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import get_db
+from app.services import creditos
 from app.services.ingesta import obtener_fuente
 from app.services.salud_fuentes import leer_resumen
 from app.services.salud_fuentes import registro as registro_salud
@@ -40,6 +41,13 @@ class HealthResponse(BaseModel):
             "Fuente de pedidos configurada, o null si no hay ninguna. Que sea "
             "null no degrada el servicio: es un estado válido y visible "
             "mientras la carga no esté conectada (TASK-03)."
+        ),
+    )
+    creditos_shipsgo: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Nivel y saldo de los créditos de ShipsGo (`US-57`). Avisa al 80 % consumido, sin "
+            "saldo, vencido o a 60 días del vencimiento. Nulo si no se pudo leer."
         ),
     )
     fuentes: list[dict[str, Any]] = Field(
@@ -111,6 +119,16 @@ async def health_check(db: Annotated[AsyncSession, Depends(get_db)]) -> HealthRe
         logger.warning("Health check: no se pudo leer salud_fuentes: %s", exc)
         await db.rollback()
 
+    # Como las fuentes, se informa sin entrar en `status`: quedarse sin créditos
+    # no tumba el servicio, pero tiene que verse (`US-57`).
+    resumen_creditos: dict[str, Any] | None = None
+    try:
+        saldo = await creditos.estado(db)
+        resumen_creditos = {"nivel": saldo.nivel, "saldo": saldo.saldo, "mensaje": saldo.mensaje}
+    except Exception as exc:
+        logger.warning("Health check: no se pudo leer el saldo de créditos: %s", exc)
+        await db.rollback()
+
     return HealthResponse(
         status="ok",
         version=settings.VERSION,
@@ -118,5 +136,6 @@ async def health_check(db: Annotated[AsyncSession, Depends(get_db)]) -> HealthRe
         database="up",
         postgis=str(postgis_version),
         ingesta=nombre_fuente,
+        creditos_shipsgo=resumen_creditos,
         fuentes=fuentes_externas,
     )

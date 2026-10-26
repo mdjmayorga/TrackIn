@@ -8,8 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ContextoSesion } from '@/auth/contexto'
 import type { SesionGuardada } from '@/auth/sesion'
 import AltasShipsGo from '@/pages/AltasShipsGo'
-import { darDeAltaEnShipsGo, obtenerAltasPendientes } from '@/services/shipsgo'
-import type { AltasPendientes, ReferenciaPendiente, Rol } from '@/types/api'
+import { darDeAltaEnShipsGo, obtenerAltasPendientes, registrarPaquete } from '@/services/shipsgo'
+import type { AltasPendientes, EstadoCreditos, ReferenciaPendiente, Rol } from '@/types/api'
 
 import { USUARIO } from './sesion.test'
 
@@ -17,6 +17,7 @@ vi.mock('@/services/shipsgo', async (original) => ({
   ...(await original<typeof import('@/services/shipsgo')>()),
   obtenerAltasPendientes: vi.fn(),
   darDeAltaEnShipsGo: vi.fn(),
+  registrarPaquete: vi.fn(),
 }))
 
 function ref(cambios: Partial<ReferenciaPendiente> = {}): ReferenciaPendiente {
@@ -52,12 +53,35 @@ const SIN_COBERTURA = ref({
   ofrecible: false,
 })
 
+function saldo(cambios: Partial<EstadoCreditos> = {}): EstadoCreditos {
+  return {
+    nivel: 'OK',
+    mensaje: 'Quedan 40 de 49 créditos de ShipsGo.',
+    paquete: {
+      cantidad: 49,
+      saldo_arrastrado: 0,
+      comprado_en: '2026-09-23',
+      vence_en: null,
+      registrado_en: '2026-10-26T15:00:00Z',
+      registrado_por: 'Compras',
+    },
+    disponible: 49,
+    consumidos: 9,
+    saldo: 40,
+    porcentaje_consumido: 9 / 49,
+    dias_para_vencer: null,
+    recompra_minima: 25,
+    ...cambios,
+  }
+}
+
 function datos(cambios: Partial<AltasPendientes> = {}): AltasPendientes {
   return {
     pendientes: [ref(), MAWB, SIN_COBERTURA],
     creditos_necesarios: 2,
     altas_hoy: 0,
     altas_maximas_dia: 5,
+    creditos: saldo(),
     ...cambios,
   }
 }
@@ -91,6 +115,7 @@ afterEach(() => {
   vi.restoreAllMocks()
   vi.mocked(obtenerAltasPendientes).mockReset()
   vi.mocked(darDeAltaEnShipsGo).mockReset()
+  vi.mocked(registrarPaquete).mockReset()
 })
 
 describe('Altas en ShipsGo (US-55)', () => {
@@ -169,6 +194,7 @@ describe('Altas en ShipsGo (US-55)', () => {
       ],
       creditos_confirmados: 2,
       superar_tope: false,
+      aceptar_saldo: false,
     })
     expect(await screen.findByRole('status', { name: 'Resultado de las altas' })).toHaveTextContent(
       'Altas hechas: 2 de 2. Créditos gastados: 2.',
@@ -233,5 +259,94 @@ describe('Altas en ShipsGo (US-55)', () => {
     montar()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('falta SHIPSGO_API_TOKEN')
+  })
+})
+
+describe('Créditos de ShipsGo (US-57)', () => {
+  it('muestra el saldo del paquete vigente', async () => {
+    vi.mocked(obtenerAltasPendientes).mockResolvedValue(datos())
+    montar()
+
+    const seccion = within(await screen.findByRole('region', { name: 'Créditos de ShipsGo' }))
+    expect(seccion.getByText(/de 49 disponibles · 9 usados/)).toBeInTheDocument()
+    expect(seccion.getByText(/sin vencimiento/)).toBeInTheDocument()
+    // Con el saldo en orden no hay aviso.
+    expect(seccion.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('si el saldo no alcanza, exige aceptarlo antes de gastar', async () => {
+    vi.mocked(obtenerAltasPendientes).mockResolvedValue(
+      datos({ creditos: saldo({ nivel: 'BAJO', saldo: 1, consumidos: 48 }) }),
+    )
+    vi.mocked(darDeAltaEnShipsGo).mockResolvedValue({ resultados: [], creditos_consumidos: 0 })
+    montar()
+
+    const boton = await screen.findByRole('button', { name: 'Dar de alta (2 créditos)' })
+    expect(boton).toBeDisabled()
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: /El saldo registrado es 1 y estas altas necesitan 2/ }),
+    )
+    await userEvent.click(boton)
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar: gastar 2 créditos' }))
+
+    expect(vi.mocked(darDeAltaEnShipsGo).mock.calls[0][0].aceptar_saldo).toBe(true)
+  })
+
+  it('sin paquete registrado no frena el alta, y pide registrarlo', async () => {
+    vi.mocked(obtenerAltasPendientes).mockResolvedValue(
+      datos({
+        creditos: saldo({
+          nivel: 'SIN_PAQUETE',
+          mensaje: 'No hay un paquete de créditos de ShipsGo registrado.',
+          paquete: null,
+          disponible: 0,
+          consumidos: 0,
+          saldo: 0,
+          recompra_minima: null,
+        }),
+      }),
+    )
+    montar()
+
+    expect(await screen.findByRole('button', { name: 'Dar de alta (2 créditos)' })).toBeEnabled()
+    expect(screen.getByRole('status')).toHaveTextContent('No hay un paquete')
+  })
+
+  it('registra un paquete y anticipa si se arrastra el saldo', async () => {
+    vi.mocked(obtenerAltasPendientes).mockResolvedValue(datos())
+    vi.mocked(registrarPaquete).mockResolvedValue(saldo())
+    montar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Registrar paquete comprado' }))
+    const formulario = within(screen.getByRole('form', { name: 'Registrar paquete comprado' }))
+    await userEvent.type(formulario.getByLabelText('Créditos comprados'), '1100')
+    await userEvent.clear(formulario.getByLabelText('Fecha de compra'))
+    await userEvent.type(formulario.getByLabelText('Fecha de compra'), '2026-11-06')
+    await userEvent.type(formulario.getByLabelText(/^Vence/), '2027-11-06')
+    await userEvent.type(formulario.getByLabelText(/^Nuevo tope diario/), '30')
+
+    expect(
+      formulario.getByText('Se suman los 40 que quedan: el paquete nuevo arranca con 1140.'),
+    ).toBeInTheDocument()
+
+    await userEvent.click(formulario.getByRole('button', { name: 'Registrar' }))
+
+    expect(registrarPaquete).toHaveBeenCalledWith({
+      cantidad: 1100,
+      comprado_en: '2026-11-06',
+      vence_en: '2027-11-06',
+      altas_maximas_dia: 30,
+      nota: null,
+    })
+  })
+
+  it('una recompra chica avisa que el saldo no se arrastra', async () => {
+    vi.mocked(obtenerAltasPendientes).mockResolvedValue(datos())
+    montar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Registrar paquete comprado' }))
+    await userEvent.type(screen.getByLabelText('Créditos comprados'), '20')
+
+    expect(screen.getByText(/hay que comprar al menos 25/)).toBeInTheDocument()
   })
 })

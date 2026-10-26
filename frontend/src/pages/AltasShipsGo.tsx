@@ -14,19 +14,33 @@
  *
  * Desde el detalle de un pedido se llega con `?ref=<número>`: entonces viene
  * marcada solo esa referencia.
+ *
+ * **Créditos (`US-57`).** Arriba, el saldo del paquete vigente y el registro de
+ * cada compra. Con un paquete registrado, si lo marcado no alcanza con el saldo
+ * —o el paquete venció— hay que aceptarlo antes de gastar: el saldo es el que
+ * lleva TrackIn y puede no coincidir con el de ShipsGo.
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 
 import { puedeCargar } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { mensajeDeError } from '@/services/api'
-import { comoTopeSuperado, darDeAltaEnShipsGo, obtenerAltasPendientes } from '@/services/shipsgo'
-import type { AltasHechas, AltasPendientes, ReferenciaPendiente } from '@/types/api'
+import {
+  comoSaldoInsuficiente,
+  comoTopeSuperado,
+  darDeAltaEnShipsGo,
+  obtenerAltasPendientes,
+  registrarPaquete,
+} from '@/services/shipsgo'
+import type { AltasHechas, AltasPendientes, EstadoCreditos, ReferenciaPendiente } from '@/types/api'
+import { formatearFecha, formatearFechaHora } from '@/utils/fechas'
 
 const CLAVE = ['shipsgo', 'altas-pendientes']
+/** La del aviso del panel (`AvisoCreditos`): registrar o dar de alta la refresca. */
+const CLAVE_CREDITOS = ['shipsgo', 'creditos']
 
 const TIPOS: Record<string, string> = {
   BL: 'BL',
@@ -83,6 +97,7 @@ function Contenido() {
   }
   return (
     <>
+      <SeccionCreditos estado={data.creditos} />
       {hechas && <Resultados hechas={hechas} />}
       {data.pendientes.length === 0 ? (
         <p className="rounded border border-panel-borde bg-panel-superficie px-4 py-6 text-center text-slate-300">
@@ -112,9 +127,15 @@ function Seleccion({
   )
   const [confirmando, setConfirmando] = useState(false)
   const [superarTope, setSuperarTope] = useState(false)
+  const [aceptarSaldo, setAceptarSaldo] = useState(false)
 
   const n = elegidas.size
   const pasaTope = datos.altas_hoy + n > datos.altas_maximas_dia
+  const saldo = datos.creditos
+  // Sin paquete registrado no se sabe el saldo: no se frena por él (`US-57`).
+  const faltaSaldo =
+    saldo.paquete !== null &&
+    (saldo.nivel === 'AGOTADO' || saldo.nivel === 'VENCIDO' || n > saldo.saldo)
 
   const alta = useMutation({
     mutationFn: () =>
@@ -124,16 +145,19 @@ function Seleccion({
           .map((p) => ({ tipo: p.tipo, numero: p.numero })),
         creditos_confirmados: n,
         superar_tope: superarTope,
+        aceptar_saldo: aceptarSaldo,
       }),
     onSuccess: (hechas) => {
       onHechas(hechas)
       setConfirmando(false)
       void queryClient.invalidateQueries({ queryKey: CLAVE })
+      void queryClient.invalidateQueries({ queryKey: CLAVE_CREDITOS })
       // El rastreo empieza en el próximo ciclo del worker: el panel se refresca.
       void queryClient.invalidateQueries({ queryKey: ['pedidos'] })
     },
   })
   const tope = comoTopeSuperado(alta.error)
+  const sinSaldo = comoSaldoInsuficiente(alta.error)
 
   function alternar(numero: string) {
     setConfirmando(false)
@@ -145,7 +169,8 @@ function Seleccion({
     })
   }
 
-  const listo = n > 0 && (!pasaTope || superarTope) && !alta.isPending
+  const listo =
+    n > 0 && (!pasaTope || superarTope) && (!faltaSaldo || aceptarSaldo) && !alta.isPending
 
   return (
     <section aria-labelledby="titulo-pendientes" className="space-y-4">
@@ -198,6 +223,22 @@ function Seleccion({
             ? 'No hay ninguna referencia marcada.'
             : `${n} ${n === 1 ? 'referencia marcada' : 'referencias marcadas'}: ${creditos(n)}.`}
         </p>
+        {faltaSaldo && n > 0 && (
+          <label className="flex items-start gap-2 text-sm text-red-100">
+            <input
+              type="checkbox"
+              checked={aceptarSaldo}
+              onChange={(e) => setAceptarSaldo(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              {saldo.nivel === 'VENCIDO'
+                ? 'El paquete de créditos venció.'
+                : `El saldo registrado es ${Math.max(saldo.saldo, 0)} y estas altas necesitan ${n}.`}{' '}
+              Entiendo que pueden fallar si ShipsGo no tiene créditos.
+            </span>
+          </label>
+        )}
         {pasaTope && n > 0 && (
           <label className="flex items-start gap-2 text-sm text-amber-100">
             <input
@@ -249,7 +290,7 @@ function Seleccion({
 
         {alta.isError && (
           <p role="alert" className="rounded bg-red-900/60 px-3 py-2 text-sm text-red-100">
-            {tope ? tope.detail : mensajeDeError(alta.error)}
+            {tope?.detail ?? sinSaldo?.detail ?? mensajeDeError(alta.error)}
           </p>
         )}
       </div>
@@ -334,5 +375,222 @@ function Resultados({ hechas }: { hechas: AltasHechas }) {
         </ul>
       )}
     </section>
+  )
+}
+
+// --- Créditos (`US-57`) ----------------------------------------------------------------
+
+function hoyCostaRica(): string {
+  // `en-CA` da `AAAA-MM-DD`, el formato de un `<input type="date">`.
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date())
+}
+
+function SeccionCreditos({ estado }: { estado: EstadoCreditos }) {
+  const [registrando, setRegistrando] = useState(false)
+  const p = estado.paquete
+  const atencion = estado.nivel !== 'OK'
+  const urgente = estado.nivel === 'AGOTADO' || estado.nivel === 'VENCIDO'
+
+  return (
+    <section
+      aria-labelledby="titulo-creditos"
+      className="space-y-3 rounded border border-panel-borde bg-panel-superficie p-4"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="titulo-creditos" className="text-lg font-semibold">
+          Créditos de ShipsGo
+        </h2>
+        {!registrando && (
+          <button
+            type="button"
+            onClick={() => setRegistrando(true)}
+            className="rounded bg-panel-cabecera px-3 py-1.5 text-sm hover:bg-slate-600"
+          >
+            Registrar paquete comprado
+          </button>
+        )}
+      </div>
+
+      {p ? (
+        <>
+          <p className="text-2xl font-semibold">
+            {estado.saldo}{' '}
+            <span className="text-sm font-normal text-slate-400">
+              de {estado.disponible} disponibles · {estado.consumidos} usados
+            </span>
+          </p>
+          <p className="text-xs text-slate-400">
+            Paquete vigente: {p.cantidad} créditos
+            {p.saldo_arrastrado > 0 && ` + ${p.saldo_arrastrado} arrastrados`}, comprado el{' '}
+            {formatearFecha(p.comprado_en)},{' '}
+            {p.vence_en ? `vence el ${formatearFecha(p.vence_en)}` : 'sin vencimiento'}. Registrado
+            por {p.registrado_por} el {formatearFechaHora(p.registrado_en)}.
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-slate-300">
+          Registre como paquete vigente los créditos que tiene hoy la cuenta: los de prueba no
+          vencen.
+        </p>
+      )}
+
+      {atencion && (
+        <p
+          role={urgente ? 'alert' : 'status'}
+          className={`rounded px-3 py-2 text-sm ${
+            urgente ? 'bg-red-900/60 text-red-100' : 'bg-amber-900/50 text-amber-100'
+          }`}
+        >
+          {estado.mensaje}
+        </p>
+      )}
+
+      {registrando && <FormularioPaquete estado={estado} onListo={() => setRegistrando(false)} />}
+    </section>
+  )
+}
+
+function FormularioPaquete({ estado, onListo }: { estado: EstadoCreditos; onListo: () => void }) {
+  const queryClient = useQueryClient()
+  const [cantidad, setCantidad] = useState('')
+  const [compradoEn, setCompradoEn] = useState(hoyCostaRica())
+  const [venceEn, setVenceEn] = useState('')
+  const [tope, setTope] = useState('')
+  const [nota, setNota] = useState('')
+
+  const registro = useMutation({
+    mutationFn: () =>
+      registrarPaquete({
+        cantidad: Number(cantidad),
+        comprado_en: compradoEn,
+        vence_en: venceEn || null,
+        altas_maximas_dia: tope ? Number(tope) : null,
+        nota: nota.trim() || null,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: CLAVE })
+      void queryClient.invalidateQueries({ queryKey: CLAVE_CREDITOS })
+      onListo()
+    },
+  })
+
+  const n = Number(cantidad)
+  const valido =
+    Number.isInteger(n) && n > 0 && compradoEn !== '' && (!venceEn || venceEn >= compradoEn)
+
+  // Lo que pasaría con el saldo actual (condición de ShipsGo del 07/10/2026).
+  const p = estado.paquete
+  let arrastre: string | null = null
+  if (p && estado.saldo > 0 && valido) {
+    const vencido = p.vence_en !== null && p.vence_en < compradoEn
+    const minima = estado.recompra_minima ?? 0
+    arrastre = vencido
+      ? `Los ${estado.saldo} créditos que quedan no se suman: el paquete vigente ya habrá vencido.`
+      : n >= minima
+        ? `Se suman los ${estado.saldo} que quedan: el paquete nuevo arranca con ${n + estado.saldo}.`
+        : `Los ${estado.saldo} que quedan no se suman: para arrastrarlos hay que comprar al menos ${minima}.`
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (valido && !registro.isPending) registro.mutate()
+      }}
+      aria-label="Registrar paquete comprado"
+      className="grid max-w-3xl gap-3 border-t border-panel-borde pt-3 sm:grid-cols-2"
+    >
+      <Campo etiqueta="Créditos comprados">
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={cantidad}
+          onChange={(e) => setCantidad(e.target.value)}
+          className={ESTILO_CAMPO}
+        />
+      </Campo>
+      <Campo etiqueta="Fecha de compra">
+        <input
+          type="date"
+          value={compradoEn}
+          onChange={(e) => setCompradoEn(e.target.value)}
+          className={ESTILO_CAMPO}
+        />
+      </Campo>
+      <Campo etiqueta="Vence (opcional)" ayuda="Vacío si no vence.">
+        <input
+          type="date"
+          value={venceEn}
+          min={compradoEn}
+          onChange={(e) => setVenceEn(e.target.value)}
+          className={ESTILO_CAMPO}
+        />
+      </Campo>
+      <Campo
+        etiqueta="Nuevo tope diario de altas (opcional)"
+        ayuda="Con el paquete anual conviene subirlo: la carga semanal trae 20 a 25."
+      >
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={tope}
+          onChange={(e) => setTope(e.target.value)}
+          className={ESTILO_CAMPO}
+        />
+      </Campo>
+      <div className="sm:col-span-2">
+        <Campo etiqueta="Nota (opcional)">
+          <input
+            value={nota}
+            maxLength={300}
+            onChange={(e) => setNota(e.target.value)}
+            className={ESTILO_CAMPO}
+          />
+        </Campo>
+      </div>
+      <div className="space-y-3 sm:col-span-2">
+        {arrastre && <p className="text-sm text-slate-300">{arrastre}</p>}
+        {registro.isError && (
+          <p role="alert" className="rounded bg-red-900/60 px-3 py-2 text-sm text-red-100">
+            {mensajeDeError(registro.error)}
+          </p>
+        )}
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={!valido || registro.isPending}
+            className="rounded bg-white px-4 py-1.5 text-sm font-semibold text-slate-900 hover:bg-slate-200 disabled:opacity-50"
+          >
+            {registro.isPending ? 'Guardando…' : 'Registrar'}
+          </button>
+          <button type="button" onClick={onListo} className="text-sm text-slate-300 underline">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </form>
+  )
+}
+
+const ESTILO_CAMPO =
+  'mt-0.5 w-full rounded bg-panel-cabecera px-2 py-1.5 text-sm text-white [color-scheme:dark]'
+
+function Campo({
+  etiqueta,
+  ayuda,
+  children,
+}: {
+  etiqueta: string
+  ayuda?: string
+  children: ReactNode
+}) {
+  return (
+    <label className="block text-xs text-slate-300">
+      {etiqueta}
+      {children}
+      {ayuda && <span className="mt-0.5 block text-slate-500">{ayuda}</span>}
+    </label>
   )
 }

@@ -23,6 +23,7 @@ from app.models.historial_tracking import HistorialTracking
 from app.models.maestro_destino import MaestroDestino
 from app.models.maestro_pais import AliasPais, MaestroPais
 from app.models.material import Material
+from app.models.paquete_creditos import PaqueteCreditos
 from app.models.parametro_sistema import ParametroSistema
 from app.models.pedido_elemento_rastreado import PedidoElementoRastreado
 from app.models.pedido_transito import PedidoTransito
@@ -42,6 +43,7 @@ __all__ = [
     "Material",
     "ParametroSistema",
     "PedidoElementoRastreado",
+    "PaqueteCreditos",
     "PedidoTransito",
     "Proveedor",
     "SaludFuente",

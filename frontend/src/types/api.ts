@@ -316,12 +316,38 @@ export interface ReferenciaPendiente {
   ofrecible: boolean
 }
 
+/** El saldo de créditos de ShipsGo (`GET /api/v1/shipsgo/creditos`, `US-57`). */
+export interface EstadoCreditos {
+  nivel: 'SIN_PAQUETE' | 'OK' | 'POR_VENCER' | 'BAJO' | 'AGOTADO' | 'VENCIDO'
+  mensaje: string
+  paquete: {
+    cantidad: number
+    /** Lo que se sumó del paquete anterior. */
+    saldo_arrastrado: number
+    /** `AAAA-MM-DD`. */
+    comprado_en: string
+    vence_en: string | null
+    registrado_en: string
+    registrado_por: string
+  } | null
+  /** Lo comprado más lo arrastrado. */
+  disponible: number
+  consumidos: number
+  saldo: number
+  porcentaje_consumido: number | null
+  dias_para_vencer: number | null
+  /** Lo mínimo que hay que comprar para arrastrar el saldo (50 % del paquete). */
+  recompra_minima: number | null
+}
+
 export interface AltasPendientes {
   pendientes: ReferenciaPendiente[]
   creditos_necesarios: number
   /** Altas que ya costaron crédito hoy, en hora de Costa Rica. */
   altas_hoy: number
   altas_maximas_dia: number
+  /** El saldo, para advertir antes de gastar (`US-57`). */
+  creditos: EstadoCreditos
 }
 
 export interface ResultadoAltaShipsGo {

@@ -28,6 +28,7 @@ from app.models.auditoria_intervencion import AuditoriaIntervencion
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
+from app.models.paquete_creditos import PaqueteCreditos
 from app.models.parametro_sistema import ParametroSistema
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
@@ -404,3 +405,49 @@ async def test_sin_token_de_shipsgo_lo_dice(api, monkeypatch) -> None:
 
     assert respuesta.status_code == 503
     assert "SHIPSGO_API_TOKEN" in respuesta.json()["detail"]
+
+
+# --- US-57: el saldo, antes de gastar ----------------------------------------------
+
+
+async def test_si_el_saldo_registrado_no_alcanza_pide_aceptarlo_antes(api, sesion, compras) -> None:
+    from app.services import creditos
+
+    cliente, falso = api
+    await _escenario(sesion)
+    await sesion.execute(delete(PaqueteCreditos))
+    await creditos.registrar_paquete(
+        sesion, cantidad=1, comprado_en=dt.date(2026, 9, 23), vence_en=None, id_usuario=compras.id
+    )
+    pedido = {
+        "referencias": [{"tipo": "BL", "numero": BL}, {"tipo": "MAWB", "numero": MAWB_LUFTHANSA}],
+        "creditos_confirmados": 2,
+        "superar_tope": True,
+    }
+
+    pendientes = (await cliente.get(f"{URL}/pendientes")).json()
+    sin_aceptar = await cliente.post(URL, json=pedido)
+
+    assert pendientes["creditos"]["saldo"] == 1
+    assert sin_aceptar.status_code == 409
+    assert sin_aceptar.json()["requiere_aceptar_saldo"] is True
+    assert falso.altas == []
+
+    aceptado = await cliente.post(URL, json={**pedido, "aceptar_saldo": True})
+
+    assert aceptado.status_code == 200
+    assert len(falso.altas) == 2
+
+
+async def test_sin_paquete_registrado_no_se_frena_el_alta(api, sesion) -> None:
+    """Sin paquete, TrackIn no sabe el saldo: no puede negar por él."""
+    cliente, falso = api
+    await _escenario(sesion)
+    await sesion.execute(delete(PaqueteCreditos))
+
+    respuesta = await cliente.post(
+        URL, json={"referencias": [{"tipo": "BL", "numero": BL}], "creditos_confirmados": 1}
+    )
+
+    assert respuesta.status_code == 200
+    assert len(falso.altas) == 1
