@@ -488,3 +488,38 @@ describe('servicio', () => {
     })
   })
 })
+
+describe('dar de alta en ShipsGo desde el detalle (US-55)', () => {
+  const PENDIENTE = (base: PedidoDetalle): Partial<PedidoDetalle> => ({
+    rastreo: {
+      ...base.rastreo!,
+      tipo: 'BL',
+      referencia: 'COSU6508789000',
+      ultima_consulta_exitosa: null,
+    },
+  })
+
+  it('una referencia de ShipsGo que nunca respondió ofrece el alta a Compras', async () => {
+    vi.mocked(obtenerPedido).mockResolvedValue(detalle(PENDIENTE(detalle())))
+    montar('COMPRAS')
+
+    expect(await screen.findByRole('link', { name: 'Dar de alta en ShipsGo' })).toHaveAttribute(
+      'href',
+      '/shipsgo/altas?ref=COSU6508789000',
+    )
+  })
+
+  it('a Logística no, y a una referencia que ya responde tampoco', async () => {
+    vi.mocked(obtenerPedido).mockResolvedValue(detalle(PENDIENTE(detalle())))
+    montar('LOGISTICA')
+    await screen.findByText(/COSU6508789000/)
+    expect(screen.queryByRole('link', { name: 'Dar de alta en ShipsGo' })).toBeNull()
+  })
+
+  it('con la referencia ya en ShipsGo no se ofrece', async () => {
+    vi.mocked(obtenerPedido).mockResolvedValue(detalle())
+    montar('COMPRAS')
+    await screen.findByText(/MEDU1234567/)
+    expect(screen.queryByRole('link', { name: 'Dar de alta en ShipsGo' })).toBeNull()
+  })
+})

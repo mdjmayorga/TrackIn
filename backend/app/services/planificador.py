@@ -311,22 +311,34 @@ async def planificar(
 # --- Lo que sí cuesta dinero: las altas ------------------------------------
 
 
+#: Costa Rica no cambia de hora: UTC-6 todo el año. El día de las altas es el de
+#: quien las hace, no el del servidor.
+_ZONA_CR = dt.timezone(dt.timedelta(hours=-6), "America/Costa_Rica")
+
+
 async def altas_del_dia(sesion: AsyncSession, instante: dt.datetime | None = None) -> int:
-    """Cuántos embarques se dieron de alta hoy, según la auditoría de RF-14.
+    """Cuántos embarques **que costaron un crédito** se dieron de alta hoy, según
+    la auditoría de RF-14.
 
     Se cuenta desde `auditoria_intervenciones` y no desde un contador en
     memoria: el gasto tiene que sobrevivir a un reinicio, porque es dinero.
+
+    Corregido el 26/10/2026 (`US-55`): contaba también las asociaciones manuales
+    de referencias y las altas que ShipsGo no cobró, que comparten el tipo
+    `ASOCIACION_TRACKING`, y cortaba el día a medianoche UTC, que en Costa Rica
+    son las seis de la tarde.
     """
     from app.models.auditoria_intervencion import AuditoriaIntervencion
-    from app.services.rastreo.registro_embarque import TIPO_INTERVENCION
+    from app.services.rastreo.registro_embarque import CAMPO_ALTA_CON_CREDITO, TIPO_INTERVENCION
 
-    ahora = instante or dt.datetime.now(dt.UTC)
+    ahora = (instante or dt.datetime.now(dt.UTC)).astimezone(_ZONA_CR)
     desde = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
     total = await sesion.scalar(
         select(func.count())
         .select_from(AuditoriaIntervencion)
         .where(
             AuditoriaIntervencion.tipo_intervencion == TIPO_INTERVENCION,
+            AuditoriaIntervencion.campo_afectado == CAMPO_ALTA_CON_CREDITO,
             AuditoriaIntervencion.fecha_hora >= desde,
         )
     )

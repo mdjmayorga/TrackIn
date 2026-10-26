@@ -102,7 +102,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-52` | Tomar de ShipsGo el puerto que el archivo no dice, y la referencia del comentario | Story | OE2 | **Should** | Sprint 4 | 5h | RF-01 / RN-17 · ✅ terminada 28/09 |
 | `US-53` | Medir el cumplimiento contra la fecha de llegada a Gutis (columna R) | Story | OE2 | **Must** | Sprint 5 | 3h | Reunión con Compras 29/09 · revierte la decisión 2 del 04/09 · ✅ terminada 29/09 |
 | `US-54` | Tomar el puerto de llegada del API aunque el incoterm diga otro | Story | OE2 | **Should** | Sprint 5 | 3h | Reunión con Compras 29/09 · amplía `US-52` · ✅ terminada 29/09 |
-| `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · hoy solo por script |
+| `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras ✅ | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · una o en bloque, con confirmación del costo · ✅ construida 26/10, falta la prueba real con un BL del Excel final |
 | `US-57` | Saldo de créditos de ShipsGo y aviso antes de que se agoten | Story | OE2 | **Should** | Sprint 6 | 4h | Acuerdo del 06/10: compra anual de créditos |
 | `US-56` | ~~Leer los pedidos del Z-tracking desde la API de SAP~~ ❌ | Story | OE2 | — | — | — | **Cancelada el 07/10:** la API de SAP no va a existir. La reemplaza `US-58` |
 | `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga ✅ | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada · ✅ terminada 08/10 |
@@ -1762,6 +1762,9 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 >
 > **26/10: `US-63` terminada. Hechas: 106 de 116 h.** Pendientes: `US-55` (6) y `US-57` (4).
 >
+> **26/10: `US-55` construida. Hechas: 112 de 116 h.** Pendiente: `US-57` (4), y la prueba real
+> de `US-55` con un BL del Excel final.
+>
 > **Decisión del 21/10: Compras hace en el detalle del pedido lo mismo que el
 > Administrador.** Las cinco acciones —confirmar desembarco, pasar a proceso aduanal,
 > registrar la recepción (también con cierre forzado), registrar la liberación de Calidad y
@@ -2273,8 +2276,9 @@ Como usuario, quiero saber de cuando son los datos que estoy viendo, para juzgar
 > Backend: 1 335 pruebas. Frontend: 256 pruebas, 95,6 %.
 
 > **Ajuste del 26/10/2026: «Ajustes Z-tracking».** La última carga y el aviso salen del
-> encabezado y pasan a un botón propio, con el mismo estilo que «Arribos pendientes», junto a
-> «Configuración». Al abrirlo: el estado de la carga de la semana, la última carga y quién la
+> encabezado y pasan a un botón propio, con el mismo estilo que «Arribos pendientes», en la
+> esquina superior derecha, bajo la insignia de ShipsGo (movido ahí el mismo 26/10; antes junto a
+> «Configuración»). Al abrirlo: el estado de la carga de la semana, la última carga y quién la
 > hizo, y el enlace a «Cargar Z-tracking» (Compras y Administrador) o al «Historial de cargas»
 > (los demás). **La burbuja avisa sin abrir el menú**, con el color de la urgencia: naranja
 > —el de «En Riesgo»— cuando toca cargar o nunca se cargó, roja —el de «Retrasado»— cuando la
@@ -2282,6 +2286,12 @@ Como usuario, quiero saber de cuando son los datos que estoy viendo, para juzgar
 > Configuración para que todo lo del archivo quede en un solo lugar; Planta no ve el botón,
 > porque su pantalla no carga. Bajo la insignia de ShipsGo queda solo la última consulta a
 > ShipsGo. Frontend: 259 pruebas, 95,7 %.
+>
+> **Orden final del encabezado, 26/10.** A la izquierda queda solo «Configuración». La
+> columna derecha, de arriba abajo: la insignia de ShipsGo, «Arribos pendientes» (`US-48`) y
+> «Ajustes Z-tracking». **La última consulta a ShipsGo ya no ocupa una línea:** se lee al
+> pasar el cursor por la insignia, en su texto emergente, junto al motivo si la fuente falla.
+> La insignia se puede enfocar con el teclado para leerlo. Frontend: 264 pruebas.
 
 #### US-24 — Aplicar el semáforo de estados de forma consistente
 
@@ -4237,6 +4247,41 @@ empezar a rastrearlo sin pedírselo a Planificación.
 | Origen | Reunión con Compras, 29/09/2026: hay presupuesto y las altas las autorizan ellos |
 | Depende de | `US-42` (roles) |
 | Verificación real | En el Sprint 6, con uno o dos de los 49 créditos que quedan, sobre pedidos reales en tránsito. Las pruebas automáticas, con ShipsGo simulado |
+
+> **✅ Construida el 26/10/2026.** «Altas en ShipsGo» (`/shipsgo/altas`), para Compras y el
+> Administrador. Se llega desde «Ajustes Z-tracking», desde «Cargar Z-tracking» y desde el
+> detalle de un pedido cuya referencia nunca respondió («Dar de alta en ShipsGo», que la trae
+> marcada sola).
+>
+> - **Lo pendiente** (`GET /api/v1/shipsgo/altas/pendientes`, **gratis**): las referencias de
+>   pedidos activos que no están en la cuenta, **agrupadas por referencia** —un BL de tres OC
+>   es un crédito—, con las líneas que la comparten. Para una MAWB, el catálogo de aerolíneas
+>   dice si se cubre; si no, se muestra pero no se ofrece. Probado contra la cuenta real el
+>   26/10: 6 embarques, 209 aerolíneas, nada pendiente en `trackin_dev`.
+> - **El alta en bloque** (`POST /api/v1/shipsgo/altas`): todo lo ofrecible viene marcado, para
+>   la carga semanal. **Nada se gasta sin dos pasos:** elegir, y confirmar «Se van a gastar N
+>   créditos». El backend exige además que `creditos_confirmados` coincida y que todo lo pedido
+>   esté pendiente: no se paga por algo ya registrado, sin aerolínea o que ningún pedido usa.
+> - **El tope diario** (`altas_maximas_dia`): si el bloque lo pasa, la pantalla pide marcar
+>   «Entiendo que lo supero» y el backend responde 409 sin esa aceptación. Con la carga semanal
+>   (~20 a 25 altas) va a pasar cada martes; es un aviso, no un bloqueo.
+> - **Auditado** en el primer pedido de cada referencia, con quién y el costo (RF-14). Un alta
+>   que falla no detiene las demás.
+>
+> **Corregido de paso: el contador de altas del día** (`planificador.altas_del_dia`) contaba
+> también las asociaciones manuales de referencias (`US-20`) y las altas que ShipsGo no cobró
+> (409), porque comparten el tipo `ASOCIACION_TRACKING`, y cortaba el día a medianoche UTC.
+> Ahora cuenta solo las que costaron (`campo_afectado = 'shipsgo_alta'`) y por día de Costa
+> Rica. No había altas auditadas en `trackin_dev`.
+>
+> **Incidente en las pruebas, resuelto:** la primera corrida de las pruebas del endpoint dejó
+> filas guardadas en `trackin_test`, porque el endpoint hace `commit` sobre la sesión de la
+> prueba. Se recreó `trackin_test` (autorizado el 26/10) y las pruebas usan ahora una sesión que
+> convierte el `commit` en `flush`. Tras la suite completa la base queda vacía.
+>
+> **Falta la prueba real**: dar de alta uno o dos BL del Excel final, desde la semana del 27/10.
+>
+> Backend: 1 356 pruebas, 97 %. Frontend: 282 pruebas, 94,9 %.
 
 ### `TASK-32` — Spike: Parcels API como alternativa con licencia ✅ HECHA
 

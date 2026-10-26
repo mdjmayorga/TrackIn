@@ -54,6 +54,14 @@ logger = logging.getLogger(__name__)
 #: El tipo del catálogo que corresponde (`TIPOS_INTERVENCION`).
 TIPO_INTERVENCION = "ASOCIACION_TRACKING"
 
+#: El campo que distingue un alta que **costó** de todo lo demás con el mismo tipo
+#: (`US-55`, 26/10/2026). `ASOCIACION_TRACKING` lo comparte la asociación manual
+#: de una referencia (`US-20`), que no cuesta nada, y un alta que ShipsGo no cobró
+#: porque el embarque ya existía (`409`). El contador de altas del día
+#: (`planificador.altas_del_dia`) cuenta solo este campo: es lo que se paga.
+CAMPO_ALTA_CON_CREDITO = "shipsgo_alta"
+CAMPO_ALTA_SIN_COSTO = "shipsgo_alta_sin_costo"
+
 #: Motivos por los que no se dio de alta.
 RECHAZO_REFERENCIA_INVALIDA = "referencia_invalida"
 RECHAZO_FUENTE_AJENA = "no_la_sigue_shipsgo"
@@ -128,12 +136,12 @@ async def registrar(
             id_pedido=pedido.id,
             id_usuario=id_usuario,
             tipo=TIPO_INTERVENCION,
-            campo="shipsgo_id_embarque",
+            campo=CAMPO_ALTA_CON_CREDITO if alta.consumio_credito else CAMPO_ALTA_SIN_COSTO,
             nuevo=alta.id_embarque,
             motivo=(
                 f"Alta en ShipsGo de {veredicto.tipo} {veredicto.numero}. "
                 + (
-                    "Consumió un crédito (~2 USD)."
+                    "Consumió un crédito."
                     if alta.consumio_credito
                     else "Ya estaba registrado (409): sin costo."
                 )
@@ -156,6 +164,8 @@ async def registrar(
 
 
 __all__ = [
+    "CAMPO_ALTA_CON_CREDITO",
+    "CAMPO_ALTA_SIN_COSTO",
     "RECHAZO_AEROLINEA_SIN_COBERTURA",
     "RECHAZO_FUENTE_AJENA",
     "RECHAZO_REFERENCIA_INVALIDA",

@@ -26,9 +26,17 @@ export default function Cargas() {
     <div className="min-h-screen bg-panel-fondo text-slate-100">
       <header className="flex flex-wrap items-baseline justify-between gap-2 px-6 py-4">
         <h1 className="text-2xl font-bold">Cargar Z-tracking</h1>
-        <Link to="/" className="text-sm text-marca-300 underline hover:text-marca-200">
-          ← Volver al panel
-        </Link>
+        <div className="flex gap-4 text-sm">
+          {/* Después de cargar, las referencias nuevas se dan de alta (`US-55`). */}
+          {habilitado && (
+            <Link to="/shipsgo/altas" className="text-marca-300 underline hover:text-marca-200">
+              Altas en ShipsGo
+            </Link>
+          )}
+          <Link to="/" className="text-marca-300 underline hover:text-marca-200">
+            ← Volver al panel
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto max-w-5xl space-y-10 px-6 pb-12">

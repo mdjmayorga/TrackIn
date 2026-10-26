@@ -300,6 +300,44 @@ export interface CargaResumen {
   entraron_sin_rastreo: number
 }
 
+// --- Altas en ShipsGo (`/api/v1/shipsgo/altas`, `US-55`) -------------------
+
+export interface ReferenciaPendiente {
+  /** BL, CONTENEDOR, BOOKING o MAWB. */
+  tipo: string
+  numero: string
+  via_transporte: Via
+  /** Las líneas que la comparten: ShipsGo cobra por embarque, no por línea. */
+  lineas: Array<{ id_pedido: number; oc_numero: string; posicion_oc: number }>
+  /** Solo MAWB: si el catálogo de aerolíneas la cubre; `null` si no aplica o no se leyó. */
+  cubierta: boolean | null
+  aerolinea: string | null
+  /** Se puede dar de alta: todo salvo una MAWB sin cobertura. */
+  ofrecible: boolean
+}
+
+export interface AltasPendientes {
+  pendientes: ReferenciaPendiente[]
+  creditos_necesarios: number
+  /** Altas que ya costaron crédito hoy, en hora de Costa Rica. */
+  altas_hoy: number
+  altas_maximas_dia: number
+}
+
+export interface ResultadoAltaShipsGo {
+  tipo: string
+  numero: string
+  registrado: boolean
+  motivo: string
+  consumio_credito: boolean
+}
+
+export interface AltasHechas {
+  resultados: ResultadoAltaShipsGo[]
+  /** Los que de verdad se gastaron: un embarque que ya existía sale gratis. */
+  creditos_consumidos: number
+}
+
 /** `GET /api/v1/cargas/estado` (`US-23`): la carga semanal del Z-tracking. */
 export interface EstadoCargas {
   /** Al día, toca cargar (antes del día límite), atrasada (después) o nunca cargada. */

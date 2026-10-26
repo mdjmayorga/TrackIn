@@ -26,7 +26,11 @@ from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.models.usuario import Usuario
 from app.services import parametros, planificador
-from app.services.rastreo.registro_embarque import TIPO_INTERVENCION
+from app.services.rastreo.registro_embarque import (
+    CAMPO_ALTA_CON_CREDITO,
+    CAMPO_ALTA_SIN_COSTO,
+    TIPO_INTERVENCION,
+)
 from conftest import vaciar_auditoria
 
 pytestmark = pytest.mark.integration
@@ -358,14 +362,16 @@ async def usuario(sesion) -> Usuario:
     return existente
 
 
-async def _alta_auditada(sesion, pedido, usuario, instante: dt.datetime) -> None:
+async def _alta_auditada(
+    sesion, pedido, usuario, instante: dt.datetime, campo: str = CAMPO_ALTA_CON_CREDITO
+) -> None:
     sesion.add(
         AuditoriaIntervencion(
             id_pedido=pedido.id,
             id_usuario=usuario.id,
             fecha_hora=instante,
             tipo_intervencion=TIPO_INTERVENCION,
-            campo_afectado="shipsgo_id_embarque",
+            campo_afectado=campo,
             valor_nuevo="1",
             motivo="Alta de prueba",
         )
@@ -382,6 +388,29 @@ async def test_las_altas_se_cuentan_desde_la_auditoria(sesion, limpio, usuario) 
         await _alta_auditada(sesion, pedido, usuario, MEDIODIA)
 
     assert await planificador.altas_del_dia(sesion, MEDIODIA) == 3
+
+
+async def test_solo_cuentan_las_altas_que_costaron(sesion, limpio, usuario) -> None:
+    """26/10 (`US-55`): una asociación manual (`US-20`) y un alta que ShipsGo no cobró
+    comparten el tipo `ASOCIACION_TRACKING`, pero no gastan crédito."""
+    elemento = await _elemento(sesion, "MRSU8507472", ultima=None)
+    pedido = await _pedido(sesion, elemento, "4599000001")
+    await _alta_auditada(sesion, pedido, usuario, MEDIODIA)
+    await _alta_auditada(sesion, pedido, usuario, MEDIODIA, campo=CAMPO_ALTA_SIN_COSTO)
+    await _alta_auditada(sesion, pedido, usuario, MEDIODIA, campo="id_elemento_rastreado")
+
+    assert await planificador.altas_del_dia(sesion, MEDIODIA) == 1
+
+
+async def test_el_dia_de_las_altas_es_el_de_costa_rica(sesion, limpio, usuario) -> None:
+    """Las 19:00 de Costa Rica ya son el día siguiente en UTC: siguen siendo hoy."""
+    elemento = await _elemento(sesion, "MRSU8507472", ultima=None)
+    pedido = await _pedido(sesion, elemento, "4599000001")
+    manana_temprano_cr = dt.datetime(2026, 9, 22, 8, 0, tzinfo=dt.UTC)  # 02:00 en CR
+    noche_cr = dt.datetime(2026, 9, 23, 1, 0, tzinfo=dt.UTC)  # 19:00 del 22 en CR
+    await _alta_auditada(sesion, pedido, usuario, manana_temprano_cr)
+
+    assert await planificador.altas_del_dia(sesion, noche_cr) == 1
 
 
 async def test_las_altas_de_ayer_no_cuentan_hoy(sesion, limpio, usuario) -> None:

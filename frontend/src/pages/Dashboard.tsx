@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 import { esPantallaPlanta, puedeVerBandeja } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { EstadoShipsGo } from '@/components/EstadoShipsGo'
-import { FrescuraDatos } from '@/components/FrescuraDatos'
 import { CintaKpis } from '@/components/CintaKpis'
 import { MapaBase } from '@/components/MapaBase'
 import { MenuConfiguracion } from '@/components/MenuConfiguracion'
@@ -117,15 +116,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-panel-fondo text-slate-100">
       <header className="grid grid-cols-1 items-start gap-3 px-4 pb-4 pt-3 lg:grid-cols-[1fr_auto_1fr]">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-300">
-          {sesion && (
-            <>
-              <MenuConfiguracion sesion={sesion} />
-              {/* Fuera del menú: es un aviso, y escondido dejaría de avisar (`US-48`). */}
-              {puedeVerBandeja(sesion.usuario.rol) && <AvisoBandeja />}
-              {/* La carga semanal y su aviso (`US-23`, 26/10). Planta no carga archivos. */}
-              {!planta && <MenuZtracking rol={sesion.usuario.rol} />}
-            </>
-          )}
+          {sesion && <MenuConfiguracion sesion={sesion} />}
         </div>
 
         <div className="text-center">
@@ -135,10 +126,15 @@ export default function Dashboard() {
           <p className="mt-1 text-lg text-slate-300">Tracking aéreo-marítimo</p>
         </div>
 
-        <div className="flex flex-col items-start gap-1.5 lg:items-end">
+        {/* La separación deja sitio a las burbujas, que sobresalen sobre cada botón. */}
+        <div className="flex flex-col items-start gap-2.5 lg:items-end">
+          {/* De arriba abajo (pedido del 26/10): la insignia de ShipsGo —su última
+              consulta, al pasar el cursor— y los dos avisos con burbuja. Los avisos van
+              fuera de los menús: escondidos dejarían de avisar (`US-48`, `US-23`). */}
           <EstadoShipsGo />
-          {/* De cuándo es el rastreo (`US-23`); el Z-tracking, en su botón. */}
-          {sesion && <FrescuraDatos />}
+          {sesion && puedeVerBandeja(sesion.usuario.rol) && <AvisoBandeja />}
+          {/* Planta no carga archivos. */}
+          {sesion && !planta && <MenuZtracking rol={sesion.usuario.rol} />}
         </div>
       </header>
 

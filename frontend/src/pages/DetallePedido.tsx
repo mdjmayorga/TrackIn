@@ -14,7 +14,7 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
-import { puedeAsociar } from '@/auth/permisos'
+import { puedeAsociar, puedeCargar } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { AccionesPedido } from '@/components/AccionesPedido'
 import { AsociarReferencia } from '@/components/AsociarReferencia'
@@ -35,7 +35,7 @@ import {
 } from '@/utils/detalle'
 import { formatearFecha, formatearFechaHora, haceCuanto } from '@/utils/fechas'
 import { destinoCorto } from '@/utils/formatos'
-import { urlMapaShipsGo } from '@/utils/mapaShipsGo'
+import { DE_SHIPSGO, urlMapaShipsGo } from '@/utils/mapaShipsGo'
 
 export default function DetallePedido() {
   const { id } = useParams()
@@ -235,6 +235,17 @@ function ElementoRastreado({ pedido }: { pedido: PedidoDetalle }) {
           {r.guia_madre && (
             <span className="block text-xs text-slate-400">Guía madre {r.guia_madre}</span>
           )}
+          {/* Una referencia de ShipsGo que nunca respondió todavía no está dada de alta. */}
+          {DE_SHIPSGO.has(r.tipo) &&
+            !r.ultima_consulta_exitosa &&
+            puedeCargar(sesion?.usuario.rol) && (
+              <Link
+                to={`/shipsgo/altas?ref=${encodeURIComponent(r.referencia)}`}
+                className="mt-1 block text-xs text-marca-300 underline hover:text-marca-200"
+              >
+                Dar de alta en ShipsGo
+              </Link>
+            )}
         </Fila>
         <Fila etiqueta="Vía">{destino}</Fila>
         <Fila etiqueta="Últ. posición">

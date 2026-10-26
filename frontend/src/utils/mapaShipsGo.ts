@@ -4,8 +4,8 @@ import type { Rastreo, Via } from '@/types/api'
 
 const BASE = 'https://embed.shipsgo.com/'
 
-/** Los tipos que ShipsGo sigue (`referencia._FUENTE_POR_TIPO`). */
-const DE_SHIPSGO: ReadonlySet<string> = new Set(['BL', 'CONTENEDOR', 'BOOKING', 'MAWB'])
+/** Los tipos que ShipsGo sigue y da de alta (`referencia._FUENTE_POR_TIPO`). */
+export const DE_SHIPSGO: ReadonlySet<string> = new Set(['BL', 'CONTENEDOR', 'BOOKING', 'MAWB'])
 
 export function tokenEmbed(): string | undefined {
   const token = import.meta.env.VITE_SHIPSGO_EMBED_TOKEN?.trim()

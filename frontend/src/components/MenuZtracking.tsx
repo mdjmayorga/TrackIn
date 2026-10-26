@@ -1,7 +1,7 @@
 /**
  * «Ajustes Z-tracking» (pedido del 26/10/2026): todo lo de la carga semanal del
- * archivo en un botón del encabezado, con el mismo estilo que «Arribos
- * pendientes». Al abrirlo: el estado de la carga de la semana, la última carga y
+ * archivo en un botón de la esquina superior derecha, bajo la insignia de
+ * ShipsGo, con el mismo estilo que «Arribos pendientes». Al abrirlo: el estado de la carga de la semana, la última carga y
  * el enlace para cargar —Compras y Administrador— o para ver el historial.
  *
  * **La burbuja avisa sin abrir el menú**, con el color de la urgencia (`US-23`):
@@ -97,7 +97,9 @@ export function MenuZtracking({ rol }: { rol: Rol }) {
       {abierto && (
         <div
           id={idPanel}
-          className="absolute left-0 z-[1100] mt-1 w-72 overflow-hidden rounded border border-panel-borde bg-panel-superficie shadow-lg"
+          // En la esquina derecha el panel se abre hacia la izquierda para no salirse
+          // de la página; con el encabezado apilado, el botón queda a la izquierda.
+          className="absolute left-0 z-[1100] mt-1 w-72 overflow-hidden rounded border border-panel-borde bg-panel-superficie shadow-lg lg:left-auto lg:right-0"
         >
           {data ? (
             <div className="space-y-2 border-b border-panel-borde px-4 py-3 text-sm">
@@ -135,6 +137,14 @@ export function MenuZtracking({ rol }: { rol: Rol }) {
                 {puedeCargar(rol) ? 'Cargar Z-tracking' : 'Historial de cargas'}
               </Link>
             </li>
+            {/* Tras cada carga semanal, las referencias nuevas se dan de alta (`US-55`). */}
+            {puedeCargar(rol) && (
+              <li>
+                <Link to="/shipsgo/altas" onClick={cerrar} className={OPCION}>
+                  Altas en ShipsGo
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
       )}

@@ -127,3 +127,26 @@ describe('«Ajustes Z-tracking» en el encabezado (US-23, 26/10)', () => {
     expect(screen.getByRole('status')).toHaveTextContent('a más tardar el miércoles')
   })
 })
+
+describe('acceso a «Altas en ShipsGo» (US-55)', () => {
+  it('Compras lo tiene en el menú', async () => {
+    vi.mocked(obtenerEstadoCargas).mockResolvedValue(estado())
+    montar('COMPRAS')
+
+    await userEvent.click(await screen.findByRole('button', { name: /^Ajustes Z-tracking/ }))
+
+    expect(screen.getByRole('link', { name: 'Altas en ShipsGo' })).toHaveAttribute(
+      'href',
+      '/shipsgo/altas',
+    )
+  })
+
+  it('quien no autoriza altas no lo ve', async () => {
+    vi.mocked(obtenerEstadoCargas).mockResolvedValue(estado())
+    montar('LOGISTICA')
+
+    await userEvent.click(await screen.findByRole('button', { name: /^Ajustes Z-tracking/ }))
+
+    expect(screen.queryByRole('link', { name: 'Altas en ShipsGo' })).toBeNull()
+  })
+})
