@@ -80,6 +80,13 @@ def filtros_de_consulta(
         str | None,
         Query(max_length=60, description="Texto en el código o la descripción del material."),
     ] = None,
+    solped: Annotated[
+        str | None,
+        Query(
+            max_length=20,
+            description="Prefijo del número de la solicitud de pedido (filtro de planta, `US-63`).",
+        ),
+    ] = None,
 ) -> Filtros:
     """Los filtros de RF-19, comunes a la grilla, los KPIs y los próximos
     arribos: los tres bloques tienen que mostrar el mismo subconjunto (`US-21`).
@@ -95,6 +102,7 @@ def filtros_de_consulta(
         etapas=etapa or (),
         cumplimientos=cumplimiento or (),
         material_texto=buscar_material,
+        solped=solped,
     )
 
 

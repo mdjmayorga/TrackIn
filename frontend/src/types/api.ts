@@ -122,6 +122,8 @@ export interface PedidoResumen {
   oc_numero: string
   posicion_oc: number
   tracking_interno: string
+  /** Número de la solicitud de pedido (SOLPED), del Z-tracking (`US-63`). */
+  solicitud_pedido: string | null
   material: Referencia & { descripcion: string }
   proveedor: Referencia & { nombre: string }
   via_transporte: Via

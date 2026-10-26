@@ -839,3 +839,23 @@ async def test_sin_la_columna_de_llegada_no_se_lee_la_solped_en_su_lugar(
 
     with pytest.raises(HojaInesperada, match="Fecha Entrega"):
         await _fuente(tmp_path, hojas).obtener_pedidos()
+
+
+# --- US-63: la solicitud de pedido (SOLPED), para la pantalla de planta --------
+
+
+async def test_lee_la_solped_del_archivo_real() -> None:
+    """22/10/2026: la pantalla de planta muestra OC, POS y SOLPED. En el WK38 la traen
+    460 de las 465 líneas, siempre con 10 dígitos; las otras 5 entran sin ella."""
+    ruta = _ANALISIS / "2026 - SEPTIEMBRE - WK38 MOD.xlsx"
+    if not ruta.exists():
+        pytest.skip("WK38 no está versionado")
+
+    pedidos = await FuenteZTracking(ruta=ruta).obtener_pedidos()
+
+    con_solped = [p for p in pedidos if p.solicitud_pedido]
+    assert len(con_solped) == 460
+    assert {len(p.solicitud_pedido or "") for p in con_solped} == {10}
+    # La posición sigue siendo la de la OC, no la de la SOLPED, que también se llama así.
+    primera = next(p for p in pedidos if p.oc_numero == "4500017780" and p.posicion_oc == 10)
+    assert primera.solicitud_pedido == "1000033542"

@@ -50,17 +50,30 @@ function destino(pedido: PedidoResumen) {
 }
 
 /**
- * Las dos grillas del Figma (`US-43`): la completa, para todos los roles, y la
- * simple de la pantalla de planta, con «Dashboard Principal - Grilla simple».
+ * Las dos grillas (`US-43`): la completa, para todos los roles, y la de la
+ * pantalla de planta, la «Grilla simple» del Figma más OC, POS y SOLPED, que
+ * pidió Compras el 22/10/2026 (`US-63`). La SOLPED solo la ve planta.
  */
 export type VistaGrilla = 'completa' | 'simple'
 
 const COLUMNAS_SIMPLES: ReadonlySet<string> = new Set(['Material', 'Etapa', 'Cumplimiento'])
 
+/** La OC de la pantalla de planta: sin enlace, porque nadie la opera (`US-43`). */
+const OC_SIN_ENLACE: Columna = { titulo: 'OC', orden: 'oc', celda: (p) => p.oc_numero }
+
+const POS: Columna = { titulo: 'POS', celda: (p) => p.posicion_oc }
+
+const SOLPED: Columna = {
+  titulo: 'SOLPED',
+  celda: (p) => p.solicitud_pedido ?? <Guion motivo="Sin solicitud de pedido" />,
+}
+
 function columnas(terminales: boolean, vista: VistaGrilla): Columna[] {
   const todas = columnasCompletas(terminales)
-  // Las mismas columnas, con los mismos textos y colores: solo se quitan las demás.
-  return vista === 'simple' ? todas.filter((c) => COLUMNAS_SIMPLES.has(c.titulo)) : todas
+  if (vista === 'completa') return todas
+  // Material, Etapa y Cumplimiento son las de la completa, con los mismos textos y
+  // colores; delante, los tres números con que se ubica una línea en planta.
+  return [OC_SIN_ENLACE, POS, SOLPED, ...todas.filter((c) => COLUMNAS_SIMPLES.has(c.titulo))]
 }
 
 function columnasCompletas(terminales: boolean): Columna[] {

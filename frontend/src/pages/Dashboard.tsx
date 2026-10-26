@@ -8,6 +8,7 @@ import { FrescuraDatos } from '@/components/FrescuraDatos'
 import { CintaKpis } from '@/components/CintaKpis'
 import { MapaBase } from '@/components/MapaBase'
 import { MenuConfiguracion } from '@/components/MenuConfiguracion'
+import { MenuZtracking } from '@/components/MenuZtracking'
 import { PanelPedidos } from '@/components/PanelPedidos'
 import { ProximosArribos } from '@/components/ProximosArribos'
 import { useBandejaArribos } from '@/hooks/usePedidos'
@@ -121,6 +122,8 @@ export default function Dashboard() {
               <MenuConfiguracion sesion={sesion} />
               {/* Fuera del menú: es un aviso, y escondido dejaría de avisar (`US-48`). */}
               {puedeVerBandeja(sesion.usuario.rol) && <AvisoBandeja />}
+              {/* La carga semanal y su aviso (`US-23`, 26/10). Planta no carga archivos. */}
+              {!planta && <MenuZtracking rol={sesion.usuario.rol} />}
             </>
           )}
         </div>
@@ -134,8 +137,8 @@ export default function Dashboard() {
 
         <div className="flex flex-col items-start gap-1.5 lg:items-end">
           <EstadoShipsGo />
-          {/* De cuándo son los datos: el rastreo y la carga semanal (`US-23`). */}
-          {sesion && <FrescuraDatos rol={sesion.usuario.rol} />}
+          {/* De cuándo es el rastreo (`US-23`); el Z-tracking, en su botón. */}
+          {sesion && <FrescuraDatos />}
         </div>
       </header>
 

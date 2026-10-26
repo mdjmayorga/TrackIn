@@ -471,6 +471,17 @@ async def _en_destino(sesion, posicion: int, referencia: str, **arribo) -> Pedid
 
 
 @pytest.mark.integration
+async def test_la_fila_trae_la_solped(api, sesion) -> None:
+    """`US-63`: la grilla de planta la muestra; una línea sin SOLPED la trae nula."""
+    await _pedido(sesion, posicion=10, solicitud_pedido="1000033542")
+    await _pedido(sesion, posicion=20)
+
+    filas = (await api.get(URL, params={"orden": "oc"})).json()["items"]
+
+    assert [f["solicitud_pedido"] for f in filas] == ["1000033542", None]
+
+
+@pytest.mark.integration
 async def test_la_fila_trae_la_fecha_de_arribo_con_la_precedencia_de_rn05(api, sesion) -> None:
     """Lo confirmado a mano manda sobre la fuente, y la fuente sobre la geocerca."""
     confirmado = dt.datetime(2026, 9, 20, 8, 0, tzinfo=dt.UTC)
@@ -811,3 +822,30 @@ def test_hoy_es_la_fecha_de_costa_rica() -> None:
     """A las 18:00 de Costa Rica el día UTC ya es el siguiente."""
     hoy = api_pedidos.hoy_en_costa_rica()
     assert hoy == dt.datetime.now(dt.timezone(dt.timedelta(hours=-6))).date()
+
+
+# --- US-63: el filtro por SOLPED de la pantalla de planta (26/10/2026) -----------
+
+
+@pytest.mark.integration
+async def test_filtra_por_prefijo_de_la_solped(api, sesion) -> None:
+    """Como la OC: «10000335» trae todas las SOLPED que empiezan así."""
+    await _pedido(sesion, posicion=10, solicitud_pedido="1000033542")
+    await _pedido(sesion, posicion=20, solicitud_pedido="1000033539")
+    await _pedido(sesion, posicion=30, solicitud_pedido="1000099999")
+    await _pedido(sesion, posicion=40)  # sin SOLPED
+
+    assert [p for _, p in await _ocs(api, solped="10000335")] == [10, 20]
+    assert [p for _, p in await _ocs(api, solped="1000033542")] == [10]
+    assert await _ocs(api, solped="9") == []
+
+
+@pytest.mark.integration
+async def test_el_filtro_por_solped_vale_tambien_para_los_kpis(api, sesion) -> None:
+    """Los tres bloques del panel muestran el mismo subconjunto (`US-21`)."""
+    await _pedido(sesion, posicion=10, solicitud_pedido="1000033542")
+    await _pedido(sesion, posicion=20, solicitud_pedido="1000099999")
+
+    kpis = (await api.get(f"{URL}/indicadores", params={"solped": "10000335"})).json()
+
+    assert kpis["activos"] == 1

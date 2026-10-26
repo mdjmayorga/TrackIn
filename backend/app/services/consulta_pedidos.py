@@ -104,6 +104,9 @@ class Filtros:
     etapas: Sequence[str] = ()
     cumplimientos: Sequence[str] = ()
     material_texto: str | None = None
+    #: Prefijo del número de la solicitud de pedido, como el de la OC (`US-63`,
+    #: 26/10/2026): el filtro de la pantalla de planta.
+    solped: str | None = None
 
 
 def _escapar_like(texto: str) -> str:
@@ -116,6 +119,12 @@ def _condiciones(filtros: Filtros) -> list[ColumnElement[bool]]:
         # Por prefijo (decisión A5): el btree de `oc_numero` sirve tal cual.
         condiciones.append(
             PedidoTransito.oc_numero.like(f"{_escapar_like(filtros.oc.strip())}%", escape="\\")
+        )
+    if filtros.solped:
+        condiciones.append(
+            PedidoTransito.solicitud_pedido.like(
+                f"{_escapar_like(filtros.solped.strip())}%", escape="\\"
+            )
         )
     if filtros.proveedores:
         condiciones.append(PedidoTransito.id_proveedor.in_(filtros.proveedores))
@@ -198,6 +207,7 @@ def _resumen(pedido: PedidoTransito) -> dict[str, Any]:
         "oc_numero": pedido.oc_numero,
         "posicion_oc": pedido.posicion_oc,
         "tracking_interno": pedido.tracking_interno,
+        "solicitud_pedido": pedido.solicitud_pedido,
         "material": pedido.material,
         "proveedor": pedido.proveedor,
         "via_transporte": pedido.via_transporte,

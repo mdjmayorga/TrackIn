@@ -152,6 +152,9 @@ class PedidoTransito(Base, TimestampMixin):
     tipo_proveedor: Mapped[str | None] = mapped_column(String(15), nullable=True)
     #: Puede diferir del proveedor: quien fabrica no siempre es quien vende.
     fabricante: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    #: Número de la solicitud de pedido (SOLPED) de la línea, del Z-tracking (`US-63`,
+    #: 22/10/2026). Lo muestra la pantalla de planta; Compras no lo ve.
+    solicitud_pedido: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     # --- Vínculo de rastreo -------------------------------------------------
     #: Único FK anulable de la entidad; su nulidad *es* `SIN_TRACKING` (RN-02).

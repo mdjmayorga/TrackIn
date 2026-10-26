@@ -117,6 +117,9 @@ class PedidoResumen(_Esquema):
     ultima_actualizacion_fuente: dt.datetime | None = Field(
         description="Antigüedad del último dato bueno de la fuente (RNF-12)."
     )
+    solicitud_pedido: str | None = Field(
+        description="Número de la solicitud de pedido (SOLPED), del Z-tracking (`US-63`)."
+    )
     fecha_arribo: dt.datetime | None = Field(
         description=(
             "Cuándo llegó a destino: lo confirmado a mano, lo que reportó la fuente o lo "

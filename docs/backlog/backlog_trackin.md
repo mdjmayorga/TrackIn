@@ -109,7 +109,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` |
 | `US-60` | Acciones del detalle: confirmar desembarco, pasar a aduana, recibir, ajustar días y liberar ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | 15/10: los endpoints existían desde el Sprint 5; las pantallas, no · ✅ terminada 15/10 |
 | `US-61` | Cambiar la propia contraseña ✅ | Story | OE3 | **Should** | Sprint 6 | 4h | 20/10: creación de la cuenta de Compras · hoy solo el Administrador reinicia contraseñas · ✅ terminada 20/10 |
-| `US-63` | OC, POS y SOLPED en la grilla de la pantalla de planta | Story | OE3 | **Must** | Sprint 6 | 4h | Reunión con Compras 22/10 · solo planta: Compras no ve la SOLPED |
+| `US-63` | OC, POS y SOLPED en la grilla de la pantalla de planta ✅ | Story | OE3 | **Must** | Sprint 6 | 4h | Reunión con Compras 22/10 · solo planta: Compras no ve la SOLPED · ✅ terminada 26/10 |
 | `US-62` | Administrar usuarios desde la interfaz ✅ | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no · ✅ terminada 21/10 |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
@@ -1757,11 +1757,10 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > **22/10: `US-23` terminada. Hechas: 102 de 116 h.** Pendientes: `US-63` (4), `US-55` (6),
 > `US-57` (4).
 >
-> **`US-63` quedó a medias, guardada en un `git stash`** («US-63 en curso (SOLPED en planta)…»):
-> lector, DTO, modelo, carga, API y una migración. **Al recuperarla, renumerar su migración**:
-> se llama `0023_solicitud_pedido` y revisa `0022`, pero `0023` ya es `0023_dia_limite_carga`
-> de `US-23`. Tiene que pasar a `0024_solicitud_pedido`, con `down_revision =
-> "0023_dia_limite_carga"`. Falta además el frontend (grilla de planta) y las pruebas.
+> ~~**`US-63` quedó a medias, guardada en un `git stash`**~~ — **retomada y terminada el 26/10**,
+> con la migración renumerada a `0024_solicitud_pedido` (revisa `0023_dia_limite_carga`).
+>
+> **26/10: `US-63` terminada. Hechas: 106 de 116 h.** Pendientes: `US-55` (6) y `US-57` (4).
 >
 > **Decisión del 21/10: Compras hace en el detalle del pedido lo mismo que el
 > Administrador.** Las cinco acciones —confirmar desembarco, pasar a proceso aduanal,
@@ -1889,6 +1888,8 @@ La reunión pasó al 22/10 por temas logísticos; dos respuestas llegaron antes.
 - **Coincide con la llegada de los BL y MAWB.** Esa carga es la que permite la prueba real de
   `US-55`, medir las altas de la carga inicial antes de la compra (~06/11) y ver el primer
   transbordo real (`US-30`).
+- **Decidido el 26/10: se vacían, pero cuando llegue el Excel final.** Se avisa al recibirlo,
+  se vacían los pedidos de prueba y se cargan los reales.
 - **La base de desarrollo tiene hoy los datos del WK38 de septiembre.** Para empezar limpio
   con el archivo final hay que decidir si se vacían los pedidos de prueba antes de la carga
   real: la auditoría es inmutable y conserva las intervenciones hechas sobre ellos.
@@ -1920,6 +1921,31 @@ planta.
 > la SOLPED (lo resolvió el lector en el Sprint 4). Aquí se pide solo el **número** de la
 > SOLPED, no su posición ni sus fechas (confirmado el 22/10). Se verifica contra el Excel
 > final del 27/10, por si el rótulo cambió.
+
+> **✅ Terminada el 26/10/2026.**
+>
+> - **El lector toma la columna «Solicitud de pedido»** (solo el rótulo exacto) y la guarda en
+>   `pedidos_transito.solicitud_pedido` (migración `0024`). En el WK38 la traen **460 de 465
+>   líneas**, siempre con 10 dígitos; las otras 5 entran sin ella. La posición sigue siendo la
+>   de la OC, aunque la SOLPED también tenga una columna «Posición».
+> - **La carga la actualiza** en cada archivo, como el resto de lo que dice el Z-tracking, y el
+>   resumen de la API la trae (`solicitud_pedido`).
+> - **La grilla de planta** queda **OC · POS · SOLPED · Material · Etapa · Cumplimiento**. La
+>   OC va sin enlace al detalle, como el resto de esa pantalla, que nadie opera. Sin SOLPED, el
+>   guion de «sin dato».
+> - **La grilla completa no cambia:** Compras y los demás roles no ven la SOLPED.
+> - Los pedidos que ya están en `trackin_dev` no la tienen hasta la próxima carga; la del
+>   Excel final del 27/10 la completa. **Recargado el WK38 el mismo 26/10:** 92 de los 107
+>   pedidos la tienen.
+>
+> Backend: 1 338 pruebas. Frontend: 261 pruebas, 95,7 %.
+>
+> **Agregado el 26/10: filtro por SOLPED en la pantalla de planta**, junto a Orden de compra y
+> Posición. Busca por el comienzo del número, como la OC —«100003» trae las 48 SOLPED que
+> empiezan así en `trackin_dev`—, solo acepta dígitos y espera a que se termine de escribir.
+> Filtra también los KPIs y los próximos arribos, como el resto de los filtros (parámetro
+> `solped` de `/pedidos`, `/indicadores` y `/proximos-arribos`). Los demás roles no lo ven,
+> porque no ven la SOLPED. Backend: 1 340 pruebas. Frontend: 263.
 
 >
 > **En espera de la reunión con Ventas (14/10):**
@@ -2245,6 +2271,17 @@ Como usuario, quiero saber de cuando son los datos que estoy viendo, para juzgar
 > «nunca se cargó desde TrackIn» hasta la primera carga real del 27/10.
 >
 > Backend: 1 335 pruebas. Frontend: 256 pruebas, 95,6 %.
+
+> **Ajuste del 26/10/2026: «Ajustes Z-tracking».** La última carga y el aviso salen del
+> encabezado y pasan a un botón propio, con el mismo estilo que «Arribos pendientes», junto a
+> «Configuración». Al abrirlo: el estado de la carga de la semana, la última carga y quién la
+> hizo, y el enlace a «Cargar Z-tracking» (Compras y Administrador) o al «Historial de cargas»
+> (los demás). **La burbuja avisa sin abrir el menú**, con el color de la urgencia: naranja
+> —el de «En Riesgo»— cuando toca cargar o nunca se cargó, roja —el de «Retrasado»— cuando la
+> carga está atrasada, y ninguna si está al día. «Cargar Z-tracking» sale del menú
+> Configuración para que todo lo del archivo quede en un solo lugar; Planta no ve el botón,
+> porque su pantalla no carga. Bajo la insignia de ShipsGo queda solo la última consulta a
+> ShipsGo. Frontend: 259 pruebas, 95,7 %.
 
 #### US-24 — Aplicar el semáforo de estados de forma consistente
 
@@ -3729,6 +3766,12 @@ cuando se estén agotando, para comprar a tiempo y no dejar embarques sin rastre
 |---|---|
 | Tipo | Story · OE2 · **Should** · Sprint 6 · 4 h |
 | Origen | Acuerdo del 06/10/2026: compra anual de créditos |
+
+> **Dónde va el aviso — decidido el 26/10/2026.** Compras dejó la ubicación a criterio del
+> desarrollador: una franja **bajo el subtítulo «Tracking aéreo-marítimo», encima de la cinta
+> de KPIs y la grilla, centrada en la página**, visible solo para Compras y el Administrador.
+> Además del aviso en `/health` y el log del criterio de arriba, que solo ve quien administra
+> el servidor. Se construye con esta historia.
 
 ---
 

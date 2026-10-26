@@ -515,6 +515,8 @@ def _campos_del_archivo(crudo: PedidoCrudo, resuelto: _Resuelto) -> dict[str, ob
         "temperatura": normalizacion.normalizar_temperatura(crudo.temperatura),
         "tipo_proveedor": normalizacion.normalizar_texto(crudo.tipo_proveedor),
         "fabricante": crudo.fabricante,
+        # `US-63`: el archivo es su fuente de verdad, como del resto de esta lista.
+        "solicitud_pedido": crudo.solicitud_pedido,
     }
 
 

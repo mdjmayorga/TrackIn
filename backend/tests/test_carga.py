@@ -494,6 +494,21 @@ class TestActualizar:
         assert resultado.actualizados == 0
         assert resultado.sin_cambios == 1
 
+    async def test_guarda_la_solped_y_la_actualiza_al_recargar(self, sesion, sin_pedidos) -> None:
+        """`US-63`: el archivo es su fuente de verdad, como del resto de sus columnas."""
+        await cargar(
+            sesion, FuenteFalsa([_crudo(solicitud_pedido="1000033542")]), señalar_ausentes=False
+        )
+        pedido = await sesion.scalar(select(PedidoTransito))
+        assert pedido is not None and pedido.solicitud_pedido == "1000033542"
+
+        await cargar(
+            sesion, FuenteFalsa([_crudo(solicitud_pedido="1000099999")]), señalar_ausentes=False
+        )
+
+        await sesion.refresh(pedido)
+        assert pedido.solicitud_pedido == "1000099999"
+
     async def test_no_pisa_el_estado_calculado_ni_lo_confirmado_a_mano(
         self, sesion, sin_pedidos
     ) -> None:

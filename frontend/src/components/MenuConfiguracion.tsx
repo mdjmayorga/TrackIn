@@ -1,51 +1,28 @@
 /**
  * «Configuración»: lo que antes ocupaba la esquina del panel —quién está
- * conectado, la carga del Z-tracking, el cambio de contraseña y el cierre de
- * sesión— queda en un menú desplegable, para dejarle el espacio al tablero
- * (pedido del 20/10).
+ * conectado, el cambio de contraseña y el cierre de sesión— queda en un menú
+ * desplegable, para dejarle el espacio al tablero (pedido del 20/10). La carga
+ * del Z-tracking pasó el 26/10 a «Ajustes Z-tracking» (`MenuZtracking`), junto
+ * con su estado semanal.
  *
  * Es un botón que muestra y oculta una lista de enlaces (patrón «disclosure»),
  * no un `role="menu"` de escritorio: se recorre con Tab como cualquier enlace.
  * Se cierra con Escape, al hacer clic fuera o al elegir una opción.
  */
 
-import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { esPantallaPlanta, puedeAdministrarUsuarios, puedeCargar } from '@/auth/permisos'
+import { puedeAdministrarUsuarios } from '@/auth/permisos'
 import type { SesionGuardada } from '@/auth/sesion'
+import { useDesplegable } from '@/hooks/useDesplegable'
 import { cerrarSesion } from '@/services/auth'
 
 const OPCION =
   'block w-full px-4 py-2 text-left text-sm text-slate-100 hover:bg-white/10 focus:bg-white/10 focus:outline-none'
 
 export function MenuConfiguracion({ sesion }: { sesion: SesionGuardada }) {
-  const [abierto, setAbierto] = useState(false)
-  const contenedor = useRef<HTMLDivElement>(null)
-  const boton = useRef<HTMLButtonElement>(null)
-  const idPanel = useId()
+  const { abierto, alternar, cerrar, contenedor, boton, idPanel } = useDesplegable()
   const { rol } = sesion.usuario
-
-  useEffect(() => {
-    if (!abierto) return
-    function alClicFuera(evento: MouseEvent) {
-      if (!contenedor.current?.contains(evento.target as Node)) setAbierto(false)
-    }
-    function alTeclear(evento: KeyboardEvent) {
-      if (evento.key === 'Escape') {
-        setAbierto(false)
-        boton.current?.focus()
-      }
-    }
-    document.addEventListener('mousedown', alClicFuera)
-    document.addEventListener('keydown', alTeclear)
-    return () => {
-      document.removeEventListener('mousedown', alClicFuera)
-      document.removeEventListener('keydown', alTeclear)
-    }
-  }, [abierto])
-
-  const cerrar = () => setAbierto(false)
 
   return (
     <div ref={contenedor} className="relative inline-block">
@@ -54,7 +31,7 @@ export function MenuConfiguracion({ sesion }: { sesion: SesionGuardada }) {
         type="button"
         aria-expanded={abierto}
         aria-controls={idPanel}
-        onClick={() => setAbierto((v) => !v)}
+        onClick={alternar}
         className="inline-flex items-center gap-2 rounded bg-panel-cabecera px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600"
       >
         <IconoEngranaje />
@@ -74,14 +51,6 @@ export function MenuConfiguracion({ sesion }: { sesion: SesionGuardada }) {
             <span className="block text-xs text-slate-400">{rol}</span>
           </p>
           <ul>
-            {/* Planta no gestiona cargas: su rol solo lee (`US-43`). */}
-            {!esPantallaPlanta(rol) && (
-              <li>
-                <Link to="/cargas" onClick={cerrar} className={OPCION}>
-                  {puedeCargar(rol) ? 'Cargar Z-tracking' : 'Cargas del Z-tracking'}
-                </Link>
-              </li>
-            )}
             {puedeAdministrarUsuarios(rol) && (
               <li>
                 <Link to="/usuarios" onClick={cerrar} className={OPCION}>

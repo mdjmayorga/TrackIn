@@ -190,6 +190,8 @@ describe('apoyos', () => {
         etapa: 'EN_TRANSITO',
       }),
     ).toEqual({ oc: '4500', posicion: '10', buscar_material: 'lactosa', etapa: 'EN_TRANSITO' })
+    // `US-63`: el de la pantalla de planta, con el mismo trato que la OC.
+    expect(aParametros({ ...FILTROS_VACIOS, solped: ' 10000335 ' })).toEqual({ solped: '10000335' })
   })
 
   it('reconoce filtros activos y los terminales', () => {

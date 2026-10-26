@@ -1,6 +1,7 @@
 /**
  * «Filtros de consulta» del Figma (`US-21`): tres campos de texto —Orden de
- * compra, Posición, Material— y tres listas —Vía, Etapa, Cumplimiento—.
+ * compra, Posición, Material— y tres listas —Vía, Etapa, Cumplimiento—. La
+ * pantalla de planta suma un cuarto campo, SOLPED (`US-63`, 26/10/2026).
  *
  * Los campos de texto esperan a que se deje de escribir (`ESPERA_MS`) antes de
  * avisar: sin eso, «4500016171» serían diez consultas, y la última podría
@@ -132,9 +133,14 @@ function Lista<T extends string>({ etiqueta, valor, opciones, onCambio }: ListaP
 export interface BarraFiltrosProps {
   filtros: FiltrosPanel
   onCambio: (cambios: Partial<FiltrosPanel>) => void
+  /**
+   * El campo SOLPED, junto a Posición: solo en la pantalla de planta, la única
+   * que muestra la solicitud de pedido (`US-63`, 26/10/2026).
+   */
+  conSolped?: boolean
 }
 
-export function BarraFiltros({ filtros, onCambio }: BarraFiltrosProps) {
+export function BarraFiltros({ filtros, onCambio, conSolped = false }: BarraFiltrosProps) {
   return (
     <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-start">
       <div className="sm:w-28">
@@ -159,6 +165,19 @@ export function BarraFiltros({ filtros, onCambio }: BarraFiltrosProps) {
           onCambio={(posicion) => onCambio({ posicion })}
         />
       </div>
+      {conSolped && (
+        <div className="sm:w-28">
+          <CampoTexto
+            id="filtro-solped"
+            etiqueta="SOLPED"
+            placeholder="1000"
+            valorInicial={filtros.solped}
+            numerico
+            limpiar={(v) => soloDigitos(v, 10)}
+            onCambio={(solped) => onCambio({ solped })}
+          />
+        </div>
+      )}
       <div className="col-span-2 sm:w-32">
         <CampoTexto
           id="filtro-material"

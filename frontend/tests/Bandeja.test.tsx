@@ -219,8 +219,9 @@ describe('pantalla de planta (US-43)', () => {
       within(grilla)
         .getAllByRole('columnheader')
         .map((th) => th.textContent?.replace(/[▲▼↕]/g, '')),
-    ).toEqual(['Material', 'Etapa', 'Cumplimiento'])
+    ).toEqual(['OC', 'POS', 'SOLPED', 'Material', 'Etapa', 'Cumplimiento'])
     expect(screen.getByRole('heading', { name: 'Filtros de consulta' })).toBeInTheDocument()
+    expect(screen.getByLabelText(/SOLPED/)).toBeInTheDocument() // `US-63`, 26/10
     expect(screen.queryByRole('link', { name: /Arribos pendientes/ })).toBeNull()
     expect(listarPedidos).not.toHaveBeenCalledWith(...CONSULTA_BANDEJA)
 
@@ -235,6 +236,7 @@ describe('pantalla de planta (US-43)', () => {
 
     const grilla = await screen.findByRole('table')
     expect(within(grilla).getAllByRole('columnheader')).toHaveLength(9)
+    expect(screen.queryByLabelText(/SOLPED/)).toBeNull()
   })
 })
 
@@ -269,5 +271,22 @@ describe('botón de arribos pendientes, con el diseño de Arribos_Pendientes.png
     const boton = await screen.findByRole('link', { name: 'Arribos pendientes (ninguno)' })
     expect(within(boton).queryByText('0')).toBeNull()
     expect(boton).toHaveAttribute('href', '/bandeja')
+  })
+})
+
+describe('botón «Ajustes Z-tracking» en el panel (26/10)', () => {
+  it('Compras lo ve junto a Configuración y Arribos pendientes', async () => {
+    vi.mocked(listarPedidos).mockResolvedValue(pagina([]))
+    montar(<Dashboard />, 'COMPRAS')
+
+    expect(await screen.findByRole('button', { name: /^Ajustes Z-tracking/ })).toBeInTheDocument()
+  })
+
+  it('Planta no: su pantalla no carga archivos', async () => {
+    vi.mocked(listarPedidos).mockResolvedValue(pagina([]))
+    montar(<Dashboard />, 'PLANTA')
+
+    expect(await screen.findByRole('button', { name: 'Configuración' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Ajustes Z-tracking/ })).toBeNull()
   })
 })

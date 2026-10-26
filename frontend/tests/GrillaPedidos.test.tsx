@@ -100,11 +100,33 @@ describe('columnas', () => {
   })
 })
 
-describe('grilla simple de la pantalla de planta (US-43)', () => {
-  it('solo Material, Etapa y Cumplimiento, como el Figma «Grilla simple»', () => {
+describe('grilla de la pantalla de planta (US-43, US-63)', () => {
+  it('OC, POS y SOLPED delante de las de la «Grilla simple» del Figma', () => {
     montar({ vista: 'simple' })
 
-    expect(encabezados()).toEqual(['Material', 'Etapa', 'Cumplimiento'])
+    expect(encabezados()).toEqual(['OC', 'POS', 'SOLPED', 'Material', 'Etapa', 'Cumplimiento'])
+  })
+
+  it('muestra la SOLPED de cada línea, y el guion si no la trae', () => {
+    montar({
+      vista: 'simple',
+      pagina: pagina([
+        pedido({ id: 1, solicitud_pedido: '1000033542' }),
+        pedido({ id: 2, posicion_oc: 20, solicitud_pedido: null }),
+      ]),
+    })
+
+    expect(fila(1).getByText('4500012847')).toBeInTheDocument()
+    expect(fila(1).getByText('10')).toBeInTheDocument()
+    expect(fila(1).getByText('1000033542')).toBeInTheDocument()
+    expect(fila(2).getByLabelText('Sin solicitud de pedido')).toBeInTheDocument()
+  })
+
+  it('la grilla completa no muestra la SOLPED: Compras no la ve', () => {
+    montar({ pagina: pagina([pedido({ solicitud_pedido: '1000033542' })]) })
+
+    expect(encabezados()).not.toContain('SOLPED')
+    expect(screen.queryByText('1000033542')).toBeNull()
   })
 
   it('con los mismos textos y colores que la completa, y sin enlace al detalle', () => {

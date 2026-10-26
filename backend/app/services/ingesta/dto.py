@@ -82,6 +82,10 @@ class PedidoCrudo:
     #: exista gasta el crédito igual.
     fecha_referencia: dt.date | None = None
 
+    #: Número de la solicitud de pedido (SOLPED) que originó la OC (`US-63`, reunión
+    #: con Compras del 22/10/2026). Lo muestra la pantalla de planta.
+    solicitud_pedido: str | None = None
+
     @property
     def clave(self) -> tuple[str, int]:
         """Clave natural de la línea: identifica el pedido entre cargas."""

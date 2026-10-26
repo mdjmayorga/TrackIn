@@ -78,6 +78,7 @@ línea, no la orden: ver [`data-model.md` §1.1](data-model.md).
 | 29 | `destino_segun_fuente` | `BOOLEAN` | no, *default* `false` | | `true` / `false` | `true` si el destino es el puerto de descarga que declaró la naviera en ShipsGo, y no el que se dedujo del incoterm (`US-54`, reunión con Compras del 29/09/2026). Mientras sea `true`, una carga que no puede consultar ShipsGo —sin token, con la fuente caída o con el embarque madurando— conserva el destino en vez de devolverlo al puerto del incoterm. |
 | 30 | `creado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Alta de la fila. Metadato técnico: **no** sustituye a la auditoría de RF-14. |
 | 31 | `actualizado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Instante UTC | Última modificación de la fila. Metadato técnico. |
+| 32 | `solicitud_pedido` | `VARCHAR(20)` | sí | | Texto, 10 dígitos en el WK38 | Número de la solicitud de pedido (SOLPED) que originó la línea, de la columna «Solicitud de pedido» del Z-tracking (`US-63`, migración `0024`). Lo muestra solo la pantalla de planta; Compras no lo ve (reunión del 22/10/2026). La trae 460 de las 465 líneas del WK38; sin ella la línea entra igual. Se actualiza en cada carga, como el resto de lo que dice el archivo. |
 
 ### 1.2 Restricciones de tabla
 

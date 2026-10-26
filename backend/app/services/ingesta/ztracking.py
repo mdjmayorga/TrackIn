@@ -175,6 +175,11 @@ COLUMNAS: Final[tuple[Columna, ...]] = (
     # `US-52`: mientras las columnas de arriba lleguen vacías, las referencias
     # que Logística sí tiene están escritas a mano aquí («… BL COSU…»).
     Columna("comentario", "Comentario comprador"),
+    # `US-63`, reunión con Compras del 22/10/2026: la pantalla de planta muestra el
+    # número de la solicitud de pedido. Solo el rótulo exacto: `Solicitud de
+    # pedido` no debe tomar otra columna que empiece igual. Su `Posición` (la
+    # segunda del archivo) no se pide.
+    Columna("solicitud_pedido", "Solicitud de pedido", solo_exacto=True),
 )
 
 #: Cuántas filas del principio se inspeccionan buscando el encabezado. WK38 lo
@@ -581,6 +586,7 @@ class FuenteZTracking:
             referencia_desde_comentario=desde_comentario,
             transportista=_a_texto(celda("transportista")),
             fecha_referencia=_a_fecha(celda("fecha_referencia")),
+            solicitud_pedido=_a_texto(celda("solicitud_pedido")),
         )
 
     def _anotar(self, hoja: str, fila: int, motivo: str, detalle: str) -> None:

@@ -48,22 +48,11 @@ describe('menú Configuración', () => {
     expect(boton()).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('Compras')).toBeInTheDocument()
     expect(screen.getByText('COMPRAS')).toBeInTheDocument()
-    expect(opciones()).toEqual(['Cargar Z-tracking', 'Cambiar contraseña', 'Cerrar sesión'])
-    expect(screen.getByRole('link', { name: 'Cargar Z-tracking' })).toHaveAttribute(
-      'href',
-      '/cargas',
-    )
+    // La carga del Z-tracking vive en «Ajustes Z-tracking» desde el 26/10.
+    expect(opciones()).toEqual(['Cambiar contraseña', 'Cerrar sesión'])
   })
 
-  it('quien no carga ve el historial de cargas', async () => {
-    montar('LOGISTICA')
-
-    await userEvent.click(boton())
-
-    expect(screen.getByRole('link', { name: 'Cargas del Z-tracking' })).toBeInTheDocument()
-  })
-
-  it('Planta no tiene cargas: su rol solo lee', async () => {
+  it('Planta tiene lo mismo: cambiar su contraseña y cerrar sesión', async () => {
     montar('PLANTA')
 
     await userEvent.click(boton())
@@ -101,12 +90,7 @@ describe('menú Configuración del Administrador (US-62)', () => {
 
     await userEvent.click(boton())
 
-    expect(opciones()).toEqual([
-      'Cargar Z-tracking',
-      'Usuarios',
-      'Cambiar contraseña',
-      'Cerrar sesión',
-    ])
+    expect(opciones()).toEqual(['Usuarios', 'Cambiar contraseña', 'Cerrar sesión'])
     expect(screen.getByRole('link', { name: 'Usuarios' })).toHaveAttribute('href', '/usuarios')
   })
 })

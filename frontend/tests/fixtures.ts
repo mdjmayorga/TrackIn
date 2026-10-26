@@ -7,6 +7,7 @@ export function pedido(cambios: Partial<PedidoResumen> = {}): PedidoResumen {
     oc_numero: '4500012847',
     posicion_oc: 10,
     tracking_interno: '450001284710',
+    solicitud_pedido: null,
     material: { id: 1, codigo: '13002006', descripcion: 'Lactosa monohidrato' },
     proveedor: { id: 1, codigo: 'PROV-0001', nombre: 'Proveedor 0001' },
     via_transporte: 'MARITIMO',
