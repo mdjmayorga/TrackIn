@@ -97,6 +97,12 @@ class ElementoRastreado(Base, TimestampMixin):
     #: el payload de la aduana no tendría dónde guardarse (RNF-13).
     payload_aduana: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
+    #: Los vuelos de un embarque aéreo con su horario y su trazado, de ShipsGo
+    #: (`US-26`). La API aérea no da la posición del avión: el mapa la estima con
+    #: esto en el momento en que se mira (`posicion_aerea.estimar`). No va a
+    #: `posicion_actual` porque la geocerca la tomaría por real.
+    trayecto_aereo: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
+
     #: `US-11` lo pone en `false` al arribar, para no gastar cuota siguiendo
     #: naves que ya no llevan carga nuestra.
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))

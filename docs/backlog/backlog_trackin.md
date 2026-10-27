@@ -116,7 +116,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-62` | Administrar usuarios desde la interfaz ✅ | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no · ✅ terminada 21/10 |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales 🔶 | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 · 🔶 construida 27/10 (adelantada); falta verla con posiciones reales |
-| `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
+| `US-26` | Presentar el mapa interactivo aéreo separado del marítimo 🔶 | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 · 🔶 construida 27/10 (adelantada); falta verla con un vuelo real |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed · 22/10: la línea de tiempo del detalle suma los hitos del viaje, transbordos incluidos |
@@ -2705,6 +2705,33 @@ Como usuario de Compras, quiero un mapa aéreo independiente, para seguir los em
 > del 06/10), ShipsGo da por tramo el vuelo, sus horas y la ruta. El mapa dibuja la ruta y ubica
 > el avión en una **posición estimada** según lo transcurrido del vuelo, rotulada como estimada.
 > Si la carga queda en tierra, el hito lo dice y el mapa la muestra en tierra.
+
+> **🔶 Construida el 27/10/2026, adelantada del Sprint 7.** Falta verla con un vuelo real.
+>
+> - **De dónde sale la posición.** ShipsGo no da la del avión (en el `geojson` aéreo no viene
+>   `current`), pero sí, por tramo, el vuelo, la hora de salida, la de llegada y el trazado
+>   (30 puntos). El worker ya pedía ese `geojson` y lo **descartaba**: ahora el colector
+>   guarda los tramos en `elementos_rastreados.trayecto_aereo` (migración `0027`).
+> - **La estimación se calcula al mirar el mapa** (`posicion_aerea.estimar`), porque es la
+>   única posición que se mueve con el reloj: antes de salir, en el aeropuerto de origen; en
+>   vuelo, sobre el trazado en la fracción transcurrida; en un transbordo, en el aeropuerto
+>   donde espera; después del último vuelo, **concluido** en el destino (segundo criterio).
+> - **No se escribe en `posicion_actual`:** la geocerca (RN-05) la tomaría por real y podría
+>   dar por arribado un vuelo que todavía no aterrizó.
+> - **El mapa aéreo del panel** usa el endpoint de `US-25` (`/pedidos/mapa/AEREO`): mismos
+>   filtros, colores y agrupamiento. Un vuelo en curso se dibuja como ✈ sobre su ruta
+>   punteada; el rótulo dice «En vuelo LH518, posición estimada según su horario», «En
+>   tierra en FRA, esperando vuelo» o «Vuelo LH518 concluido en SJO».
+> - **Tercer criterio (fuera de cobertura):** sin OpenSky ya no hay cobertura ADS-B que
+>   perder; lo equivalente es una lectura de ShipsGo vieja, que se marca igual que en el
+>   marítimo pero con la frecuencia aérea (60 min → 2 h).
+> - **Pruebas:** 7 de la estimación (`test_posicion_aerea.py`), 2 con el payload grabado
+>   del MAWB de Lufthansa (`test_shipsgo_aereo.py`), 4 del endpoint aéreo y 3 de frontend.
+>
+> **Para verla con datos reales:** el MAWB `020-50685434` de la demo de SAP está activo y sin
+> lectura. Con el worker corriendo, ShipsGo devuelve su trayecto (ya aterrizó en septiembre) y
+> el mapa aéreo lo muestra **concluido en SJO**. Un vuelo en curso se verá con los MAWB del
+> Excel final.
 
 #### US-27 — Mostrar información emergente en los marcadores del mapa
 

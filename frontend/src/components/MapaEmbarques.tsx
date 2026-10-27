@@ -17,7 +17,7 @@
 
 import L, { type LatLngExpression } from 'leaflet'
 import { useState } from 'react'
-import { CircleMarker, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet'
+import { CircleMarker, Marker, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 
 import { aparienciaDeEstado, estadoMasUrgente } from '@/components/estados'
 import { MapaBase } from '@/components/MapaBase'
@@ -60,6 +60,8 @@ export function MapaEmbarques({
           {data.sin_posicion > 0 && ` · ${data.sin_posicion} sin posición`}
           {marcadores.some((m) => m.desactualizada) &&
             ` · borde punteado: sin lectura en más de ${data.umbral_desactualizada_h} h`}
+          {marcadores.some((m) => m.situacion === 'EN_VUELO') &&
+            ' · ✈ posición estimada según el horario del vuelo'}
         </p>
       )}
       <ul aria-label={`Embarques en el ${titulo}`} className="sr-only">
@@ -101,6 +103,7 @@ function CapaAgrupada({ marcadores }: { marcadores: MarcadorMapa[] }) {
 }
 
 function Embarque({ marcador }: { marcador: MarcadorMapa }) {
+  if (marcador.situacion === 'EN_VUELO') return <EnVuelo marcador={marcador} />
   const vieja = marcador.desactualizada
   return (
     <CircleMarker
@@ -118,6 +121,38 @@ function Embarque({ marcador }: { marcador: MarcadorMapa }) {
         {rotulo(marcador)}
       </Tooltip>
     </CircleMarker>
+  )
+}
+
+/**
+ * Un avión en vuelo (`US-26`): un ✈ del color del estado sobre su ruta punteada.
+ * La posición es estimada con el horario del vuelo, y el rótulo lo dice.
+ */
+function EnVuelo({ marcador }: { marcador: MarcadorMapa }) {
+  const apariencia = aparienciaDeEstado(marcador.estado)
+  const icono = L.divIcon({
+    className: '',
+    iconSize: [24, 24],
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;border:2px ${marcador.desactualizada ? 'dashed' : 'solid'} ${BLANCO};background:${apariencia.fondo};color:${apariencia.letra};font-size:13px;opacity:${marcador.desactualizada ? 0.6 : 1}">✈</span>`,
+  })
+  return (
+    <>
+      {marcador.ruta && (
+        <Polyline
+          positions={marcador.ruta}
+          pathOptions={{ color: apariencia.fondo, weight: 2, dashArray: '4 6', opacity: 0.7 }}
+        />
+      )}
+      <Marker
+        position={[marcador.latitud, marcador.longitud]}
+        icon={icono}
+        title={`${marcador.tipo} ${marcador.referencia}: en vuelo`}
+      >
+        <Tooltip direction="top" offset={[0, -12]}>
+          {rotulo(marcador)}
+        </Tooltip>
+      </Marker>
+    </>
   )
 }
 

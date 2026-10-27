@@ -31,6 +31,11 @@ function marcador(cambios: Partial<MarcadorMapa> = {}): MarcadorMapa {
       { id: 1, oc_numero: '4500123456', posicion_oc: 10, estado_calculado: 'EN_RIESGO' },
       { id: 2, oc_numero: '4500123456', posicion_oc: 20, estado_calculado: 'A_TIEMPO' },
     ],
+    posicion_estimada: false,
+    situacion: null,
+    vuelo: null,
+    lugar: null,
+    ruta: null,
     ...cambios,
   }
 }
@@ -171,5 +176,61 @@ describe('rotulo', () => {
         }),
       ),
     ).toBe('BL COSU6508789000: En Tránsito. Pedido 4500000001-10. Sin lectura.')
+  })
+})
+
+describe('mapa aéreo (US-26)', () => {
+  const vuelo = (cambios: Partial<MarcadorMapa> = {}) =>
+    marcador({
+      tipo: 'MAWB',
+      referencia: '020-50685434',
+      nombre: null,
+      estado: 'EN_TRANSITO',
+      posicion_estimada: true,
+      situacion: 'EN_VUELO',
+      vuelo: 'LH518',
+      ruta: [
+        [50, 8],
+        [10, -84],
+      ],
+      pedidos: [
+        { id: 3, oc_numero: '4500123789', posicion_oc: 20, estado_calculado: 'EN_TRANSITO' },
+      ],
+      ...cambios,
+    })
+
+  function montarAereo() {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MapaEmbarques titulo="Mapa Aéreo" capa="AEREO" centro={[17, -78]} zoom={4} />
+      </QueryClientProvider>,
+    )
+  }
+
+  it('un vuelo en curso se dibuja como avión y se rotula como estimado', async () => {
+    vi.mocked(obtenerMapa).mockResolvedValue(mapa({ via: 'AEREO', marcadores: [vuelo()] }))
+    montarAereo()
+
+    expect(await screen.findByTitle('MAWB 020-50685434: en vuelo')).toHaveTextContent('✈')
+    expect(obtenerMapa).toHaveBeenCalledWith('AEREO', FILTROS_VACIOS)
+    expect(screen.getByText(/posición estimada según el horario del vuelo/)).toBeInTheDocument()
+    expect(
+      await within(screen.getByRole('list', { name: 'Embarques en el Mapa Aéreo' })).findByRole(
+        'listitem',
+      ),
+    ).toHaveTextContent('En vuelo LH518, posición estimada según su horario.')
+  })
+
+  it('un vuelo concluido lo dice, con el aeropuerto', () => {
+    expect(rotulo(vuelo({ situacion: 'FINALIZADO', lugar: 'SJO', ruta: null }))).toContain(
+      'Vuelo LH518 concluido en SJO.',
+    )
+  })
+
+  it('en un transbordo, en tierra en el aeropuerto donde espera', () => {
+    expect(rotulo(vuelo({ situacion: 'EN_TIERRA', lugar: 'FRA', ruta: null }))).toContain(
+      'En tierra en FRA, esperando vuelo.',
+    )
   })
 })

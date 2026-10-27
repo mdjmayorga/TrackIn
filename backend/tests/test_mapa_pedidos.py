@@ -156,3 +156,91 @@ def test_el_orden_de_urgencia() -> None:
     assert estado_mas_urgente(["A_TIEMPO", "RETRASADO", "EN_RIESGO"]) == "RETRASADO"
     assert estado_mas_urgente(["EN_TRANSITO", "A_TIEMPO"]) == "A_TIEMPO"
     assert estado_mas_urgente(["EN_ORIGEN", "EN_DESTINO"]) == "EN_DESTINO"
+
+
+# --- US-26: el mapa aéreo ----------------------------------------------------------------
+
+
+def _trayecto(salida: dt.datetime, llegada: dt.datetime) -> list[dict]:
+    return [
+        {
+            "vuelo": "LH518",
+            "origen": "FRA",
+            "destino": "SJO",
+            "salida": salida.isoformat(),
+            "llegada": llegada.isoformat(),
+            "ruta": [[8.0, 50.0], [-84.0, 10.0]],
+        }
+    ]
+
+
+async def test_un_vuelo_en_curso_se_ubica_estimado_sobre_su_ruta(api, sesion) -> None:
+    # La hora de ahora y no la del módulo: la suite completa tarda minutos y el
+    # avión «a la mitad» ya habría avanzado.
+    ahora = dt.datetime.now(dt.UTC)
+    aeropuerto = await _destino(sesion, "MROC")
+    vuelo = await _elemento(
+        sesion,
+        tipo_tracking_externo="MAWB",
+        tracking_externo="020-33334444",
+        via_transporte="AEREO",
+        ultima_actualizacion_api=ahora,
+        trayecto_aereo=_trayecto(ahora - dt.timedelta(hours=5), ahora + dt.timedelta(hours=5)),
+    )
+    await _pedido(sesion, "4588900010", 10, destino=aeropuerto, id_elemento_rastreado=vuelo.id)
+
+    (marcador,) = (await api.get(f"{URL}/AEREO")).json()["marcadores"]
+
+    assert marcador["posicion_estimada"] is True
+    assert (marcador["situacion"], marcador["vuelo"]) == ("EN_VUELO", "LH518")
+    assert marcador["longitud"] == pytest.approx(-38.0, abs=0.1)
+    # La ruta va en el orden de Leaflet: latitud primero.
+    assert marcador["ruta"] == [[50.0, 8.0], [10.0, -84.0]]
+
+
+async def test_un_vuelo_concluido_queda_en_el_destino(api, sesion) -> None:
+    aeropuerto = await _destino(sesion, "MROC")
+    vuelo = await _elemento(
+        sesion,
+        tipo_tracking_externo="MAWB",
+        tracking_externo="020-55556666",
+        via_transporte="AEREO",
+        ultima_actualizacion_api=AHORA,
+        trayecto_aereo=_trayecto(AHORA - dt.timedelta(days=2), AHORA - dt.timedelta(days=1)),
+    )
+    await _pedido(sesion, "4588900011", 10, destino=aeropuerto, id_elemento_rastreado=vuelo.id)
+
+    (marcador,) = (await api.get(f"{URL}/AEREO")).json()["marcadores"]
+
+    assert (marcador["situacion"], marcador["lugar"]) == ("FINALIZADO", "SJO")
+    assert (marcador["latitud"], marcador["longitud"]) == (10.0, -84.0)
+    assert marcador["ruta"] is None
+
+
+async def test_la_lectura_aerea_vieja_se_marca_con_su_propia_frecuencia(api, sesion) -> None:
+    aeropuerto = await _destino(sesion, "MROC")
+    vuelo = await _elemento(
+        sesion,
+        tipo_tracking_externo="MAWB",
+        tracking_externo="020-77778888",
+        via_transporte="AEREO",
+        ultima_actualizacion_api=AHORA - dt.timedelta(hours=3),
+        trayecto_aereo=_trayecto(AHORA - dt.timedelta(hours=1), AHORA + dt.timedelta(hours=9)),
+    )
+    await _pedido(sesion, "4588900012", 10, destino=aeropuerto, id_elemento_rastreado=vuelo.id)
+
+    cuerpo = (await api.get(f"{URL}/AEREO")).json()
+
+    # Frecuencia aérea por omisión: 60 min → umbral de 2 h.
+    assert cuerpo["umbral_desactualizada_h"] == 2
+    assert cuerpo["marcadores"][0]["desactualizada"] is True
+
+
+async def test_un_marcador_maritimo_no_es_estimado(api, sesion) -> None:
+    buque = await _buque(sesion, "BLMAPA0020")
+    await _pedido(sesion, "4588900020", 10, id_elemento_rastreado=buque.id)
+
+    (marcador,) = (await api.get(f"{URL}/MARITIMO")).json()["marcadores"]
+
+    assert marcador["posicion_estimada"] is False
+    assert marcador["situacion"] is None

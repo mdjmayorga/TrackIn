@@ -53,7 +53,7 @@ from app.schemas.pedidos import (
     Rastreo,
     VentanaLiberacion,
 )
-from app.services import parametros, proyeccion, recalculo
+from app.services import parametros, posicion_aerea, proyeccion, recalculo
 
 #: Cuándo llegó a destino, con la precedencia de RN-05: lo confirmado a mano,
 #: lo que reportó la fuente y, por último, lo deducido por la geocerca. El
@@ -455,6 +455,34 @@ _FRECUENCIA_POR_VIA: dict[str, str] = {
 }
 
 
+def _ubicacion(
+    latitud: float | None,
+    longitud: float | None,
+    trayecto: list[dict[str, Any]] | None,
+    ahora: dt.datetime,
+) -> dict[str, Any] | None:
+    """Dónde dibujar el marcador: la estimación del vuelo, o la posición leída.
+
+    La estimación manda en la vía aérea porque es la única que se mueve con el
+    reloj; la leída es de lo que no es un vuelo (`US-26`).
+    """
+    estimacion = posicion_aerea.estimar(trayecto, ahora)
+    if estimacion is not None:
+        return {
+            "latitud": estimacion.latitud,
+            "longitud": estimacion.longitud,
+            "posicion_estimada": True,
+            "situacion": estimacion.situacion,
+            "vuelo": estimacion.vuelo,
+            "lugar": estimacion.lugar,
+            # Leaflet espera `(latitud, longitud)`; GeoJSON da `(longitud, latitud)`.
+            "ruta": [(lat, lon) for lon, lat in estimacion.ruta] if estimacion.ruta else None,
+        }
+    if latitud is None or longitud is None:
+        return None
+    return {"latitud": latitud, "longitud": longitud}
+
+
 def estado_mas_urgente(estados: Sequence[str]) -> str:
     return min(estados, key=lambda e: _URGENCIA.index(e) if e in _URGENCIA else len(_URGENCIA))
 
@@ -492,6 +520,7 @@ async def mapa(
             ElementoRastreado.activo,
             func.ST_Y(punto),
             func.ST_X(punto),
+            ElementoRastreado.trayecto_aereo,
         )
         .select_from(PedidoTransito)
         .join(PedidoTransito.proveedor)
@@ -501,7 +530,15 @@ async def mapa(
         .where(
             *_condiciones(filtros),
             PedidoTransito.via_transporte == via,
-            ElementoRastreado.posicion_actual.is_not(None),
+            # Un vuelo no tiene posición leída: se estima con su trayecto (`US-26`).
+            (
+                or_(
+                    ElementoRastreado.posicion_actual.is_not(None),
+                    ElementoRastreado.trayecto_aereo.is_not(None),
+                )
+                if via == "AEREO"
+                else ElementoRastreado.posicion_actual.is_not(None)
+            ),
         )
         .order_by(ElementoRastreado.id, PedidoTransito.oc_numero, PedidoTransito.posicion_oc)
     )
@@ -509,24 +546,27 @@ async def mapa(
     por_elemento: dict[int, dict[str, Any]] = {}
     for fila in filas:
         (id_pedido, oc, posicion, estado, id_elemento, tipo, referencia, nombre) = fila[:8]
-        (lectura, activo, latitud, longitud) = fila[8:]
-        marcador = por_elemento.setdefault(
-            id_elemento,
-            {
+        (lectura, activo, latitud, longitud, trayecto) = fila[8:]
+        if id_elemento not in por_elemento:
+            ubicacion = _ubicacion(latitud, longitud, trayecto, ahora)
+            if ubicacion is None:
+                continue
+            por_elemento[id_elemento] = {
+                **ubicacion,
                 "id_elemento": id_elemento,
                 "tipo": tipo,
                 "referencia": referencia,
                 "nombre": nombre,
-                "latitud": latitud,
-                "longitud": longitud,
                 "ultima_lectura": lectura,
                 # Un embarque que ya arribó no se consulta más: su lectura vieja
                 # no es un problema, es lo esperado.
                 "desactualizada": activo and (lectura is None or ahora - lectura > umbral),
                 "activo": activo,
                 "pedidos": [],
-            },
-        )
+            }
+        marcador = por_elemento.get(id_elemento)
+        if marcador is None:
+            continue  # sin posición ni trayecto: cuenta en `sin_posicion`
         marcador["pedidos"].append(
             PedidoEnMapa(id=id_pedido, oc_numero=oc, posicion_oc=posicion, estado_calculado=estado)
         )

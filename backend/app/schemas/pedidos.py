@@ -230,6 +230,24 @@ class MarcadorMapa(BaseModel):
     )
     activo: bool = Field(description="`false` si ya arribó y no se consulta más.")
     pedidos: list[PedidoEnMapa]
+    # --- Solo la vía aérea (`US-26`) ---------------------------------------------
+    posicion_estimada: bool = Field(
+        default=False,
+        description=(
+            "La posición sale del horario del vuelo, no de una lectura: ShipsGo no da "
+            "la posición de un avión. Se rotula como estimada."
+        ),
+    )
+    situacion: Literal["EN_VUELO", "EN_TIERRA", "FINALIZADO"] | None = Field(
+        default=None,
+        description="En vuelo, en tierra (antes de salir o en un transbordo) o vuelo concluido.",
+    )
+    vuelo: str | None = Field(default=None, description="El vuelo en curso o el último.")
+    lugar: str | None = Field(default=None, description="Aeropuerto (IATA), si está en tierra.")
+    ruta: list[tuple[float, float]] | None = Field(
+        default=None,
+        description="El trazado del vuelo en curso, `(latitud, longitud)`, para dibujarlo.",
+    )
 
 
 class MapaPedidos(BaseModel):

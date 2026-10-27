@@ -327,6 +327,16 @@ export interface MarcadorMapa {
     posicion_oc: number
     estado_calculado: EstadoCalculado
   }>
+  // --- Solo la vía aérea (`US-26`) ---
+  /** La posición sale del horario del vuelo, no de una lectura. */
+  posicion_estimada: boolean
+  situacion: 'EN_VUELO' | 'EN_TIERRA' | 'FINALIZADO' | null
+  /** El vuelo en curso o el último. */
+  vuelo: string | null
+  /** Aeropuerto (IATA), si está en tierra. */
+  lugar: string | null
+  /** El trazado del vuelo en curso, `[latitud, longitud]`. */
+  ruta: Array<[number, number]> | null
 }
 
 export interface MapaPedidos {

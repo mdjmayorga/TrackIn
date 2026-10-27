@@ -100,6 +100,9 @@ async def procesar(
     if lectura.ata is not None:
         elemento.ata_api = lectura.ata
     elemento.ultima_actualizacion_api = ahora
+    if lectura.tramos_aereos:
+        # `US-26`: el horario y el trazado de los vuelos, para estimar dónde va.
+        elemento.trayecto_aereo = [t.como_dict() for t in lectura.tramos_aereos]
 
     # --- El historial -------------------------------------------------------
     if lectura.posicion is not None:

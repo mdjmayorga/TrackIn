@@ -182,6 +182,35 @@ class Vehiculo:
     imo: int | None
 
 
+@dataclass(frozen=True, slots=True)
+class TramoAereo:
+    """Un vuelo del trayecto aéreo, del `geojson` de ShipsGo (`US-26`).
+
+    La API aérea no da la posición del avión, pero sí esto por tramo: con la
+    hora de salida, la de llegada y el trazado, `posicion_aerea.estimar` ubica
+    la carga en el momento en que se mira el mapa.
+    """
+
+    vuelo: str | None
+    origen: str | None
+    destino: str | None
+    salida: dt.datetime | None
+    llegada: dt.datetime | None
+    #: `(longitud, latitud)`, como GeoJSON.
+    ruta: tuple[tuple[float, float], ...]
+
+    def como_dict(self) -> dict[str, Any]:
+        """Para `elementos_rastreados.trayecto_aereo` (JSONB)."""
+        return {
+            "vuelo": self.vuelo,
+            "origen": self.origen,
+            "destino": self.destino,
+            "salida": self.salida.isoformat() if self.salida else None,
+            "llegada": self.llegada.isoformat() if self.llegada else None,
+            "ruta": [list(p) for p in self.ruta],
+        }
+
+
 @dataclass(slots=True)
 class LecturaEmbarque:
     """Lo que TrackIn extrae de un embarque de ShipsGo."""
@@ -211,6 +240,8 @@ class LecturaEmbarque:
 
     #: `(longitud, latitud)` — el orden de GeoJSON, no el de PostGIS.
     posicion: tuple[float, float] | None = None
+    #: Solo en la vía aérea: los vuelos con su horario y su trazado (`US-26`).
+    tramos_aereos: list[TramoAereo] = field(default_factory=list)
     vehiculo_actual: Vehiculo | None = None
 
     #: ShipsGo archiva solo lo terminado: si viene, el embarque puede dejar de
@@ -399,6 +430,8 @@ def interpretar(
 
     posicion, nave = _leer_posicion(geojson)
     lectura.posicion = posicion
+    if lectura.via == VIA_AEREA:
+        lectura.tramos_aereos = leer_tramos_aereos(geojson)
     lectura.vehiculo_actual = nave or (lectura.vehiculos[-1] if lectura.vehiculos else None)
     return lectura
 
@@ -488,6 +521,61 @@ def _leer_posicion(
     return None, None
 
 
+def leer_tramos_aereos(geojson: dict[str, Any] | None) -> list[TramoAereo]:
+    """Los vuelos del trazado aéreo, en orden: cada `LineString` es un tramo.
+
+    Cada tramo trae `properties.flight` y `properties.events` con `DEP` y `ARR`,
+    cada uno con su aeropuerto y su hora —real o estimada, ShipsGo la actualiza—.
+    Medido en el MAWB de Lufthansa del spike: PEK → FRA → SJO, 30 puntos por
+    tramo. Un tramo sin trazado se descarta; uno sin horas se guarda igual,
+    porque la ruta sirve aunque no se pueda ubicar el avión.
+    """
+    if not isinstance(geojson, dict):
+        return []
+    tramos: list[TramoAereo] = []
+    for feature in geojson.get("features") or []:
+        if not isinstance(feature, dict):
+            continue
+        geometria = feature.get("geometry")
+        if not isinstance(geometria, dict) or geometria.get("type") != "LineString":
+            continue
+        ruta = tuple(
+            (float(p[0]), float(p[1]))
+            for p in geometria.get("coordinates") or []
+            if isinstance(p, list | tuple)
+            and len(p) >= 2
+            and all(isinstance(c, int | float) for c in p[:2])
+        )
+        if not ruta:
+            continue
+        props = _dict(feature.get("properties"))
+        eventos = _dict(props.get("events"))
+        salida = _dict(eventos.get("DEP"))
+        llegada = _dict(eventos.get("ARR"))
+        vuelo = props.get("flight")
+        tramos.append(
+            TramoAereo(
+                vuelo=vuelo if isinstance(vuelo, str) else None,
+                origen=_iata(salida.get("location")),
+                destino=_iata(llegada.get("location")),
+                salida=_a_instante(salida.get("timestamp")),
+                llegada=_a_instante(llegada.get("timestamp")),
+                ruta=ruta,
+            )
+        )
+    return tramos
+
+
+def _dict(valor: Any) -> dict[str, Any]:
+    return valor if isinstance(valor, dict) else {}
+
+
+def _iata(location: Any) -> str | None:
+    if isinstance(location, dict) and isinstance(location.get("iata"), str):
+        return str(location["iata"])
+    return None
+
+
 def esta_maduro(shipment: dict[str, Any] | None) -> bool:
     """Si el embarque ya tiene datos, o sigue madurando tras el alta.
 
@@ -523,8 +611,10 @@ __all__ = [
     "OCURRIDO",
     "Hito",
     "LecturaEmbarque",
+    "TramoAereo",
     "Vehiculo",
     "es_arribo",
     "esta_maduro",
     "interpretar",
+    "leer_tramos_aereos",
 ]

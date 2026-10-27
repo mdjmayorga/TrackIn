@@ -6,7 +6,6 @@ import { useSesion } from '@/auth/useSesion'
 import { EstadoShipsGo } from '@/components/EstadoShipsGo'
 import { AvisoCreditos } from '@/components/AvisoCreditos'
 import { CintaKpis } from '@/components/CintaKpis'
-import { MapaBase } from '@/components/MapaBase'
 import { MapaEmbarques } from '@/components/MapaEmbarques'
 import { MenuConfiguracion } from '@/components/MenuConfiguracion'
 import { MenuZtracking } from '@/components/MenuZtracking'
@@ -165,7 +164,13 @@ export default function Dashboard() {
           />
         </div>
         <div className="order-3 min-w-0 xl:order-none">
-          <MapaBase titulo="Mapa Aéreo" centro={AEREO} zoom={4} />
+          <MapaEmbarques
+            titulo="Mapa Aéreo"
+            capa="AEREO"
+            centro={AEREO}
+            zoom={4}
+            filtros={filtros}
+          />
         </div>
       </main>
     </div>

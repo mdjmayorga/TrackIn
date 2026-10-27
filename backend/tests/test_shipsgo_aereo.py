@@ -19,6 +19,9 @@ from typing import Any
 
 import pytest
 
+from app.models.elemento_rastreado import ElementoRastreado
+from app.services.posicion_aerea import FINALIZADO, estimar
+from app.services.rastreo import colector_shipsgo
 from app.services.rastreo.shipsgo import (
     ETAPA_POR_EVENTO_AEREO,
     EVENTOS_DE_ARRIBO_AEREO,
@@ -343,3 +346,35 @@ async def test_una_paginacion_ignorada_no_gira_sin_fin() -> None:
 
     assert len(catalogo.aerolineas) == 1
     assert len(cliente.rutas) == 2, "se corta al ver que repite"
+
+
+# --- US-26: los vuelos del trayecto, para estimar la posición ----------------
+
+
+def test_el_trayecto_aereo_trae_los_dos_vuelos_con_su_horario() -> None:
+    tramos = _lectura().tramos_aereos
+
+    assert [(t.vuelo, t.origen, t.destino) for t in tramos] == [
+        ("LH8431", "PEK", "FRA"),
+        ("LH518", "FRA", "SJO"),
+    ]
+    assert all(t.salida and t.llegada and len(t.ruta) >= 2 for t in tramos)
+
+
+async def test_el_colector_guarda_el_trayecto_en_el_elemento(sesion) -> None:
+    elemento = ElementoRastreado(
+        tipo_tracking_externo="MAWB", tracking_externo="020-99990000", via_transporte="AEREO"
+    )
+    sesion.add(elemento)
+    await sesion.flush()
+    shipment, geojson = _aereo()
+
+    await colector_shipsgo.procesar(sesion, elemento, shipment, geojson)
+
+    assert elemento.trayecto_aereo is not None and len(elemento.trayecto_aereo) == 2
+    # El vuelo de septiembre ya aterrizó: el mapa lo muestra concluido en SJO.
+    estimacion = estimar(elemento.trayecto_aereo, dt.datetime.now(dt.UTC))
+    assert estimacion is not None
+    assert (estimacion.situacion, estimacion.lugar) == (FINALIZADO, "SJO")
+    # Una estimación no es una lectura: la geocerca no la ve.
+    assert elemento.posicion_actual is None
