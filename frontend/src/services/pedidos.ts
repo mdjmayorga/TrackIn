@@ -4,6 +4,7 @@ import { API_V1, api } from '@/services/api'
 import type {
   AsientoBitacora,
   IndicadoresKpi,
+  MapaPedidos,
   Orden,
   PaginaPedidos,
   PedidoDetalle,
@@ -57,6 +58,17 @@ export async function obtenerIndicadores(
   filtros: FiltrosPanel = FILTROS_VACIOS,
 ): Promise<IndicadoresKpi> {
   const { data } = await api.get<IndicadoresKpi>(`${API_V1}/pedidos/indicadores`, {
+    params: aParametros(filtros),
+  })
+  return data
+}
+
+/** Los embarques de una vía con posición, para su mapa (`US-25`). Mismos filtros. */
+export async function obtenerMapa(
+  capa: 'MARITIMO' | 'AEREO',
+  filtros: FiltrosPanel = FILTROS_VACIOS,
+): Promise<MapaPedidos> {
+  const { data } = await api.get<MapaPedidos>(`${API_V1}/pedidos/mapa/${capa}`, {
     params: aParametros(filtros),
   })
   return data

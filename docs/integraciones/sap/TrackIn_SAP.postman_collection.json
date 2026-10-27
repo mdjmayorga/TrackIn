@@ -1,0 +1,533 @@
+{
+  "info": {
+    "_postman_id": "d1188ec2-e936-554e-8af2-d7897a0fa320",
+    "name": "TrackIn — Integración con SAP",
+    "description": "Contrato de la API de SAP para TrackIn (`US-64`, versión 1.0, 27/10/2026).\n\nSAP **empuja** los pedidos a TrackIn: `POST {{base_url}}/api/v1/integraciones/sap/pedidos`. Mientras la API de SAP no exista, la escucha está **apagada** y TrackIn responde `503`.\n\nElija el entorno *TrackIn local* o *TrackIn producción* y cargue `sap_clave` (la clave de integración de `SAP_INTEGRACION_CLAVE` en el `.env` del servidor). El significado de cada campo está en `docs/integraciones/sap/README.md` y la validación exacta en `lote_pedidos.schema.json`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{sap_clave}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Un id de lote distinto en cada envío y la hora de extracción.",
+          "const ahora = new Date();",
+          "const sello = ahora.toISOString().replace(/[-:]/g, '').slice(0, 15);",
+          "pm.variables.set('lote_id', 'SAP-' + sello);",
+          "pm.variables.set('generado_en', ahora.toISOString());"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Enviar lote de pedidos (todos los campos)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Con la escucha apagada (hoy) la respuesta correcta es 503.",
+              "pm.test('Responde 200 (escucha encendida) o 503 (apagada)', () => {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  const informe = pm.response.json();",
+              "  pm.test('El informe cuadra con lo enviado', () => {",
+              "    const enviados = JSON.parse(pm.request.body.raw.replace(/{{\\w+}}/g, 'x')).pedidos.length;",
+              "    pm.expect(informe.recibidas).to.eql(enviados);",
+              "    pm.expect(informe.insertadas + informe.actualizadas + informe.sin_cambios + informe.no_entraron).to.eql(enviados);",
+              "  });",
+              "} else {",
+              "  pm.test('Dice que la escucha está deshabilitada', () => {",
+              "    pm.expect(pm.response.json().escucha_habilitada).to.eql(false);",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lote\": {\n    \"id\": \"{{lote_id}}\",\n    \"generado_en\": \"{{generado_en}}\",\n    \"tipo\": \"INCREMENTAL\",\n    \"sistema\": \"SAP S/4HANA PRD 300\"\n  },\n  \"pedidos\": [\n    {\n      \"oc_numero\": \"4500123456\",\n      \"posicion_oc\": 10,\n      \"proveedor_codigo\": \"100234\",\n      \"proveedor_nombre\": \"Proveedor Farmacéutico S.A.\",\n      \"material_codigo\": \"MP-001234\",\n      \"material_descripcion\": \"Paracetamol polvo USP\",\n      \"cantidad\": 1500.0,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2026-12-15\",\n      \"destino_codigo\": \"CRMOB\",\n      \"via_transporte\": \"MARITIMO\",\n      \"pais_origen\": \"IN\",\n      \"incoterm\": \"CIF LIMON\",\n      \"temperatura\": \"15-25 C\",\n      \"tipo_proveedor\": \"INTERNACIONAL\",\n      \"fabricante\": \"Fabricante Ltd.\",\n      \"eta_declarada\": \"2026-12-01\",\n      \"arribo_declarado\": \"NO\",\n      \"tipo_referencia\": \"BL\",\n      \"numero_referencia\": \"COSU6508789000\",\n      \"transportista\": \"COSCO\",\n      \"fecha_referencia\": \"2026-10-20\",\n      \"comentario\": \"Zarpó de Nhava Sheva el 18/10\",\n      \"solicitud_pedido\": \"10012345\",\n      \"fecha_entrega_solped\": \"2026-12-20\",\n      \"centro\": \"1000\",\n      \"grupo_compras\": \"C01\",\n      \"fecha_documento\": \"2026-09-02\",\n      \"indicador_borrado\": false,\n      \"entrega_final\": false,\n      \"cantidad_recibida\": 0,\n      \"modificado_en\": \"2026-10-26T16:42:00-06:00\"\n    },\n    {\n      \"oc_numero\": \"4500123789\",\n      \"posicion_oc\": 20,\n      \"proveedor_codigo\": \"100871\",\n      \"proveedor_nombre\": \"Excipientes Europa GmbH\",\n      \"material_codigo\": \"MP-004410\",\n      \"material_descripcion\": \"Celulosa microcristalina\",\n      \"cantidad\": 250.0,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2026-11-20\",\n      \"destino_codigo\": null,\n      \"via_transporte\": \"AEREO\",\n      \"pais_origen\": \"DE\",\n      \"incoterm\": \"FCA FRANKFURT\",\n      \"temperatura\": \"2-8 C\",\n      \"tipo_proveedor\": \"INTERNACIONAL\",\n      \"fabricante\": null,\n      \"eta_declarada\": null,\n      \"arribo_declarado\": \"PENDIENTE\",\n      \"tipo_referencia\": \"MAWB\",\n      \"numero_referencia\": \"020-50685434\",\n      \"transportista\": \"LUFTHANSA CARGO\",\n      \"fecha_referencia\": \"2026-10-25\",\n      \"comentario\": null,\n      \"solicitud_pedido\": \"10012388\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/integraciones/sap/pedidos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "integraciones",
+            "sap",
+            "pedidos"
+          ]
+        },
+        "description": "Dos líneas con **todos** los campos: una marítima con BL y los campos reservados, y una aérea con MAWB sin destino (TrackIn lo deduce de la vía). Ver `README.md` para el significado de cada campo."
+      },
+      "response": [
+        {
+          "name": "200 — escucha encendida: informe de la carga",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lote\": {\n    \"id\": \"{{lote_id}}\",\n    \"generado_en\": \"{{generado_en}}\",\n    \"tipo\": \"INCREMENTAL\",\n    \"sistema\": \"SAP S/4HANA PRD 300\"\n  },\n  \"pedidos\": [\n    {\n      \"oc_numero\": \"4500123456\",\n      \"posicion_oc\": 10,\n      \"proveedor_codigo\": \"100234\",\n      \"proveedor_nombre\": \"Proveedor Farmacéutico S.A.\",\n      \"material_codigo\": \"MP-001234\",\n      \"material_descripcion\": \"Paracetamol polvo USP\",\n      \"cantidad\": 1500.0,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2026-12-15\",\n      \"destino_codigo\": \"CRMOB\",\n      \"via_transporte\": \"MARITIMO\",\n      \"pais_origen\": \"IN\",\n      \"incoterm\": \"CIF LIMON\",\n      \"temperatura\": \"15-25 C\",\n      \"tipo_proveedor\": \"INTERNACIONAL\",\n      \"fabricante\": \"Fabricante Ltd.\",\n      \"eta_declarada\": \"2026-12-01\",\n      \"arribo_declarado\": \"NO\",\n      \"tipo_referencia\": \"BL\",\n      \"numero_referencia\": \"COSU6508789000\",\n      \"transportista\": \"COSCO\",\n      \"fecha_referencia\": \"2026-10-20\",\n      \"comentario\": \"Zarpó de Nhava Sheva el 18/10\",\n      \"solicitud_pedido\": \"10012345\",\n      \"fecha_entrega_solped\": \"2026-12-20\",\n      \"centro\": \"1000\",\n      \"grupo_compras\": \"C01\",\n      \"fecha_documento\": \"2026-09-02\",\n      \"indicador_borrado\": false,\n      \"entrega_final\": false,\n      \"cantidad_recibida\": 0,\n      \"modificado_en\": \"2026-10-26T16:42:00-06:00\"\n    },\n    {\n      \"oc_numero\": \"4500123789\",\n      \"posicion_oc\": 20,\n      \"proveedor_codigo\": \"100871\",\n      \"proveedor_nombre\": \"Excipientes Europa GmbH\",\n      \"material_codigo\": \"MP-004410\",\n      \"material_descripcion\": \"Celulosa microcristalina\",\n      \"cantidad\": 250.0,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2026-11-20\",\n      \"destino_codigo\": null,\n      \"via_transporte\": \"AEREO\",\n      \"pais_origen\": \"DE\",\n      \"incoterm\": \"FCA FRANKFURT\",\n      \"temperatura\": \"2-8 C\",\n      \"tipo_proveedor\": \"INTERNACIONAL\",\n      \"fabricante\": null,\n      \"eta_declarada\": null,\n      \"arribo_declarado\": \"PENDIENTE\",\n      \"tipo_referencia\": \"MAWB\",\n      \"numero_referencia\": \"020-50685434\",\n      \"transportista\": \"LUFTHANSA CARGO\",\n      \"fecha_referencia\": \"2026-10-25\",\n      \"comentario\": null,\n      \"solicitud_pedido\": \"10012388\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/integraciones/sap/pedidos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "integraciones",
+                "sap",
+                "pedidos"
+              ]
+            },
+            "description": "Dos líneas con **todos** los campos: una marítima con BL y los campos reservados, y una aérea con MAWB sin destino (TrackIn lo deduce de la vía). Ver `README.md` para el significado de cada campo."
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"id_carga\": 128,\n  \"lote_id\": \"SAP-20261027-080000\",\n  \"estado\": \"APLICADA\",\n  \"recibidas\": 2,\n  \"insertadas\": 1,\n  \"actualizadas\": 1,\n  \"sin_cambios\": 0,\n  \"no_entraron\": 0,\n  \"entraron_sin_rastreo\": 0,\n  \"incidencias\": [\n    {\n      \"clave\": \"4500123789-20\",\n      \"motivo\": \"destino_por_via\",\n      \"detalle\": \"Sin destino_codigo: se tomó MROC por ser la única entrada aérea.\",\n      \"consecuencia\": \"entro_sin_rastreo\"\n    }\n  ]\n}"
+        },
+        {
+          "name": "503 — escucha apagada (hoy)",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lote\": {\n    \"id\": \"{{lote_id}}\",\n    \"generado_en\": \"{{generado_en}}\",\n    \"tipo\": \"INCREMENTAL\",\n    \"sistema\": \"SAP S/4HANA PRD 300\"\n  },\n  \"pedidos\": [\n    {\n      \"oc_numero\": \"4500123456\",\n      \"posicion_oc\": 10,\n      \"proveedor_codigo\": \"100234\",\n      \"proveedor_nombre\": \"Proveedor Farmacéutico S.A.\",\n      \"material_codigo\": \"MP-001234\",\n      \"material_descripcion\": \"Paracetamol polvo USP\",\n      \"cantidad\": 1500.0,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2026-12-15\",\n      \"destino_codigo\": \"CRMOB\",\n      \"via_transporte\": \"MARITIMO\",\n      \"pais_origen\": \"IN\",\n      \"incoterm\": \"CIF LIMON\",\n      \"temperatura\": \"15-25 C\",\n      \"tipo_proveedor\": \"INTERNACIONAL\",\n      \"fabricante\": \"Fabricante Ltd.\",\n      \"eta_declarada\": \"2026-12-01\",\n      \"arribo_declarado\": \"NO\",\n      \"tipo_referencia\": \"BL\",\n      \"numero_referencia\": \"COSU6508789000\",\n      \"transportista\": \"COSCO\",\n      \"fecha_referencia\": \"2026-10-20\",\n      \"comentario\": \"Zarpó de Nhava Sheva el 18/10\",\n      \"solicitud_pedido\": \"10012345\",\n      \"fecha_entrega_solped\": \"2026-12-20\",\n      \"centro\": \"1000\",\n      \"grupo_compras\": \"C01\",\n      \"fecha_documento\": \"2026-09-02\",\n      \"indicador_borrado\": false,\n      \"entrega_final\": false,\n      \"cantidad_recibida\": 0,\n      \"modificado_en\": \"2026-10-26T16:42:00-06:00\"\n    },\n    {\n      \"oc_numero\": \"4500123789\",\n      \"posicion_oc\": 20,\n      \"proveedor_codigo\": \"100871\",\n      \"proveedor_nombre\": \"Excipientes Europa GmbH\",\n      \"material_codigo\": \"MP-004410\",\n      \"material_descripcion\": \"Celulosa microcristalina\",\n      \"cantidad\": 250.0,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2026-11-20\",\n      \"destino_codigo\": null,\n      \"via_transporte\": \"AEREO\",\n      \"pais_origen\": \"DE\",\n      \"incoterm\": \"FCA FRANKFURT\",\n      \"temperatura\": \"2-8 C\",\n      \"tipo_proveedor\": \"INTERNACIONAL\",\n      \"fabricante\": null,\n      \"eta_declarada\": null,\n      \"arribo_declarado\": \"PENDIENTE\",\n      \"tipo_referencia\": \"MAWB\",\n      \"numero_referencia\": \"020-50685434\",\n      \"transportista\": \"LUFTHANSA CARGO\",\n      \"fecha_referencia\": \"2026-10-25\",\n      \"comentario\": null,\n      \"solicitud_pedido\": \"10012388\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/integraciones/sap/pedidos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "integraciones",
+                "sap",
+                "pedidos"
+              ]
+            },
+            "description": "Dos líneas con **todos** los campos: una marítima con BL y los campos reservados, y una aérea con MAWB sin destino (TrackIn lo deduce de la vía). Ver `README.md` para el significado de cada campo."
+          },
+          "status": "Service Unavailable",
+          "code": 503,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"detail\": \"La escucha de la API de SAP está deshabilitada. Un administrador la enciende en Configuración → Integración con SAP.\",\n  \"escucha_habilitada\": false\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. Enviar lote mínimo (solo obligatorios)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Con la escucha apagada (hoy) la respuesta correcta es 503.",
+              "pm.test('Responde 200 (escucha encendida) o 503 (apagada)', () => {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  const informe = pm.response.json();",
+              "  pm.test('El informe cuadra con lo enviado', () => {",
+              "    const enviados = JSON.parse(pm.request.body.raw.replace(/{{\\w+}}/g, 'x')).pedidos.length;",
+              "    pm.expect(informe.recibidas).to.eql(enviados);",
+              "    pm.expect(informe.insertadas + informe.actualizadas + informe.sin_cambios + informe.no_entraron).to.eql(enviados);",
+              "  });",
+              "} else {",
+              "  pm.test('Dice que la escucha está deshabilitada', () => {",
+              "    pm.expect(pm.response.json().escucha_habilitada).to.eql(false);",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lote\": {\n    \"id\": \"{{lote_id}}\",\n    \"generado_en\": \"{{generado_en}}\",\n    \"tipo\": \"INCREMENTAL\"\n  },\n  \"pedidos\": [\n    {\n      \"oc_numero\": \"4500124001\",\n      \"posicion_oc\": 10,\n      \"proveedor_codigo\": \"100234\",\n      \"proveedor_nombre\": \"Proveedor Farmacéutico S.A.\",\n      \"material_codigo\": \"MP-001234\",\n      \"material_descripcion\": \"Paracetamol polvo USP\",\n      \"cantidad\": 800,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2027-01-10\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/integraciones/sap/pedidos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "integraciones",
+            "sap",
+            "pedidos"
+          ]
+        },
+        "description": "Una línea con solo los nueve campos obligatorios. Entra, sin rastreo hasta que llegue su referencia."
+      },
+      "response": [
+        {
+          "name": "503 — escucha apagada (hoy)",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lote\": {\n    \"id\": \"{{lote_id}}\",\n    \"generado_en\": \"{{generado_en}}\",\n    \"tipo\": \"INCREMENTAL\"\n  },\n  \"pedidos\": [\n    {\n      \"oc_numero\": \"4500124001\",\n      \"posicion_oc\": 10,\n      \"proveedor_codigo\": \"100234\",\n      \"proveedor_nombre\": \"Proveedor Farmacéutico S.A.\",\n      \"material_codigo\": \"MP-001234\",\n      \"material_descripcion\": \"Paracetamol polvo USP\",\n      \"cantidad\": 800,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2027-01-10\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/integraciones/sap/pedidos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "integraciones",
+                "sap",
+                "pedidos"
+              ]
+            },
+            "description": "Una línea con solo los nueve campos obligatorios. Entra, sin rastreo hasta que llegue su referencia."
+          },
+          "status": "Service Unavailable",
+          "code": 503,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"detail\": \"La escucha de la API de SAP está deshabilitada. Un administrador la enciende en Configuración → Integración con SAP.\",\n  \"escucha_habilitada\": false\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Sin clave de integración → 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechaza sin clave', () => pm.expect(pm.response.code).to.eql(401));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lote\": {\n    \"id\": \"{{lote_id}}\",\n    \"generado_en\": \"{{generado_en}}\",\n    \"tipo\": \"INCREMENTAL\"\n  },\n  \"pedidos\": [\n    {\n      \"oc_numero\": \"4500124001\",\n      \"posicion_oc\": 10,\n      \"proveedor_codigo\": \"100234\",\n      \"proveedor_nombre\": \"Proveedor Farmacéutico S.A.\",\n      \"material_codigo\": \"MP-001234\",\n      \"material_descripcion\": \"Paracetamol polvo USP\",\n      \"cantidad\": 800,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2027-01-10\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/integraciones/sap/pedidos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "integraciones",
+            "sap",
+            "pedidos"
+          ]
+        },
+        "description": "Sin el encabezado `X-API-Key`. Se rechaza antes de mirar el cuerpo.",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "response": [
+        {
+          "name": "401 — falta la clave",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lote\": {\n    \"id\": \"{{lote_id}}\",\n    \"generado_en\": \"{{generado_en}}\",\n    \"tipo\": \"INCREMENTAL\"\n  },\n  \"pedidos\": [\n    {\n      \"oc_numero\": \"4500124001\",\n      \"posicion_oc\": 10,\n      \"proveedor_codigo\": \"100234\",\n      \"proveedor_nombre\": \"Proveedor Farmacéutico S.A.\",\n      \"material_codigo\": \"MP-001234\",\n      \"material_descripcion\": \"Paracetamol polvo USP\",\n      \"cantidad\": 800,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"2027-01-10\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/integraciones/sap/pedidos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "integraciones",
+                "sap",
+                "pedidos"
+              ]
+            },
+            "description": "Sin el encabezado `X-API-Key`. Se rechaza antes de mirar el cuerpo.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "status": "Unauthorized",
+          "code": 401,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"detail\": \"Falta la clave de integración (encabezado X-API-Key) o no es válida.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Lote con formato inválido → 422",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Con la escucha apagada, el 503 llega antes que la validación.",
+              "pm.test('Rechaza el formato (422) o la escucha está apagada (503)', () => {",
+              "  pm.expect(pm.response.code).to.be.oneOf([422, 503]);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lote\": {\n    \"id\": \"{{lote_id}}\",\n    \"generado_en\": \"{{generado_en}}\",\n    \"tipo\": \"INCREMENTAL\"\n  },\n  \"pedidos\": [\n    {\n      \"oc_numero\": \"4500124002\",\n      \"posicion_oc\": \"diez\",\n      \"material_codigo\": \"MP-001234\",\n      \"cantidad\": -5,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"15/12/2026\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/integraciones/sap/pedidos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "integraciones",
+            "sap",
+            "pedidos"
+          ]
+        },
+        "description": "Posición que no es número, cantidad negativa, fecha en formato local y sin proveedor. Se rechaza el lote entero, sin tocar la base."
+      },
+      "response": [
+        {
+          "name": "422 — formato inválido",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lote\": {\n    \"id\": \"{{lote_id}}\",\n    \"generado_en\": \"{{generado_en}}\",\n    \"tipo\": \"INCREMENTAL\"\n  },\n  \"pedidos\": [\n    {\n      \"oc_numero\": \"4500124002\",\n      \"posicion_oc\": \"diez\",\n      \"material_codigo\": \"MP-001234\",\n      \"cantidad\": -5,\n      \"unidad_medida\": \"KG\",\n      \"fecha_entrega_pedido\": \"15/12/2026\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/integraciones/sap/pedidos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "integraciones",
+                "sap",
+                "pedidos"
+              ]
+            },
+            "description": "Posición que no es número, cantidad negativa, fecha en formato local y sin proveedor. Se rechaza el lote entero, sin tocar la base."
+          },
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"detail\": [\n    {\n      \"loc\": [\n        \"body\",\n        \"pedidos\",\n        0,\n        \"posicion_oc\"\n      ],\n      \"msg\": \"Input should be a valid integer\",\n      \"type\": \"int_parsing\"\n    },\n    {\n      \"loc\": [\n        \"body\",\n        \"pedidos\",\n        0,\n        \"proveedor_codigo\"\n      ],\n      \"msg\": \"Field required\",\n      \"type\": \"missing\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "5. Salud del servicio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TrackIn responde', () => pm.expect(pm.response.code).to.eql(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        },
+        "description": "Para comprobar que TrackIn está arriba antes de enviar. No necesita clave."
+      },
+      "response": []
+    }
+  ]
+}

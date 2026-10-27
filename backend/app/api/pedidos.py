@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import datetime as dt
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
@@ -36,6 +36,7 @@ from app.schemas.pedidos import (
     EtapaFiltro,
     IndicadoresKpi,
     LiberacionEntrada,
+    MapaPedidos,
     PaginaPedidos,
     PasoAduanalEntrada,
     PedidoDetalle,
@@ -171,6 +172,25 @@ async def indicadores(
         sin_proyeccion=datos.sin_proyeccion,
         lead_time_medio_dias=datos.lead_time_medio_dias,
     )
+
+
+@router.get(
+    "/mapa/{capa}",
+    response_model=MapaPedidos,
+    summary="Embarques en el mapa (US-25, US-26)",
+    description=(
+        "Los embarques de la vía que tienen posición, uno por marcador con sus pedidos, "
+        "coloreados por el estado más urgente. Mismos filtros que la grilla. Una lectura "
+        "más vieja que el doble de la frecuencia de consulta de la vía se marca "
+        "desactualizada."
+    ),
+)
+async def mapa_de_pedidos(
+    capa: Literal["MARITIMO", "AEREO"],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    filtros: Annotated[Filtros, Depends(filtros_de_consulta)],
+) -> MapaPedidos:
+    return await consulta_pedidos.mapa(db, filtros, via=capa)
 
 
 @router.get(

@@ -1,6 +1,6 @@
 /** Números y destinos como los muestra el panel. */
 
-import type { PedidoResumen } from '@/types/api'
+import type { CargaResumen, PedidoResumen } from '@/types/api'
 
 const unDecimal = new Intl.NumberFormat('es-CR', {
   minimumFractionDigits: 1,
@@ -28,4 +28,10 @@ export function formatearDias(valor: string | null): string | null {
  */
 export function destinoCorto(pedido: Pick<PedidoResumen, 'destino' | 'via_transporte'>): string {
   return pedido.via_transporte === 'AEREO' ? pedido.destino.codigo : pedido.destino.nombre
+}
+
+/** Quién hizo la carga: la persona que subió el Excel o «API de SAP» (`US-65`). */
+export function autorDeCarga(carga: Pick<CargaResumen, 'origen' | 'usuario'>): string {
+  if (carga.origen === 'API_SAP') return 'API de SAP'
+  return carga.usuario?.nombre_completo ?? '—'
 }

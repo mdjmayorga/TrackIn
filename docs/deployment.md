@@ -88,6 +88,12 @@ levantarla a mano en cada sesión de trabajo.
       — recordar que Vite la embebe **en tiempo de build**: cambiarla exige
       reconstruir la imagen del frontend, no basta reiniciar el contenedor
 - [ ] Migraciones aplicadas (`alembic upgrade head`)
+- [ ] **API de SAP** (`US-65`, 27/10/2026): `SAP_INTEGRACION_CLAVE` en el `.env` del
+      backend —larga y aleatoria, `python -c "import secrets; print(secrets.token_urlsafe(32))"`—
+      y entregada al equipo de SAP por un canal seguro. Solo si SAP va a enviar desde fuera
+      del servidor: el endpoint `POST /api/v1/integraciones/sap/pedidos` tiene que ser
+      alcanzable por HTTPS. La escucha arranca **apagada**; la enciende el Administrador en
+      *Configuración → Integración con SAP*. Contrato: `docs/integraciones/sap/`
 - [ ] Postgres **no** expuesto a la red pública
 - [ ] Respaldo automático verificado con una restauración de prueba
 - [ ] Credenciales de AISStream y OpenSky de producción cargadas

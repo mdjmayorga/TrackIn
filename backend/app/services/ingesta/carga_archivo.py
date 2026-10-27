@@ -35,7 +35,7 @@ from openpyxl.utils.exceptions import InvalidFileException
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.carga_ztracking import APLICADA, RECHAZADA, CargaZTracking
+from app.models.carga_ztracking import APLICADA, EXCEL, RECHAZADA, CargaZTracking
 from app.services.ingesta.carga import ResolutorDestino, ResultadoCarga, cargar
 from app.services.ingesta.dto import PedidoCrudo
 from app.services.ingesta.informe import InformeValidacion, construir_informe
@@ -48,7 +48,8 @@ TAMANO_MAXIMO_BYTES: Final = 20 * 1024 * 1024
 EXTENSIONES: Final = (".xlsx", ".xlsm")
 
 #: Clave del candado de PostgreSQL que serializa las cargas. Arbitraria, fija.
-_CANDADO_CARGA: Final = 5_801_058
+#: La comparten el Excel y la API de SAP (`US-65`): nunca corren dos a la vez.
+CANDADO_CARGA: Final = 5_801_058
 
 
 class ArchivoInvalido(ValueError):
@@ -60,7 +61,7 @@ class CargaEnCurso(RuntimeError):
 
 
 @dataclass(frozen=True, slots=True)
-class _FuenteLeida:
+class FuenteLeida:
     """Las líneas ya leídas, con la forma de `FuentePedidos`.
 
     El archivo se lee una vez, antes de abrir la carga, para poder rechazarlo
@@ -140,7 +141,19 @@ async def _leer(contenido: bytes, nombre: str) -> tuple[list[PedidoCrudo], Fuent
     return pedidos, fuente
 
 
-def _avisos(resultado: ResultadoCarga) -> list[dict[str, str]]:
+async def tomar_candado(sesion: AsyncSession) -> None:
+    """Candado de transacción: se suelta solo con el commit o el rollback.
+
+    Lanza `CargaEnCurso` si otra carga —del Excel o de SAP— lo tiene.
+    """
+    libre = await sesion.scalar(select(text(f"pg_try_advisory_xact_lock({CANDADO_CARGA})")))
+    if not libre:
+        raise CargaEnCurso(
+            "Hay otra carga del Z-tracking en curso. Espere a que termine y vuelva a intentar."
+        )
+
+
+def avisos(resultado: ResultadoCarga) -> list[dict[str, str]]:
     """Lo que entró bien pero conviene corregir en SAP (`US-52`, `US-54`)."""
     return [
         {
@@ -152,18 +165,20 @@ def _avisos(resultado: ResultadoCarga) -> list[dict[str, str]]:
     ]
 
 
-def _registro(
+def registro_de_carga(
     *,
-    id_usuario: int,
+    id_usuario: int | None,
     archivo: str,
     tamano: int,
     instante: dt.datetime,
     informe: InformeValidacion | None = None,
     avisos: list[dict[str, str]] | None = None,
     motivo_rechazo: str | None = None,
+    origen: str = EXCEL,
 ) -> CargaZTracking:
     fila = CargaZTracking(
         id_usuario=id_usuario,
+        origen=origen,
         archivo=archivo,
         tamano_bytes=tamano,
         realizada_en=instante,
@@ -211,26 +226,22 @@ async def cargar_archivo(
     pedidos, fuente = await _leer(contenido, nombre)
 
     # Candado de transacción: se suelta solo con el commit o el rollback.
-    libre = await sesion.scalar(select(text(f"pg_try_advisory_xact_lock({_CANDADO_CARGA})")))
-    if not libre:
-        raise CargaEnCurso(
-            "Hay otra carga del Z-tracking en curso. Espere a que termine y vuelva a intentar."
-        )
+    await tomar_candado(sesion)
 
     ahora = instante or dt.datetime.now(dt.UTC)
     resultado = await cargar(
         sesion,
-        _FuenteLeida("ztracking", f"Z-tracking subido ({nombre})", pedidos),
+        FuenteLeida("ztracking", f"Z-tracking subido ({nombre})", pedidos),
         resolutor_destino=resolutor_destino,
     )
     informe = construir_informe("ztracking", resultado, fuente.ilegibles)
-    fila = _registro(
+    fila = registro_de_carga(
         id_usuario=id_usuario,
         archivo=nombre,
         tamano=len(contenido),
         instante=ahora,
         informe=informe,
-        avisos=_avisos(resultado),
+        avisos=avisos(resultado),
     )
     sesion.add(fila)
     await sesion.flush()
@@ -254,7 +265,7 @@ def registrar_rechazo(
 ) -> CargaZTracking:
     """Deja constancia de un archivo rechazado. **No hace commit.**"""
     nombre = _sin_ruta(nombre_archivo)[:255] or "(sin nombre)"
-    fila = _registro(
+    fila = registro_de_carga(
         id_usuario=id_usuario,
         archivo=nombre,
         tamano=tamano,
@@ -266,11 +277,16 @@ def registrar_rechazo(
 
 
 __all__ = [
+    "CANDADO_CARGA",
     "EXTENSIONES",
     "TAMANO_MAXIMO_BYTES",
     "ArchivoInvalido",
     "CargaEnCurso",
+    "FuenteLeida",
+    "avisos",
     "cargar_archivo",
     "registrar_rechazo",
+    "registro_de_carga",
+    "tomar_candado",
     "validar_nombre",
 ]

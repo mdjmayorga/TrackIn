@@ -110,9 +110,12 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-60` | Acciones del detalle: confirmar desembarco, pasar a aduana, recibir, ajustar días y liberar ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | 15/10: los endpoints existían desde el Sprint 5; las pantallas, no · ✅ terminada 15/10 |
 | `US-61` | Cambiar la propia contraseña ✅ | Story | OE3 | **Should** | Sprint 6 | 4h | 20/10: creación de la cuenta de Compras · hoy solo el Administrador reinicia contraseñas · ✅ terminada 20/10 |
 | `US-63` | OC, POS y SOLPED en la grilla de la pantalla de planta ✅ | Story | OE3 | **Must** | Sprint 6 | 4h | Reunión con Compras 22/10 · solo planta: Compras no ve la SOLPED · ✅ terminada 26/10 |
+| `US-64` | Contrato de campos para la API de SAP y colección de Postman ✅ | Story | OE2 | **Must** | Sprint 6 | 4h | Reunión de entrega del Informe 2, 27/10 · ✅ terminada 27/10 |
+| `US-65` | Receptor de pedidos desde la API de SAP, apagado por defecto ✅ | Story | OE2 | **Should** | ~~Sprint 7~~ Sprint 6 | 6h | Reunión de entrega del Informe 2, 27/10 · prepara lo que `US-56` necesitaba · ✅ adelantada y terminada 27/10 |
+| `US-66` | Interruptor on/off de la escucha de la API de SAP en la interfaz ✅ | Story | OE2 | **Must** | ~~Sprint 7~~ Sprint 6 | 3h | Reunión de entrega del Informe 2, 27/10 · arranca en off · solo el Administrador lo cambia (27/10) · ✅ adelantada y terminada 27/10 |
 | `US-62` | Administrar usuarios desde la interfaz ✅ | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no · ✅ terminada 21/10 |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
-| `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 |
+| `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales 🔶 | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 · 🔶 construida 27/10 (adelantada); falta verla con posiciones reales |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
@@ -1765,6 +1768,13 @@ Como desarrollador, quiero la documentación OpenAPI generada automáticamente, 
 > **26/10: `US-55` construida. Hechas: 112 de 116 h.** Pendiente: `US-57` (4), y la prueba real
 > de `US-55` con un BL del Excel final.
 >
+> **27/10: entra `US-64`** (4 h, contrato de SAP y colección de Postman), de la reunión de entrega
+> del Informe 2, y **queda terminada el mismo día. Hechas: 120 de 120 h.**
+>
+> **27/10: se adelantan `US-65` (6 h) y `US-66` (3 h)** desde el Sprint 7, y quedan terminadas
+> el mismo día. **Hechas: 129 de 129 h.** La escucha de SAP está completa: contrato, receptor e
+> interruptor.
+>
 > **26/10: `US-57` terminada. Hechas: 116 de 116 h.** Compras registró los 49 créditos de
 > prueba como el paquete vigente el 26/10 a las 10:35. Queda una prueba con datos reales: dar
 > de alta 1 o 2 BL del Excel final del Z-tracking (desde el 27/10).
@@ -1861,6 +1871,205 @@ La reunión pasó al 22/10 por temas logísticos; dos respuestas llegaron antes.
 - **`US-23` queda definida:** el encabezado muestra la fecha de la última carga y avisa
   cuando pasa más de un mes desde ella (umbral parametrizable, por omisión 35 días). Ya no
   espera a la reunión.
+
+## Reunión de entrega del Informe 2 — 27/10/2026
+
+**Se pidió dejar el sistema listo para escuchar la API de SAP**, aunque hoy no exista: en algún
+momento, fuera de la práctica, va a existir, y quien la construya tiene que encontrar el
+contrato hecho y el lado de TrackIn esperando. Lo pedido:
+
+| # | Pedido | Efecto |
+|---|---|---|
+| 1 | **Todos los campos que habría que extraer de SAP**, listos, por ejemplo en una colección de Postman | `US-64` |
+| 2 | **El destino del envío**: la URL de TrackIn a la que SAP mandaría los datos (HTTPS en producción, o el servidor general de Gutis) | `US-64`, `US-65` |
+| 3 | **Un botón on/off en el frontend** para habilitar la escucha, **apagado** mientras la API no exista | `US-66` |
+
+**Cómo encaja con lo que ya hay.** `US-56` (leer de la API de SAP) se canceló el 07/10 porque
+la API no iba a existir, y el Excel quedó como la vía definitiva (`US-58`). Eso no cambia: el
+Excel sigue siendo la carga de todos los martes. Lo nuevo es dejar **una segunda entrada
+preparada y apagada**. Como `FuentePedidos` (`TASK-03`) se diseñó como puerto, el receptor de
+SAP es otro adaptador: normalización, carga idempotente, ausencias, informe y recálculo
+(`US-12`) son los mismos del Excel.
+
+**Diseño propuesto: SAP empuja, TrackIn escucha.** «Escucha» quiere decir que TrackIn expone
+un endpoint y SAP le envía los pedidos, en lugar de que TrackIn consulte a SAP. Así TrackIn no
+necesita credenciales de SAP ni conocer su red, y el contrato queda del lado de TrackIn.
+
+**Efecto en el plan.** `US-64` (4 h) entra en lo que queda del Sprint 6, que tiene sus 116 h
+hechas. `US-65` y `US-66` (9 h) pasan al Sprint 7, que sube de 63 a **72 h**: 7 sobre la
+capacidad.
+
+**Decisiones del 27/10 (Mariano):**
+
+1. **`TASK-10` se queda en el Sprint 7 por ahora.** El sprint se planifica en 72 h; si hay que
+   recortar, se decide durante el sprint.
+2. **La escucha de SAP la enciende solo el Administrador** (`US-66`). Los demás roles ven el
+   estado.
+3. **`US-64` se hace ya**, con todos los campos que la API necesitaría, sin esperar el Excel
+   final. Los rótulos del Z-tracking se revisan cuando llegue.
+
+### `US-64` — Contrato de campos para la API de SAP y colección de Postman
+
+Como responsable de la futura integración con SAP, quiero tener definidos todos los campos que
+TrackIn necesita y un ejemplo ejecutable del envío, para construir la API sin tener que
+estudiar el sistema.
+
+**Criterios de aceptación**
+
+- Dado el Z-tracking, cuando se documenta el contrato, entonces cada campo que hoy lee el
+  Excel tiene su nombre en el JSON, su tipo, si es obligatorio, su columna equivalente del
+  Z-tracking y un ejemplo: OC, posición, proveedor (código y nombre), material (código y
+  texto breve), cantidad, unidad, fecha de entrega, destino, vía, país de origen, incoterm,
+  temperatura, tipo de proveedor, fabricante, ETA y ATA declaradas, tipo y número de
+  referencia, transportista, fecha de la referencia, comentario y solicitud de pedido
+- Dada la colección de Postman, cuando se abre, entonces trae el envío de un lote de pedidos
+  con todos los campos, la variable `{{base_url}}` con dos entornos —local
+  (`http://localhost:8000`) y producción (`https://…`, a definir con TI de Gutis)— y el
+  encabezado de autenticación
+- Dado el envío de ejemplo, cuando se ejecuta contra TrackIn con la escucha apagada, entonces
+  la respuesta es la de «escucha deshabilitada» documentada en el contrato
+- Dado el contrato, cuando se publica, entonces queda en `docs/` junto a la colección
+  (`docs/integraciones/sap/`) y se enlaza desde `docs/api-references.md`
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Must** · Sprint 6 · 4 h |
+| Origen | Reunión de entrega del Informe 2, 27/10/2026 |
+| Depende de | `US-31` y `US-63` (los campos que lee el Excel) |
+| Entrega | Contrato en Markdown + JSON Schema, colección y entornos de Postman |
+
+> **✅ Terminada el 27/10/2026.** En `docs/integraciones/sap/`:
+>
+> - **`README.md`, el contrato:** SAP empuja a `POST /api/v1/integraciones/sap/pedidos` con
+>   `X-API-Key`; un lote `{lote, pedidos[]}` de hasta 5 000 líneas; respuestas `200` (informe
+>   de la carga), `401`, `413`, `422` y `503` (escucha apagada). Destino local
+>   `http://localhost:8000` y producción `https://trackin.gutis.com`, **provisional** hasta
+>   que TI defina el dominio.
+> - **32 campos por línea.** 24 son los que TrackIn usa hoy —los del Excel, más
+>   `destino_codigo`, que el Excel no trae— y 9 de ellos son obligatorios. 8 son
+>   **reservados**: TrackIn los acepta y no los usa (fecha de la SOLPED, centro, grupo de
+>   compras, fecha de la OC, borrado, entrega final, cantidad recibida, última
+>   modificación); usarlos necesita una decisión. Cada campo lleva su columna del Z-tracking
+>   y la tabla y campo de SAP donde suele vivir (EKKO, EKPO, EKET, EBAN, LFA1), como
+>   referencia para el equipo de SAP.
+> - **El nombre del proveedor y la descripción del material son obligatorios** en el
+>   contrato, aunque en el Excel no lo sean: el sistema los exige, y en SAP siempre existen.
+> - **`lote_pedidos.schema.json`** (JSON Schema 2020-12) y **`ejemplo_lote.json`**.
+> - **Colección de Postman** con 5 peticiones (lote completo, lote mínimo, sin clave, formato
+>   inválido, salud), las respuestas de ejemplo guardadas, pruebas en cada una y dos
+>   entornos. La clave es una variable *secret*, vacía en el repositorio.
+> - **`backend/tests/test_contrato_sap.py`** (6 pruebas): falla si el contrato se desfasa del
+>   lector del Excel, de los vocabularios (vías, tipos de referencia, destinos, tipo de
+>   proveedor) o del README.
+> - **Pendiente:** el criterio «con la escucha apagada responde *escucha deshabilitada*» se
+>   cumple cuando exista el endpoint (`US-65`); hasta entonces responde `404`. Revisar los
+>   rótulos contra el Excel final.
+
+### `US-65` — Receptor de pedidos desde la API de SAP, apagado por defecto
+
+Como usuario de Planificación, quiero que TrackIn pueda recibir los pedidos directamente de
+SAP cuando la API exista, para no depender de exportar el Excel cada semana.
+
+**Criterios de aceptación**
+
+- Dado un lote de pedidos con el formato de `US-64`, cuando SAP lo envía a
+  `POST /api/v1/integraciones/sap/pedidos` con la escucha encendida, entonces entra por el
+  mismo camino que el Excel —normalización, carga idempotente, rechazo línea por línea— y
+  responde con el informe de la carga
+- Dada la escucha apagada, cuando llega un envío, entonces se rechaza sin tocar la base, con
+  un motivo claro (`503`, «escucha de SAP deshabilitada»)
+- Dado un envío sin la clave de integración o con una inválida, cuando llega, entonces se
+  rechaza con `401`. La clave es propia de la integración, no la de un usuario, y vive en
+  `.env` (`SAP_INTEGRACION_CLAVE`)
+- Dado un envío recibido, cuando termina, entonces queda en el historial de cargas con origen
+  «API de SAP», junto a las del Excel
+- Dado que el envío puede traer solo los pedidos que cambiaron, cuando se recibe, entonces
+  **no** marca ausentes los pedidos que no vinieron. Las ausencias siguen saliendo de la carga
+  completa del Excel, hasta que se acuerde lo contrario con quien construya la API
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Should** · Sprint 7 · 6 h |
+| Origen | Reunión de entrega del Informe 2, 27/10/2026 |
+| Depende de | `US-64` (el contrato), `US-66` (el interruptor) |
+| Relación | Deja preparado lo que pedía `US-56`, que sigue cancelada: el día que la API exista, basta con encenderla |
+
+> **✅ Adelantada al Sprint 6 y terminada el 27/10/2026** (diseño: opción 1 para el historial,
+> elegida por Mariano el 27/10).
+>
+> - **`POST /api/v1/integraciones/sap/pedidos`**, con las guardas en el orden del contrato:
+>   clave `X-API-Key` contra `SAP_INTEGRACION_CLAVE` (`401`; sin clave en el servidor nadie
+>   entra), escucha (`503` sin leer el cuerpo), tamaño (`413`, más de 5 000) y formato (`422`,
+>   el lote entero). El modelo es **estricto**: un `"10"` donde va un número o un campo que el
+>   contrato no conoce se rechazan.
+> - **La carga es la del Excel** (`carga.cargar`) con `señalar_ausentes=False`, el mismo
+>   candado (`409` si hay otra en curso) y la misma búsqueda de referencias en el comentario.
+>   Los campos reservados se aceptan y se ignoran.
+> - **Historial, opción 1:** migración `0026_integracion_sap` agrega `cargas_ztracking.origen`
+>   (`EXCEL` · `API_SAP`) y deja `id_usuario` opcional solo para SAP
+>   (`ck_cargas_ztracking_autor`). El historial muestra «API de SAP» y el lote como nombre.
+>   La «última carga» del encabezado (`US-23`) sigue contando solo el Excel.
+> - **Pruebas:** 18 en `test_integracion_sap.py`, incluida una que compara el modelo del
+>   backend con el JSON Schema del contrato; 1 más en el frontend (`Cargas.test.tsx`).
+
+> **Prueba de punta a punta — 27/10/2026, en `trackin_dev`.** Mariano encendió el interruptor
+> como Administrador y envió «1. Enviar lote» desde Postman: **`200`**, carga 8 con origen
+> `API_SAP` («Lote SAP-20261027T160922»), 2 recibidas, **2 insertadas**, 0 rechazadas. Los
+> activos pasaron de 92 a 94.
+>
+> - **4500123456-10** (marítimo, BL `COSU6508789000`): el BL del ejemplo es un embarque
+>   **real** de la cuenta de ShipsGo, así que el pedido se asoció solo, sin gastar crédito, y
+>   tomó su proyección (11/10, `EN_DESTINO`). Quedó en el puesto 10 de la grilla.
+> - **4500123789-20** (aéreo, MAWB `020-50685434`): sin embarque en ShipsGo, sin proyección;
+>   va al final de la grilla (puesto 94).
+>
+> **Lo que dejó ver:**
+>
+> - **«No se ve nada en el panel»** fue la primera impresión: la grilla muestra 10 por página
+>   ordenados por fecha proyectada, y un envío de SAP no refresca un panel ya abierto. Se
+>   encuentran con el filtro de OC o en el historial de cargas. No es un defecto, pero conviene
+>   recordarlo en la demo.
+> - **Los 2 pedidos de ejemplo y la carga 8 quedan en `trackin_dev`** hasta vaciar los datos
+>   de prueba del WK38 para cargar el Excel final: se borran junto con ellos. Uno está ligado a
+>   un embarque real con un pedido ficticio.
+> - **Apagar el interruptor** al terminar la demo: en `trackin_dev` no hay SAP real que envíe.
+
+### `US-66` — Interruptor on/off de la escucha de la API de SAP en la interfaz
+
+Como administrador, quiero encender o apagar desde la interfaz la recepción de pedidos desde
+SAP, para habilitarla el día que la API exista sin tocar el servidor.
+
+**Criterios de aceptación**
+
+- Dado el sistema recién instalado, cuando se consulta el interruptor, entonces está
+  **apagado** (parámetro `sap_escucha_habilitada = false`)
+- Dado el Administrador, cuando cambia el interruptor, entonces se pide confirmar y queda
+  registrado quién lo cambió y cuándo
+- Dado cualquier otro rol, cuando abre la pantalla, entonces ve el estado pero no puede
+  cambiarlo
+- Dado el interruptor encendido, cuando se mira el panel, entonces se ve la última recepción
+  desde SAP, o «sin recepciones todavía»
+- Dado `/health`, cuando se consulta, entonces informa si la escucha está encendida
+
+| | |
+|---|---|
+| Tipo | Story · OE2 · **Must** · Sprint 7 · 3 h |
+| Origen | Reunión de entrega del Informe 2, 27/10/2026 |
+| Dónde | Menú *Configuración* → «Integración con SAP». Quién lo cambia: **solo el Administrador** (decidido el 27/10) |
+
+> **✅ Adelantada al Sprint 6 y terminada el 27/10/2026.**
+>
+> - **Parámetro `sap_escucha_habilitada`**, sembrado en `false` por la migración `0026`. Quién
+>   lo cambió y cuándo quedan en `parametros_sistema.id_usuario_modificacion` y
+>   `actualizado_en`, y en el log como `WARNING`.
+> - **`GET /api/v1/integraciones/sap/escucha`** (cualquier usuario) y **`PUT`** (solo
+>   Administrador; los demás reciben `403`). `/health` informa `sap_escucha_habilitada`.
+> - **Pantalla *Configuración → Integración con SAP*** (`/configuracion/sap`): interruptor
+>   (`role="switch"`) con confirmación, quién lo cambió y cuándo, aviso si el servidor no tiene
+>   la clave y el último lote recibido. Planta no la ve: es una pantalla de solo lectura.
+> - **Pruebas:** 8 de backend y 8 de frontend (`IntegracionSap.test.tsx`, más el menú).
+
+---
 
 ## Reunión con Compras — 22/10/2026
 
@@ -2403,6 +2612,13 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 >
 > **22/10: 63 h**, dentro de la capacidad: `US-30` baja de 10 a 6 h al replantearse como
 > detección automática del transbordo desde ShipsGo.
+>
+> **27/10: 72 h**, 7 sobre la capacidad. Entran `US-65` (6 h) y `US-66` (3 h), la escucha de
+> la API de SAP pedida en la entrega del Informe 2. **`TASK-10` se queda** (decisión del 27/10):
+> si hace falta recortar, se decide durante el sprint.
+>
+> **27/10, más tarde: vuelve a 63 h**, dentro de la capacidad. `US-65` y `US-66` se adelantaron
+> al Sprint 6 y quedaron terminadas.
 
 > **Hito: compra de los créditos de ShipsGo, ~06/11**, una semana antes de la entrega (acuerdo
 > con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
@@ -2432,6 +2648,38 @@ Como usuario de Logística, quiero ver mis buques en un mapa, para ubicar geogra
 | Estimacion | 12 h |
 | Origen en el SRS | RF-16 / CU-07 |
 | Etiquetas | `frontend,mapas,leaflet` |
+
+> **🔶 Construida el 27/10/2026, adelantada del Sprint 7** mientras se espera el Excel final
+> (la reunión pasó al jueves 29/10). Falta verla con posiciones reales.
+>
+> - **`GET /api/v1/pedidos/mapa/{capa}`** (`MARITIMO` o `AEREO`, para reusarlo en `US-26`), con
+>   los **mismos filtros que la grilla**. Devuelve **un marcador por embarque**, no por
+>   pedido —un BL lleva varias líneas y quedarían apiladas—, con sus pedidos, la posición y
+>   **el estado más urgente** como color: retrasado, en riesgo, a tiempo y después la etapa
+>   más avanzada. También `sin_posicion`: los pedidos filtrados que no caben en el mapa.
+> - **Lectura vieja:** más vieja que el doble de la frecuencia de consulta de la vía
+>   (`frecuencia_maritima_min`, 360 → 12 h). Se dibuja con borde punteado y relleno tenue, y
+>   el rótulo dice «lectura hace 1 día, desactualizada». Un embarque que ya arribó no se marca:
+>   no se consulta más y lo viejo es lo esperado.
+> - **Agrupamiento sin dependencias nuevas** (`utils/agrupamiento.ts`): los marcadores a menos
+>   de 28 px en pantalla se juntan en un círculo con el número, coloreado por el más urgente;
+>   un clic acerca la vista hasta separarlos.
+> - **Accesibilidad:** una lista oculta para lectores de pantalla repite cada marcador, porque
+>   un mapa no se recorre con teclado. Debajo del mapa, una línea con los totales.
+> - **Pruebas:** 11 de backend (`test_mapa_pedidos.py`) y 10 de frontend
+>   (`MapaEmbarques.test.tsx`).
+>
+> **Lo que mostró `trackin_dev` (27/10):** **ningún embarque tiene posición guardada.** Los
+> dos únicos con BL real (`COSU6508789000`, MEDKON ZOE) ya arribaron y ShipsGo no da posición
+> de un embarque terminado. El mapa dice «Ningún embarque con posición · N sin posición»
+> hasta cargar el Excel final, dar de alta los BL (`US-55`) y que el worker traiga lecturas.
+> **Se cierra al verla con esos datos.**
+>
+> **Observación — el mismo BL dos veces.** El BL `COSU6508789000` figura como dos elementos
+> rastreados (6467 y 7930), cada uno con un pedido. Es por diseño (§4.3): la referencia es
+> única *mientras está activa*, y un embarque arribado queda inactivo; una referencia nueva
+> con el mismo número crea otro. Pasó porque el pedido de la demo de SAP usó un BL viejo. Con
+> BL reales no debería repetirse; si pasa, revisar si conviene reutilizar el inactivo.
 
 #### US-26 — Presentar el mapa interactivo aéreo separado del marítimo
 

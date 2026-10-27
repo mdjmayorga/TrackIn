@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trackin.gutis/integraciones/sap/lote_pedidos.schema.json",
+  "title": "Lote de pedidos de SAP para TrackIn",
+  "description": "Cuerpo de POST /api/v1/integraciones/sap/pedidos (US-64). Cada pedido es una línea de orden de compra con un reparto: la misma clave natural (oc_numero, posicion_oc) que el Z-tracking. Contrato versión 1.0, 27/10/2026.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["lote", "pedidos"],
+  "properties": {
+    "lote": {
+      "type": "object",
+      "description": "Datos del envío, para el historial de cargas y para detectar reenvíos.",
+      "additionalProperties": false,
+      "required": ["id", "generado_en", "tipo"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Identificador único del lote en SAP. Reenviar el mismo id no duplica nada: la carga es idempotente por (oc_numero, posicion_oc).",
+          "examples": ["SAP-20261027-080000"]
+        },
+        "generado_en": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Cuándo se extrajeron los datos de SAP, con zona horaria (ISO 8601).",
+          "examples": ["2026-10-27T08:00:00-06:00"]
+        },
+        "tipo": {
+          "type": "string",
+          "enum": ["INCREMENTAL", "COMPLETO"],
+          "description": "INCREMENTAL: solo las líneas que cambiaron. COMPLETO: todas las líneas vigentes. Hoy los dos se tratan como INCREMENTAL —no se marcan ausentes los pedidos que no vienen—; COMPLETO queda reservado para cuando se acuerde que SAP reemplaza a la carga del Excel."
+        },
+        "sistema": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Sistema y mandante de origen, para el historial.",
+          "examples": ["SAP S/4HANA PRD 300"]
+        }
+      }
+    },
+    "pedidos": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5000,
+      "items": { "$ref": "#/$defs/pedido" }
+    }
+  },
+  "$defs": {
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Fecha ISO 8601 (AAAA-MM-DD), sin hora."
+    },
+    "pedido": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oc_numero",
+        "posicion_oc",
+        "proveedor_codigo",
+        "proveedor_nombre",
+        "material_codigo",
+        "material_descripcion",
+        "cantidad",
+        "unidad_medida",
+        "fecha_entrega_pedido"
+      ],
+      "properties": {
+        "oc_numero": {
+          "type": "string",
+          "pattern": "^\\d{1,10}$",
+          "description": "Número de la orden de compra. Z-tracking: «Documento Compra». SAP: EKKO-EBELN.",
+          "examples": ["4500123456"]
+        },
+        "posicion_oc": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99999,
+          "description": "Posición de la OC. Z-tracking: «Posición» (la primera). SAP: EKPO-EBELP.",
+          "examples": [10]
+        },
+        "proveedor_codigo": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "description": "Código del proveedor. Z-tracking: «Proveedor». SAP: EKKO-LIFNR.",
+          "examples": ["100234"]
+        },
+        "proveedor_nombre": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Nombre del proveedor. Z-tracking: «Nombre del Proveedor». SAP: LFA1-NAME1.",
+          "examples": ["Proveedor Farmacéutico S.A."]
+        },
+        "material_codigo": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Código del material. Z-tracking: «Material». SAP: EKPO-MATNR.",
+          "examples": ["MP-001234"]
+        },
+        "material_descripcion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Texto breve del material. Z-tracking: «Texto breve Material». SAP: EKPO-TXZ01.",
+          "examples": ["Paracetamol polvo USP"]
+        },
+        "cantidad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Cantidad del reparto. Z-tracking: «Cantidad reparto». SAP: EKET-MENGE.",
+          "examples": [1500.0]
+        },
+        "unidad_medida": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10,
+          "description": "Unidad de medida del pedido. Z-tracking: «UMP». SAP: EKPO-MEINS.",
+          "examples": ["KG"]
+        },
+        "fecha_entrega_pedido": {
+          "$ref": "#/$defs/fecha",
+          "description": "Fecha comprometida de llegada a Gutis: contra ella se mide el cumplimiento. Z-tracking: «Fecha Entrega» (no «Fecha Entrega Solped»). SAP: EKET-EINDT."
+        },
+        "destino_codigo": {
+          "type": ["string", "null"],
+          "enum": ["CRMOB", "CRLIO", "CRCAL", "MROC", null],
+          "description": "Puerto o aeropuerto de llegada, con el código del maestro de destinos. No existe en el Z-tracking: si falta, TrackIn lo deduce del lugar del incoterm (CIF LIMON) o de la vía (AEREO → MROC)."
+        },
+        "via_transporte": {
+          "type": ["string", "null"],
+          "enum": ["MARITIMO", "AEREO", "TERRESTRE", null],
+          "description": "Vía del embarque. Z-tracking: «Tipo de transporte». SAP: campo Z del reporte (a confirmar)."
+        },
+        "pais_origen": {
+          "type": ["string", "null"],
+          "maxLength": 60,
+          "description": "País de origen de la carga. Preferible el código ISO 3166-1 alfa-2; también se aceptan nombres. Z-tracking: «Pais de Origen».",
+          "examples": ["IN"]
+        },
+        "incoterm": {
+          "type": ["string", "null"],
+          "maxLength": 60,
+          "description": "Incoterm y lugar convenido, separados por un espacio. El lugar sirve para deducir el destino. Z-tracking: «Incoterm». SAP: EKKO-INCO1 + ' ' + EKKO-INCO2.",
+          "examples": ["CIF LIMON"]
+        },
+        "temperatura": {
+          "type": ["string", "null"],
+          "maxLength": 40,
+          "description": "Condición de almacenamiento: AMBIENTE, 2-8 C, 15-25 C u otro rango. Z-tracking: «Temperatura».",
+          "examples": ["2-8 C"]
+        },
+        "tipo_proveedor": {
+          "type": ["string", "null"],
+          "enum": ["LOCAL", "INTERNACIONAL", null],
+          "description": "Z-tracking: «Tipo de proveedor (LOCAL O INTERNACIONAL)»."
+        },
+        "fabricante": {
+          "type": ["string", "null"],
+          "maxLength": 200,
+          "description": "Fabricante del material. Z-tracking: «Fabricante». SAP: EKPO-EMNFR (a confirmar).",
+          "examples": ["Fabricante Ltd."]
+        },
+        "eta_declarada": {
+          "oneOf": [{ "$ref": "#/$defs/fecha" }, { "type": "null" }],
+          "description": "ETA a Costa Rica que declara Compras. La última en la precedencia: manda la de ShipsGo. Z-tracking: «ETA CR»."
+        },
+        "arribo_declarado": {
+          "type": ["string", "null"],
+          "enum": ["SI", "NO", "PENDIENTE", "N/A", null],
+          "description": "Si la carga ya llegó a Costa Rica, según Compras. No es una fecha. Z-tracking: «ATA CR»."
+        },
+        "tipo_referencia": {
+          "type": ["string", "null"],
+          "enum": ["BL", "CONTENEDOR", "BOOKING", "MAWB", "HAWB", null],
+          "description": "Tipo del identificador del embarque. Marítimo: BL, CONTENEDOR o BOOKING. Aéreo: MAWB o HAWB. Terrestre: ninguno. Z-tracking: «Tipo de referencia»."
+        },
+        "numero_referencia": {
+          "type": ["string", "null"],
+          "maxLength": 40,
+          "description": "El número del BL, contenedor, booking o guía. Con él TrackIn da de alta el embarque en ShipsGo. Formatos: CONTENEDOR ^[A-Z]{4}\\d{7}$, MAWB ^\\d{3}-?\\d{8}$, HAWB ^[A-Z0-9-]{4,25}$; BL y BOOKING libres. Z-tracking: «Número de referencia».",
+          "examples": ["COSU6508789000"]
+        },
+        "transportista": {
+          "type": ["string", "null"],
+          "maxLength": 120,
+          "description": "Naviera o aerolínea. Z-tracking: «Transportista».",
+          "examples": ["COSCO"]
+        },
+        "fecha_referencia": {
+          "oneOf": [{ "$ref": "#/$defs/fecha" }, { "type": "null" }],
+          "description": "Cuándo se obtuvo la referencia. Z-tracking: «Fecha de obtención de la referencia»."
+        },
+        "comentario": {
+          "type": ["string", "null"],
+          "maxLength": 1000,
+          "description": "Comentario del comprador. TrackIn no lo guarda: busca en él referencias escritas a mano («BL COSU…») cuando las columnas de referencia vienen vacías. Z-tracking: «Comentario comprador»."
+        },
+        "solicitud_pedido": {
+          "type": ["string", "null"],
+          "maxLength": 20,
+          "description": "Número de la solicitud de pedido (SOLPED) que originó la OC. Lo muestra la pantalla de planta. Z-tracking: «Solicitud de pedido». SAP: EKPO-BANFN.",
+          "examples": ["10012345"]
+        },
+        "fecha_entrega_solped": {
+          "oneOf": [{ "$ref": "#/$defs/fecha" }, { "type": "null" }],
+          "description": "RESERVADO. Cuándo lo necesita producción. Z-tracking: «Fecha Entrega Solped». SAP: EBAN-LFDAT. TrackIn hoy no lo usa."
+        },
+        "centro": {
+          "type": ["string", "null"],
+          "maxLength": 10,
+          "description": "RESERVADO. Centro logístico. SAP: EKPO-WERKS. TrackIn hoy no lo usa."
+        },
+        "grupo_compras": {
+          "type": ["string", "null"],
+          "maxLength": 10,
+          "description": "RESERVADO. Grupo de compras responsable. SAP: EKKO-EKGRP. TrackIn hoy no lo usa."
+        },
+        "fecha_documento": {
+          "oneOf": [{ "$ref": "#/$defs/fecha" }, { "type": "null" }],
+          "description": "RESERVADO. Fecha de la OC. SAP: EKKO-BEDAT. TrackIn hoy no lo usa."
+        },
+        "indicador_borrado": {
+          "type": ["boolean", "null"],
+          "description": "RESERVADO. La posición está borrada o bloqueada en SAP. SAP: EKPO-LOEKZ. TrackIn hoy no lo usa: cancelar pedidos desde SAP necesita una decisión."
+        },
+        "entrega_final": {
+          "type": ["boolean", "null"],
+          "description": "RESERVADO. La posición tiene la marca de entrega final. SAP: EKPO-ELIKZ. TrackIn hoy no lo usa: cerrar pedidos desde SAP necesita una decisión."
+        },
+        "cantidad_recibida": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "RESERVADO. Cantidad ya recibida en planta. SAP: suma de EKBE (movimiento 101). TrackIn hoy no lo usa."
+        },
+        "modificado_en": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "RESERVADO. Última modificación de la línea en SAP. Sirve para los envíos incrementales. TrackIn hoy no lo usa."
+        }
+      }
+    }
+  }
+}

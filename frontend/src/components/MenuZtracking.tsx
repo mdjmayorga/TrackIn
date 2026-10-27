@@ -25,6 +25,7 @@ import { useDesplegable } from '@/hooks/useDesplegable'
 import { obtenerEstadoCargas } from '@/services/cargas'
 import type { EstadoCargas, Rol } from '@/types/api'
 import { formatearFechaHora } from '@/utils/fechas'
+import { autorDeCarga } from '@/utils/formatos'
 
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
 
@@ -119,7 +120,7 @@ export function MenuZtracking({ rol }: { rol: Rol }) {
                 {data.ultima ? (
                   <>
                     Última carga: {formatearFechaHora(data.ultima.realizada_en)}, por{' '}
-                    {data.ultima.usuario.nombre_completo}
+                    {autorDeCarga(data.ultima)}
                   </>
                 ) : (
                   'Todavía no hay cargas hechas desde TrackIn.'

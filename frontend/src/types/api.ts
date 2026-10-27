@@ -290,7 +290,10 @@ export interface CargaResumen {
   realizada_en: string
   estado: EstadoCarga
   motivo_rechazo: string | null
-  usuario: { usuario: string; nombre_completo: string }
+  /** De dónde vino: el Excel subido por una persona o un lote de SAP (`US-65`). */
+  origen: 'EXCEL' | 'API_SAP'
+  /** Quién subió el Excel. Nulo en los lotes de SAP, que no los sube nadie. */
+  usuario: { usuario: string; nombre_completo: string } | null
   recibidas: number
   insertadas: number
   actualizadas: number
@@ -298,6 +301,53 @@ export interface CargaResumen {
   ausentes: number
   no_entraron: number
   entraron_sin_rastreo: number
+}
+
+// --- Mapas del panel (`/api/v1/pedidos/mapa/{capa}`, `US-25`) ---------------
+
+export interface MarcadorMapa {
+  id_elemento: number
+  /** BL, CONTENEDOR, BOOKING, MAWB… */
+  tipo: string
+  referencia: string
+  /** Nombre de la nave o del vuelo, si la fuente lo dio. */
+  nombre: string | null
+  latitud: number
+  longitud: number
+  /** El estado más urgente de sus pedidos: el color del marcador. */
+  estado: EstadoCalculado
+  ultima_lectura: string | null
+  /** Sin lectura en más del doble de la frecuencia de consulta de la vía. */
+  desactualizada: boolean
+  /** `false` si ya arribó y no se consulta más. */
+  activo: boolean
+  pedidos: Array<{
+    id: number
+    oc_numero: string
+    posicion_oc: number
+    estado_calculado: EstadoCalculado
+  }>
+}
+
+export interface MapaPedidos {
+  via: 'MARITIMO' | 'AEREO'
+  umbral_desactualizada_h: number
+  marcadores: MarcadorMapa[]
+  /** Pedidos que cumplen los filtros pero no tienen posición. */
+  sin_posicion: number
+}
+
+// --- Integración con SAP (`/api/v1/integraciones/sap/escucha`, `US-66`) -----
+
+export interface EstadoEscuchaSap {
+  habilitada: boolean
+  /** Quién la cambió por última vez. Nulo si nadie la tocó desde la instalación. */
+  cambiada_por: { usuario: string; nombre_completo: string } | null
+  cambiada_en: string | null
+  /** Si el servidor tiene `SAP_INTEGRACION_CLAVE`: sin ella SAP no puede enviar. */
+  clave_configurada: boolean
+  /** El último lote recibido de SAP, o nulo si todavía no llegó ninguno. */
+  ultima_recepcion: CargaResumen | null
 }
 
 // --- Altas en ShipsGo (`/api/v1/shipsgo/altas`, `US-55`) -------------------

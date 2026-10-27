@@ -16,6 +16,7 @@ import { InformeCarga } from '@/components/InformeCarga'
 import { mensajeDeError } from '@/services/api'
 import { listarCargas, obtenerCarga, subirZtracking } from '@/services/cargas'
 import { formatearFechaHora } from '@/utils/fechas'
+import { autorDeCarga } from '@/utils/formatos'
 
 export default function Cargas() {
   const sesion = useSesion()
@@ -198,7 +199,7 @@ function Historial({
                       {c.archivo}
                     </button>
                   </td>
-                  <td className="whitespace-nowrap px-2 py-1">{c.usuario.nombre_completo}</td>
+                  <td className="whitespace-nowrap px-2 py-1">{autorDeCarga(c)}</td>
                   <td className="whitespace-nowrap px-2 py-1">
                     {c.estado === 'APLICADA' ? (
                       'Aplicada'

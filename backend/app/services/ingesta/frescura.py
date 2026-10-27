@@ -26,7 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.carga_ztracking import CargaZTracking
+from app.models.carga_ztracking import EXCEL, CargaZTracking
 from app.services import parametros
 
 #: Costa Rica no cambia de hora: UTC-6 todo el año.
@@ -65,6 +65,9 @@ async def estado_semanal(
     ultima = await sesion.scalar(
         select(CargaZTracking)
         .where(CargaZTracking.estado == "APLICADA")
+        # La obligación semanal es la del Excel (`US-23`). Un lote incremental de
+        # SAP no la cumple: puede traer una sola línea (`US-65`).
+        .where(CargaZTracking.origen == EXCEL)
         .options(selectinload(CargaZTracking.usuario))
         .order_by(CargaZTracking.realizada_en.desc(), CargaZTracking.id.desc())
         .limit(1)

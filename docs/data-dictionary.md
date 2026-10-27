@@ -651,13 +651,18 @@ Una fila por cada subida del Excel del Z-tracking desde la interfaz (`US-58`), a
 rechazada. Desde el 07/10/2026 el Excel es la vía definitiva de entrada de los pedidos: la API
 de SAP no va a existir. Migración `0021`.
 
+**Desde el 27/10/2026 también los lotes de la API de SAP** (`US-65`, migración `0026`): la
+escucha queda preparada y apagada para el día que la API exista. `origen` distingue las dos
+entradas, y un lote de SAP no tiene usuario.
+
 ### 14.1 Campos
 
 | # | Campo | Tipo | Nulo | Clave | Dominio | Descripción |
 |---|---|---|---|---|---|---|
 | 1 | `id` | `BIGSERIAL` | no | `PK` | Entero positivo, autogenerado | Identificador de la carga. |
-| 2 | `id_usuario` | `BIGINT` | no | `FK` → `usuarios(id)`, `RESTRICT` | Usuario de Compras o Administrador | Quién subió el archivo. Con la cuenta compartida de Compras dice «Compras», sin distinguir personas. |
-| 3 | `archivo` | `VARCHAR(255)` | no | | Nombre de archivo, sin la ruta del equipo | Cómo se llamaba el Excel: «2026 - SEPTIEMBRE - WK38.xlsx». |
+| 2 | `id_usuario` | `BIGINT` | sí | `FK` → `usuarios(id)`, `RESTRICT` | Usuario de Compras o Administrador | Quién subió el archivo. Con la cuenta compartida de Compras dice «Compras», sin distinguir personas. `NULL` solo en los lotes de SAP (`ck_cargas_ztracking_autor`). |
+| 2b | `origen` | `VARCHAR(10)` | no, *default* `EXCEL` | `CHECK` | `EXCEL` · `API_SAP` | De dónde vino la carga (`US-65`). La «última carga» del encabezado (`US-23`) cuenta solo las del Excel: un lote incremental de SAP no cumple la carga semanal. |
+| 3 | `archivo` | `VARCHAR(255)` | no | | Nombre de archivo, sin la ruta del equipo | Cómo se llamaba el Excel: «2026 - SEPTIEMBRE - WK38.xlsx». En un lote de SAP, «Lote <id del lote>». |
 | 4 | `tamano_bytes` | `INTEGER` | no | | `≥ 0`, máximo 20 MB | Tamaño de lo subido. |
 | 5 | `realizada_en` | `TIMESTAMPTZ` | no | | Instante UTC | Cuándo se subió. La más reciente aplicada es la «última carga» del encabezado (`US-23`). |
 | 6 | `estado` | `VARCHAR(10)` | no | `CHECK` | `APLICADA` · `RECHAZADA` | `RECHAZADA` no tocó ningún pedido: el archivo no era un Z-tracking, estaba dañado o no traía líneas. |
@@ -676,5 +681,7 @@ de SAP no va a existir. Migración `0021`.
 | Nombre | Regla | Qué protege |
 |---|---|---|
 | `ck_cargas_ztracking_estado` | `estado IN ('APLICADA', 'RECHAZADA')` | Solo los dos resultados posibles |
+| `ck_cargas_ztracking_origen` | `origen IN ('EXCEL', 'API_SAP')` | Solo las dos entradas posibles |
+| `ck_cargas_ztracking_autor` | `origen = 'API_SAP' OR id_usuario IS NOT NULL` | Una carga del Excel siempre tiene quién la subió |
 | `fk_cargas_ztracking_id_usuario_usuarios` | `FOREIGN KEY (id_usuario)` → `usuarios(id)`, `ON DELETE RESTRICT` | Coherente con que los usuarios no se borran |
 | `ix_cargas_ztracking_realizada_en` | Índice sobre `realizada_en` | El historial, de la más reciente a la más antigua |

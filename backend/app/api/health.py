@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.db.session import get_db
 from app.services import creditos
-from app.services.ingesta import obtener_fuente
+from app.services.ingesta import carga_sap, obtener_fuente
 from app.services.salud_fuentes import leer_resumen
 from app.services.salud_fuentes import registro as registro_salud
 
@@ -49,6 +49,11 @@ class HealthResponse(BaseModel):
             "Nivel y saldo de los créditos de ShipsGo (`US-57`). Avisa al 80 % consumido, sin "
             "saldo, vencido o a 60 días del vencimiento. Nulo si no se pudo leer."
         ),
+    )
+    sap_escucha_habilitada: bool | None = Field(
+        default=None,
+        description="Si TrackIn acepta los pedidos de la API de SAP (`US-66`). Nulo si no se "
+        "pudo leer.",
     )
     fuentes: list[dict[str, Any]] = Field(
         default_factory=list,
@@ -121,6 +126,13 @@ async def health_check(db: Annotated[AsyncSession, Depends(get_db)]) -> HealthRe
 
     # Como las fuentes, se informa sin entrar en `status`: quedarse sin créditos
     # no tumba el servicio, pero tiene que verse (`US-57`).
+    escucha_sap: bool | None = None
+    try:
+        escucha_sap = await carga_sap.escucha_habilitada(db)
+    except Exception as exc:
+        logger.warning("Health check: no se pudo leer la escucha de SAP: %s", exc)
+        await db.rollback()
+
     resumen_creditos: dict[str, Any] | None = None
     try:
         saldo = await creditos.estado(db)
@@ -137,5 +149,6 @@ async def health_check(db: Annotated[AsyncSession, Depends(get_db)]) -> HealthRe
         postgis=str(postgis_version),
         ingesta=nombre_fuente,
         creditos_shipsgo=resumen_creditos,
+        sap_escucha_habilitada=escucha_sap,
         fuentes=fuentes_externas,
     )

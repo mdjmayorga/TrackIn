@@ -8,6 +8,10 @@ pedido no aparece.
 
 El informe completo de la carga (`InformeValidacion.como_dict`) se guarda en
 `informe`, para poder volver a mostrarlo sin repetir la carga.
+
+**Desde el 27/10/2026 también los lotes de la API de SAP** (`US-65`): `origen`
+dice de dónde vino la carga. Un lote de SAP no lo sube una persona, así que no
+tiene usuario; una carga del Excel siempre lo tiene (`ck_cargas_ztracking_autor`).
 """
 
 from __future__ import annotations
@@ -39,6 +43,10 @@ APLICADA: Final = "APLICADA"
 RECHAZADA: Final = "RECHAZADA"
 ESTADOS_CARGA: Final[tuple[str, ...]] = (APLICADA, RECHAZADA)
 
+EXCEL: Final = "EXCEL"
+API_SAP: Final = "API_SAP"
+ORIGENES_CARGA: Final[tuple[str, ...]] = (EXCEL, API_SAP)
+
 
 class CargaZTracking(Base):
     """Una subida del Excel. `RECHAZADA` no tocó ningún pedido."""
@@ -46,15 +54,25 @@ class CargaZTracking(Base):
     __tablename__ = "cargas_ztracking"
     __table_args__ = (
         CheckConstraint(check_in("estado", ESTADOS_CARGA), name="estado"),
+        CheckConstraint(check_in("origen", ORIGENES_CARGA), name="origen"),
+        CheckConstraint("origen = 'API_SAP' OR id_usuario IS NOT NULL", name="autor"),
         Index("ix_cargas_ztracking_realizada_en", "realizada_en"),
         {"comment": "Subidas del Excel del Z-tracking desde la interfaz (US-58)."},
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    id_usuario: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False
+    #: Quién subió el Excel. Nulo en los lotes de SAP, que no los sube nadie.
+    id_usuario: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=True
+    )
+    origen: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        server_default=EXCEL,
+        comment="EXCEL (subido por una persona) o API_SAP (US-65).",
     )
     #: El nombre con que se subió, para reconocerlo: «2026 - SEPTIEMBRE - WK38.xlsx».
+    #: En un lote de SAP, «Lote <id del lote>».
     archivo: Mapped[str] = mapped_column(String(255), nullable=False)
     tamano_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     realizada_en: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -73,10 +91,18 @@ class CargaZTracking(Base):
     )
     informe: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
-    usuario: Mapped[Usuario] = relationship()
+    usuario: Mapped[Usuario | None] = relationship()
 
     def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración
         return f"<CargaZTracking {self.id} {self.estado} {self.archivo!r}>"
 
 
-__all__ = ["APLICADA", "ESTADOS_CARGA", "RECHAZADA", "CargaZTracking"]
+__all__ = [
+    "API_SAP",
+    "APLICADA",
+    "ESTADOS_CARGA",
+    "EXCEL",
+    "ORIGENES_CARGA",
+    "RECHAZADA",
+    "CargaZTracking",
+]

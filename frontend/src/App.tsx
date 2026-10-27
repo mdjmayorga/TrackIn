@@ -16,6 +16,7 @@ const Bandeja = lazy(() => import('@/pages/Bandeja'))
 const CambiarContrasena = lazy(() => import('@/pages/CambiarContrasena'))
 const Usuarios = lazy(() => import('@/pages/Usuarios'))
 const AltasShipsGo = lazy(() => import('@/pages/AltasShipsGo'))
+const IntegracionSap = lazy(() => import('@/pages/IntegracionSap'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,6 +99,14 @@ export function Rutas() {
         element={
           <Protegida>
             <AltasShipsGo />
+          </Protegida>
+        }
+      />
+      <Route
+        path="/configuracion/sap"
+        element={
+          <Protegida>
+            <IntegracionSap />
           </Protegida>
         }
       />

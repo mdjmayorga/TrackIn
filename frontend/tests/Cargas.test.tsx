@@ -32,6 +32,7 @@ function carga(cambios: Partial<CargaDetalle> = {}): CargaDetalle {
     realizada_en: '2026-10-08T15:30:00Z',
     estado: 'APLICADA',
     motivo_rechazo: null,
+    origen: 'EXCEL',
     usuario: { usuario: 'compras@gutis.com', nombre_completo: 'Compras' },
     recibidas: 465,
     insertadas: 12,
@@ -150,6 +151,25 @@ describe('historial', () => {
 
     expect(obtenerCarga).toHaveBeenCalledWith(6)
     expect(await screen.findByText(/No se cargó nada\. Dañado\./)).toBeInTheDocument()
+  })
+
+  it('un lote de la API de SAP figura como tal, sin persona (US-65)', async () => {
+    const lote = carga({
+      id: 8,
+      archivo: 'Lote SAP-20261027-080000',
+      origen: 'API_SAP',
+      usuario: null,
+    })
+    vi.mocked(listarCargas).mockResolvedValue([lote])
+    vi.mocked(obtenerCarga).mockResolvedValue(lote)
+    montar()
+
+    const fila = within(await screen.findByRole('table')).getAllByRole('row')[1]
+    expect(within(fila).getByText('API de SAP')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Lote SAP-20261027-080000' }))
+
+    expect(await screen.findByText(/^Recibido de la API de SAP el/)).toBeInTheDocument()
   })
 
   it('sin cargas lo dice', async () => {

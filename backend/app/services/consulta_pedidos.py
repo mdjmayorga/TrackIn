@@ -43,8 +43,11 @@ from app.schemas.pedidos import (
     Arribos,
     Calculo,
     Cierre,
+    MapaPedidos,
+    MarcadorMapa,
     PaisRef,
     PedidoDetalle,
+    PedidoEnMapa,
     PedidoResumen,
     Posicion,
     Rastreo,
@@ -427,6 +430,126 @@ async def detalle(sesion: AsyncSession, id_pedido: int) -> PedidoDetalle | None:
 
 
 #: RF-27: el horizonte del bloque «Próximos arribos» y cuántas tarjetas tiene.
+#: El orden de urgencia para el color de un marcador que lleva varios pedidos
+#: (`US-25`): el que más preocupa manda. Primero el cumplimiento, de peor a
+#: mejor; después la etapa, de la más avanzada a la menos —un embarque en
+#: destino pide más atención que uno que recién salió—.
+_URGENCIA: tuple[str, ...] = (
+    "RETRASADO",
+    "EN_RIESGO",
+    "A_TIEMPO",
+    "EN_PROCESO_ADUANAL",
+    "EN_DESTINO",
+    "EN_TRANSITO",
+    "EN_ORIGEN",
+    "SIN_TRACKING",
+    "RECIBIDO_EN_PLANTA",
+    "CERRADO",
+    "CANCELADO",
+)
+
+#: Qué parámetro dice cada cuánto se consulta cada vía (`US-17`).
+_FRECUENCIA_POR_VIA: dict[str, str] = {
+    "MARITIMO": "frecuencia_maritima_min",
+    "AEREO": "frecuencia_aerea_min",
+}
+
+
+def estado_mas_urgente(estados: Sequence[str]) -> str:
+    return min(estados, key=lambda e: _URGENCIA.index(e) if e in _URGENCIA else len(_URGENCIA))
+
+
+async def mapa(
+    sesion: AsyncSession,
+    filtros: Filtros,
+    *,
+    via: str,
+    ahora: dt.datetime | None = None,
+) -> MapaPedidos:
+    """Los embarques de una vía con posición, para el mapa del panel (`US-25`).
+
+    Mismos filtros que la grilla: el mapa muestra el subconjunto que se está
+    mirando. Un marcador por embarque, con sus pedidos. Una lectura más vieja que
+    el doble de la frecuencia de consulta de la vía se marca desactualizada: el
+    worker ya tendría que haber vuelto a preguntar dos veces.
+    """
+    ahora = ahora or dt.datetime.now(dt.UTC)
+    frecuencia_min = await parametros.obtener_entero(sesion, _FRECUENCIA_POR_VIA[via])
+    umbral = dt.timedelta(minutes=2 * frecuencia_min)
+
+    punto = cast(ElementoRastreado.posicion_actual, Geometry)
+    filas = await sesion.execute(
+        select(
+            PedidoTransito.id,
+            PedidoTransito.oc_numero,
+            PedidoTransito.posicion_oc,
+            PedidoTransito.estado_calculado,
+            ElementoRastreado.id,
+            ElementoRastreado.tipo_tracking_externo,
+            ElementoRastreado.tracking_externo,
+            ElementoRastreado.nombre,
+            ElementoRastreado.ultima_actualizacion_api,
+            ElementoRastreado.activo,
+            func.ST_Y(punto),
+            func.ST_X(punto),
+        )
+        .select_from(PedidoTransito)
+        .join(PedidoTransito.proveedor)
+        .join(PedidoTransito.material)
+        .join(PedidoTransito.destino)
+        .join(PedidoTransito.elemento_rastreado)
+        .where(
+            *_condiciones(filtros),
+            PedidoTransito.via_transporte == via,
+            ElementoRastreado.posicion_actual.is_not(None),
+        )
+        .order_by(ElementoRastreado.id, PedidoTransito.oc_numero, PedidoTransito.posicion_oc)
+    )
+
+    por_elemento: dict[int, dict[str, Any]] = {}
+    for fila in filas:
+        (id_pedido, oc, posicion, estado, id_elemento, tipo, referencia, nombre) = fila[:8]
+        (lectura, activo, latitud, longitud) = fila[8:]
+        marcador = por_elemento.setdefault(
+            id_elemento,
+            {
+                "id_elemento": id_elemento,
+                "tipo": tipo,
+                "referencia": referencia,
+                "nombre": nombre,
+                "latitud": latitud,
+                "longitud": longitud,
+                "ultima_lectura": lectura,
+                # Un embarque que ya arribó no se consulta más: su lectura vieja
+                # no es un problema, es lo esperado.
+                "desactualizada": activo and (lectura is None or ahora - lectura > umbral),
+                "activo": activo,
+                "pedidos": [],
+            },
+        )
+        marcador["pedidos"].append(
+            PedidoEnMapa(id=id_pedido, oc_numero=oc, posicion_oc=posicion, estado_calculado=estado)
+        )
+
+    con_posicion = sum(len(m["pedidos"]) for m in por_elemento.values())
+    total = await sesion.scalar(
+        select(func.count()).select_from(
+            _consulta_base(filtros).where(PedidoTransito.via_transporte == via).subquery()
+        )
+    )
+    return MapaPedidos(
+        via=via,
+        umbral_desactualizada_h=umbral.total_seconds() / 3600,
+        marcadores=[
+            MarcadorMapa(
+                **{**m, "estado": estado_mas_urgente([p.estado_calculado for p in m["pedidos"]])}
+            )
+            for m in por_elemento.values()
+        ],
+        sin_posicion=(total or 0) - con_posicion,
+    )
+
+
 HORIZONTE_ARRIBOS_DIAS = 7
 TARJETAS_ARRIBOS = 5
 

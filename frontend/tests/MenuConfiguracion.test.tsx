@@ -49,7 +49,7 @@ describe('menú Configuración', () => {
     expect(screen.getByText('Compras')).toBeInTheDocument()
     expect(screen.getByText('COMPRAS')).toBeInTheDocument()
     // La carga del Z-tracking vive en «Ajustes Z-tracking» desde el 26/10.
-    expect(opciones()).toEqual(['Cambiar contraseña', 'Cerrar sesión'])
+    expect(opciones()).toEqual(['Integración con SAP', 'Cambiar contraseña', 'Cerrar sesión'])
   })
 
   it('Planta tiene lo mismo: cambiar su contraseña y cerrar sesión', async () => {
@@ -90,7 +90,16 @@ describe('menú Configuración del Administrador (US-62)', () => {
 
     await userEvent.click(boton())
 
-    expect(opciones()).toEqual(['Usuarios', 'Cambiar contraseña', 'Cerrar sesión'])
+    expect(opciones()).toEqual([
+      'Usuarios',
+      'Integración con SAP',
+      'Cambiar contraseña',
+      'Cerrar sesión',
+    ])
+    expect(screen.getByRole('link', { name: 'Integración con SAP' })).toHaveAttribute(
+      'href',
+      '/configuracion/sap',
+    )
     expect(screen.getByRole('link', { name: 'Usuarios' })).toHaveAttribute('href', '/usuarios')
   })
 })

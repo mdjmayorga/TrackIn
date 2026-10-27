@@ -16,6 +16,7 @@ const ULTIMA = {
   archivo: 'ZTRACKING WK43.xlsx',
   realizada_en: '2026-10-20T14:00:00Z',
   estado: 'APLICADA',
+  origen: 'EXCEL',
   usuario: { usuario: 'compras', nombre_completo: 'Equipo de Compras' },
 } as CargaResumen
 

@@ -21,13 +21,16 @@ from app.schemas.usuarios import Rol
 #: Lo único que un usuario de planta puede escribir: su propia sesión y su
 #: propia contraseña (`US-61`), que son de la cuenta y no del negocio.
 _PROPIAS_DE_LA_SESION = {"/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/contrasena"}
+#: Lo que no llama una persona sino otro sistema, con su propia clave (`US-65`):
+#: ninguna sesión de usuario lo abre, de ningún rol. Se prueba aparte, abajo.
+_DE_INTEGRACION = {"/api/v1/integraciones/sap/pedidos"}
 
 _ESCRITURAS = sorted(
     (metodo, ruta.path)
     for ruta in app.routes
     if isinstance(ruta, APIRoute) and ruta.path.startswith("/api/v1")
     for metodo in ruta.methods - {"GET", "HEAD", "OPTIONS"}
-    if ruta.path not in _PROPIAS_DE_LA_SESION
+    if ruta.path not in _PROPIAS_DE_LA_SESION | _DE_INTEGRACION
 )
 
 
@@ -53,6 +56,14 @@ async def test_planta_no_puede_escribir_nada(client, como_rol, metodo, ruta) -> 
     # que la petición sea válida para comprobar que el rol no pasa.
     assert respuesta.status_code == 403, respuesta.text
     assert "PLANTA" in respuesta.json()["detail"]
+
+
+@pytest.mark.parametrize("ruta", sorted(_DE_INTEGRACION))
+async def test_una_sesion_de_usuario_no_abre_la_integracion(client, como_rol, ruta) -> None:
+    """Ni Planta ni nadie: sin la clave de la integración, `401`."""
+    como_rol("PLANTA")
+
+    assert (await client.post(ruta, json={})).status_code == 401
 
 
 async def test_planta_si_lee_quien_es(client, como_rol) -> None:

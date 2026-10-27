@@ -24,6 +24,12 @@ vi.mock('@/services/pedidos', () => ({
     sin_proyeccion: 0,
     lead_time_medio_dias: null,
   }),
+  obtenerMapa: vi.fn().mockResolvedValue({
+    via: 'MARITIMO',
+    umbral_desactualizada_h: 12,
+    marcadores: [],
+    sin_posicion: 0,
+  }),
   obtenerProximosArribos: vi
     .fn()
     .mockResolvedValue({ hoy: '2026-10-13', horizonte_dias: 7, items: [] }),

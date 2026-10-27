@@ -41,6 +41,14 @@ export function puedeAdministrarUsuarios(rol: Rol | undefined): boolean {
   return rol === 'ADMINISTRADOR'
 }
 
+/**
+ * La escucha de la API de SAP (`US-66`): `PUT /integraciones/sap/escucha` es
+ * `requiere_rol(ADMINISTRADOR)`. Decisión del 27/10/2026: solo el Administrador.
+ */
+export function puedeCambiarEscuchaSap(rol: Rol | undefined): boolean {
+  return rol === 'ADMINISTRADOR'
+}
+
 /** Los roles como se leen en pantalla, en el orden en que se ofrecen. */
 export const NOMBRES_ROL: Record<Rol, string> = {
   COMPRAS: 'Compras',

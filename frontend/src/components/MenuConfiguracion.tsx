@@ -12,7 +12,7 @@
 
 import { Link } from 'react-router-dom'
 
-import { puedeAdministrarUsuarios } from '@/auth/permisos'
+import { esPantallaPlanta, puedeAdministrarUsuarios } from '@/auth/permisos'
 import type { SesionGuardada } from '@/auth/sesion'
 import { useDesplegable } from '@/hooks/useDesplegable'
 import { cerrarSesion } from '@/services/auth'
@@ -55,6 +55,15 @@ export function MenuConfiguracion({ sesion }: { sesion: SesionGuardada }) {
               <li>
                 <Link to="/usuarios" onClick={cerrar} className={OPCION}>
                   Usuarios
+                </Link>
+              </li>
+            )}
+            {/* El estado lo ve cualquiera; lo cambia el Administrador (`US-66`). Planta
+                es una pantalla de solo lectura: no lo necesita. */}
+            {!esPantallaPlanta(rol) && (
+              <li>
+                <Link to="/configuracion/sap" onClick={cerrar} className={OPCION}>
+                  Integración con SAP
                 </Link>
               </li>
             )}

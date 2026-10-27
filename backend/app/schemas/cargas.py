@@ -8,6 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 EstadoCarga = Literal["APLICADA", "RECHAZADA"]
+OrigenCarga = Literal["EXCEL", "API_SAP"]
 Consecuencia = Literal["no_entro", "entro_sin_rastreo"]
 
 
@@ -29,7 +30,8 @@ class CargaResumen(BaseModel):
     realizada_en: dt.datetime
     estado: EstadoCarga
     motivo_rechazo: str | None = Field(description="Por qué se rechazó el archivo entero.")
-    usuario: Autor
+    origen: OrigenCarga = Field(description="EXCEL (subido por una persona) o API_SAP (`US-65`).")
+    usuario: Autor | None = Field(description="Quién subió el Excel. Nulo en los lotes de SAP.")
     recibidas: int = Field(description="Líneas del archivo, legibles o no.")
     insertadas: int
     actualizadas: int

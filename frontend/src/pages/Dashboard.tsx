@@ -7,6 +7,7 @@ import { EstadoShipsGo } from '@/components/EstadoShipsGo'
 import { AvisoCreditos } from '@/components/AvisoCreditos'
 import { CintaKpis } from '@/components/CintaKpis'
 import { MapaBase } from '@/components/MapaBase'
+import { MapaEmbarques } from '@/components/MapaEmbarques'
 import { MenuConfiguracion } from '@/components/MenuConfiguracion'
 import { MenuZtracking } from '@/components/MenuZtracking'
 import { PanelPedidos } from '@/components/PanelPedidos'
@@ -144,7 +145,13 @@ export default function Dashboard() {
 
       <main className="grid grid-cols-1 gap-6 px-4 pb-12 xl:grid-cols-3">
         <div className="order-2 min-w-0 xl:order-none">
-          <MapaBase titulo="Mapa Marítimo" centro={MARITIMO} zoom={4} />
+          <MapaEmbarques
+            titulo="Mapa Marítimo"
+            capa="MARITIMO"
+            centro={MARITIMO}
+            zoom={4}
+            filtros={filtros}
+          />
         </div>
         <div className="order-1 flex min-w-0 flex-col gap-5 xl:order-none">
           <CintaKpis filtros={filtros} />

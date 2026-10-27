@@ -189,6 +189,63 @@ class ProximosArribos(BaseModel):
     items: list[ProximoArribo]
 
 
+# --- Mapas del panel (`US-25`, `US-26`) --------------------------------------------
+
+
+class PedidoEnMapa(BaseModel):
+    id: int
+    oc_numero: str
+    posicion_oc: int
+    estado_calculado: EstadoCalculado
+
+
+class MarcadorMapa(BaseModel):
+    """Un embarque en el mapa: un buque (o un vuelo) con los pedidos que lleva.
+
+    Varios pedidos comparten embarque —un BL trae varias líneas—, así que el mapa
+    pone un marcador por embarque, no por pedido: si no, quedarían apilados en el
+    mismo punto.
+    """
+
+    id_elemento: int
+    tipo: str = Field(description="BL, CONTENEDOR, BOOKING, MAWB…")
+    referencia: str
+    nombre: str | None = Field(description="Nombre de la nave o del vuelo, si la fuente lo dio.")
+    latitud: float
+    longitud: float
+    estado: EstadoCalculado = Field(
+        description=(
+            "El color del marcador: el estado más urgente de sus pedidos (retrasado, en "
+            "riesgo, a tiempo y después la etapa más avanzada)."
+        )
+    )
+    ultima_lectura: dt.datetime | None = Field(
+        description="Cuándo respondió la fuente por última vez (RNF-12)."
+    )
+    desactualizada: bool = Field(
+        description=(
+            "La lectura es más vieja que el doble de la frecuencia de consulta: la "
+            "posición puede no ser la actual."
+        )
+    )
+    activo: bool = Field(description="`false` si ya arribó y no se consulta más.")
+    pedidos: list[PedidoEnMapa]
+
+
+class MapaPedidos(BaseModel):
+    via: Literal["MARITIMO", "AEREO"]
+    umbral_desactualizada_h: float = Field(
+        description="A partir de cuántas horas sin lectura un marcador se marca desactualizado."
+    )
+    marcadores: list[MarcadorMapa]
+    sin_posicion: int = Field(
+        description=(
+            "Pedidos que cumplen los filtros pero no tienen posición: sin referencia o "
+            "sin lectura todavía. No caben en el mapa, pero se cuentan."
+        )
+    )
+
+
 # --- Detalle (RF-05) --------------------------------------------------------
 
 

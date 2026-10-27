@@ -11,6 +11,7 @@ import { useState } from 'react'
 
 import type { CargaDetalle } from '@/types/api'
 import { formatearFechaHora } from '@/utils/fechas'
+import { autorDeCarga } from '@/utils/formatos'
 import { QUE_HACER, nombreMotivo } from '@/utils/motivosCarga'
 
 /** Cuántas líneas se muestran antes de «Ver todas»: el WK38 trae 373. */
@@ -27,7 +28,10 @@ export function InformeCarga({ carga }: { carga: CargaDetalle }) {
           {carga.archivo}
         </h3>
         <p className="text-sm text-slate-400">
-          Cargado por {carga.usuario.nombre_completo} el {formatearFechaHora(carga.realizada_en)}
+          {carga.origen === 'API_SAP'
+            ? 'Recibido de la API de SAP'
+            : `Cargado por ${autorDeCarga(carga)}`}{' '}
+          el {formatearFechaHora(carga.realizada_en)}
         </p>
       </header>
 

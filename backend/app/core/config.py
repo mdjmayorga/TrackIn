@@ -93,6 +93,12 @@ class Settings(BaseSettings):
     # es exactamente la situación mientras no haya créditos comprados.
     SHIPSGO_API_TOKEN: str | None = None
 
+    # --- API de SAP (`US-65`) -----------------------------------------------
+    # Clave que SAP envía en `X-API-Key` al mandar pedidos. Es de la integración,
+    # no de un usuario. Sin clave, todo envío se rechaza con 401: la escucha no
+    # se puede usar aunque esté encendida.
+    SAP_INTEGRACION_CLAVE: str | None = None
+
     # --- Ingesta de pedidos (TASK-03 / US-31) -------------------------------
     # Fuente desde la que entran las líneas de orden de compra.
     #   ztracking → el archivo de Logística. Vía **oficial** desde el 03/09/2026

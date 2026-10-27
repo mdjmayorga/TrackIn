@@ -113,6 +113,29 @@ export function aparienciaDeEstado(estado: EstadoCalculado): Apariencia {
     : ETAPAS[estado as EtapaVisible]
 }
 
+/**
+ * De más a menos urgente, el mismo orden de `consulta_pedidos._URGENCIA` en el
+ * backend: primero el cumplimiento, después la etapa más avanzada. Colorea los
+ * grupos de marcadores del mapa (`US-25`).
+ */
+const URGENCIA: readonly EstadoCalculado[] = [
+  'RETRASADO',
+  'EN_RIESGO',
+  'A_TIEMPO',
+  'EN_PROCESO_ADUANAL',
+  'EN_DESTINO',
+  'EN_TRANSITO',
+  'EN_ORIGEN',
+  'SIN_TRACKING',
+  'RECIBIDO_EN_PLANTA',
+  'CERRADO',
+  'CANCELADO',
+]
+
+export function estadoMasUrgente(estados: readonly EstadoCalculado[]): EstadoCalculado {
+  return [...estados].sort((a, b) => URGENCIA.indexOf(a) - URGENCIA.indexOf(b))[0]
+}
+
 const TERMINALES: ReadonlySet<EstadoCalculado> = new Set(['CERRADO', 'CANCELADO'])
 
 export function esTerminal(pedido: Pick<PedidoResumen, 'estado_calculado'>): boolean {

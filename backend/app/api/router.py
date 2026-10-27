@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from app.api.auth import router as auth_router
 from app.api.cargas import router as cargas_router
 from app.api.destinos import router as destinos_router
+from app.api.integracion_sap import router as integracion_sap_router
 from app.api.pedidos import router as pedidos_router
 from app.api.shipsgo import router as shipsgo_router
 from app.api.usuarios import router as usuarios_router
@@ -21,6 +22,7 @@ api_router.include_router(auth_router)
 api_router.include_router(usuarios_router)
 api_router.include_router(cargas_router)
 api_router.include_router(shipsgo_router)
+api_router.include_router(integracion_sap_router)
 
 
 @api_router.get("/", tags=["meta"], summary="Índice de la API v1")

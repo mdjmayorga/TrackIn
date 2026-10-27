@@ -227,6 +227,17 @@ CATALOGO: Final[dict[str, Parametro]] = {
             "a más tardar el martes (2)."
         ),
     ),
+    # Reunión de entrega del Informe 2, 27/10/2026: TrackIn queda listo para la
+    # API de SAP, apagado hasta que exista. Solo el Administrador lo cambia.
+    "sap_escucha_habilitada": Parametro(
+        clave="sap_escucha_habilitada",
+        defecto=False,
+        tipo_dato="BOOLEANO",
+        descripcion=(
+            "Si TrackIn acepta los pedidos que envíe la API de SAP (US-65). Apagada "
+            "hasta que la API exista; la enciende el Administrador (US-66)."
+        ),
+    ),
     "login_bloqueo_min": Parametro(
         clave="login_bloqueo_min",
         defecto=15,

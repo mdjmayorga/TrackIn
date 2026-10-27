@@ -6,6 +6,7 @@ import {
   obtenerBitacora,
   obtenerPedido,
   obtenerIndicadores,
+  obtenerMapa,
   obtenerProximosArribos,
 } from '@/services/pedidos'
 import { FILTROS_VACIOS, type FiltrosPanel } from '@/utils/filtros'
@@ -27,6 +28,19 @@ export function usePedidos(consulta: ConsultaPedidos, filtros: FiltrosPanel = FI
     queryKey: ['pedidos', consulta, filtros],
     queryFn: () => listarPedidos(consulta, filtros),
     placeholderData: keepPreviousData,
+  })
+}
+
+/**
+ * Los embarques de un mapa (`US-25`). Se refresca solo cada 5 minutos: las
+ * posiciones cambian con cada consulta del worker, no con lo que hace el usuario.
+ */
+export function useMapa(capa: 'MARITIMO' | 'AEREO', filtros: FiltrosPanel = FILTROS_VACIOS) {
+  return useQuery({
+    queryKey: ['pedidos', 'mapa', capa, filtros],
+    queryFn: () => obtenerMapa(capa, filtros),
+    placeholderData: keepPreviousData,
+    refetchInterval: 5 * 60_000,
   })
 }
 

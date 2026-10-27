@@ -4,6 +4,11 @@ Fuentes de datos de tracking que consumirá TrackIn. **Ninguna está integrada
 todavía** — esto es documentación de referencia para los sprints de
 implementación.
 
+> **API de SAP (entrante) — 27/10/2026.** No es una fuente que TrackIn consulte: SAP le
+> enviaría los pedidos. El contrato, el JSON Schema y la colección de Postman están en
+> [`docs/integraciones/sap/`](integraciones/sap/README.md) (`US-64`). La API todavía no
+> existe; la escucha queda apagada hasta entonces (`US-65`, `US-66`).
+
 ---
 
 ## AISStream — tracking marítimo

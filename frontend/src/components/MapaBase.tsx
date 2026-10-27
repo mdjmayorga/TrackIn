@@ -1,7 +1,8 @@
 /**
- * Un mapa del dashboard, por ahora sin marcadores: el fondo cartográfico, el
- * encuadre del Caribe y Centroamérica y los controles de zoom del Figma.
- * Los marcadores llegan con `US-35` (naves) y `US-36` (aeronaves).
+ * El fondo de los mapas: el mapa cartográfico, el encuadre del Caribe y
+ * Centroamérica y los controles de zoom del Figma. Los marcadores van como
+ * hijos: los embarques del panel (`MapaEmbarques`, `US-25`) o el punto único
+ * del detalle (`marcador`).
  *
  * Los mosaicos son de OpenStreetMap (wireframes §2.8: la red de Gutis no los
  * bloquea). Su política exige la atribución visible, que Leaflet pone abajo a
@@ -12,6 +13,7 @@
 import 'leaflet/dist/leaflet.css'
 
 import type { LatLngExpression } from 'leaflet'
+import type { ReactNode } from 'react'
 import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl } from 'react-leaflet'
 
 import { BLANCO } from '@/components/paleta'
@@ -31,9 +33,18 @@ export interface MapaBaseProps {
    * mismo de su distintivo en la grilla (`US-24`).
    */
   marcador?: { posicion: LatLngExpression; etiqueta: string; color: string }
+  /** Capas propias, dentro del `MapContainer`: los embarques del panel. */
+  children?: ReactNode
 }
 
-export function MapaBase({ titulo, centro, zoom, ocultarTitulo, marcador }: MapaBaseProps) {
+export function MapaBase({
+  titulo,
+  centro,
+  zoom,
+  ocultarTitulo,
+  marcador,
+  children,
+}: MapaBaseProps) {
   const id = `mapa-${titulo.toLowerCase().replace(/\W+/g, '-')}`
   return (
     <section aria-labelledby={id}>
@@ -67,6 +78,7 @@ export function MapaBase({ titulo, centro, zoom, ocultarTitulo, marcador }: Mapa
               </Tooltip>
             </CircleMarker>
           )}
+          {children}
         </MapContainer>
       </div>
     </section>
