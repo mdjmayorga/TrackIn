@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { BarraFiltros } from '@/components/BarraFiltros'
 import { GrillaPedidos, type VistaGrilla } from '@/components/GrillaPedidos'
@@ -9,6 +9,13 @@ import { type FiltrosPanel, filtraTerminales, hayFiltros } from '@/utils/filtros
 
 /** 10 filas, como el Figma: la grilla cabe en la pantalla sin desplazarse. */
 export const FILAS_POR_PAGINA = 10
+
+/**
+ * La pantalla de planta pasa sola de página (`US-33`): nadie la toca, y con 10
+ * filas por página las demás no se verían nunca. Al llegar a la última, vuelve
+ * a la primera.
+ */
+export const ROTACION_MS = 20_000
 
 /** Igual que el backend: lo primero que le importa a Compras es qué llega antes. */
 const ORDEN_INICIAL: Orden = 'fecha_proyectada'
@@ -21,6 +28,8 @@ export interface PanelPedidosProps {
   versionFiltros: number
   /** La grilla simple de la pantalla de planta (`US-43`); los filtros son los mismos. */
   vista?: VistaGrilla
+  /** Pasar de página solo cada `ROTACION_MS` (`US-33`, pantalla de planta). */
+  rotarPaginas?: boolean
 }
 
 /**
@@ -36,6 +45,7 @@ export function PanelPedidos({
   onLimpiarFiltros,
   versionFiltros,
   vista = 'completa',
+  rotarPaginas = false,
 }: PanelPedidosProps) {
   const [orden, setOrden] = useState<Orden>(ORDEN_INICIAL)
   // La página se recuerda junto con los filtros con que se pidió: otro filtro
@@ -49,6 +59,19 @@ export function PanelPedidos({
     filtros,
   )
   const filtrado = hayFiltros(filtros)
+  const total = data?.total ?? 0
+
+  useEffect(() => {
+    if (!rotarPaginas || total <= FILAS_POR_PAGINA) return
+    const temporizador = window.setInterval(() => {
+      setPagina((actual) => {
+        const desde = actual.clave === claveFiltros ? actual.desplazamiento : 0
+        const siguiente = desde + FILAS_POR_PAGINA
+        return { clave: claveFiltros, desplazamiento: siguiente >= total ? 0 : siguiente }
+      })
+    }, ROTACION_MS)
+    return () => window.clearInterval(temporizador)
+  }, [rotarPaginas, total, claveFiltros])
 
   function paginar(nuevo: number) {
     setPagina({ clave: claveFiltros, desplazamiento: nuevo })
@@ -93,6 +116,12 @@ export function PanelPedidos({
         {error && !data && (
           <p role="alert" className="rounded-lg bg-red-900/60 px-4 py-3 text-sm text-red-100">
             No se pudieron cargar los pedidos: {mensajeDeError(error)}
+          </p>
+        )}
+
+        {rotarPaginas && total > FILAS_POR_PAGINA && (
+          <p className="mb-1 text-right text-xs text-slate-400">
+            Las páginas cambian solas cada {ROTACION_MS / 1000} s
           </p>
         )}
 

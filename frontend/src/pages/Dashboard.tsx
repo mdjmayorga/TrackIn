@@ -12,6 +12,7 @@ import { MenuZtracking } from '@/components/MenuZtracking'
 import { PanelPedidos } from '@/components/PanelPedidos'
 import { ProximosArribos } from '@/components/ProximosArribos'
 import { useBandejaArribos } from '@/hooks/usePedidos'
+import { usePantallaCompleta, useWakeLock } from '@/hooks/usePantallaPermanente'
 import { FILTROS_VACIOS, type FiltrosPanel } from '@/utils/filtros'
 
 /**
@@ -31,6 +32,25 @@ const AEREO: [number, number] = [17, -78]
  * el botón queda tal cual el diseño. El número va también en el nombre
  * accesible, porque la burbuja sola no se lee.
  */
+/**
+ * La pantalla de planta (`US-33`): pantalla completa con un clic —el navegador
+ * exige el gesto— y la pantalla encendida mientras el panel esté abierto.
+ */
+function BotonPantallaCompleta() {
+  const { activa, alternar, posible } = usePantallaCompleta()
+  useWakeLock(true)
+  if (!posible) return null
+  return (
+    <button
+      type="button"
+      onClick={alternar}
+      className="rounded bg-panel-cabecera px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600"
+    >
+      {activa ? 'Salir de pantalla completa' : 'Pantalla completa'}
+    </button>
+  )
+}
+
 function AvisoBandeja() {
   const { data } = useBandejaArribos()
   const pendientes = data?.total ?? 0
@@ -136,6 +156,7 @@ export default function Dashboard() {
           {sesion && puedeVerBandeja(sesion.usuario.rol) && <AvisoBandeja />}
           {/* Planta no carga archivos. */}
           {sesion && !planta && <MenuZtracking rol={sesion.usuario.rol} />}
+          {planta && <BotonPantallaCompleta />}
         </div>
       </header>
 
@@ -161,6 +182,7 @@ export default function Dashboard() {
             onLimpiarFiltros={limpiarFiltros}
             versionFiltros={versionFiltros}
             vista={planta ? 'simple' : 'completa'}
+            rotarPaginas={planta}
           />
         </div>
         <div className="order-3 min-w-0 xl:order-none">

@@ -18,6 +18,13 @@ import { FILTROS_VACIOS, type FiltrosPanel } from '@/utils/filtros'
 // `keepPreviousData` en los tres: al cambiar un filtro se conserva lo que hay
 // en pantalla hasta que llega lo nuevo, en vez de vaciar los bloques (RNF-02:
 // «sin recarga completa»).
+//
+// `US-33`: los tres se refrescan solos cada `REFRESCO_PANEL_MS`. La pantalla de
+// planta queda encendida sin que nadie la toque, y cada refresco es una
+// petición: mantiene abierta la sesión, que se cierra tras 30 min sin uso.
+
+/** Cada cuánto se vuelve a pedir el panel. Menos que la inactividad de la sesión. */
+export const REFRESCO_PANEL_MS = 2 * 60_000
 
 /**
  * Una página de la grilla. Al ordenar o paginar se conserva la página anterior
@@ -28,6 +35,7 @@ export function usePedidos(consulta: ConsultaPedidos, filtros: FiltrosPanel = FI
     queryKey: ['pedidos', consulta, filtros],
     queryFn: () => listarPedidos(consulta, filtros),
     placeholderData: keepPreviousData,
+    refetchInterval: REFRESCO_PANEL_MS,
   })
 }
 
@@ -50,6 +58,7 @@ export function useIndicadores(filtros: FiltrosPanel = FILTROS_VACIOS) {
     queryKey: ['pedidos', 'indicadores', filtros],
     queryFn: () => obtenerIndicadores(filtros),
     placeholderData: keepPreviousData,
+    refetchInterval: REFRESCO_PANEL_MS,
   })
 }
 
@@ -58,6 +67,7 @@ export function useProximosArribos(filtros: FiltrosPanel = FILTROS_VACIOS) {
   return useQuery({
     queryKey: ['pedidos', 'proximos-arribos', filtros],
     queryFn: () => obtenerProximosArribos(filtros),
+    refetchInterval: REFRESCO_PANEL_MS,
     placeholderData: keepPreviousData,
   })
 }

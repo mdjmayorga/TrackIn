@@ -122,7 +122,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed · 22/10: la línea de tiempo del detalle suma los hitos del viaje, transbordos incluidos |
 | `US-30` | Registrar los transbordos: automáticos desde ShipsGo, a mano solo las excepciones ✅ | Story | OE2 | **Should** | Sprint 7 | ~~10h~~ 6h | RF-26 / CU-10 · **replanteada el 22/10**: con BL, contenedor o MAWB el transbordo lo informa ShipsGo y se registra solo; la captura manual queda para los pedidos sin referencia y el paso de guía hija a madre · ✅ adelantada y terminada 28/10 |
 | `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido | Story | OE3 | **Should** | Sprint 7 | ~~8h~~ 4h | Reunión Logística 03/09 / RF-05 (ampliado) · **mapa en vivo de ShipsGo en el detalle, funcionando desde el 21/10** (ShipsGo Embed) |
-| `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` |
+| `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande ✅ | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` · ✅ adelantada y terminada 28/10 |
 | `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
 | `TASK-07` | Manual de instalacion local | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
 | `TASK-08` | Manual de usuario del dashboard | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 |
@@ -2629,8 +2629,8 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **27/10, más tarde: vuelve a 63 h**, dentro de la capacidad. `US-65` y `US-66` se adelantaron
 > al Sprint 6 y quedaron terminadas.
 >
-> **28/10: adelantadas 34 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
-> reales), `US-30` terminada y `TASK-10` cerrada sin retención.
+> **28/10: adelantadas 40 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
+> reales), `US-30` y `US-33` terminadas y `TASK-10` cerrada sin retención.
 
 > **Hito: compra de los créditos de ShipsGo, ~06/11**, una semana antes de la entrega (acuerdo
 > con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
@@ -3135,6 +3135,26 @@ de los pedidos sin interactuar con el sistema.
 
 > **Desbloqueada el 03/09.** Ya no depende de definir qué mostrar: la vista simple lo resuelve.
 > Solo queda pendiente la resolución física de la pantalla, que es un detalle de maquetación.
+
+> **✅ Adelantada del Sprint 7 y terminada el 28/10/2026.**
+>
+> - **Primer criterio:** la vista simple ya estaba desde `US-43` (rol `PLANTA`).
+> - **Se refresca sola, sin recargar** (RNF-02): la grilla, los indicadores y los próximos
+>   arribos se vuelven a pedir cada **2 minutos** (`REFRESCO_PANEL_MS`), para todos los roles;
+>   los mapas, cada 5. Lo que hay en pantalla se conserva mientras llega lo nuevo.
+> - **La grilla pasa sola de página** cada 20 s y vuelve a la primera al llegar a la última:
+>   en una pantalla que nadie toca, con 10 filas por página, el resto no se vería nunca. Solo
+>   en la pantalla de planta, con un aviso «Las páginas cambian solas cada 20 s».
+> - **Inactividad (`US-42`):** no hubo que excluir a `PLANTA`. La sesión se cierra tras
+>   `sesion_inactividad_min` (30) sin uso, y cada refresco es uso: la pantalla queda abierta
+>   mientras esté encendida. Si el equipo se apaga o se corta la red más de 30 min, vuelve al
+>   login. Para no depender de eso, conviene entrar con **«Recordar sesión»** (30 días).
+> - **Pantalla grande (RNF-11):** botón «Pantalla completa» en el encabezado de planta (el
+>   navegador exige un clic para entrar) y pedido de *wake lock* para que el equipo no apague
+>   la pantalla mientras el panel esté abierto. Si el navegador no lo admite, rige la
+>   configuración de energía del equipo.
+> - **Pendiente, sin código:** probarlo en la pantalla física de la planta, por la resolución.
+> - **Pruebas:** 7 de frontend (`PantallaPlanta.test.tsx`).
 
 ---
 
