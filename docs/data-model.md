@@ -1032,6 +1032,26 @@ aeronaves: 10 × (86 400 / 31)    ≈ 27 900 filas/día
    migración inicial sin beneficio con datos semilla— pero sí se deja anotado
    como decisión de `TASK-10`, que es donde toca.
 
+> **Redimensionado el 28/10/2026 (`TASK-10`): con ShipsGo el volumen es otro.** El cálculo
+> de arriba suponía AIS y ADS-B, una lectura por minuto. Desde el 14/09 la fuente de las dos
+> vías es ShipsGo, que se consulta cada `frecuencia_maritima_min` (360) y cada
+> `frecuencia_aerea_min` (60), y la vía aérea **no escribe historial**: no hay posición leída
+> del avión, se estima con `elementos_rastreados.trayecto_aereo` (`US-26`). Con ~100 embarques
+> marítimos activos y un payload medio de ~4 KB (medido en los envíos del spike `TASK-28`):
+>
+> ```
+> marítimo: 100 × 4 lecturas/día ≈ 400 filas/día
+>                                ≈ 150 000 filas/año
+>                                < 1 GB/año con el payload
+> ```
+>
+> **Decisión: no se borra historial.** RNF-13 pide conservar el payload original, ShipsGo
+> archiva lo terminado (el guardado puede ser la única copia) y el volumen no lo justifica.
+> RNF-22 lo sostiene la conclusión 2 —el panel nunca lee esta tabla—, que ahora **verifica una
+> prueba** (`tests/test_historial_rendimiento.py`). El particionado de la conclusión 3 queda
+> para cuando `scripts/medir_historial.py` avise que se pasó del umbral (5 GB o 2 millones de
+> filas).
+
 ### 3.7 Índices propuestos
 
 | Índice | Columnas | Sirve a |

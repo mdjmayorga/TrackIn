@@ -127,7 +127,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-07` | Manual de instalacion local | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
 | `TASK-08` | Manual de usuario del dashboard | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 |
 | `TASK-09` | Guia de despliegue para produccion | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
-| `TASK-10` | Politica de retencion y submuestreo del historial de posiciones | Task | OE4 | **Could** | Sprint 7 | 8h | RNF-22 / spike TG-10 |
+| `TASK-10` | Politica de retencion y submuestreo del historial de posiciones ✅ | Task | OE4 | **Could** | Sprint 7 | 8h | RNF-22 / spike TG-10 · ✅ cerrada 28/10 sin retención: el volumen con ShipsGo no la justifica |
 | `TASK-11` | Actualizar el SRS con los hallazgos de los spikes tecnicos ✅ | Task | OE1 | **Must** | Sprint 3 | ~~6h~~ 0h | Fase 6 de TG-18 (cumplida por el SRS v0.3) |
 
 🔀 = alcance sujeto a la decisión de `TASK-28` (compra de la fuente comercial de rastreo). Ver «La bifurcación de `TASK-28`» al final.
@@ -2629,8 +2629,8 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **27/10, más tarde: vuelve a 63 h**, dentro de la capacidad. `US-65` y `US-66` se adelantaron
 > al Sprint 6 y quedaron terminadas.
 >
-> **28/10: adelantadas 26 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
-> reales) y `US-30` terminada.
+> **28/10: adelantadas 34 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
+> reales), `US-30` terminada y `TASK-10` cerrada sin retención.
 
 > **Hito: compra de los créditos de ShipsGo, ~06/11**, una semana antes de la entrega (acuerdo
 > con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
@@ -2951,6 +2951,28 @@ Como desarrollador, quiero una política de retención del historial, para que s
 | Estimacion | 8 h |
 | Origen en el SRS | RNF-22 / spike TG-10 |
 | Etiquetas | `persistencia,rendimiento,opcional` |
+
+> **✅ Cerrada el 28/10/2026, adelantada del Sprint 7 — sin borrar historial** (decisión de
+> Mariano, opción recomendada entre tres: sin borrado, retención manual o automática).
+>
+> - **El volumen cambió:** la estimación de ~25 millones de filas y ~20 GB al año era para AIS
+>   y ADS-B. Con ShipsGo, el marítimo se consulta cada 6 h y el aéreo no escribe historial (su
+>   posición se estima, `US-26`): con ~100 embarques activos, **~150 000 filas y menos de
+>   1 GB al año**, payload incluido (~4 KB por lectura, medido en el spike). Ver
+>   `data-model.md` §3.6.
+> - **Por qué no se borra:** RNF-13 pide conservar el payload original, ShipsGo archiva lo
+>   terminado —lo guardado puede ser la única copia— y la tabla es inmutable por disparador
+>   a propósito. Borrar no se justifica con este volumen.
+> - **Primer criterio, verificado por una prueba:** `tests/test_historial_rendimiento.py`
+>   registra todo el SQL detrás del panel, los mapas y el detalle, y falla si alguna consulta
+>   toca `historial_tracking`. Otra verifica que la única lectura del worker —la última
+>   posición de un embarque— se resuelve con el índice `(elemento, fecha)`.
+> - **Segundo criterio, ya cumplido desde el 25/08:** el submuestreo se configura con
+>   `intervalo_minimo_persistencia_s`, sin desplegar código.
+> - **Para revisarlo con el tiempo:** `scripts/medir_historial.py` (solo lee) reporta filas,
+>   tamaño, payload medio y el ritmo de los últimos 30 días llevado a un año, y avisa si se
+>   pasa de 5 GB o 2 millones de filas. Si pasa, se reabre con el particionado por fecha que
+>   dejó anotado §3.6.
 
 ---
 
