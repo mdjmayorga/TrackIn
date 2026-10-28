@@ -259,7 +259,8 @@ class MapaPedidos(BaseModel):
     sin_posicion: int = Field(
         description=(
             "Pedidos que cumplen los filtros pero no tienen posición: sin referencia o "
-            "sin lectura todavía. No caben en el mapa, pero se cuentan."
+            "sin lectura todavía. No caben en el mapa, pero se cuentan. No incluye los "
+            "que ya pasaron a proceso aduanal, que salen del mapa (28/10/2026)."
         )
     )
 
@@ -270,6 +271,19 @@ class MapaPedidos(BaseModel):
 class Posicion(BaseModel):
     latitud: float
     longitud: float
+
+
+class TransbordoOut(BaseModel):
+    """Un cambio de nave o de vuelo que informó ShipsGo (`US-30`)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    vehiculo_anterior: str
+    vehiculo_nuevo: str
+    puerto: str | None
+    puerto_nombre: str | None
+    fecha: dt.datetime | None
+    ocurrido: bool = Field(description="`false` si ShipsGo lo informa como previsto.")
 
 
 class Rastreo(BaseModel):
@@ -290,6 +304,13 @@ class Rastreo(BaseModel):
     guia_madre: str | None = Field(description="Solo guías hijas por TICA (`US-49`).")
     manifiesto_aduana: str | None
     activo: bool = Field(description="`false` cuando ya arribó y no se consulta más.")
+    transbordos: list[TransbordoOut] = Field(
+        default_factory=list,
+        description=(
+            "Los cambios de nave o vuelo del embarque, en orden, también los previstos. "
+            "Los comparten todas las líneas del mismo BL (`US-30`)."
+        ),
+    )
 
 
 class Arribos(BaseModel):
@@ -449,6 +470,12 @@ class RecepcionIncompleta(BaseModel):
     ofrece_cierre_forzado: bool = True
 
 
+class GuiaMadreEntrada(BaseModel):
+    """`US-30`: seguir el pedido por la guía madre que resolvió TICA."""
+
+    motivo: str | None = Field(default=None, description="Opcional, como el paso a aduana.")
+
+
 class PasoAduanalEntrada(BaseModel):
     motivo: str | None = Field(
         default=None,
@@ -482,6 +509,7 @@ class AsientoBitacora(BaseModel):
 
 
 __all__ = [
+    "TransbordoOut",
     "Arribos",
     "AsientoBitacora",
     "ConfirmacionDesembarco",

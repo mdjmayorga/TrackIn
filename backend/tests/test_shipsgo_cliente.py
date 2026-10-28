@@ -193,6 +193,26 @@ async def test_el_geojson_va_a_su_propio_endpoint() -> None:
     assert transporte.llamadas[0][1].endswith("/ocean/shipments/7/geojson")
 
 
+async def test_el_geojson_se_desenvuelve_como_lo_entrega_la_api() -> None:
+    """La forma real, medida el 28/10/2026: `{"message": "SUCCESS", "geojson": {...}}`.
+
+    El payload grabado del spike venía sin envolver y así lo probaban las demás
+    pruebas: el defecto pasaba sin que nada fallara, y ningún embarque guardaba
+    posición ni trazado.
+    """
+    coleccion = {"type": "FeatureCollection", "features": []}
+    cliente, _ = _cliente(Respuesta(200, {"message": "SUCCESS", "geojson": coleccion}))
+
+    assert await cliente.leer_geojson(7) == coleccion
+
+
+async def test_un_geojson_sin_envolver_tambien_se_acepta() -> None:
+    coleccion = {"type": "FeatureCollection", "features": []}
+    cliente, _ = _cliente(Respuesta(200, coleccion))
+
+    assert await cliente.leer_geojson(7) == coleccion
+
+
 async def test_un_geojson_caido_no_tumba_la_lectura() -> None:
     """La posición es opcional y los hitos ya llegaron por el otro endpoint."""
     cliente, _ = _cliente(Respuesta(500, {"message": "BOOM"}))

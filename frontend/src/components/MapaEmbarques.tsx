@@ -26,7 +26,7 @@ import { useMapa } from '@/hooks/usePedidos'
 import type { MarcadorMapa } from '@/types/api'
 import { agrupar } from '@/utils/agrupamiento'
 import { FILTROS_VACIOS, type FiltrosPanel } from '@/utils/filtros'
-import { rotulo } from '@/utils/rotuloMapa'
+import { partesDelRotulo, rotulo } from '@/utils/rotuloMapa'
 
 export interface MapaEmbarquesProps {
   titulo: string
@@ -117,8 +117,8 @@ function Embarque({ marcador }: { marcador: MarcadorMapa }) {
         fillOpacity: vieja ? 0.45 : 1,
       }}
     >
-      <Tooltip direction="top" offset={[0, -6]}>
-        {rotulo(marcador)}
+      <Tooltip direction="top" offset={[0, -6]} className="rotulo-mapa">
+        <RotuloEnLineas marcador={marcador} />
       </Tooltip>
     </CircleMarker>
   )
@@ -148,10 +148,28 @@ function EnVuelo({ marcador }: { marcador: MarcadorMapa }) {
         icon={icono}
         title={`${marcador.tipo} ${marcador.referencia}: en vuelo`}
       >
-        <Tooltip direction="top" offset={[0, -12]}>
-          {rotulo(marcador)}
+        <Tooltip direction="top" offset={[0, -12]} className="rotulo-mapa">
+          <RotuloEnLineas marcador={marcador} />
         </Tooltip>
       </Marker>
+    </>
+  )
+}
+
+/**
+ * El rótulo del marcador en cuatro líneas cortas, no en una frase. Leaflet dibuja
+ * el tooltip en una sola línea sin cortes: con el rótulo completo se salía del
+ * recuadro del mapa y quedaba ilegible (pedido del 28/10/2026). La clase
+ * `rotulo-mapa` (`index.css`) le da letra chica y un ancho máximo.
+ */
+function RotuloEnLineas({ marcador }: { marcador: MarcadorMapa }) {
+  const p = partesDelRotulo(marcador)
+  return (
+    <>
+      <strong className="block">{p.quien}</strong>
+      <span className="block">{p.estado}</span>
+      <span className="block">{p.pedidos}</span>
+      <span className="block text-slate-500">{p.lectura}</span>
     </>
   )
 }
@@ -176,7 +194,7 @@ function Grupo({ marcadores, centro }: { marcadores: MarcadorMapa[]; centro: L.L
         click: () => mapa.fitBounds(limites, { padding: [40, 40], maxZoom: 12 }),
       }}
     >
-      <Tooltip direction="top" offset={[0, -12]}>
+      <Tooltip direction="top" offset={[0, -12]} className="rotulo-mapa">
         {`${marcadores.length} embarques. Clic para acercar.`}
       </Tooltip>
     </Marker>

@@ -174,6 +174,19 @@ export interface Rastreo {
   manifiesto_aduana: string | null
   /** `false` cuando ya arribó y no se consulta más. */
   activo: boolean
+  /** Los cambios de nave o vuelo que informó ShipsGo, en orden (`US-30`). */
+  transbordos: Transbordo[]
+}
+
+export interface Transbordo {
+  vehiculo_anterior: string
+  vehiculo_nuevo: string
+  /** UN/LOCODE o IATA. */
+  puerto: string | null
+  puerto_nombre: string | null
+  fecha: string | null
+  /** `false` si ShipsGo lo informa como previsto. */
+  ocurrido: boolean
 }
 
 /** Los tres orígenes del arribo que RN-05 distingue. */

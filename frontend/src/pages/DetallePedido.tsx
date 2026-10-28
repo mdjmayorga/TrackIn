@@ -8,7 +8,9 @@
  *
  * Fuera de esta historia, aunque el Figma los muestre: los hitos del viaje y el
  * trayecto en la línea de tiempo y el mapa (`US-29`, `US-44`). La barra de
- * acciones del pie es `US-60` (`AccionesPedido`).
+ * acciones del pie es `US-60` (`AccionesPedido`). Los transbordos que informa
+ * ShipsGo sí están, en el bloque de rastreo y en la línea de tiempo (`US-30`).
+
  */
 
 import type { ReactNode } from 'react'
@@ -22,9 +24,10 @@ import { Distintivo } from '@/components/Distintivo'
 import { CUMPLIMIENTOS, ETAPAS, aparienciaDeEstado, etapaVisible } from '@/components/estados'
 import { MapaBase } from '@/components/MapaBase'
 import { MapaShipsGo } from '@/components/MapaShipsGo'
+import { SeguirGuiaMadre } from '@/components/SeguirGuiaMadre'
 import { useBitacora, usePedido } from '@/hooks/usePedidos'
 import { mensajeDeError } from '@/services/api'
-import type { AsientoBitacora, PedidoDetalle } from '@/types/api'
+import type { AsientoBitacora, PedidoDetalle, Transbordo } from '@/types/api'
 import {
   INTERVENCIONES,
   ORIGENES,
@@ -235,6 +238,9 @@ function ElementoRastreado({ pedido }: { pedido: PedidoDetalle }) {
           {r.guia_madre && (
             <span className="block text-xs text-slate-400">Guía madre {r.guia_madre}</span>
           )}
+          {r.tipo === 'HAWB' && r.guia_madre && puedeAsociar(sesion?.usuario.rol) && (
+            <SeguirGuiaMadre idPedido={pedido.id} guiaMadre={r.guia_madre} />
+          )}
           {/* Una referencia de ShipsGo que nunca respondió todavía no está dada de alta. */}
           {DE_SHIPSGO.has(r.tipo) &&
             !r.ultima_consulta_exitosa &&
@@ -248,6 +254,15 @@ function ElementoRastreado({ pedido }: { pedido: PedidoDetalle }) {
             )}
         </Fila>
         <Fila etiqueta="Vía">{destino}</Fila>
+        {r.transbordos.length > 0 && (
+          <Fila etiqueta="Transbordos">
+            <ol className="space-y-0.5">
+              {r.transbordos.map((t) => (
+                <li key={`${t.vehiculo_anterior}-${t.vehiculo_nuevo}`}>{textoTransbordo(t)}</li>
+              ))}
+            </ol>
+          </Fila>
+        )}
         <Fila etiqueta="Últ. posición">
           {r.posicion ? (
             <>
@@ -271,6 +286,18 @@ function ElementoRastreado({ pedido }: { pedido: PedidoDetalle }) {
       </dl>
     </Bloque>
   )
+}
+
+/** `AAAA-MM-DD` en hora de Costa Rica. */
+const DIA_CR = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' })
+
+/** «MAERSK CHACHAI → MAERSK NACALA en CARTAGENA, 07/09/2026», y si es previsto. */
+function textoTransbordo(t: Transbordo): string {
+  const lugar = t.puerto_nombre ?? t.puerto
+  // El día en Costa Rica: cortar el instante UTC podría correrlo al día siguiente.
+  const fecha = t.fecha ? formatearFecha(DIA_CR.format(new Date(t.fecha))) : null
+  const donde = [lugar && ` en ${lugar}`, fecha && `, ${fecha}`].filter(Boolean).join('')
+  return `${t.vehiculo_anterior} → ${t.vehiculo_nuevo}${donde}${t.ocurrido ? '' : ' (previsto)'}`
 }
 
 function BloqueArribo({ pedido }: { pedido: PedidoDetalle }) {
@@ -341,8 +368,8 @@ function LineaDeTiempo({ idPedido }: { idPedido: number }) {
         </ol>
       )}
       <p className="mt-4 text-xs text-slate-500">
-        Por ahora, las intervenciones manuales. Los hitos del viaje se agregan con el historial de
-        rastreo.
+        Las intervenciones manuales y los transbordos que informa ShipsGo. Los demás hitos del viaje
+        se agregan con el historial de rastreo.
       </p>
     </Bloque>
   )

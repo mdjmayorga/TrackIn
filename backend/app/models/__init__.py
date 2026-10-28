@@ -30,6 +30,7 @@ from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.models.salud_fuente import SaludFuente
 from app.models.sesion import Sesion
+from app.models.transbordo import Transbordo
 from app.models.usuario import Usuario
 
 __all__ = [
@@ -48,5 +49,6 @@ __all__ = [
     "Proveedor",
     "SaludFuente",
     "Sesion",
+    "Transbordo",
     "Usuario",
 ]

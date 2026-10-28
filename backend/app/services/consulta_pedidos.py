@@ -51,9 +51,10 @@ from app.schemas.pedidos import (
     PedidoResumen,
     Posicion,
     Rastreo,
+    TransbordoOut,
     VentanaLiberacion,
 )
-from app.services import parametros, posicion_aerea, proyeccion, recalculo
+from app.services import parametros, posicion_aerea, proyeccion, recalculo, transbordos
 
 #: Cuándo llegó a destino, con la precedencia de RN-05: lo confirmado a mano,
 #: lo que reportó la fuente y, por último, lo deducido por la geocerca. El
@@ -289,6 +290,10 @@ async def _rastreo(sesion: AsyncSession, elemento: ElementoRastreado | None) -> 
         guia_madre=elemento.guia_madre,
         manifiesto_aduana=elemento.manifiesto_aduana,
         activo=elemento.activo,
+        transbordos=[
+            TransbordoOut.model_validate(t)
+            for t in await transbordos.del_elemento(sesion, elemento.id)
+        ],
     )
 
 
@@ -448,6 +453,11 @@ _URGENCIA: tuple[str, ...] = (
     "CANCELADO",
 )
 
+#: Las etapas que ya no van en el mapa (decisión del 28/10/2026): pasado a proceso
+#: aduanal, la carga salió del puerto o del aeropuerto y su posición ya no dice
+#: nada. Siguen en la grilla hasta cerrarse.
+ETAPAS_FUERA_DEL_MAPA: tuple[str, ...] = ("EN_PROCESO_ADUANAL", "RECIBIDO_EN_PLANTA")
+
 #: Qué parámetro dice cada cuánto se consulta cada vía (`US-17`).
 _FRECUENCIA_POR_VIA: dict[str, str] = {
     "MARITIMO": "frecuencia_maritima_min",
@@ -500,8 +510,16 @@ async def mapa(
     mirando. Un marcador por embarque, con sus pedidos. Una lectura más vieja que
     el doble de la frecuencia de consulta de la vía se marca desactualizada: el
     worker ya tendría que haber vuelto a preguntar dos veces.
+
+    Un pedido que pasó a proceso aduanal sale del mapa (28/10/2026): la carga ya
+    dejó el puerto o el aeropuerto. Si su BL lleva otras líneas que todavía no
+    pasaron, el marcador sigue con esas.
     """
     ahora = ahora or dt.datetime.now(dt.UTC)
+    en_el_mapa = (
+        PedidoTransito.via_transporte == via,
+        PedidoTransito.etapa_viaje.not_in(ETAPAS_FUERA_DEL_MAPA),
+    )
     frecuencia_min = await parametros.obtener_entero(sesion, _FRECUENCIA_POR_VIA[via])
     umbral = dt.timedelta(minutes=2 * frecuencia_min)
 
@@ -529,7 +547,7 @@ async def mapa(
         .join(PedidoTransito.elemento_rastreado)
         .where(
             *_condiciones(filtros),
-            PedidoTransito.via_transporte == via,
+            *en_el_mapa,
             # Un vuelo no tiene posición leída: se estima con su trayecto (`US-26`).
             (
                 or_(
@@ -573,9 +591,7 @@ async def mapa(
 
     con_posicion = sum(len(m["pedidos"]) for m in por_elemento.values())
     total = await sesion.scalar(
-        select(func.count()).select_from(
-            _consulta_base(filtros).where(PedidoTransito.via_transporte == via).subquery()
-        )
+        select(func.count()).select_from(_consulta_base(filtros).where(*en_el_mapa).subquery())
     )
     return MapaPedidos(
         via=via,

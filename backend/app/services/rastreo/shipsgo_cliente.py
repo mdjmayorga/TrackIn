@@ -256,7 +256,12 @@ class ClienteShipsGo:
                 exc.motivo,
             )
             return None
-        return respuesta.cuerpo
+        # Como `leer`: la API en vivo lo envuelve —`{"message": "SUCCESS", "geojson":
+        # {...}}`, medido el 28/10/2026—, y el payload grabado del spike venía sin
+        # envolver. Sin desenvolverlo, la posición y el trazado nunca se leían.
+        cuerpo = respuesta.cuerpo
+        anidado = cuerpo.get("geojson")
+        return anidado if isinstance(anidado, dict) else cuerpo
 
 
 @dataclass(frozen=True, slots=True)

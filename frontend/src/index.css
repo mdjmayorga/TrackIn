@@ -23,6 +23,13 @@
     filter: grayscale(1) brightness(0.62) contrast(3);
   }
 
+  /* El rótulo de los marcadores (28/10/2026): Leaflet lo dibuja en una sola línea
+     sin cortes y se salía del recuadro. Letra chica y ancho máximo, para que corte. */
+  .leaflet-tooltip.rotulo-mapa {
+    @apply max-w-[15rem] whitespace-normal px-2 py-1 text-[11px] leading-snug;
+    width: max-content;
+  }
+
   .mapa-oscuro .leaflet-control-attribution {
     @apply bg-black/60 text-slate-300;
   }

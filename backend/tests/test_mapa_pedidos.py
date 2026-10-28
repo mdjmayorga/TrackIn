@@ -148,6 +148,44 @@ async def test_marca_la_lectura_vieja(api, sesion, horas, activo, desactualizada
     assert cuerpo["marcadores"][0]["desactualizada"] is desactualizada
 
 
+async def test_al_pasar_a_proceso_aduanal_sale_del_mapa(api, sesion) -> None:
+    """Decisión del 28/10/2026: la carga ya salió del puerto. Las otras líneas del BL siguen."""
+    buque = await _buque(sesion, "BLMAPA0030")
+    await _pedido(
+        sesion,
+        "4588900030",
+        10,
+        id_elemento_rastreado=buque.id,
+        etapa_viaje="EN_DESTINO",
+        estado_calculado="EN_DESTINO",
+    )
+    await _pedido(
+        sesion,
+        "4588900030",
+        20,
+        id_elemento_rastreado=buque.id,
+        etapa_viaje="EN_PROCESO_ADUANAL",
+        estado_calculado="EN_PROCESO_ADUANAL",
+    )
+    otro = await _buque(sesion, "BLMAPA0031")
+    await _pedido(
+        sesion,
+        "4588900031",
+        10,
+        id_elemento_rastreado=otro.id,
+        etapa_viaje="EN_PROCESO_ADUANAL",
+        estado_calculado="EN_PROCESO_ADUANAL",
+    )
+
+    cuerpo = (await api.get(f"{URL}/MARITIMO")).json()
+
+    (marcador,) = cuerpo["marcadores"]
+    assert marcador["referencia"] == "BLMAPA0030"
+    assert [p["posicion_oc"] for p in marcador["pedidos"]] == [10]
+    # Los que salieron del mapa no cuentan como «sin posición».
+    assert cuerpo["sin_posicion"] == 0
+
+
 async def test_una_via_sin_mapa_se_rechaza(api) -> None:
     assert (await api.get(f"{URL}/TERRESTRE")).status_code == 422
 

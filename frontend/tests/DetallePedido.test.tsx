@@ -18,9 +18,15 @@ import {
   formatearPosicion,
 } from '@/utils/detalle'
 import { haceCuanto } from '@/utils/fechas'
+import { seguirGuiaMadre } from '@/services/acciones'
 
 import { pagina, pedido } from './fixtures'
 import { USUARIO } from './sesion.test'
+
+vi.mock('@/services/acciones', async (original) => ({
+  ...(await original<typeof import('@/services/acciones')>()),
+  seguirGuiaMadre: vi.fn(),
+}))
 
 vi.mock('@/services/pedidos', async (original) => ({
   ...(await original<typeof import('@/services/pedidos')>()),
@@ -59,6 +65,7 @@ function detalle(cambios: Partial<PedidoDetalle> = {}): PedidoDetalle {
       guia_madre: null,
       manifiesto_aduana: null,
       activo: true,
+      transbordos: [],
     },
     arribos: { confirmado: null, fuente: null, inferido: null },
     calculo: {
@@ -241,6 +248,87 @@ describe('elemento rastreado y arribo', () => {
     expect(e.getByText('Marítima | destino Moín')).toBeInTheDocument()
     expect(e.getByText('10,42 N | 81,90 W | 12,4 nudos')).toBeInTheDocument()
     expect(e.getByText(/hace 3 min/)).toBeInTheDocument()
+  })
+
+  it('los transbordos que informó ShipsGo, con puerto, fecha y los previstos (US-30)', async () => {
+    const base = detalle()
+    vi.mocked(obtenerPedido).mockResolvedValue({
+      ...base,
+      rastreo: {
+        ...base.rastreo!,
+        transbordos: [
+          {
+            vehiculo_anterior: 'MAERSK CHACHAI',
+            vehiculo_nuevo: 'MAERSK NACALA',
+            puerto: 'COCTG',
+            puerto_nombre: 'CARTAGENA (COLOMBIA)',
+            fecha: '2026-09-07T17:00:00Z',
+            ocurrido: true,
+          },
+          {
+            vehiculo_anterior: 'MAERSK NACALA',
+            vehiculo_nuevo: 'MAERSK MONTE PASCOAL',
+            puerto: 'PAMIT',
+            puerto_nombre: null,
+            fecha: null,
+            ocurrido: false,
+          },
+        ],
+      },
+    })
+    montar()
+    await screen.findByRole('heading', { name: 'Elemento rastreado y arribo' })
+
+    const e = bloque('Elemento rastreado y arribo')
+    expect(
+      e.getByText('MAERSK CHACHAI → MAERSK NACALA en CARTAGENA (COLOMBIA), 07/09/2026'),
+    ).toBeInTheDocument()
+    expect(
+      e.getByText('MAERSK NACALA → MAERSK MONTE PASCOAL en PAMIT (previsto)'),
+    ).toBeInTheDocument()
+  })
+
+  it('una guía hija con guía madre resuelta ofrece seguir por la madre (US-30)', async () => {
+    const base = detalle()
+    const hija = {
+      ...base,
+      via_transporte: 'AEREO' as const,
+      rastreo: {
+        ...base.rastreo!,
+        tipo: 'HAWB',
+        referencia: 'ZIVHYD017',
+        via_transporte: 'AEREO' as const,
+        nombre: null,
+        guia_madre: '176-12345675',
+      },
+    }
+    vi.mocked(obtenerPedido).mockResolvedValue(hija)
+    vi.mocked(seguirGuiaMadre).mockResolvedValue({
+      ...hija,
+      rastreo: { ...hija.rastreo, tipo: 'MAWB', referencia: '176-12345675', guia_madre: null },
+    })
+    montar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Seguir por la guía madre' }))
+    expect(seguirGuiaMadre).not.toHaveBeenCalled()
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('guía madre 176-12345675')
+    await userEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Confirmar' }),
+    )
+
+    expect(seguirGuiaMadre).toHaveBeenCalledWith(hija.id, { motivo: null })
+  })
+
+  it('Planificación no ve la opción de la guía madre', async () => {
+    const base = detalle()
+    vi.mocked(obtenerPedido).mockResolvedValue({
+      ...base,
+      rastreo: { ...base.rastreo!, tipo: 'HAWB', guia_madre: '176-12345675' },
+    })
+    montar('PLANIFICACION')
+    await screen.findByRole('heading', { name: 'Elemento rastreado y arribo' })
+
+    expect(screen.queryByRole('button', { name: 'Seguir por la guía madre' })).toBeNull()
   })
 
   it('los tres arribos por separado, con su vacío explicado', async () => {

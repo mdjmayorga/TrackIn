@@ -183,6 +183,24 @@ class Vehiculo:
 
 
 @dataclass(frozen=True, slots=True)
+class CambioDeVehiculo:
+    """Un transbordo: la nave (o el vuelo) cambia entre dos hitos (`US-30`).
+
+    Se ubica en el **primer hito de la nave nueva**, que es la salida desde el
+    puerto de transbordo. Medido en el spike `TASK-28`: `MAERSK CHACHAI → MAERSK
+    NACALA` con `DEPA` en Cartagena, `LH8431 → LH518` con `MAN` en Fráncfort.
+    """
+
+    anterior: str
+    nuevo: str
+    puerto: str | None
+    puerto_nombre: str | None
+    instante: dt.datetime | None
+    #: `False` si ShipsGo lo informa como previsto (`EST`).
+    ocurrido: bool
+
+
+@dataclass(frozen=True, slots=True)
 class TramoAereo:
     """Un vuelo del trayecto aéreo, del `geojson` de ShipsGo (`US-26`).
 
@@ -292,6 +310,28 @@ class LecturaEmbarque:
             ):
                 return etapa_atrasada
         return avanzada
+
+    @property
+    def transbordos(self) -> list[CambioDeVehiculo]:
+        """Los cambios de nave del trayecto, en orden, con su puerto y su fecha."""
+        cambios: list[CambioDeVehiculo] = []
+        anterior: str | None = None
+        for hito in self.hitos:
+            if hito.buque is None:
+                continue
+            if anterior is not None and hito.buque != anterior:
+                cambios.append(
+                    CambioDeVehiculo(
+                        anterior=anterior,
+                        nuevo=hito.buque,
+                        puerto=hito.puerto,
+                        puerto_nombre=hito.puerto_nombre,
+                        instante=hito.instante,
+                        ocurrido=hito.ocurrido,
+                    )
+                )
+            anterior = hito.buque
+        return cambios
 
     @property
     def hay_transbordo(self) -> bool:
@@ -610,6 +650,7 @@ __all__ = [
     "VIA_MARITIMA",
     "OCURRIDO",
     "Hito",
+    "CambioDeVehiculo",
     "LecturaEmbarque",
     "TramoAereo",
     "Vehiculo",

@@ -34,6 +34,7 @@ from app.schemas.pedidos import (
     DesembarcoEntrada,
     EstadoCalculado,
     EtapaFiltro,
+    GuiaMadreEntrada,
     IndicadoresKpi,
     LiberacionEntrada,
     MapaPedidos,
@@ -48,7 +49,7 @@ from app.schemas.pedidos import (
     ReferenciaEntrada,
     Via,
 )
-from app.services import auditoria, consulta_pedidos, intervenciones
+from app.services import auditoria, consulta_pedidos, intervenciones, transbordos
 from app.services.consulta_pedidos import ORDEN_POR_OMISION, PATRON_ORDEN, Filtros
 from app.services.intervenciones import ZONA_CR
 
@@ -258,19 +259,21 @@ async def detalle_pedido(
     description=(
         "Las intervenciones manuales sobre el pedido, de la más antigua a la más "
         "reciente (RF-14). Es de solo lectura: la base rechaza editar o borrar "
-        "un registro."
+        "un registro. Suma los transbordos **ocurridos** que informó ShipsGo "
+        "(`US-30`), con `usuario: shipsgo` y `rol: SISTEMA`: no los hizo nadie."
     ),
     responses={404: {"description": "No existe un pedido con ese id."}},
 )
 async def bitacora_pedido(
     id_pedido: int, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> list[AsientoBitacora]:
-    if await db.get(PedidoTransito, id_pedido) is None:
+    pedido = await db.get(PedidoTransito, id_pedido)
+    if pedido is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No existe el pedido {id_pedido}.",
         )
-    return [
+    manuales = [
         AsientoBitacora(
             fecha_hora=a.fila.fecha_hora,
             usuario=a.usuario,
@@ -284,6 +287,31 @@ async def bitacora_pedido(
         )
         for a in await auditoria.bitacora(db, id_pedido)
     ]
+    automaticos = (
+        [
+            AsientoBitacora(
+                fecha_hora=t.fecha or t.detectado_en,
+                usuario="shipsgo",
+                nombre_usuario="ShipsGo (automático)",
+                rol="SISTEMA",
+                tipo="TRANSBORDO",
+                campo="nave",
+                valor_anterior=t.vehiculo_anterior,
+                valor_nuevo=t.vehiculo_nuevo,
+                motivo=(
+                    f"Informado por ShipsGo en {t.puerto_nombre or t.puerto}."
+                    if t.puerto_nombre or t.puerto
+                    else "Informado por ShipsGo."
+                ),
+            )
+            # Solo los ocurridos: uno previsto no es un hecho del pedido todavía.
+            for t in await transbordos.del_elemento(db, pedido.id_elemento_rastreado)
+            if t.ocurrido
+        ]
+        if pedido.id_elemento_rastreado is not None
+        else []
+    )
+    return sorted([*manuales, *automaticos], key=lambda a: a.fecha_hora)
 
 
 # Decisión del 21/10/2026: **Compras hace en el detalle lo mismo que el
@@ -601,6 +629,42 @@ async def asociar_referencia(
             numero=datos.numero,
             motivo=datos.motivo,
             id_usuario=quien.usuario.id,
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        intervenciones.ReferenciaInvalida,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
+
+
+@router.post(
+    "/{id_pedido}/guia-madre",
+    response_model=PedidoDetalle,
+    summary="Seguir por la guía madre (US-30)",
+    description=(
+        "Para un pedido que se sigue por una guía hija (HAWB) cuya guía madre ya resolvió "
+        "TICA (`US-49`): cierra el tramo de la hija —su historial se conserva— y abre uno "
+        "con la MAWB, que ShipsGo sí puede seguir. Se audita como TRANSBORDO. La MAWB "
+        "queda pendiente de alta en ShipsGo (`US-55`). El motivo es opcional."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {"description": "No es una guía hija, o TICA todavía no resolvió la madre."},
+        422: {"description": "La guía madre no tiene formato de MAWB."},
+    },
+)
+async def seguir_guia_madre(
+    id_pedido: int,
+    datos: GuiaMadreEntrada,
+    quien: Annotated[Autenticado, Depends(asociadores)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle:
+    try:
+        await intervenciones.seguir_guia_madre(
+            db, id_pedido, motivo=datos.motivo, id_usuario=quien.usuario.id
         )
     except (
         LookupError,

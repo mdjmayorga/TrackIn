@@ -39,7 +39,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.elemento_rastreado import ElementoRastreado
-from app.services import historial
+from app.services import historial, transbordos
 from app.services.rastreo import shipsgo
 
 logger = logging.getLogger(__name__)
@@ -134,11 +134,14 @@ async def procesar(
         )
 
     if lectura.hay_transbordo:
-        logger.info(
-            "ShipsGo: %s viaja con transbordo (%s). Insumo de US-30.",
-            elemento.tracking_externo,
-            " → ".join(n.nombre for n in lectura.vehiculos),
-        )
+        nuevos = await transbordos.registrar(sesion, elemento, lectura.transbordos, instante=ahora)
+        if nuevos:
+            logger.info(
+                "ShipsGo: %s con %d transbordo(s) nuevo(s) (%s).",
+                elemento.tracking_externo,
+                nuevos,
+                " → ".join(n.nombre for n in lectura.vehiculos),
+            )
 
     if lectura.archivado_en is not None:
         # ShipsGo archiva solo lo terminado. El payload guardado pasa a ser la

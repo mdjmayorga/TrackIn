@@ -8,7 +8,7 @@ import { obtenerMapa } from '@/services/pedidos'
 import type { MapaPedidos, MarcadorMapa } from '@/types/api'
 import { agrupar } from '@/utils/agrupamiento'
 import { FILTROS_VACIOS } from '@/utils/filtros'
-import { rotulo } from '@/utils/rotuloMapa'
+import { partesDelRotulo, rotulo } from '@/utils/rotuloMapa'
 
 vi.mock('@/services/pedidos', () => ({ obtenerMapa: vi.fn() }))
 
@@ -232,5 +232,29 @@ describe('mapa aéreo (US-26)', () => {
     expect(rotulo(vuelo({ situacion: 'EN_TIERRA', lugar: 'FRA', ruta: null }))).toContain(
       'En tierra en FRA, esperando vuelo.',
     )
+  })
+})
+
+describe('el rótulo en líneas (28/10)', () => {
+  it('parte el rótulo en qué es, estado, pedidos y lectura', () => {
+    expect(
+      partesDelRotulo(
+        marcador({
+          tipo: 'MAWB',
+          referencia: '020-50685434',
+          nombre: null,
+          estado: 'EN_DESTINO',
+          posicion_estimada: true,
+          situacion: 'FINALIZADO',
+          vuelo: 'LH518',
+          lugar: 'SJO',
+        }),
+      ),
+    ).toEqual({
+      quien: 'MAWB 020-50685434',
+      estado: 'En Destino · Vuelo LH518 concluido en SJO',
+      pedidos: 'Pedidos 4500123456-10, 4500123456-20',
+      lectura: 'Lectura hace 2 h',
+    })
   })
 })

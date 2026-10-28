@@ -43,6 +43,9 @@ export const registrarRecepcion = (id: number, d: Cantidad) => intervenir(id, 'r
 export const cerrarForzado = (id: number, d: Cantidad) => intervenir(id, 'cierre-forzado', d)
 export const liberarCalidad = (id: number, d: Cantidad) => intervenir(id, 'liberacion-calidad', d)
 export const ajustarDias = (id: number, d: Ajuste) => intervenir(id, 'ajuste-manual', d)
+/** De la guía hija a la guía madre que resolvió TICA (`US-30`). Motivo opcional. */
+export const seguirGuiaMadre = (id: number, d: { motivo: string | null }) =>
+  intervenir(id, 'guia-madre', d)
 
 /** El 409 del desembarco: ya había una llegada confirmada. */
 export interface ConflictoDesembarco {

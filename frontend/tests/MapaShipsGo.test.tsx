@@ -18,6 +18,7 @@ function rastreo(cambios: Partial<Rastreo> = {}): Rastreo {
     guia_madre: null,
     manifiesto_aduana: null,
     activo: true,
+    transbordos: [],
     ...cambios,
   }
 }

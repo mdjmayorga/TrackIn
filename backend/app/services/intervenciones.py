@@ -60,8 +60,11 @@ import datetime as dt
 import logging
 from decimal import Decimal
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.elemento_rastreado import ElementoRastreado
+from app.models.pedido_elemento_rastreado import PedidoElementoRastreado
 from app.models.pedido_transito import PedidoTransito
 from app.services import asociacion, auditoria, dias_habiles, estado, parametros, recalculo
 from app.services.referencia import ResultadoReferencia
@@ -533,7 +536,108 @@ async def asociar_identificador(
     return resultado
 
 
+#: El motivo en la bitácora cuando se sigue por la guía madre sin escribir uno.
+MOTIVO_GUIA_MADRE_POR_OMISION = "Se sigue por la guía madre que resolvió TICA."
+
+
+async def seguir_guia_madre(
+    sesion: AsyncSession,
+    id_pedido: int,
+    *,
+    motivo: str | None,
+    id_usuario: int,
+    instante: dt.datetime | None = None,
+) -> ResultadoReferencia:
+    """Pasa el pedido de su guía hija a la guía madre que resolvió TICA (`US-30`).
+
+    **La excepción manual del transbordo** (agregada el 21/10/2026). Una HAWB no
+    la sigue ninguna fuente comercial; cuando TICA encuentra la MAWB que la
+    ampara (`US-49`), ShipsGo sí puede seguir esa guía madre. Es el mismo
+    mecanismo que un transbordo: se cierra el tramo de la guía hija —su historial
+    se conserva en `pedido_elemento_rastreado`— y se abre otro con la madre.
+
+    El motivo es opcional, como el paso a aduana: la bitácora registra igual
+    quién lo hizo y cuándo. **No hace commit.** La guía madre queda lista para
+    darse de alta en ShipsGo (`US-55`): eso cuesta un crédito y lo decide Compras.
+    """
+    ahora = instante or dt.datetime.now(dt.UTC)
+    motivo = auditoria.motivo_opcional(motivo, por_omision=MOTIVO_GUIA_MADRE_POR_OMISION)
+    pedido = await _pedido(sesion, id_pedido)
+    hija = (
+        await sesion.get(ElementoRastreado, pedido.id_elemento_rastreado)
+        if pedido.id_elemento_rastreado is not None
+        else None
+    )
+    if hija is None or hija.tipo_tracking_externo != "HAWB":
+        raise IntervencionRechazada("Solo un pedido que se sigue por una guía hija (HAWB).")
+    if not hija.guia_madre:
+        raise IntervencionRechazada(
+            "TICA todavía no resolvió la guía madre de esta guía hija: aparece cerca del arribo."
+        )
+
+    tramos = list(
+        await sesion.scalars(
+            select(PedidoElementoRastreado)
+            .where(PedidoElementoRastreado.id_pedido == pedido.id)
+            .order_by(PedidoElementoRastreado.tramo)
+        )
+    )
+    vigente = next((t for t in tramos if t.fecha_hasta is None), None)
+    if vigente is None:
+        # La guía hija se asoció sin tramo (la carga y la asociación no lo abren):
+        # se crea ahora para que su historial quede como el tramo anterior.
+        vigente = PedidoElementoRastreado(
+            id_pedido=pedido.id,
+            id_elemento_rastreado=hija.id,
+            tramo=(tramos[-1].tramo if tramos else 0) + 1,
+            fecha_desde=pedido.creado_en or ahora,
+        )
+        sesion.add(vigente)
+        tramos.append(vigente)
+    vigente.fecha_hasta = ahora
+    await sesion.flush()
+
+    anterior = f"HAWB:{hija.tracking_externo}"
+    # Sin usuario: el registro de esta intervención es el `TRANSBORDO` de abajo.
+    resultado = await asociacion.asociar_referencia(sesion, pedido, "MAWB", hija.guia_madre)
+    if not resultado.valida:
+        raise ReferenciaInvalida(resultado.motivo)
+
+    sesion.add(
+        PedidoElementoRastreado(
+            id_pedido=pedido.id,
+            id_elemento_rastreado=pedido.id_elemento_rastreado,
+            tramo=vigente.tramo + 1,
+            fecha_desde=ahora,
+            motivo=motivo[:200],
+        )
+    )
+    auditoria.registrar(
+        sesion,
+        id_pedido=pedido.id,
+        id_usuario=id_usuario,
+        tipo="TRANSBORDO",
+        campo="id_elemento_rastreado",
+        anterior=anterior,
+        nuevo=f"{resultado.tipo}:{resultado.numero}",
+        motivo=motivo,
+        instante=ahora,
+        exigir_minimo=False,
+    )
+    await recalculo.recalcular(sesion, pedido, instante=ahora)
+    await sesion.flush()
+    logger.info(
+        "Pedido %s: de la guía hija %s a la guía madre %s.",
+        pedido.tracking_interno,
+        hija.tracking_externo,
+        resultado.numero,
+    )
+    return resultado
+
+
 __all__ = [
+    "MOTIVO_GUIA_MADRE_POR_OMISION",
+    "seguir_guia_madre",
     "RecepcionIncompleta",
     "ReferenciaInvalida",
     "ajustar_fecha",

@@ -120,7 +120,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed · 22/10: la línea de tiempo del detalle suma los hitos del viaje, transbordos incluidos |
-| `US-30` | Registrar los transbordos: automáticos desde ShipsGo, a mano solo las excepciones | Story | OE2 | **Should** | Sprint 7 | ~~10h~~ 6h | RF-26 / CU-10 · **replanteada el 22/10**: con BL, contenedor o MAWB el transbordo lo informa ShipsGo y se registra solo; la captura manual queda para los pedidos sin referencia y el paso de guía hija a madre |
+| `US-30` | Registrar los transbordos: automáticos desde ShipsGo, a mano solo las excepciones ✅ | Story | OE2 | **Should** | Sprint 7 | ~~10h~~ 6h | RF-26 / CU-10 · **replanteada el 22/10**: con BL, contenedor o MAWB el transbordo lo informa ShipsGo y se registra solo; la captura manual queda para los pedidos sin referencia y el paso de guía hija a madre · ✅ adelantada y terminada 28/10 |
 | `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido | Story | OE3 | **Should** | Sprint 7 | ~~8h~~ 4h | Reunión Logística 03/09 / RF-05 (ampliado) · **mapa en vivo de ShipsGo en el detalle, funcionando desde el 21/10** (ShipsGo Embed) |
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` |
 | `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
@@ -2628,6 +2628,9 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 >
 > **27/10, más tarde: vuelve a 63 h**, dentro de la capacidad. `US-65` y `US-66` se adelantaron
 > al Sprint 6 y quedaron terminadas.
+>
+> **28/10: adelantadas 26 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
+> reales) y `US-30` terminada.
 
 > **Hito: compra de los créditos de ShipsGo, ~06/11**, una semana antes de la entrega (acuerdo
 > con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
@@ -2683,6 +2686,36 @@ Como usuario de Logística, quiero ver mis buques en un mapa, para ubicar geogra
 > de un embarque terminado. El mapa dice «Ningún embarque con posición · N sin posición»
 > hasta cargar el Excel final, dar de alta los BL (`US-55`) y que el worker traiga lecturas.
 > **Se cierra al verla con esos datos.**
+>
+> **28/10: la causa de fondo era un defecto del cliente de ShipsGo** —el `geojson` llegaba
+> envuelto y no se desenvolvía, así que no se guardaba ninguna posición—. Corregido; ver la
+> nota del 28/10 en `US-30`. Con el worker corriendo, los embarques activos ya traen posición.
+>
+> **28/10: el rótulo de los marcadores era ilegible** (observación de Mariano en el mapa
+> aéreo). Leaflet dibuja el tooltip en una sola línea sin cortes, y el rótulo completo
+> —embarque, estado, situación del vuelo, pedidos y antigüedad— se salía del recuadro.
+> Ahora va en cuatro líneas cortas (qué es · estado · pedidos · lectura), con letra de 11 px
+> y un ancho máximo de 15 rem que corta lo que sobra (`.rotulo-mapa` en `index.css`). La
+> lista para lectores de pantalla conserva la frase completa.
+>
+> **Cuánto tiempo sigue un embarque en el mapa (pregunta del 28/10).** No hay un plazo: un
+> marcador está **mientras su pedido esté activo**, es decir, hasta que se registra la
+> recepción en planta (o se cancela), con los mismos filtros de la grilla. La regla es la
+> misma en los dos mapas, pero hoy se ven distinto:
+>
+> - **Aéreo:** el trayecto queda guardado, así que el vuelo concluido se dibuja en el
+>   aeropuerto de destino hasta que el pedido se cierra.
+> - **Marítimo:** ShipsGo deja de dar la posición cuando el embarque termina, y el mapa usa la
+>   última guardada. Los BL arribados de `trackin_dev` nunca guardaron una por el defecto del
+>   `geojson`, y por eso no aparecen. Con la corrección, los próximos quedarán en su última
+>   posición, cerca del puerto, hasta cerrarse.
+>
+> **Decisión del 28/10/2026 (Mariano): salen del mapa al pasar a proceso aduanal**, porque la
+> carga ya salió del puerto o del aeropuerto. Vale para los dos mapas y también para los
+> recibidos en planta; siguen en la grilla hasta cerrarse. Si un BL lleva varias líneas y solo
+> algunas pasaron, el marcador sigue con las que faltan. Los que salen no se cuentan como
+> «sin posición» en la línea de totales. Constante `ETAPAS_FUERA_DEL_MAPA` en
+> `consulta_pedidos.py`; una prueba nueva en `test_mapa_pedidos.py`.
 >
 > **Observación — el mismo BL dos veces.** El BL `COSU6508789000` figura como dos elementos
 > rastreados (6467 y 7930), cada uno con un pedido. Es por diseño (§4.3): la referencia es
@@ -2849,6 +2882,57 @@ Como usuario de Logística, quiero sustituir la nave de un pedido cuando hay tra
 > transbordo —cerrar un tramo y abrir otro conservando el historial—, así que cabe aquí:
 > ofrecer «Seguir por la guía madre» cuando TICA la resolvió. Pesa poco en la práctica:
 > TICA la encuentra cerca del arribo, cuando ya casi no queda viaje que seguir.
+
+> **✅ Adelantada del Sprint 7 y terminada el 28/10/2026.**
+>
+> - **Se resolvió lo que quedaba por verificar:** ShipsGo **sí informa el puerto y la fecha**
+>   del transbordo. Están en el primer hito de la nave nueva —la salida desde el puerto de
+>   transbordo—. Medido en los envíos del spike: `MRSU8132490` pasó de `MAERSK CHACHAI` a
+>   `MAERSK NACALA` en Cartagena (07/09) y a `MAERSK MONTE PASCOAL` en Manzanillo, Panamá
+>   (13/09). También informa los **previstos** (`EST`): `TGBU4872990`, en Chancay.
+> - **Automático, una vez por embarque:** tabla nueva `transbordos` (migración `0028`), con la
+>   nave anterior, la nueva, el puerto, la fecha y si ya ocurrió. El worker la actualiza en
+>   cada consulta sin duplicar (`uq_transbordos_cambio`); un previsto pasa a ocurrido cuando
+>   sucede. También vale para el aéreo: `LH8431 → LH518` en Fráncfort.
+> - **Todas las líneas del BL lo ven**, porque el transbordo cuelga del elemento rastreado que
+>   comparten. El bloque de rastreo del detalle lista los transbordos —«MAERSK CHACHAI →
+>   MAERSK NACALA en CARTAGENA, 07/09/2026», con «(previsto)» si todavía no ocurrió— y la
+>   nave vigente. La **línea de tiempo** suma los ocurridos como asientos de «ShipsGo
+>   (automático)», rol `SISTEMA`. No van a `auditoria_intervenciones`, que es de personas.
+> - **La excepción manual, «Seguir por la guía madre»** (`POST /pedidos/{id}/guia-madre`,
+>   Logística y Compras): para un pedido por guía hija cuya madre resolvió TICA. Cierra el
+>   tramo de la HAWB —su historial queda en `pedido_elemento_rastreado`— y abre uno con la
+>   MAWB, que queda pendiente de alta en ShipsGo (`US-55`). Se audita como `TRANSBORDO`; el
+>   motivo es opcional, como el paso a aduana.
+> - **Lo que no se hizo:** la captura manual de una nave para un pedido **sin referencia**. Ya
+>   no tiene sentido: desde que salió AIS ninguna fuente sigue buques sueltos (`BUQUE` →
+>   ninguna fuente), así que cambiar la nave no cambiaría nada en el rastreo.
+> - **Pruebas:** 10 de backend (`test_transbordos.py`, dos con el envío real del spike) y 3
+>   de frontend.
+
+> **28/10, verificación con los 3 pedidos en destino de `trackin_dev` — y un defecto previo.**
+> Mariano no veía los transbordos en la línea de tiempo. Dos causas:
+>
+> 1. **Los tres embarques ya habían arribado** (`activo = false`) y el worker no consulta lo
+>    arribado; su última lectura fue antes de que existiera `US-30`. Para eso,
+>    `scripts/reprocesar_shipsgo.py` (con `--ensayo`) vuelve a leer **una vez** los embarques
+>    arribados que están en la cuenta —leer es gratis— y los pasa por el mismo colector. No
+>    reactiva nada ni recalcula pedidos.
+> 2. **Defecto previo en el cliente de ShipsGo:** la API en vivo envuelve el `geojson` en
+>    `{"message": "SUCCESS", "geojson": {...}}`, y `leer_geojson` no lo desenvolvía (`leer` sí
+>    lo hacía con `shipment`). El payload grabado del spike venía sin envolver, así que las
+>    pruebas pasaban. **Consecuencia: nunca se leyó una posición ni un trazado de ShipsGo**
+>    —explica que ningún embarque de `trackin_dev` tuviera posición (ver `US-25`) y que el
+>    MAWB quedara sin tramos (`US-26`)—. Corregido el 28/10, con dos pruebas de la forma real.
+>
+> **Resultado, guardado en `trackin_dev`:** los dos pedidos del BL `COSU6508789000` muestran
+> **YANTIAN → MEDKON ZOE en Chancay (24/09)**, y el MAWB `020-50685434` **LH8431 → LH518 en
+> Fráncfort (05/09)**, además de sus 2 tramos de vuelo para el mapa aéreo. Los BL arribados
+> siguen sin posición: ShipsGo no da la de un embarque terminado. Los activos la traerán en la
+> próxima consulta del worker, ya con la corrección.
+>
+> **28/10: verificado por Mariano en el detalle de los tres pedidos.** Los transbordos aparecen
+> en el bloque de rastreo y en la línea de tiempo.
 
 #### TASK-10 — Política de retención y submuestreo del historial de posiciones
 

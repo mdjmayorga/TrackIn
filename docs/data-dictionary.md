@@ -686,3 +686,22 @@ entradas, y un lote de SAP no tiene usuario.
 | `ck_cargas_ztracking_autor` | `origen = 'API_SAP' OR id_usuario IS NOT NULL` | Una carga del Excel siempre tiene quién la subió |
 | `fk_cargas_ztracking_id_usuario_usuarios` | `FOREIGN KEY (id_usuario)` → `usuarios(id)`, `ON DELETE RESTRICT` | Coherente con que los usuarios no se borran |
 | `ix_cargas_ztracking_realizada_en` | Índice sobre `realizada_en` | El historial, de la más reciente a la más antigua |
+
+## `transbordos` — `US-30`
+
+Los cambios de nave o de vuelo que informa ShipsGo, una vez por embarque (migración `0028`).
+El worker los deduce del cambio de nave entre los hitos: el transbordo está en el primer hito
+de la nave nueva. Los comparten todas las líneas de OC del mismo BL.
+
+| # | Campo | Tipo | Nulo | Clave | Descripción |
+|---|---|---|---|---|---|
+| 1 | `id` | `BIGINT` identity | no | `PK` | Identificador. |
+| 2 | `id_elemento_rastreado` | `BIGINT` | no | `FK` → `elementos_rastreados(id)`, `CASCADE` | El embarque. |
+| 3 | `orden` | `INTEGER` | no | | 1 el primer transbordo del trayecto. |
+| 4 | `vehiculo_anterior` | `VARCHAR(120)` | no | `UNIQUE` con 2 y 5 | La nave o el vuelo que deja. |
+| 5 | `vehiculo_nuevo` | `VARCHAR(120)` | no | | La nave o el vuelo que toma. |
+| 6 | `puerto` | `VARCHAR(10)` | sí | | UN/LOCODE o IATA del transbordo. |
+| 7 | `puerto_nombre` | `VARCHAR(120)` | sí | | Su nombre, como lo da ShipsGo. |
+| 8 | `fecha` | `TIMESTAMPTZ` | sí | | Salida de la nave nueva. Estimada si no `ocurrido`. |
+| 9 | `ocurrido` | `BOOLEAN` | no | | `false` si ShipsGo lo informa como previsto (`EST`). |
+| 10 | `detectado_en` | `TIMESTAMPTZ` | no, *default* `now()` | | Cuándo lo vio el worker por primera vez. |
