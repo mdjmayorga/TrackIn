@@ -78,6 +78,24 @@ def validar_motivo(motivo: str | None) -> str:
     return texto
 
 
+def motivo_opcional(motivo: str | None, *, por_omision: str) -> str:
+    """El motivo de una intervención donde no es obligatorio.
+
+    La bitácora (RF-14) guarda quién, cuándo y qué igual; el motivo vacío se
+    reemplaza por `por_omision`, porque la columna no admite nulos y una fila de
+    auditoría sin texto no se entiende al leerla después. Lo escrito, si lo hay,
+    respeta el máximo de siempre; el mínimo no aplica.
+    """
+    texto = (motivo or "").strip()
+    if not texto:
+        return por_omision
+    if len(texto) > LONGITUD_MAXIMA_MOTIVO:
+        raise IntervencionInvalida(
+            f"El motivo no puede pasar de {LONGITUD_MAXIMA_MOTIVO} caracteres."
+        )
+    return texto
+
+
 def registrar(
     sesion: AsyncSession,
     *,
@@ -89,9 +107,15 @@ def registrar(
     anterior: object = None,
     nuevo: object = None,
     instante: dt.datetime | None = None,
+    exigir_minimo: bool = True,
 ) -> AuditoriaIntervencion:
     """Anota una intervención. **No hace `flush` ni commit**: va en la misma
-    transacción que el cambio que audita, así que entran juntos o ninguno."""
+    transacción que el cambio que audita, así que entran juntos o ninguno.
+
+    `exigir_minimo=False` es para las intervenciones donde el motivo no se
+    exige (el paso a aduana, desde el 27/10/2026): quien llama ya lo resolvió
+    con `motivo_opcional`, y aquí solo se controla el máximo.
+    """
     if tipo not in TIPOS_INTERVENCION:
         raise IntervencionInvalida(f"Tipo de intervención desconocido: {tipo!r}.")
     fila = AuditoriaIntervencion(
@@ -101,7 +125,11 @@ def registrar(
         campo_afectado=campo,
         valor_anterior=como_texto(anterior),
         valor_nuevo=como_texto(nuevo),
-        motivo=validar_motivo(motivo),
+        motivo=(
+            validar_motivo(motivo)
+            if exigir_minimo
+            else motivo_opcional(motivo, por_omision="Sin motivo declarado.")
+        ),
     )
     if instante is not None:
         fila.fecha_hora = instante
@@ -142,6 +170,7 @@ __all__ = [
     "IntervencionInvalida",
     "bitacora",
     "como_texto",
+    "motivo_opcional",
     "registrar",
     "validar_motivo",
 ]

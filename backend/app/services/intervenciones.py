@@ -170,17 +170,26 @@ async def confirmar_desembarco(
     return pedido
 
 
+#: El motivo que queda en la bitácora cuando el paso a aduana se registra sin uno.
+MOTIVO_ADUANA_POR_OMISION = "Paso a proceso aduanal registrado sin motivo."
+
+
 async def pasar_a_aduanal(
     sesion: AsyncSession,
     id_pedido: int,
     *,
-    motivo: str,
+    motivo: str | None,
     id_usuario: int,
     instante: dt.datetime | None = None,
 ) -> PedidoTransito:
-    """Pasa el pedido de «En destino» a «En proceso aduanal». **No hace commit.**"""
+    """Pasa el pedido de «En destino» a «En proceso aduanal». **No hace commit.**
+
+    **El motivo es opcional** (pedido del 27/10/2026): el paso a aduana es el
+    trámite normal de todo pedido que llega, y escribir por qué en cada uno no
+    aportaba nada. La bitácora lo registra igual, con quién y cuándo.
+    """
     ahora = instante or dt.datetime.now(dt.UTC)
-    motivo = auditoria.validar_motivo(motivo)
+    motivo = auditoria.motivo_opcional(motivo, por_omision=MOTIVO_ADUANA_POR_OMISION)
     pedido = await _pedido(sesion, id_pedido)
     if pedido.etapa_viaje == EN_PROCESO_ADUANAL:
         raise IntervencionRechazada("El pedido ya está en proceso aduanal.")
@@ -206,6 +215,7 @@ async def pasar_a_aduanal(
         nuevo=EN_PROCESO_ADUANAL,
         motivo=motivo,
         instante=ahora,
+        exigir_minimo=False,
     )
     await sesion.flush()
     logger.info("Pedido %s: pasa a proceso aduanal.", pedido.tracking_interno)

@@ -169,7 +169,7 @@ function Formulario({ accion, pedido, onListo }: FormularioProps) {
             confirmar: variante === 'reemplazar',
           })
         case 'aduana':
-          return pasarAAduana(pedido.id, base)
+          return pasarAAduana(pedido.id, { motivo: motivo.trim() || null })
         case 'recepcion':
           return (variante === 'parcial' ? cerrarForzado : registrarRecepcion)(pedido.id, {
             ...base,
@@ -191,7 +191,10 @@ function Formulario({ accion, pedido, onListo }: FormularioProps) {
   const llegadaPrevia = comoConflictoDesembarco(ejecutar.error)
   const recepcionCorta = comoRecepcionCorta(ejecutar.error)
   const sinCambio = accion === 'ajuste' && dias === ajusteActual
-  const listo = motivo.trim().length >= MOTIVO_MINIMO && !ejecutar.isPending && !sinCambio
+  // El paso a aduana no exige motivo (27/10/2026); las demás intervenciones sí.
+  const motivoOpcional = accion === 'aduana'
+  const listo =
+    (motivoOpcional || motivo.trim().length >= MOTIVO_MINIMO) && !ejecutar.isPending && !sinCambio
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -265,7 +268,10 @@ function Formulario({ accion, pedido, onListo }: FormularioProps) {
         </Campo>
       )}
 
-      <Campo etiqueta="Motivo (obligatorio)" ayuda="Queda en la bitácora del pedido.">
+      <Campo
+        etiqueta={motivoOpcional ? 'Motivo (opcional)' : 'Motivo (obligatorio)'}
+        ayuda="Queda en la bitácora del pedido."
+      >
         <textarea
           value={motivo}
           rows={2}

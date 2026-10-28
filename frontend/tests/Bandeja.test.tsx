@@ -117,7 +117,7 @@ describe('bandeja de arribos pendientes (US-48)', () => {
     )
   })
 
-  it('el paso a aduana pide motivo, se registra y el pedido sale de la bandeja', async () => {
+  it('el paso a aduana se registra con motivo y el pedido sale de la bandeja', async () => {
     vi.mocked(listarPedidos)
       .mockResolvedValueOnce(pagina([llegado(1, 10, '2026-10-14T15:00:00Z')]))
       .mockResolvedValue(pagina([]))
@@ -128,14 +128,25 @@ describe('bandeja de arribos pendientes (US-48)', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Pasar a proceso aduanal' }))
     const confirmar = screen.getByRole('button', { name: 'Confirmar' })
-    await userEvent.type(screen.getByRole('textbox', { name: /Motivo/ }), 'DUA')
-    expect(confirmar).toBeDisabled() // menos de cinco caracteres
-
-    await userEvent.type(screen.getByRole('textbox', { name: /Motivo/ }), ' presentado')
+    await userEvent.type(screen.getByRole('textbox', { name: /Motivo/ }), 'DUA presentado')
     await userEvent.click(confirmar)
 
     expect(pasarAAduana).toHaveBeenCalledWith(1, { motivo: 'DUA presentado' })
     expect(await screen.findByText(/No hay arribos pendientes/)).toBeInTheDocument()
+  })
+
+  it('el motivo es opcional: sin escribir nada se registra igual (27/10)', async () => {
+    vi.mocked(listarPedidos).mockResolvedValue(pagina([llegado(1, 10, '2026-10-14T15:00:00Z')]))
+    vi.mocked(pasarAAduana).mockResolvedValue({
+      ...pedido({ id: 1, etapa_viaje: 'EN_PROCESO_ADUANAL' }),
+    } as PedidoDetalle)
+    montar(<Bandeja />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pasar a proceso aduanal' }))
+    expect(screen.getByRole('textbox', { name: /Motivo \(opcional\)/ })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+
+    expect(pasarAAduana).toHaveBeenCalledWith(1, { motivo: null })
   })
 
   it('si el backend rechaza el paso, muestra el motivo y el pedido sigue', async () => {

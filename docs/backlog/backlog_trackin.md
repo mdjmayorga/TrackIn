@@ -1457,6 +1457,15 @@ Como usuario de Logística, quiero registrar la llegada real de la carga, para c
 >
 > Suite: 1161 pruebas (22 nuevas), 97 %.
 
+> **27/10/2026 — el motivo del paso a proceso aduanal pasa a ser opcional** (pedido de
+> Mariano). Es el trámite normal de todo pedido que llega, y escribirlo en cada uno no aportaba
+> nada. La bitácora (RF-14, `US-15`) lo registra igual, con quién y cuándo; sin motivo guarda
+> «Paso a proceso aduanal registrado sin motivo.». Lo escrito se guarda tal cual, aunque sea
+> corto (sin el mínimo de 5 caracteres), con el máximo de 300. **Las demás intervenciones
+> siguen exigiendo motivo.** Cambia en el detalle del pedido y en la bandeja de arribos
+> (`US-48`): el campo dice «Motivo (opcional)» y Confirmar no espera a que se escriba.
+> Pruebas: 5 de backend y 2 de frontend.
+
 #### US-15 — Auditar toda intervención manual sobre un pedido
 
 Como supervisor, quiero la traza de cada cambio manual, para saber quien alteró un dato calculado y por que.

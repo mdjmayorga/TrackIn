@@ -264,6 +264,16 @@ describe('cada acción', () => {
     expect(pasarAAduana).toHaveBeenCalledWith(7, { motivo: MOTIVO })
   })
 
+  it('pasar a aduana: el motivo es opcional (27/10)', async () => {
+    montar(detalle({ etapa_viaje: 'EN_DESTINO' }), 'PLANIFICACION')
+
+    await userEvent.click(boton('Pasar a proceso aduanal'))
+    expect(screen.getByLabelText(/^Motivo \(opcional\)/)).toBeInTheDocument()
+    await userEvent.click(boton('Confirmar'))
+
+    expect(pasarAAduana).toHaveBeenCalledWith(7, { motivo: null })
+  })
+
   it('recepción: propone la cantidad pedida', async () => {
     montar(detalle({ etapa_viaje: 'EN_PROCESO_ADUANAL' }))
 

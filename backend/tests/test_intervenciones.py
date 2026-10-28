@@ -27,7 +27,7 @@ from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.models.sesion import Sesion
 from app.models.usuario import Usuario
-from app.services import arribo
+from app.services import arribo, intervenciones
 from app.workers import rastreo
 
 pytestmark = pytest.mark.integration
@@ -299,6 +299,37 @@ async def test_tras_el_desembarco_se_pasa_a_aduana(api, sesion) -> None:
     assert respuesta.json()["etapa_viaje"] == "EN_PROCESO_ADUANAL"
     tipos = [a["tipo"] for a in (await cliente.get(_url(pedido, "bitacora"))).json()]
     assert tipos == ["CONFIRMACION_DESEMBARCO", "PASO_A_ADUANAL"]
+
+
+@pytest.mark.parametrize("cuerpo", [{}, {"motivo": None}, {"motivo": "   "}, {"motivo": "DUA"}])
+async def test_el_motivo_del_paso_a_aduana_es_opcional(api, sesion, cuerpo) -> None:
+    """Pedido del 27/10/2026: sin motivo se registra igual, y la bitácora lo dice."""
+    cliente, _ = api
+    pedido = await _pedido(sesion)
+    await cliente.post(
+        _url(pedido, "desembarco"), json={"ata": LLEGADA.isoformat(), "motivo": MOTIVO}
+    )
+
+    respuesta = await cliente.post(_url(pedido, "paso-aduanal"), json=cuerpo)
+
+    assert respuesta.status_code == 200, respuesta.text
+    asiento = (await cliente.get(_url(pedido, "bitacora"))).json()[-1]
+    assert asiento["tipo"] == "PASO_A_ADUANAL"
+    escrito = (cuerpo.get("motivo") or "").strip()
+    # Lo escrito se guarda tal cual, aunque sea corto; sin nada, el texto por omisión.
+    assert asiento["motivo"] == (escrito or intervenciones.MOTIVO_ADUANA_POR_OMISION)
+
+
+async def test_un_motivo_de_aduana_demasiado_largo_se_rechaza(api, sesion) -> None:
+    cliente, _ = api
+    pedido = await _pedido(sesion)
+    await cliente.post(
+        _url(pedido, "desembarco"), json={"ata": LLEGADA.isoformat(), "motivo": MOTIVO}
+    )
+
+    respuesta = await cliente.post(_url(pedido, "paso-aduanal"), json={"motivo": "x" * 301})
+
+    assert respuesta.status_code == 422
 
 
 @pytest.mark.parametrize(
@@ -620,7 +651,6 @@ async def test_al_recibir_se_estima_la_ventana_de_calidad_como_rango(api, sesion
 
 async def test_la_ventana_cuenta_desde_el_dia_local_de_la_recepcion(sesion) -> None:
     """Jueves 20:00 en Costa Rica ya es viernes en UTC: manda el jueves."""
-    from app.services import intervenciones
 
     jueves_noche = dt.datetime(2026, 10, 1, 20, 0, tzinfo=dt.timezone(dt.timedelta(hours=-6)))
 

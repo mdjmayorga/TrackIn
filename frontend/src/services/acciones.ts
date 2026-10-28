@@ -36,7 +36,9 @@ async function intervenir(id: number, accion: string, datos: object): Promise<Pe
 }
 
 export const confirmarDesembarco = (id: number, d: Desembarco) => intervenir(id, 'desembarco', d)
-export const pasarAAduana = (id: number, d: ConMotivo) => intervenir(id, 'paso-aduanal', d)
+/** El motivo es opcional (27/10/2026): `null` si no se escribió. */
+export const pasarAAduana = (id: number, d: { motivo: string | null }) =>
+  intervenir(id, 'paso-aduanal', d)
 export const registrarRecepcion = (id: number, d: Cantidad) => intervenir(id, 'recepcion', d)
 export const cerrarForzado = (id: number, d: Cantidad) => intervenir(id, 'cierre-forzado', d)
 export const liberarCalidad = (id: number, d: Cantidad) => intervenir(id, 'liberacion-calidad', d)

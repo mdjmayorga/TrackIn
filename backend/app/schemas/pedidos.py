@@ -450,7 +450,13 @@ class RecepcionIncompleta(BaseModel):
 
 
 class PasoAduanalEntrada(BaseModel):
-    motivo: str = Field(description="Obligatorio (RF-14).")
+    motivo: str | None = Field(
+        default=None,
+        description=(
+            "Opcional desde el 27/10/2026. Sin motivo, la bitácora (RF-14) registra el paso "
+            "igual, con quién y cuándo."
+        ),
+    )
 
 
 class ConfirmacionDesembarco(BaseModel):

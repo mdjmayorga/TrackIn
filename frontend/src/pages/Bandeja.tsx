@@ -15,7 +15,6 @@ import { Link } from 'react-router-dom'
 
 import { puedeVerBandeja } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
-import { MOTIVO_MINIMO } from '@/components/AccionesPedido'
 import { IconoVia } from '@/components/IconoVia'
 import { refrescarTrasIntervenir } from '@/hooks/refrescar'
 import { useBandejaArribos } from '@/hooks/usePedidos'
@@ -163,7 +162,7 @@ function FormularioAduana({ pedido, onListo }: { pedido: PedidoResumen; onListo:
   const [motivo, setMotivo] = useState('')
 
   const registrar = useMutation({
-    mutationFn: () => pasarAAduana(pedido.id, { motivo }),
+    mutationFn: () => pasarAAduana(pedido.id, { motivo: motivo.trim() || null }),
     onSuccess: (detalle) => {
       // Se vuelve a pedir todo `pedidos`, la bandeja incluida: el pedido sale de
       // la lista y el contador del encabezado baja.
@@ -172,7 +171,8 @@ function FormularioAduana({ pedido, onListo }: { pedido: PedidoResumen; onListo:
     },
   })
 
-  const listo = motivo.trim().length >= MOTIVO_MINIMO && !registrar.isPending
+  // El motivo es opcional desde el 27/10/2026: el paso a aduana es el trámite normal.
+  const listo = !registrar.isPending
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -186,7 +186,7 @@ function FormularioAduana({ pedido, onListo }: { pedido: PedidoResumen; onListo:
       className="mt-4 max-w-xl space-y-3"
     >
       <label className="block text-xs text-slate-300">
-        Motivo (obligatorio)
+        Motivo (opcional)
         <textarea
           value={motivo}
           rows={2}
