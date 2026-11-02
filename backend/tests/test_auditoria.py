@@ -99,13 +99,31 @@ async def test_registra_usuario_fecha_valores_y_motivo(sesion) -> None:
     assert fila.motivo == "El proveedor avisó de un retraso en el despacho"
 
 
-@pytest.mark.parametrize("motivo", ["", "   ", "ok", None])
-async def test_sin_motivo_declarado_no_hay_intervencion(sesion, motivo) -> None:
+@pytest.mark.parametrize("motivo", ["", "   ", None])
+async def test_sin_motivo_la_intervencion_queda_igual(sesion, motivo) -> None:
+    """El motivo es opcional en todo el sistema (decisión del 02/11/2026)."""
     usuario = await _usuario(sesion)
     pedido = await _pedido(sesion)
 
-    with pytest.raises(IntervencionInvalida, match="motivo es obligatorio"):
-        await _intervencion(sesion, pedido, usuario, motivo=motivo)
+    fila = await _intervencion(sesion, pedido, usuario, motivo=motivo)
+
+    assert fila.motivo == "Sin motivo declarado."
+    assert (fila.valor_anterior, fila.valor_nuevo) == ("0", "3")
+
+
+async def test_un_motivo_corto_se_guarda_tal_cual(sesion) -> None:
+    usuario = await _usuario(sesion)
+    pedido = await _pedido(sesion)
+
+    assert (await _intervencion(sesion, pedido, usuario, motivo="ok")).motivo == "ok"
+
+
+async def test_un_motivo_demasiado_largo_se_rechaza(sesion) -> None:
+    usuario = await _usuario(sesion)
+    pedido = await _pedido(sesion)
+
+    with pytest.raises(IntervencionInvalida, match="no puede pasar de 300"):
+        await _intervencion(sesion, pedido, usuario, motivo="x" * 301)
 
 
 async def test_un_tipo_que_no_existe_se_rechaza(sesion) -> None:

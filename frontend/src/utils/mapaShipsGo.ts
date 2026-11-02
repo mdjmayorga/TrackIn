@@ -28,7 +28,9 @@ export function urlMapaShipsGo(
     token,
     tabs: 'none',
     transport: via === 'AEREO' ? 'air' : 'ocean',
-    query: rastreo.referencia,
+    // Con el número como lo registró ShipsGo: su mapa busca por texto exacto, y
+    // guarda los BL de Maersk sin `MAEU` y las MAWB con guion (02/11/2026).
+    query: rastreo.referencia_fuente ?? rastreo.referencia,
   })
   return `${BASE}?${parametros.toString()}`
 }

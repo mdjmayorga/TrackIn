@@ -19,6 +19,7 @@ from app.services.proyeccion import (
     ORIGEN_ETA_DECLARADA,
     ORIGEN_ETA_ESTIMADA,
     ORIGEN_ETA_FUENTE,
+    ORIGEN_ETA_MANUAL,
     PRECEDENCIA,
     calcular,
 )
@@ -137,6 +138,7 @@ def test_la_precedencia_declarada_es_la_que_se_aplica() -> None:
         ORIGEN_ATA_FUENTE,
         ORIGEN_ATA_INFERIDA,
         ORIGEN_ETA_FUENTE,
+        ORIGEN_ETA_MANUAL,
         ORIGEN_ETA_ESTIMADA,
         ORIGEN_ETA_DECLARADA,
     )

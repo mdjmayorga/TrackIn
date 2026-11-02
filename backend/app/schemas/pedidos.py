@@ -320,6 +320,13 @@ class Rastreo(BaseModel):
 
     tipo: str = Field(description="CONTENEDOR, BL, BOOKING, MAWB, HAWB…")
     referencia: str
+    referencia_fuente: str | None = Field(
+        default=None,
+        description=(
+            "El número como lo registró ShipsGo (`271108898` para `MAEU271108898`, "
+            "`784-69391954` para `78469391954`). Con él se pide su mapa embebido."
+        ),
+    )
     via_transporte: Via
     nombre: str | None = Field(description="Nombre de la nave, si la fuente lo dio.")
     imo: int | None
@@ -386,6 +393,9 @@ class Calculo(BaseModel):
         )
     )
     ajuste_manual_dias: int
+    eta_manual: dt.date | None = Field(
+        default=None, description="La ETA registrada a mano (`US-67`), si la hay."
+    )
     fecha_proyectada: dt.date | None
     fecha_comprometida: dt.date = Field(
         description="Llegada a Gutis según Compras: `Fecha Entrega`, columna R (`US-53`)."
@@ -462,7 +472,7 @@ class DesembarcoEntrada(BaseModel):
     ata: dt.datetime = Field(
         description="Fecha y hora de llegada **con zona horaria** (`2026-09-30T08:15:00-06:00`)."
     )
-    motivo: str = Field(description="Obligatorio (RF-14): por qué se confirma a mano.")
+    motivo: str | None = Field(default=None, description="Opcional: por qué se confirma a mano.")
     confirmar: bool = Field(
         default=False, description="Obligatorio para reemplazar una llegada ya confirmada."
     )
@@ -473,7 +483,7 @@ class RecepcionEntrada(BaseModel):
 
     fecha: dt.datetime = Field(description="Fecha y hora de recepción, con zona horaria.")
     cantidad: Decimal = Field(ge=0, description="Cantidad recibida, en la unidad del pedido.")
-    motivo: str = Field(description="Obligatorio (RF-14).")
+    motivo: str | None = Field(default=None, description="Opcional (02/11/2026).")
 
 
 #: Las referencias que se asocian a mano: las de `TASK-30` y la guía hija de `US-49`.
@@ -485,7 +495,7 @@ class ReferenciaEntrada(BaseModel):
 
     tipo: TipoReferencia
     numero: str = Field(min_length=1, max_length=40, description="Tal como viene en el documento.")
-    motivo: str = Field(description="Obligatorio (RF-14).")
+    motivo: str | None = Field(default=None, description="Opcional (02/11/2026).")
 
 
 class AjusteEntrada(BaseModel):
@@ -496,7 +506,14 @@ class AjusteEntrada(BaseModel):
         le=365,
         description="Días a sumar (positivo) o restar (negativo). Reemplaza al anterior; 0 lo quita.",
     )
-    motivo: str = Field(description="Obligatorio (RF-14).")
+    motivo: str | None = Field(default=None, description="Opcional (02/11/2026).")
+
+
+class EtaEntrada(BaseModel):
+    """`US-67`: la ETA a Costa Rica registrada a mano."""
+
+    eta: dt.date | None = Field(description="Fecha estimada de llegada a destino; `null` la quita.")
+    motivo: str | None = Field(default=None, description="Opcional (02/11/2026).")
 
 
 class LiberacionEntrada(BaseModel):
@@ -504,7 +521,7 @@ class LiberacionEntrada(BaseModel):
 
     fecha: dt.datetime = Field(description="Fecha y hora de la liberación, con zona horaria.")
     cantidad: Decimal = Field(gt=0, description="Cantidad liberada en este acto.")
-    motivo: str = Field(description="Obligatorio (RF-14).")
+    motivo: str | None = Field(default=None, description="Opcional (02/11/2026).")
 
 
 class RecepcionIncompleta(BaseModel):

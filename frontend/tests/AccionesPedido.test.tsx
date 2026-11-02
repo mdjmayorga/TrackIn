@@ -12,6 +12,7 @@ import {
   confirmarDesembarco,
   liberarCalidad,
   pasarAAduana,
+  registrarEta,
   registrarRecepcion,
 } from '@/services/acciones'
 import { api } from '@/services/api'
@@ -29,6 +30,7 @@ vi.mock('@/services/acciones', async (original) => ({
   cerrarForzado: vi.fn(),
   liberarCalidad: vi.fn(),
   ajustarDias: vi.fn(),
+  registrarEta: vi.fn(),
 }))
 
 const MOTIVO = 'Confirmado con el agente aduanal'
@@ -119,6 +121,7 @@ beforeEach(() => {
     cerrarForzado,
     liberarCalidad,
     ajustarDias,
+    registrarEta,
   ]) {
     vi.mocked(servicio).mockResolvedValue(detalle())
   }
@@ -130,15 +133,30 @@ afterEach(() => {
 })
 
 describe('quién ve qué', () => {
-  // Compras, igual que el Administrador y Logística, desde el 21/10/2026.
-  it.each(['LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'] as const)('%s: las cinco acciones', (rol) => {
+  const CINCO = [
+    'Confirmar desembarco',
+    'Pasar a proceso aduanal',
+    'Registrar recepción en planta',
+    'Registrar liberación de Calidad',
+  ]
+
+  // Compras, igual que el Administrador, desde el 21/10/2026; la ETA a mano es
+  // solo de ellos dos (`US-67`, 02/11/2026).
+  it.each(['COMPRAS', 'ADMINISTRADOR'] as const)('%s: todas, con la ETA', (rol) => {
     montar(detalle(), rol)
 
     expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual([
-      'Confirmar desembarco',
-      'Pasar a proceso aduanal',
-      'Registrar recepción en planta',
-      'Registrar liberación de Calidad',
+      ...CINCO,
+      'Registrar ETA',
+      'Ajustar días',
+    ])
+  })
+
+  it('Logística: las cinco, sin la ETA', () => {
+    montar(detalle(), 'LOGISTICA')
+
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual([
+      ...CINCO,
       'Ajustar días',
     ])
   })
@@ -193,14 +211,22 @@ describe('lo que no aplica se ve, deshabilitado y con el porqué', () => {
 })
 
 describe('ninguna acción es de un clic (RF-14)', () => {
-  it('abrir no ejecuta, y sin motivo no se confirma', async () => {
+  it('abrir no ejecuta', async () => {
     montar()
 
     await userEvent.click(boton('Ajustar días'))
     expect(ajustarDias).not.toHaveBeenCalled()
-    expect(boton('Confirmar')).toBeDisabled()
-    await userEvent.type(screen.getByLabelText(/Motivo/), 'ok')
-    expect(boton('Confirmar')).toBeDisabled()
+  })
+
+  // El motivo es opcional en todo el sistema (02/11/2026).
+  it('sin motivo se confirma igual, y se manda nulo', async () => {
+    montar()
+
+    await userEvent.click(boton('Confirmar desembarco'))
+    expect(screen.getByLabelText(/^Motivo \(opcional\)/)).toBeInTheDocument()
+    await userEvent.click(boton('Confirmar'))
+
+    expect(confirmarDesembarco).toHaveBeenCalledWith(7, expect.objectContaining({ motivo: null }))
   })
 
   it('cancelar cierra el formulario sin hacer nada', async () => {
@@ -367,7 +393,43 @@ describe('cada acción', () => {
     expect(boton('Ajustar días')).toBeDisabled()
     expect(boton('Ajustar días')).toHaveAttribute(
       'title',
-      'Sin fecha proyectada: no hay fecha que ajustar.',
+      'Sin fecha proyectada: registre antes la ETA para tener una fecha que ajustar.',
+    )
+  })
+
+  it('registrar ETA: se elige la fecha y se manda (US-67)', async () => {
+    montar(detalle({ calculo: { ...detalle().calculo, fecha_proyectada: null } }), 'COMPRAS')
+
+    await abrirYEscribirMotivo('Registrar ETA')
+    const fecha = screen.getByLabelText(/Llegada estimada a Costa Rica/)
+    // Sin fecha no hay nada que guardar.
+    expect(boton('Confirmar')).toBeDisabled()
+    await userEvent.type(fecha, '2026-11-05')
+    await userEvent.click(boton('Confirmar'))
+
+    expect(registrarEta).toHaveBeenCalledWith(7, { motivo: MOTIVO, eta: '2026-11-05' })
+  })
+
+  it('una ETA registrada se puede quitar', async () => {
+    montar(detalle({ calculo: { ...detalle().calculo, eta_manual: '2026-11-05' } }), 'COMPRAS')
+
+    await abrirYEscribirMotivo('Registrar ETA')
+    expect(screen.getByLabelText(/Llegada estimada a Costa Rica/)).toHaveValue('2026-11-05')
+    expect(screen.getByText(/Registrada: 05\/11\/2026/)).toBeInTheDocument()
+    // La misma fecha no es un cambio.
+    expect(boton('Confirmar')).toBeDisabled()
+    await userEvent.click(boton('Quitar la ETA'))
+
+    expect(registrarEta).toHaveBeenCalledWith(7, { motivo: MOTIVO, eta: null })
+  })
+
+  it('después de la llegada no hay ETA que registrar', () => {
+    montar(detalle({ etapa_viaje: 'EN_DESTINO' }), 'COMPRAS')
+
+    expect(boton('Registrar ETA')).toBeDisabled()
+    expect(boton('Registrar ETA')).toHaveAttribute(
+      'title',
+      'El pedido ya llegó: la fecha base es la llegada, no una ETA.',
     )
   })
 

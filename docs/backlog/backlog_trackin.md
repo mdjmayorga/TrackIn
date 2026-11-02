@@ -119,10 +119,11 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo 🔶 | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 · 🔶 construida 27/10 (adelantada); falta verla con un vuelo real |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
-| `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed · 22/10: la línea de tiempo del detalle suma los hitos del viaje, transbordos incluidos |
+| `US-29` | Consultar el historial de tracking y dibujar el trayecto ✅ | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed · 22/10: la línea de tiempo del detalle suma los hitos del viaje, transbordos incluidos · ✅ terminada 02/11: hitos del viaje en la línea de tiempo, desde la salida del origen |
 | `US-30` | Registrar los transbordos: automáticos desde ShipsGo, a mano solo las excepciones ✅ | Story | OE2 | **Should** | Sprint 7 | ~~10h~~ 6h | RF-26 / CU-10 · **replanteada el 22/10**: con BL, contenedor o MAWB el transbordo lo informa ShipsGo y se registra solo; la captura manual queda para los pedidos sin referencia y el paso de guía hija a madre · ✅ adelantada y terminada 28/10 |
 | `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido ✅ | Story | OE3 | **Should** | Sprint 7 | ~~8h~~ 4h | Reunión Logística 03/09 / RF-05 (ampliado) · **mapa en vivo de ShipsGo en el detalle, funcionando desde el 21/10** (ShipsGo Embed) · ✅ terminada 02/11: país de origen en el encabezado; mapa propio con la ruta completa para los aéreos |
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande ✅ | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` · ✅ adelantada y terminada 28/10 |
+| `US-67` | Registrar a mano la ETA a Costa Rica cuando la fuente no la da ✅ | Story | OE2 | **Should** | Sprint 7 | 3h | 02/11: la guía de 4500018865 termina en París y no había fecha que ajustar · solo Compras y el Administrador · ✅ terminada 02/11 |
 | `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
 | `TASK-07` | Manual de instalacion local | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
 | `TASK-08` | Manual de usuario del dashboard | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 |
@@ -2632,6 +2633,18 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **28/10: adelantadas 40 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
 > reales), `US-30` y `US-33` terminadas y `TASK-10` cerrada sin retención.
 >
+> **02/11: el motivo de cambio pasa a ser opcional en todo el sistema** (decisión del usuario).
+> Antes RF-14 lo exigía en las intervenciones, con 5 caracteres como mínimo; solo el paso a
+> aduana y la corrección de referencia eran opcionales. Ahora ninguna lo exige: la bitácora
+> sigue guardando quién, cuándo, qué y los valores anterior y nuevo, y sin motivo escrito dice
+> «Sin motivo declarado.». Se conserva el máximo de 300 caracteres. **Se aparta de RF-14 del
+> SRS**, que conviene actualizar.
+>
+> **02/11, después del cierre: 60 de 66 h.** Entra y se termina `US-67` (3 h): la ETA a Costa
+> Rica a mano, para los pedidos cuya guía termina en un transbordo (4500018865, en París).
+>
+> **02/11, al cierre del día: 57 de 63 h.** `US-44` y `US-29` terminadas.
+>
 > **02/11, más tarde: 52 de 63 h.** `US-44` terminada.
 >
 > **02/11, primer día del sprint: 48 de 63 h.** `US-59` terminada. La primera carga real (WK43,
@@ -2837,6 +2850,40 @@ Como usuario de Logística, quiero ver el recorrido histórico de un pedido, par
 > **Se mantiene en `Could` (decision B3 del 01/09).** Se evaluo subirla porque el detalle de pedido ofrecia un enlace «ver historial» que ninguna historia comprometida construye. **Se resolvio al reves: se quita el enlace del detalle** y esta historia sigue siendo la valvula de escape del Sprint 7.
 >
 > Consecuencia para `US-20` y `US-37`: el conteo de posiciones plegadas se muestra como dato informativo, **sin accion asociada**. Si RF-22 se considera incumplido por eso, hay que reabrir la decision.
+
+> **✅ Terminada el 02/11/2026**, con los criterios del replanteo del 22/10.
+>
+> - **Los hitos del viaje en la línea de tiempo**, intercalados con las intervenciones y los
+>   transbordos: salidas, llegadas, descargas y, en aéreo, recepción y entrega. Cada uno con su
+>   fecha, el lugar con su país y el vuelo o la nave; el autor es «ShipsGo (automático)».
+> - **El primer hito es la salida del origen** (decisión de Mariano del 02/11): «Salida del
+>   origen: zarpó de Santos (BRSSZ), Brasil». Lo previo a la salida —carga al buque, recepción
+>   del expedidor— no entra. Es el lugar real de partida, que puede no ser el país de origen del
+>   pedido (el del proveedor, `US-44`). La primera llegada a uno de nuestros destinos se
+>   destaca como «Llegada a destino», con la misma regla que la ATA; las anteriores son
+>   transbordos.
+> - **Dónde viven:** `elementos_rastreados.hitos_viaje` (migración `0029`), la lista de los
+>   hitos **ocurridos** de la última lectura, sin repetir por contenedor. Se reemplaza entera en
+>   cada lectura: un hito que la fuente corrige o retira no queda duplicado (segundo criterio).
+>   Hasta ahora solo quedaban dentro del payload del historial, y solo con posición.
+> - **Sin rastreo**, la línea de tiempo trae solo las intervenciones (tercer criterio).
+> - **El país**, del maestro en castellano por el código ISO; los de transbordo que el maestro
+>   no tiene (Colombia, Panamá) salen con el nombre de ShipsGo, en inglés.
+> - **Verificado con `trackin_dev`:** los 11 embarques de ShipsGo con pedidos tienen sus hitos
+>   (Santos → Cartagena → Manzanillo → Moín; Shanghái → Fráncfort → San José; Nanjing → Cantón
+>   → París, sin llegada a destino).
+> - **Del criterio original quedan:** la secuencia cronológica (la línea de tiempo) y el
+>   trayecto sobre el mapa (Embed marítimo, mapa propio aéreo desde el 02/11). **No se
+>   construyó** el «detalle técnico con el payload original» de cada registro: queda a decisión.
+> - **Pruebas:** 10 de backend (`test_hitos_viaje.py`) y 1 de frontend; 1 ajustada.
+>
+> **02/11, el mapa de ShipsGo vacío en el detalle** (Mariano, con el 4500016172-20). Su mapa
+> embebido busca el embarque por texto exacto, y ShipsGo no siempre lo registra como TrackIn:
+> los BL de Maersk dados de alta desde su web van sin `MAEU` (`271108898`) y las MAWB con guion
+> (`784-69391954`). Con nuestro número el mapa salía vacío: 2 de 5 BL y 3 de 5 MAWB. Ahora el
+> colector guarda en cada lectura el número como lo tiene ShipsGo
+> (`elementos_rastreados.referencia_fuente`, migración `0030`), y el detalle pide el mapa con
+> ese. 1 prueba de backend y 1 de frontend.
 | Etiquetas | `frontend,mapas,auditoria` |
 
 #### US-30 — Actualizar la nave asignada ante un transbordo
@@ -3278,6 +3325,45 @@ de los pedidos sin interactuar con el sistema.
 >   configuración de energía del equipo.
 > - **Pendiente, sin código:** probarlo en la pantalla física de la planta, por la resolución.
 > - **Pruebas:** 7 de frontend (`PantallaPlanta.test.tsx`).
+
+#### `US-67` — Registrar a mano la ETA a Costa Rica cuando la fuente no la da · Sprint 7
+
+Como usuario de Compras, quiero registrar la fecha estimada de llegada a Costa Rica de un
+pedido en tránsito, para tener fecha proyectada, y poder ajustarla, cuando la fuente de
+rastreo no informa la llegada a nuestro destino.
+
+**Origen (02/11/2026).** La guía `78469391954` (4500018865) terminó en París: China Southern
+la llevó NKG → CAN → CDG, ShipsGo la da por llegada y no informa el tramo CDG → SJO. La ETA
+de ShipsGo era la de París y se descartó, porque no es la llegada a Costa Rica. El Z-tracking
+no traía «ETA CR». Sin ninguna fecha base el pedido no tenía fecha proyectada, y sin fecha
+proyectada «Ajustar días» queda deshabilitado.
+
+**Criterios de aceptación**
+
+- Dado un pedido sin llegada (`SIN_TRACKING`, `EN_ORIGEN` o `EN_TRANSITO`), cuando Compras o el Administrador registra una ETA (el motivo es opcional), entonces se recalcula la fecha proyectada en el acto y la bitácora guarda la ETA anterior y la nueva (`ETA_MANUAL`)
+- Dada una ETA manual, cuando la fuente da una ETA a uno de nuestros destinos, entonces manda la de la fuente (RN-14: la manual va debajo de `ETA_FUENTE` y encima de la estimada y de la del archivo)
+- Dada una ETA manual, cuando se registra otra, entonces la reemplaza; y se puede quitar
+- Dado un pedido que ya llegó, cuando se intenta registrar una ETA, entonces se rechaza: la fecha base es la llegada
+- Dado un usuario de Logística o Planificación, cuando intenta registrarla, entonces no tiene el botón y la API responde 403
+
+| | |
+|---|---|
+| Tipo | Story |
+| Objetivo específico | OE2 |
+| MoSCoW | **Should** |
+| Estimacion | 3 h |
+| Origen en el SRS | RF-14 (intervención auditada) · RN-14 (precedencia) |
+| Etiquetas | `backend,frontend,intervencion` |
+
+> **✅ Terminada el 02/11/2026.**
+>
+> - Columna `pedidos_transito.eta_manual` (`DATE`) y tipo `ETA_MANUAL` en la auditoría
+>   (migración `0031`). `POST /pedidos/{id}/eta-manual` con `requiere_rol(COMPRAS)`.
+> - Botón «Registrar ETA» en el detalle, solo para Compras y el Administrador (decisión del
+>   02/11); con una ETA ya registrada, ofrece «Quitar la ETA». «Ajustar días» sin fecha
+>   proyectada ahora dice que hay que registrar antes la ETA.
+> - **Pruebas:** 14 de backend (`test_eta_manual.py`) y 3 de frontend
+>   (`AccionesPedido.test.tsx`).
 
 ---
 

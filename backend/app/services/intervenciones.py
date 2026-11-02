@@ -128,7 +128,7 @@ async def confirmar_desembarco(
     id_pedido: int,
     *,
     ata: dt.datetime,
-    motivo: str,
+    motivo: str | None,
     id_usuario: int,
     confirmar: bool = False,
     instante: dt.datetime | None = None,
@@ -218,7 +218,6 @@ async def pasar_a_aduanal(
         nuevo=EN_PROCESO_ADUANAL,
         motivo=motivo,
         instante=ahora,
-        exigir_minimo=False,
     )
     await sesion.flush()
     logger.info("Pedido %s: pasa a proceso aduanal.", pedido.tracking_interno)
@@ -265,7 +264,7 @@ async def registrar_recepcion(
     *,
     fecha: dt.datetime,
     cantidad: Decimal,
-    motivo: str,
+    motivo: str | None,
     id_usuario: int,
     instante: dt.datetime | None = None,
 ) -> PedidoTransito:
@@ -316,7 +315,7 @@ async def cerrar_forzado(
     *,
     fecha: dt.datetime,
     cantidad: Decimal,
-    motivo: str,
+    motivo: str | None,
     id_usuario: int,
     instante: dt.datetime | None = None,
 ) -> PedidoTransito:
@@ -381,7 +380,7 @@ async def liberar_calidad(
     *,
     fecha: dt.datetime,
     cantidad: Decimal,
-    motivo: str,
+    motivo: str | None,
     id_usuario: int,
     instante: dt.datetime | None = None,
 ) -> PedidoTransito:
@@ -455,7 +454,7 @@ async def ajustar_fecha(
     id_pedido: int,
     *,
     dias: int,
-    motivo: str,
+    motivo: str | None,
     id_usuario: int,
     instante: dt.datetime | None = None,
 ) -> PedidoTransito:
@@ -487,6 +486,54 @@ async def ajustar_fecha(
     return pedido
 
 
+#: Las etapas en que la llegada todavía no se conoce: después, una ETA no aporta.
+_SIN_LLEGADA = frozenset({"SIN_TRACKING", "EN_ORIGEN", "EN_TRANSITO"})
+
+
+async def registrar_eta(
+    sesion: AsyncSession,
+    id_pedido: int,
+    *,
+    eta: dt.date | None,
+    motivo: str | None,
+    id_usuario: int,
+    instante: dt.datetime | None = None,
+) -> PedidoTransito:
+    """`US-67`: la ETA a Costa Rica, a mano, y recalcula. **No hace commit.**
+
+    Para cuando la fuente no la da —la guía termina en un transbordo—. Reemplaza
+    a la anterior; `None` la quita. Si la fuente vuelve a dar una ETA a uno de
+    nuestros destinos, esa manda (RN-14).
+    """
+    ahora = instante or dt.datetime.now(dt.UTC)
+    motivo = auditoria.validar_motivo(motivo)
+    pedido = await _pedido(sesion, id_pedido)
+    if pedido.etapa_viaje not in _SIN_LLEGADA:
+        raise IntervencionRechazada(
+            "El pedido ya llegó a destino: la fecha base es la llegada, no una ETA."
+        )
+    anterior = pedido.eta_manual
+    if eta == anterior:
+        raise IntervencionRechazada("El pedido ya tiene esa ETA: no hay nada que cambiar.")
+
+    pedido.eta_manual = eta
+    await recalculo.recalcular(sesion, pedido, instante=ahora)
+    auditoria.registrar(
+        sesion,
+        id_pedido=pedido.id,
+        id_usuario=id_usuario,
+        tipo="ETA_MANUAL",
+        campo="eta_manual",
+        anterior=anterior,
+        nuevo=eta,
+        motivo=motivo,
+        instante=ahora,
+    )
+    await sesion.flush()
+    logger.info("Pedido %s: ETA manual %s → %s.", pedido.tracking_interno, anterior, eta)
+    return pedido
+
+
 class ReferenciaInvalida(ValueError):
     """La referencia no pasa la validación de `TASK-30`: formato o dígito de control."""
 
@@ -497,7 +544,7 @@ async def asociar_identificador(
     *,
     tipo: str,
     numero: str,
-    motivo: str,
+    motivo: str | None,
     id_usuario: int,
     instante: dt.datetime | None = None,
 ) -> ResultadoReferencia:
@@ -605,7 +652,6 @@ async def _cambiar_elemento(
         nuevo=f"{resultado.tipo}:{resultado.numero}",
         motivo=motivo,
         instante=ahora,
-        exigir_minimo=False,
     )
     return resultado
 

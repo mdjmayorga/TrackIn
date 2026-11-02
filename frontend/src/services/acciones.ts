@@ -12,7 +12,8 @@ import { API_V1, api } from '@/services/api'
 import type { PedidoDetalle } from '@/types/api'
 
 export interface ConMotivo {
-  motivo: string
+  /** Opcional en todas las intervenciones (02/11/2026): `null` si no se escribió. */
+  motivo: string | null
 }
 
 export interface Desembarco extends ConMotivo {
@@ -43,6 +44,9 @@ export const registrarRecepcion = (id: number, d: Cantidad) => intervenir(id, 'r
 export const cerrarForzado = (id: number, d: Cantidad) => intervenir(id, 'cierre-forzado', d)
 export const liberarCalidad = (id: number, d: Cantidad) => intervenir(id, 'liberacion-calidad', d)
 export const ajustarDias = (id: number, d: Ajuste) => intervenir(id, 'ajuste-manual', d)
+/** La ETA a Costa Rica a mano (`US-67`); `eta: null` la quita. */
+export const registrarEta = (id: number, d: ConMotivo & { eta: string | null }) =>
+  intervenir(id, 'eta-manual', d)
 /**
  * De la guía hija a su guía madre, o corregirla (`US-30`). Sin `numero`, la que
  * resolvió TICA; con `numero`, la escrita a mano. Motivo opcional.

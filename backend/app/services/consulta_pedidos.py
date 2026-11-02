@@ -357,6 +357,7 @@ async def _rastreo(
     return Rastreo(
         tipo=elemento.tipo_tracking_externo,
         referencia=elemento.tracking_externo,
+        referencia_fuente=elemento.referencia_fuente,
         via_transporte=elemento.via_transporte,
         nombre=elemento.nombre,
         imo=elemento.imo,
@@ -441,6 +442,7 @@ async def _calculo(sesion: AsyncSession, pedido: PedidoTransito) -> Calculo:
         lead_time_dias=pedido.lead_time_destino_dias,
         lead_time_maestro_dias=pedido.destino.lead_time_dias,
         ajuste_manual_dias=pedido.ajuste_manual_dias,
+        eta_manual=pedido.eta_manual,
         fecha_proyectada=proyectada_fecha,
         fecha_comprometida=pedido.fecha_entrega_pedido,
         # Compras, 29/09: la diferencia entre la llegada a CR y la fecha de

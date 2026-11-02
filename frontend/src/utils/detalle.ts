@@ -16,6 +16,7 @@ export const ORIGENES: Record<string, string> = {
   ATA_FUENTE: 'llegada reportada por la fuente',
   ATA_INFERIDA: 'llegada inferida por la geocerca',
   ETA_FUENTE: 'ETA de la fuente de rastreo',
+  ETA_MANUAL: 'ETA registrada a mano',
   ETA_ESTIMADA: 'ETA estimada por posición y velocidad',
   ETA_DECLARADA: 'ETA CR del Z-tracking',
 }
@@ -29,6 +30,7 @@ export const INTERVENCIONES: Record<string, string> = {
   AJUSTE_MANUAL: 'Ajuste manual de días',
   CIERRE_FORZADO: 'Cierre forzado',
   ASOCIACION_TRACKING: 'Identificador de rastreo asociado',
+  ETA_MANUAL: 'ETA registrada a mano',
 }
 
 /** «10,42 N | 81,90 W», como en el Figma. */

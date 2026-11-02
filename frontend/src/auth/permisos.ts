@@ -28,6 +28,8 @@ export const ROLES_ACCION = {
   recepcion: ['LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'],
   liberacion: ['PLANIFICACION', 'LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'],
   ajuste: ['LOGISTICA', 'COMPRAS', 'ADMINISTRADOR'],
+  // `US-67`: Compras, que habla con el agente de carga (02/11/2026).
+  eta: ['COMPRAS', 'ADMINISTRADOR'],
 } as const satisfies Record<string, readonly Rol[]>
 
 export type Accion = keyof typeof ROLES_ACCION

@@ -35,8 +35,6 @@ from app.models.auditoria_intervencion import AuditoriaIntervencion
 from app.models.enums import TIPOS_INTERVENCION
 from app.models.usuario import Usuario
 
-#: Menos que esto no explica nada: «ok», «x», «cambio».
-LONGITUD_MINIMA_MOTIVO: Final = 5
 LONGITUD_MAXIMA_MOTIVO: Final = 300
 
 
@@ -64,18 +62,18 @@ def como_texto(valor: object) -> str | None:
     return str(valor)
 
 
+#: Lo que queda en la bitácora cuando no se escribió motivo.
+SIN_MOTIVO: Final = "Sin motivo declarado."
+
+
 def validar_motivo(motivo: str | None) -> str:
-    texto = (motivo or "").strip()
-    if len(texto) < LONGITUD_MINIMA_MOTIVO:
-        raise IntervencionInvalida(
-            f"El motivo es obligatorio (RF-14) y debe explicar la intervención: "
-            f"al menos {LONGITUD_MINIMA_MOTIVO} caracteres."
-        )
-    if len(texto) > LONGITUD_MAXIMA_MOTIVO:
-        raise IntervencionInvalida(
-            f"El motivo no puede pasar de {LONGITUD_MAXIMA_MOTIVO} caracteres."
-        )
-    return texto
+    """El motivo de cualquier intervención: **opcional** (decisión del 02/11/2026).
+
+    Antes RF-14 lo exigía, con 5 caracteres como mínimo. La bitácora sigue
+    guardando quién, cuándo, qué y los valores anterior y nuevo; sin motivo,
+    queda `SIN_MOTIVO`.
+    """
+    return motivo_opcional(motivo, por_omision=SIN_MOTIVO)
 
 
 def motivo_opcional(motivo: str | None, *, por_omision: str) -> str:
@@ -102,19 +100,16 @@ def registrar(
     id_pedido: int,
     id_usuario: int,
     tipo: str,
-    motivo: str,
+    motivo: str | None,
     campo: str | None = None,
     anterior: object = None,
     nuevo: object = None,
     instante: dt.datetime | None = None,
-    exigir_minimo: bool = True,
 ) -> AuditoriaIntervencion:
     """Anota una intervención. **No hace `flush` ni commit**: va en la misma
     transacción que el cambio que audita, así que entran juntos o ninguno.
 
-    `exigir_minimo=False` es para las intervenciones donde el motivo no se
-    exige (el paso a aduana, desde el 27/10/2026): quien llama ya lo resolvió
-    con `motivo_opcional`, y aquí solo se controla el máximo.
+    El motivo es opcional en todas (02/11/2026): solo se controla el máximo.
     """
     if tipo not in TIPOS_INTERVENCION:
         raise IntervencionInvalida(f"Tipo de intervención desconocido: {tipo!r}.")
@@ -125,11 +120,7 @@ def registrar(
         campo_afectado=campo,
         valor_anterior=como_texto(anterior),
         valor_nuevo=como_texto(nuevo),
-        motivo=(
-            validar_motivo(motivo)
-            if exigir_minimo
-            else motivo_opcional(motivo, por_omision="Sin motivo declarado.")
-        ),
+        motivo=validar_motivo(motivo),
     )
     if instante is not None:
         fila.fecha_hora = instante
@@ -165,7 +156,7 @@ async def bitacora(sesion: AsyncSession, id_pedido: int) -> list[Asiento]:
 
 __all__ = [
     "LONGITUD_MAXIMA_MOTIVO",
-    "LONGITUD_MINIMA_MOTIVO",
+    "SIN_MOTIVO",
     "Asiento",
     "IntervencionInvalida",
     "bitacora",

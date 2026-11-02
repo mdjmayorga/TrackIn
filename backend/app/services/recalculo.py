@@ -106,7 +106,8 @@ async def proyectar(
     eta_fuente, ata_fuente = await _fechas_de_la_fuente(sesion, pedido)
     estimada = None
     arribos = (pedido.ata_confirmada, ata_fuente, pedido.ata_inferida)
-    if eta_fuente is None and all(fecha is None for fecha in arribos):
+    sin_eta = eta_fuente is None and pedido.eta_manual is None
+    if sin_eta and all(fecha is None for fecha in arribos):
         estimada = (await eta_mod.estimar(sesion, pedido)).eta
 
     return proyeccion.calcular(
@@ -114,6 +115,7 @@ async def proyectar(
         ata_fuente=ata_fuente,
         ata_inferida=pedido.ata_inferida,
         eta_fuente=eta_fuente,
+        eta_manual=pedido.eta_manual,
         eta_estimada=estimada,
         eta_declarada=pedido.eta_declarada,
         lead_time_dias=lead_time_dias,

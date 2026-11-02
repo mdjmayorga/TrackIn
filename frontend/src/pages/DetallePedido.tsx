@@ -438,7 +438,7 @@ function LineaDeTiempo({ idPedido }: { idPedido: number }) {
         </p>
       )}
       {data && data.length === 0 && (
-        <p className="text-sm text-slate-400">Sin intervenciones registradas.</p>
+        <p className="text-sm text-slate-400">Sin intervenciones ni hitos registrados.</p>
       )}
       {data && data.length > 0 && (
         <ol className="space-y-4 border-l border-dotted border-slate-400 pl-4">
@@ -449,14 +449,15 @@ function LineaDeTiempo({ idPedido }: { idPedido: number }) {
         </ol>
       )}
       <p className="mt-4 text-xs text-slate-500">
-        Las intervenciones manuales y los transbordos que informa ShipsGo. Los demás hitos del viaje
-        se agregan con el historial de rastreo.
+        Las intervenciones manuales y los hitos del viaje que informa ShipsGo, desde la salida del
+        origen hasta la llegada a destino.
       </p>
     </Bloque>
   )
 }
 
 function Evento({ asiento }: { asiento: AsientoBitacora }) {
+  if (asiento.tipo === 'HITO_VIAJE') return <HitoDelViaje asiento={asiento} />
   const cambio =
     asiento.valor_anterior || asiento.valor_nuevo
       ? `${asiento.valor_anterior ?? '—'} → ${asiento.valor_nuevo ?? '—'}`
@@ -474,6 +475,27 @@ function Evento({ asiento }: { asiento: AsientoBitacora }) {
       <p className="text-xs text-slate-500">
         {asiento.nombre_usuario} ({asiento.rol})
       </p>
+    </li>
+  )
+}
+
+/**
+ * Un hito del viaje que informó ShipsGo (`US-29`): la salida del origen, las
+ * llegadas y salidas intermedias, la llegada a destino. El texto ya viene armado
+ * del backend (`hitos_viaje.describir`); el vuelo o la nave va debajo.
+ */
+function HitoDelViaje({ asiento }: { asiento: AsientoBitacora }) {
+  const destacado = /^(Salida del origen|Llegada a destino):/.test(asiento.motivo)
+  return (
+    <li className="relative text-sm">
+      <span
+        aria-hidden="true"
+        className={`absolute -left-[1.4rem] top-1 h-2.5 w-2.5 rounded-full ${destacado ? 'bg-marca-300' : 'bg-slate-500'}`}
+      />
+      <p className="text-slate-400">{formatearFechaHora(asiento.fecha_hora)}</p>
+      <p className={destacado ? 'font-semibold' : 'text-slate-200'}>{asiento.motivo}</p>
+      {asiento.valor_nuevo && <p className="text-slate-300">{asiento.valor_nuevo}</p>}
+      <p className="text-xs text-slate-500">{asiento.nombre_usuario}</p>
     </li>
   )
 }

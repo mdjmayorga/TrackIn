@@ -103,6 +103,16 @@ class ElementoRastreado(Base, TimestampMixin):
     #: `posicion_actual` porque la geocerca la tomaría por real.
     trayecto_aereo: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
 
+    #: Los hitos ocurridos del viaje —salidas, llegadas, descargas—, de la última
+    #: lectura de ShipsGo (`US-29`). Se reemplaza entera en cada lectura: lo que la
+    #: fuente corrige o retira no queda duplicado. Los muestra la línea de tiempo.
+    hitos_viaje: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
+
+    #: El número como lo registró la fuente, si difiere del nuestro: ShipsGo guarda
+    #: los BL de Maersk sin `MAEU` y las MAWB con guion. El mapa embebido de ShipsGo
+    #: busca por texto exacto y lo necesita así (02/11/2026).
+    referencia_fuente: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
     #: `US-11` lo pone en `false` al arribar, para no gastar cuota siguiendo
     #: naves que ya no llevan carga nuestra.
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))

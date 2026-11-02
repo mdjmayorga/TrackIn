@@ -99,6 +99,8 @@ TIPOS_INTERVENCION: Final[tuple[str, ...]] = (
     "AJUSTE_MANUAL",
     "CIERRE_FORZADO",
     "ASOCIACION_TRACKING",
+    # La ETA a Costa Rica registrada a mano (`US-67`, 02/11/2026).
+    "ETA_MANUAL",
 )
 
 # --- Parámetros del sistema -------------------------------------------------

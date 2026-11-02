@@ -24,8 +24,9 @@ RN-14 la fija: **lo ocurrido manda sobre lo estimado**.
 | 2 | `ata_fuente` | La fuente **reportó** el arribo — `elementos_rastreados.ata_api`: el hito `DISC`/`RCF` de ShipsGo o el manifiesto de TICA |
 | 3 | `ata_inferida` | El sistema dedujo el arribo por geocerca (RN-05). Sigue siendo un hecho, pero deducido |
 | 4 | `eta_fuente` | La ETA de la fuente de rastreo — `elementos_rastreados.eta_api` |
-| 5 | `eta_estimada` | La que calcula `US-08` desde posición y velocidad |
-| 6 | `eta_declarada` | La que viene en el archivo. Es la más débil: la escribe una persona a mano y no se actualiza sola |
+| 5 | `eta_manual` | La que Compras registra en el detalle (`US-67`) cuando la fuente no da una ETA a Costa Rica. Auditada, y más fresca que la del archivo |
+| 6 | `eta_estimada` | La que calcula `US-08` desde posición y velocidad |
+| 7 | `eta_declarada` | La que viene en el archivo. Es la más débil: la escribe una persona a mano y no se actualiza sola |
 
 **`ata_fuente` entra el 28/09/2026** (`US-49`). Faltaba desde que `US-11` puso
 `ata_api` como señal primaria del arribo: el pedido pasaba a `EN_DESTINO` pero
@@ -73,6 +74,8 @@ ORIGEN_ATA_CONFIRMADA: Final = "ATA_CONFIRMADA"
 ORIGEN_ATA_FUENTE: Final = "ATA_FUENTE"
 ORIGEN_ATA_INFERIDA: Final = "ATA_INFERIDA"
 ORIGEN_ETA_FUENTE: Final = "ETA_FUENTE"
+#: Registrada a mano por Compras en el detalle (`US-67`).
+ORIGEN_ETA_MANUAL: Final = "ETA_MANUAL"
 #: Calculada por `US-08` desde posición y velocidad. Solo existe con AIS.
 ORIGEN_ETA_ESTIMADA: Final = "ETA_ESTIMADA"
 ORIGEN_ETA_DECLARADA: Final = "ETA_DECLARADA"
@@ -83,6 +86,7 @@ PRECEDENCIA: Final[tuple[str, ...]] = (
     ORIGEN_ATA_FUENTE,
     ORIGEN_ATA_INFERIDA,
     ORIGEN_ETA_FUENTE,
+    ORIGEN_ETA_MANUAL,
     ORIGEN_ETA_ESTIMADA,
     ORIGEN_ETA_DECLARADA,
 )
@@ -154,6 +158,7 @@ def calcular(
     ata_fuente: dt.date | dt.datetime | None = None,
     ata_inferida: dt.date | dt.datetime | None = None,
     eta_fuente: dt.date | dt.datetime | None = None,
+    eta_manual: dt.date | dt.datetime | None = None,
     eta_estimada: dt.date | dt.datetime | None = None,
     eta_declarada: dt.date | dt.datetime | None = None,
     lead_time_dias: int | None,
@@ -170,6 +175,7 @@ def calcular(
         ORIGEN_ATA_FUENTE: _a_fecha(ata_fuente),
         ORIGEN_ATA_INFERIDA: _a_fecha(ata_inferida),
         ORIGEN_ETA_FUENTE: _a_fecha(eta_fuente),
+        ORIGEN_ETA_MANUAL: _a_fecha(eta_manual),
         ORIGEN_ETA_ESTIMADA: _a_fecha(eta_estimada),
         ORIGEN_ETA_DECLARADA: _a_fecha(eta_declarada),
     }
@@ -190,7 +196,8 @@ def calcular(
             ajuste_manual_dias=ajuste_manual_dias,
             motivo=(
                 "el pedido no tiene ATA confirmada, reportada ni inferida, ni ETA de "
-                "la fuente de rastreo, ni estimada, ni declarada en el archivo"
+                "la fuente de rastreo, ni registrada a mano, ni estimada, ni declarada "
+                "en el archivo"
             ),
         )
 
@@ -223,6 +230,7 @@ __all__ = [
     "ORIGEN_ETA_DECLARADA",
     "ORIGEN_ETA_ESTIMADA",
     "ORIGEN_ETA_FUENTE",
+    "ORIGEN_ETA_MANUAL",
     "PRECEDENCIA",
     "SIN_FECHA_BASE",
     "SIN_LEAD_TIME",

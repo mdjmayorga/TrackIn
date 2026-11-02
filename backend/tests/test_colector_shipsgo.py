@@ -329,3 +329,25 @@ async def test_la_eta_para_un_destino_que_no_es_el_nuestro_no_se_guarda(sesion) 
 
     await colector_shipsgo.procesar(sesion, guia, _sin_llegada_a_sjo("FRA"))
     assert guia.eta_api is None
+
+
+async def test_guarda_el_numero_como_lo_registro_shipsgo(sesion) -> None:
+    """Su mapa embebido busca por texto exacto: ShipsGo guarda los BL de Maersk sin
+    `MAEU` y las MAWB con guion (02/11/2026)."""
+    shipment, geojson = CASOS[MAERSK_CON_POSICION]
+    bl = ElementoRastreado(
+        tipo_tracking_externo="BL", tracking_externo="MAEU271102440", via_transporte="MARITIMO"
+    )
+    guia = ElementoRastreado(
+        tipo_tracking_externo="MAWB", tracking_externo="02050685434", via_transporte="AEREO"
+    )
+    sesion.add_all([bl, guia])
+    await sesion.flush()
+
+    await colector_shipsgo.procesar(
+        sesion, bl, {**shipment, "booking_number": "271102440"}, geojson
+    )
+    await colector_shipsgo.procesar(sesion, guia, _aereo()[0])
+
+    assert bl.referencia_fuente == "271102440"
+    assert guia.referencia_fuente == "020-50685434"

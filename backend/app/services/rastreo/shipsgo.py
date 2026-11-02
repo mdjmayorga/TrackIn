@@ -156,6 +156,10 @@ class Hito:
     puerto_nombre: str | None
     buque: str | None
     imo: int | None
+    #: ISO del país del lugar (`location.country.code`), para la línea de tiempo.
+    pais: str | None = None
+    #: Su nombre, en inglés como lo da ShipsGo: el respaldo si el maestro no lo tiene.
+    pais_nombre: str | None = None
 
 
 def es_arribo(hito: Hito, via: str) -> bool:
@@ -511,6 +515,8 @@ def _leer_hitos(shipment: dict[str, Any]) -> list[Hito]:
                 puerto_nombre=nombre,
                 buque=nave.nombre if nave else None,
                 imo=nave.imo if nave else None,
+                pais=_dict(_dict(crudo.get("location")).get("country")).get("code"),
+                pais_nombre=_dict(_dict(crudo.get("location")).get("country")).get("name"),
             )
         )
     return hitos

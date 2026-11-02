@@ -25,6 +25,7 @@ from app.api.dependencias import (
     usuario_actual,
 )
 from app.db.session import get_db
+from app.models.elemento_rastreado import ElementoRastreado
 from app.models.pedido_transito import PedidoTransito
 from app.schemas.pedidos import (
     AjusteEntrada,
@@ -34,6 +35,7 @@ from app.schemas.pedidos import (
     CumplimientoFiltro,
     DesembarcoEntrada,
     EstadoCalculado,
+    EtaEntrada,
     EtapaFiltro,
     GuiaMadreEntrada,
     IndicadoresKpi,
@@ -50,7 +52,7 @@ from app.schemas.pedidos import (
     ReferenciaEntrada,
     Via,
 )
-from app.services import auditoria, consulta_pedidos, intervenciones, transbordos
+from app.services import auditoria, consulta_pedidos, hitos_viaje, intervenciones, transbordos
 from app.services.consulta_pedidos import ORDEN_POR_OMISION, PATRON_ORDEN, Filtros
 from app.services.intervenciones import ZONA_CR
 
@@ -261,7 +263,9 @@ async def detalle_pedido(
         "Las intervenciones manuales sobre el pedido, de la más antigua a la más "
         "reciente (RF-14). Es de solo lectura: la base rechaza editar o borrar "
         "un registro. Suma los transbordos **ocurridos** que informó ShipsGo "
-        "(`US-30`), con `usuario: shipsgo` y `rol: SISTEMA`: no los hizo nadie."
+        "(`US-30`) y los hitos del viaje (`US-29`, `tipo: HITO_VIAJE`: la salida del "
+        "origen, las llegadas y salidas intermedias y la llegada a destino), con "
+        "`usuario: shipsgo` y `rol: SISTEMA`: no los hizo nadie."
     ),
     responses={404: {"description": "No existe un pedido con ese id."}},
 )
@@ -312,7 +316,32 @@ async def bitacora_pedido(
         if pedido.id_elemento_rastreado is not None
         else []
     )
-    return sorted([*manuales, *automaticos], key=lambda a: a.fecha_hora)
+    elemento = (
+        await db.get(ElementoRastreado, pedido.id_elemento_rastreado)
+        if pedido.id_elemento_rastreado is not None
+        else None
+    )
+    del_viaje = (
+        [
+            AsientoBitacora(
+                fecha_hora=h.instante,
+                usuario="shipsgo",
+                nombre_usuario="ShipsGo (automático)",
+                rol="SISTEMA",
+                tipo="HITO_VIAJE",
+                campo=h.evento,
+                valor_anterior=None,
+                valor_nuevo=h.vehiculo,
+                motivo=h.texto,
+            )
+            for h in hitos_viaje.describir(
+                elemento.hitos_viaje, await hitos_viaje.nombres_de_paises(db)
+            )
+        ]
+        if elemento is not None and elemento.hitos_viaje
+        else []
+    )
+    return sorted([*manuales, *automaticos, *del_viaje], key=lambda a: a.fecha_hora)
 
 
 # Decisión del 21/10/2026: **Compras hace en el detalle lo mismo que el
@@ -584,6 +613,48 @@ async def ajustar_fecha(
             db,
             id_pedido,
             dias=datos.dias,
+            motivo=datos.motivo,
+            id_usuario=quien.usuario.id,
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
+
+
+#: `US-67`: la ETA a mano la registra Compras, que habla con el agente de carga
+#: (decisión del 02/11/2026), y el Administrador.
+compras = requiere_rol(COMPRAS)
+
+
+@router.post(
+    "/{id_pedido}/eta-manual",
+    response_model=PedidoDetalle,
+    summary="Registrar la ETA a Costa Rica (US-67)",
+    description=(
+        "Para cuando la fuente no da una ETA a uno de nuestros destinos: la carga quedó en "
+        "un transbordo y la guía termina ahí. Reemplaza a la anterior y `null` la quita. "
+        "Entra en RN-14 debajo de la ETA de la fuente. Se recalcula en el acto y se audita."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {"description": "Cerrado, ya llegó, o la ETA ya tiene ese valor."},
+    },
+)
+async def registrar_eta(
+    id_pedido: int,
+    datos: EtaEntrada,
+    quien: Annotated[Autenticado, Depends(compras)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle:
+    try:
+        await intervenciones.registrar_eta(
+            db,
+            id_pedido,
+            eta=datos.eta,
             motivo=datos.motivo,
             id_usuario=quien.usuario.id,
         )

@@ -585,7 +585,7 @@ describe('sin identificador: no rastreable (RN-02, §4.7)', () => {
     expect(screen.queryByRole('form')).toBeNull()
   })
 
-  it('asociar exige número y motivo, y deja el pedido rastreable', async () => {
+  it('asociar exige el número, y deja el pedido rastreable', async () => {
     vi.mocked(obtenerPedido).mockResolvedValue(detalle(SIN_RASTREO))
     vi.mocked(asociarReferencia).mockResolvedValue(detalle())
     montar('COMPRAS')
@@ -593,7 +593,6 @@ describe('sin identificador: no rastreable (RN-02, §4.7)', () => {
     const boton = await screen.findByRole('button', { name: 'Asociar' })
     expect(boton).toBeDisabled()
     await userEvent.type(screen.getByLabelText('Número'), 'COSU6508789000')
-    expect(boton).toBeDisabled()
     await userEvent.type(screen.getByLabelText(/Motivo/), 'El agente envió el BL por correo')
     await userEvent.click(boton)
 
@@ -603,6 +602,23 @@ describe('sin identificador: no rastreable (RN-02, §4.7)', () => {
       motivo: 'El agente envió el BL por correo',
     })
     expect(await screen.findByText('BL MEDU1234567 · MSC BRUNELLA')).toBeInTheDocument()
+  })
+
+  // El motivo es opcional en todo el sistema (02/11/2026).
+  it('asociar sin motivo también se puede', async () => {
+    vi.mocked(obtenerPedido).mockResolvedValue(detalle(SIN_RASTREO))
+    vi.mocked(asociarReferencia).mockResolvedValue(detalle())
+    montar('COMPRAS')
+
+    expect(await screen.findByLabelText('Motivo (opcional)')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('Número'), 'COSU6508789000')
+    await userEvent.click(screen.getByRole('button', { name: 'Asociar' }))
+
+    expect(asociarReferencia).toHaveBeenCalledWith(7, {
+      tipo: 'BL',
+      numero: 'COSU6508789000',
+      motivo: null,
+    })
   })
 
   // Solo los tipos de la vía del pedido (21/10/2026).
@@ -697,7 +713,57 @@ describe('línea de tiempo', () => {
   it('sin intervenciones lo dice', async () => {
     montar()
 
-    expect(await screen.findByText('Sin intervenciones registradas.')).toBeInTheDocument()
+    expect(await screen.findByText('Sin intervenciones ni hitos registrados.')).toBeInTheDocument()
+  })
+
+  it('intercala los hitos del viaje de ShipsGo con las intervenciones (US-29)', async () => {
+    const hito = (fecha_hora: string, campo: string, motivo: string, valor_nuevo: string) => ({
+      fecha_hora,
+      usuario: 'shipsgo',
+      nombre_usuario: 'ShipsGo (automático)',
+      rol: 'SISTEMA' as const,
+      tipo: 'HITO_VIAJE',
+      campo,
+      valor_anterior: null,
+      valor_nuevo,
+      motivo,
+    })
+    vi.mocked(obtenerBitacora).mockResolvedValue([
+      hito(
+        '2026-10-27T02:01:00Z',
+        'DEP',
+        'Salida del origen: despegó de Shanghai Pudong International Airport (PVG), China',
+        'Vuelo LH8401',
+      ),
+      {
+        fecha_hora: '2026-10-28T15:00:00Z',
+        usuario: 'compras@gutis.com',
+        nombre_usuario: 'Compras',
+        rol: 'COMPRAS',
+        tipo: 'AJUSTE_MANUAL',
+        campo: 'ajuste_manual_dias',
+        valor_anterior: '0',
+        valor_nuevo: '2',
+        motivo: 'Aviso del agente',
+      },
+      hito(
+        '2026-10-31T01:09:00Z',
+        'ARR',
+        'Llegada a destino: aterrizó en Juan Santamaría International Airport (SJO), Costa Rica',
+        'Vuelo LH518',
+      ),
+    ])
+    montar()
+
+    const eventos = await screen.findAllByRole('listitem')
+    // La más reciente arriba: la llegada, el ajuste y la salida del origen al final.
+    expect(eventos[0]).toHaveTextContent(/^.*Llegada a destino: aterrizó en .*SJO.*Vuelo LH518/)
+    expect(within(eventos[0]).getByText('ShipsGo (automático)')).toBeInTheDocument()
+    expect(within(eventos[1]).getByText('Ajuste manual de días')).toBeInTheDocument()
+    expect(eventos[2]).toHaveTextContent('Salida del origen: despegó de')
+    // Un hito no es una intervención: sin comillas de motivo ni «— →».
+    expect(eventos[2]).not.toHaveTextContent('«')
+    expect(eventos[2]).not.toHaveTextContent('—')
   })
 })
 

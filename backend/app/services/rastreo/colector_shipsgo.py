@@ -47,7 +47,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Final
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -57,6 +57,7 @@ from app.models.maestro_destino import MaestroDestino
 from app.services import historial, transbordos
 from app.services.rastreo import shipsgo
 from app.services.rastreo.destino_shipsgo import EQUIVALENCIAS
+from app.services.rastreo.shipsgo_cliente import CAMPO_POR_TIPO
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,52 @@ def llegada_a_destino_final(
     return None
 
 
+#: Los hitos que van a la línea de tiempo (`US-29`): salidas, llegadas, descargas.
+#: Lo previo a la salida —cargado al buque, recibido del expedidor— queda fuera
+#: para que el primer hito sea la salida del origen (decisión del 02/11/2026).
+EVENTOS_DE_LA_LINEA: Final[dict[str, frozenset[str]]] = {
+    shipsgo.VIA_MARITIMA: frozenset({"DEPA", "ARRV", "DISC"}),
+    shipsgo.VIA_AEREA: frozenset({"DEP", "ARR", "RCF", "DLV"}),
+}
+
+
+def hitos_del_viaje(
+    lectura: shipsgo.LecturaEmbarque, destinos: frozenset[str]
+) -> list[dict[str, Any]]:
+    """Los hitos ocurridos, en orden y sin repetir, para `hitos_viaje`.
+
+    Un BL con varios contenedores repite cada movimiento por contenedor: se
+    queda uno por evento, lugar e instante. `destino_final` marca la llegada a
+    uno de nuestros destinos, con la misma regla que la ATA.
+    """
+    eventos = EVENTOS_DE_LA_LINEA.get(lectura.via, frozenset())
+    vistos: set[tuple[str, str | None, dt.datetime]] = set()
+    hitos: list[dict[str, Any]] = []
+    for hito in sorted(
+        (h for h in lectura.hitos if h.ocurrido and h.instante and h.evento in eventos),
+        key=lambda h: h.instante or dt.datetime.min.replace(tzinfo=dt.UTC),
+    ):
+        assert hito.instante is not None
+        clave = (hito.evento, hito.puerto, hito.instante)
+        if clave in vistos:
+            continue
+        vistos.add(clave)
+        hitos.append(
+            {
+                "evento": hito.evento,
+                "instante": hito.instante.isoformat(),
+                "puerto": hito.puerto,
+                "puerto_nombre": hito.puerto_nombre,
+                "pais": hito.pais,
+                "pais_nombre": hito.pais_nombre,
+                "vehiculo": hito.buque,
+                "destino_final": shipsgo.es_arribo(hito, lectura.via)
+                and es_destino_final(hito.puerto, destinos),
+            }
+        )
+    return hitos
+
+
 async def procesar(
     sesion: AsyncSession,
     elemento: ElementoRastreado,
@@ -155,6 +202,13 @@ async def procesar(
     ata = llegada_a_destino_final(lectura, destinos)
     if ata is not None:
         elemento.ata_api = ata
+    # `US-29`: la lista vigente, entera; reemplazarla es lo que evita duplicados.
+    elemento.hitos_viaje = hitos_del_viaje(lectura, destinos)
+    # El número con que ShipsGo tiene el embarque: lo pide su mapa embebido.
+    campo = CAMPO_POR_TIPO.get(elemento.tipo_tracking_externo)
+    registrado = (shipment or {}).get(campo) if campo else None
+    if isinstance(registrado, str) and registrado.strip():
+        elemento.referencia_fuente = registrado.strip()[:50]
     elemento.ultima_actualizacion_api = ahora
     if lectura.tramos_aereos:
         # `US-26`: el horario y el trazado de los vuelos, para estimar dónde va.
@@ -223,7 +277,9 @@ __all__ = [
     "DESCARTE_SIN_MADURAR",
     "ResultadoLectura",
     "destinos_finales",
+    "EVENTOS_DE_LA_LINEA",
     "es_destino_final",
+    "hitos_del_viaje",
     "llegada_a_destino_final",
     "procesar",
 ]

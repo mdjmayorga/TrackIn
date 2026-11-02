@@ -173,6 +173,10 @@ class PedidoTransito(Base, TimestampMixin):
     #: La ETA tal como la declara el archivo (`US-09`). Es la última de la
     #: precedencia de RN-14: la escribe una persona y no se actualiza sola.
     eta_declarada: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    #: La ETA a Costa Rica que Compras registra a mano cuando la fuente no la da:
+    #: la carga quedó en un transbordo y la guía termina ahí (`US-67`). Va debajo
+    #: de la ETA de la fuente y encima de la estimada (RN-14).
+    eta_manual: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
     eta_utilizada: Mapped[dt.datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

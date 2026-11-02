@@ -42,7 +42,8 @@ export async function obtenerBitacora(id: number): Promise<AsientoBitacora[]> {
 export interface NuevaReferencia {
   tipo: TipoReferencia
   numero: string
-  motivo: string
+  /** Opcional (02/11/2026). */
+  motivo: string | null
 }
 
 /** Asocia el identificador de rastreo (`US-20`); devuelve el detalle ya recalculado. */

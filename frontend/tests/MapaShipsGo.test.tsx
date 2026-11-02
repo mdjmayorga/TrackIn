@@ -45,6 +45,19 @@ describe('dirección del mapa en vivo de ShipsGo', () => {
     expect(url.searchParams.get('query')).toBe('020-25244995')
   })
 
+  it('pide el embarque con el número como lo registró ShipsGo (02/11/2026)', () => {
+    // ShipsGo guarda los BL de Maersk sin `MAEU`: con el nuestro, su mapa sale vacío.
+    const url = new URL(
+      urlMapaShipsGo(
+        rastreo({ referencia: 'MAEU271108898', referencia_fuente: '271108898' }),
+        'MARITIMO',
+        'tok',
+      )!,
+    )
+
+    expect(url.searchParams.get('query')).toBe('271108898')
+  })
+
   it.each([
     ['sin token configurado', rastreo(), ''],
     ['sin rastreo', null, 'tok'],

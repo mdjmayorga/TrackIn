@@ -3,8 +3,8 @@
  *
  * Muestra solo lo que el rol puede hacer. Lo que no aplica a la etapa actual
  * se ve deshabilitado y dice por qué: un botón que desaparece no explica nada.
- * Ninguna acción es de un clic: todas abren su formulario con el motivo
- * obligatorio de RF-14.
+ * Ninguna acción es de un clic: todas abren su formulario. El motivo es
+ * opcional en todas (decisión del 02/11/2026).
  *
  * «Actualizar nave por transbordo» no está: es `US-30`, en el Sprint 7.
  */
@@ -24,6 +24,7 @@ import {
   confirmarDesembarco,
   liberarCalidad,
   pasarAAduana,
+  registrarEta,
   registrarRecepcion,
 } from '@/services/acciones'
 import { mensajeDeError } from '@/services/api'
@@ -37,9 +38,6 @@ import {
   formatearFechaHora,
   sumarDias,
 } from '@/utils/fechas'
-
-/** El mínimo del backend (`auditoria.LONGITUD_MINIMA_MOTIVO`). */
-export const MOTIVO_MINIMO = 5
 
 interface Definicion {
   accion: Accion
@@ -74,13 +72,27 @@ const ACCIONES: Definicion[] = [
       p.etapa_viaje === 'RECIBIDO_EN_PLANTA' ? null : 'Exige la recepción en planta.',
   },
   {
+    accion: 'eta',
+    titulo: 'Registrar ETA',
+    // `US-67`: para cuando la fuente no da la llegada a Costa Rica —la guía
+    // termina en un transbordo—. Después de la llegada, la base es la llegada.
+    bloqueo: (p) =>
+      ETAPAS_SIN_LLEGADA.includes(p.etapa_viaje)
+        ? null
+        : 'El pedido ya llegó: la fecha base es la llegada, no una ETA.',
+  },
+  {
     accion: 'ajuste',
     titulo: 'Ajustar días',
     // Se elige la nueva fecha en un calendario: sin fecha calculada no hay qué mover.
     bloqueo: (p) =>
-      p.calculo.fecha_proyectada ? null : 'Sin fecha proyectada: no hay fecha que ajustar.',
+      p.calculo.fecha_proyectada
+        ? null
+        : 'Sin fecha proyectada: registre antes la ETA para tener una fecha que ajustar.',
   },
 ]
+
+const ETAPAS_SIN_LLEGADA: readonly string[] = ['SIN_TRACKING', 'EN_ORIGEN', 'EN_TRANSITO']
 
 export function AccionesPedido({ pedido }: { pedido: PedidoDetalle }) {
   const sesion = useSesion()
@@ -155,12 +167,15 @@ function Formulario({ accion, pedido, onListo }: FormularioProps) {
   const calculada = proyectada ? sumarDias(proyectada, -ajusteActual) : null
   const [nuevaFecha, setNuevaFecha] = useState(proyectada ?? '')
   const dias = calculada && nuevaFecha ? diasEntre(calculada, nuevaFecha) : ajusteActual
+  const etaActual = pedido.calculo.eta_manual ?? null
+  const [eta, setEta] = useState(etaActual ?? '')
   const [motivo, setMotivo] = useState('')
 
   const ejecutar = useMutation({
-    mutationFn: async (variante: 'normal' | 'reemplazar' | 'parcial') => {
+    mutationFn: async (variante: 'normal' | 'reemplazar' | 'parcial' | 'quitar') => {
       const instante = campoAInstante(fecha)
-      const base = { motivo }
+      // Sin motivo, la bitácora dice «Sin motivo declarado.».
+      const base = { motivo: motivo.trim() || null }
       switch (accion) {
         case 'desembarco':
           return confirmarDesembarco(pedido.id, {
@@ -169,7 +184,7 @@ function Formulario({ accion, pedido, onListo }: FormularioProps) {
             confirmar: variante === 'reemplazar',
           })
         case 'aduana':
-          return pasarAAduana(pedido.id, { motivo: motivo.trim() || null })
+          return pasarAAduana(pedido.id, base)
         case 'recepcion':
           return (variante === 'parcial' ? cerrarForzado : registrarRecepcion)(pedido.id, {
             ...base,
@@ -180,6 +195,8 @@ function Formulario({ accion, pedido, onListo }: FormularioProps) {
           return liberarCalidad(pedido.id, { ...base, fecha: instante, cantidad })
         case 'ajuste':
           return ajustarDias(pedido.id, { ...base, dias })
+        case 'eta':
+          return registrarEta(pedido.id, { ...base, eta: variante === 'quitar' ? null : eta })
       }
     },
     onSuccess: (detalle) => {
@@ -190,18 +207,17 @@ function Formulario({ accion, pedido, onListo }: FormularioProps) {
 
   const llegadaPrevia = comoConflictoDesembarco(ejecutar.error)
   const recepcionCorta = comoRecepcionCorta(ejecutar.error)
-  const sinCambio = accion === 'ajuste' && dias === ajusteActual
-  // El paso a aduana no exige motivo (27/10/2026); las demás intervenciones sí.
-  const motivoOpcional = accion === 'aduana'
-  const listo =
-    (motivoOpcional || motivo.trim().length >= MOTIVO_MINIMO) && !ejecutar.isPending && !sinCambio
+  const sinCambio =
+    (accion === 'ajuste' && dias === ajusteActual) ||
+    (accion === 'eta' && (eta === '' || eta === etaActual))
+  const listo = !ejecutar.isPending && !sinCambio
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
     ejecutar.mutate('normal')
   }
 
-  const conFecha = accion !== 'aduana' && accion !== 'ajuste'
+  const conFecha = accion !== 'aduana' && accion !== 'ajuste' && accion !== 'eta'
   const etiquetaFecha = {
     desembarco: 'Fecha y hora de llegada',
     recepcion: 'Fecha y hora de recepción',
@@ -268,10 +284,26 @@ function Formulario({ accion, pedido, onListo }: FormularioProps) {
         </Campo>
       )}
 
-      <Campo
-        etiqueta={motivoOpcional ? 'Motivo (opcional)' : 'Motivo (obligatorio)'}
-        ayuda="Queda en la bitácora del pedido."
-      >
+      {accion === 'eta' && (
+        <Campo
+          etiqueta="Llegada estimada a Costa Rica"
+          ayuda={
+            etaActual
+              ? `Registrada: ${formatearFecha(etaActual)}. Si la fuente da una ETA a destino, manda la de la fuente.`
+              : 'Se usa mientras la fuente no dé una ETA a destino.'
+          }
+        >
+          <input
+            type="date"
+            value={eta}
+            required
+            onChange={(e) => setEta(e.target.value)}
+            className={ESTILO_CAMPO}
+          />
+        </Campo>
+      )}
+
+      <Campo etiqueta="Motivo (opcional)" ayuda="Queda en la bitácora del pedido.">
         <textarea
           value={motivo}
           rows={2}
@@ -327,6 +359,16 @@ function Formulario({ accion, pedido, onListo }: FormularioProps) {
         >
           {ejecutar.isPending ? 'Guardando…' : 'Confirmar'}
         </button>
+        {accion === 'eta' && etaActual && (
+          <button
+            type="button"
+            disabled={ejecutar.isPending}
+            onClick={() => ejecutar.mutate('quitar')}
+            className="text-sm text-slate-300 underline disabled:opacity-50"
+          >
+            Quitar la ETA
+          </button>
+        )}
         <button type="button" onClick={onListo} className="text-sm text-slate-300 underline">
           Cancelar
         </button>

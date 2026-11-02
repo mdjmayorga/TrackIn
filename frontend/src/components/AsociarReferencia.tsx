@@ -1,7 +1,7 @@
 /**
  * Asociar el identificador de rastreo a un pedido que no lo tiene (`US-20`,
- * wireframes §4.7). Como toda intervención, pide el motivo (RF-14): no hay
- * botón que ejecute de un clic (§4.8).
+ * wireframes §4.7). No hay botón que ejecute de un clic (§4.8); el motivo es
+ * opcional, como en toda intervención (02/11/2026).
  *
  * La vía normal es el Z-tracking —las columnas de referencia del archivo—;
  * esto es para cuando la referencia llega por otro lado: un correo del agente,
@@ -9,8 +9,7 @@
  *
  * **Con `corregir`** (29/10/2026) cambia una referencia mal escrita: un BL con
  * «BL» de más o con un dígito de menos no lo encuentra ShipsGo, y el pedido se
- * queda sin posición. Se cierra el tramo de la equivocada y se abre otro; el
- * motivo es opcional.
+ * queda sin posición. Se cierra el tramo de la equivocada y se abre otro.
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -43,9 +42,6 @@ function tipos(via: Via): Array<[TipoReferencia, string]> {
   return [] // la vía terrestre no se rastrea
 }
 
-/** El mínimo del backend (`auditoria.LONGITUD_MINIMA_MOTIVO`). */
-const MOTIVO_MINIMO = 5
-
 export interface AsociarReferenciaProps {
   idPedido: number
   via: Via
@@ -65,9 +61,11 @@ export function AsociarReferencia({ idPedido, via, corregir, onListo }: AsociarR
 
   const asociar = useMutation({
     mutationFn: () =>
-      corregir
-        ? corregirReferencia(idPedido, { tipo: tipo!, numero, motivo: motivo.trim() || null })
-        : asociarReferencia(idPedido, { tipo: tipo!, numero, motivo }),
+      (corregir ? corregirReferencia : asociarReferencia)(idPedido, {
+        tipo: tipo!,
+        numero,
+        motivo: motivo.trim() || null,
+      }),
     // Cambió la etapa: grilla, KPIs, arribos y bitácora se vuelven a pedir.
     onSuccess: (detalle) => {
       refrescarTrasIntervenir(queryClient, detalle)
@@ -82,10 +80,7 @@ export function AsociarReferencia({ idPedido, via, corregir, onListo }: AsociarR
 
   const mismo =
     corregir !== undefined && tipo === corregir.tipo && numero.trim() === corregir.numero
-  const completo =
-    numero.trim() !== '' &&
-    !mismo &&
-    (corregir !== undefined || motivo.trim().length >= MOTIVO_MINIMO)
+  const completo = numero.trim() !== '' && !mismo
 
   if (tipo === undefined) {
     return <p className="text-xs text-slate-400">La vía terrestre no se rastrea.</p>
@@ -124,7 +119,7 @@ export function AsociarReferencia({ idPedido, via, corregir, onListo }: AsociarR
         </label>
       </div>
       <label className="flex flex-col text-xs text-slate-300">
-        {corregir ? 'Motivo (opcional)' : 'Motivo (obligatorio)'}
+        Motivo (opcional)
         <textarea
           value={motivo}
           onChange={(e) => setMotivo(e.target.value.slice(0, 300))}

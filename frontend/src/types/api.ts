@@ -159,6 +159,8 @@ export interface Rastreo {
   /** CONTENEDOR, BL, BOOKING, MAWB, HAWB… */
   tipo: string
   referencia: string
+  /** El número como lo registró ShipsGo (`271108898` para `MAEU271108898`). */
+  referencia_fuente?: string | null
   via_transporte: Via
   /** Nombre de la nave, si la fuente lo dio. */
   nombre: string | null
@@ -233,6 +235,8 @@ export interface Calculo {
   lead_time_dias: number
   lead_time_maestro_dias: number
   ajuste_manual_dias: number
+  /** La ETA a Costa Rica registrada a mano (`US-67`), si la hay. */
+  eta_manual?: string | null
   fecha_proyectada: string | null
   fecha_comprometida: string
   ventana_aduanal_dias: number | null
@@ -278,7 +282,8 @@ export interface AsientoBitacora {
   fecha_hora: string
   usuario: string
   nombre_usuario: string
-  rol: Rol
+  /** `SISTEMA` en lo automático: cambios de etapa y hitos del viaje (`US-29`). */
+  rol: Rol | 'SISTEMA'
   tipo: string
   campo: string | null
   valor_anterior: string | null

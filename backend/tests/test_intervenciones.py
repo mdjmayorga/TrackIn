@@ -232,16 +232,19 @@ async def test_sobrescribir_una_llegada_confirmada_exige_confirmarlo(api, sesion
     assert segundo["valor_nuevo"].startswith("2026-09-21")
 
 
-async def test_sin_motivo_no_se_confirma(api, sesion) -> None:
+@pytest.mark.parametrize("cuerpo", [{"motivo": " "}, {}])
+async def test_sin_motivo_tambien_se_confirma(api, sesion, cuerpo) -> None:
+    """El motivo es opcional en todo el sistema (decisión del 02/11/2026)."""
     cliente, _ = api
     pedido = await _pedido(sesion)
 
     respuesta = await cliente.post(
-        _url(pedido, "desembarco"), json={"ata": LLEGADA.isoformat(), "motivo": " "}
+        _url(pedido, "desembarco"), json={"ata": LLEGADA.isoformat(), **cuerpo}
     )
 
-    assert respuesta.status_code == 422
-    assert "motivo es obligatorio" in respuesta.json()["detail"]
+    assert respuesta.status_code == 200, respuesta.text
+    (asiento,) = (await cliente.get(_url(pedido, "bitacora"))).json()[:1]
+    assert asiento["motivo"] == "Sin motivo declarado."
 
 
 async def test_un_pedido_cerrado_no_admite_la_confirmacion(api, sesion) -> None:
@@ -573,7 +576,7 @@ async def test_solo_se_recibe_lo_que_paso_aduana(api, sesion, etapa, esperado) -
         ({"cantidad": "-1"}, "greater than or equal to 0"),
         ({"fecha": "2026-09-29T10:00:00"}, "zona horaria"),
         ({"fecha": "2099-01-01T10:00:00-06:00"}, "no puede ser futura"),
-        ({"motivo": "ok"}, "motivo es obligatorio"),
+        ({"motivo": "x" * 301}, "no puede pasar de 300"),
     ],
 )
 async def test_los_datos_invalidos_se_rechazan(api, sesion, datos, esperado) -> None:
@@ -777,7 +780,7 @@ async def test_un_pedido_cerrado_no_se_libera_otra_vez(api, sesion) -> None:
         ({"fecha": "2026-10-02T09:00:00"}, "zona horaria"),
         ({"fecha": "2099-01-01T10:00:00-06:00"}, "no puede ser futura"),
         ({"fecha": "2026-09-28T10:00:00-06:00"}, "anterior a la recepción"),
-        ({"motivo": "ok"}, "motivo es obligatorio"),
+        ({"motivo": "x" * 301}, "no puede pasar de 300"),
     ],
 )
 async def test_los_datos_invalidos_de_la_liberacion_se_rechazan(
@@ -894,7 +897,7 @@ async def test_repetir_el_mismo_ajuste_no_deja_asiento(api, sesion) -> None:
 @pytest.mark.parametrize(
     ("datos", "esperado"),
     [
-        ({"motivo": "ok"}, "motivo es obligatorio"),
+        ({"motivo": "x" * 301}, "no puede pasar de 300"),
         ({"dias": 366}, "less than or equal to 365"),
         ({"dias": -366}, "greater than or equal to -365"),
     ],
@@ -992,8 +995,7 @@ async def test_una_referencia_con_digito_de_control_malo_no_se_asocia(api, sesio
 @pytest.mark.parametrize(
     ("datos", "esperado"),
     [
-        ({"tipo": "BL", "numero": "COSU6508789000", "motivo": "x"}, 422),
-        ({"tipo": "BL", "numero": "COSU6508789000"}, 422),
+        ({"tipo": "BL", "numero": "COSU6508789000", "motivo": "x" * 301}, 422),
         ({"tipo": "VUELO", "numero": "AA123", "motivo": MOTIVO_REFERENCIA}, 422),
         ({"tipo": "BL", "numero": "", "motivo": MOTIVO_REFERENCIA}, 422),
     ],
