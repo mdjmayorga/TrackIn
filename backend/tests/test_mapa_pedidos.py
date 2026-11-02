@@ -282,3 +282,75 @@ async def test_un_marcador_maritimo_no_es_estimado(api, sesion) -> None:
 
     assert marcador["posicion_estimada"] is False
     assert marcador["situacion"] is None
+
+
+# --- El destino final y la ruta completa (02/11/2026) -------------------------
+
+_HASTA_FRANCFORT = [
+    {
+        "vuelo": "LH8401",
+        "origen": "PVG",
+        "destino": "FRA",
+        "salida": (AHORA - dt.timedelta(days=6)).isoformat(),
+        "llegada": (AHORA - dt.timedelta(days=5)).isoformat(),
+        "ruta": [[121.8, 31.1], [8.6, 50.0]],
+    }
+]
+
+
+async def _guia_hasta_francfort(sesion, numero: str, oc: str, **kwargs):
+    aeropuerto = await _destino(sesion, "MROC")
+    guia = await _elemento(
+        sesion,
+        tipo_tracking_externo="MAWB",
+        tracking_externo=numero,
+        via_transporte="AEREO",
+        ultima_actualizacion_api=AHORA,
+        trayecto_aereo=_HASTA_FRANCFORT,
+        **kwargs,
+    )
+    return await _pedido(sesion, oc, 10, destino=aeropuerto, id_elemento_rastreado=guia.id)
+
+
+async def test_un_trazado_cortado_en_el_transbordo_espera_ahi(api, sesion) -> None:
+    """Como la guía `78469391954`: el trazado termina en un transbordo y no llegó."""
+    await _guia_hasta_francfort(sesion, "784-11112222", "4588900020")
+
+    (marcador,) = (await api.get(f"{URL}/AEREO")).json()["marcadores"]
+
+    assert (marcador["situacion"], marcador["lugar"]) == ("EN_TIERRA", "FRA")
+    assert (marcador["latitud"], marcador["longitud"]) == (50.0, 8.6)
+
+
+async def test_si_ya_llego_se_dibuja_en_el_destino_del_pedido(api, sesion) -> None:
+    """Como la guía `020-05128546`: llegó a SJO, pero el trazado terminaba en Fráncfort."""
+    await _guia_hasta_francfort(
+        sesion, "020-11113333", "4588900021", ata_api=AHORA - dt.timedelta(days=3)
+    )
+
+    (marcador,) = (await api.get(f"{URL}/AEREO")).json()["marcadores"]
+
+    assert (marcador["situacion"], marcador["lugar"]) == ("FINALIZADO", "SJO")
+    assert marcador["latitud"] == pytest.approx(10.0, abs=0.1)
+    assert marcador["longitud"] == pytest.approx(-84.2, abs=0.1)
+
+
+async def test_el_marcador_aereo_trae_la_ruta_completa(api, sesion) -> None:
+    await _guia_hasta_francfort(sesion, "784-11114444", "4588900022")
+
+    (marcador,) = (await api.get(f"{URL}/AEREO")).json()["marcadores"]
+
+    (tramo,) = marcador["trayecto"]
+    assert (tramo["vuelo"], tramo["origen"], tramo["destino"]) == ("LH8401", "PVG", "FRA")
+    # En el orden de Leaflet: latitud primero.
+    assert tramo["ruta"] == [[31.1, 121.8], [50.0, 8.6]]
+
+
+async def test_el_detalle_aereo_trae_la_ruta_y_donde_esta(api, sesion) -> None:
+    pedido = await _guia_hasta_francfort(sesion, "784-11115555", "4588900023")
+
+    rastreo = (await api.get(f"/api/v1/pedidos/{pedido.id}")).json()["rastreo"]
+
+    assert [t["destino"] for t in rastreo["trayecto"]] == ["FRA"]
+    assert rastreo["posicion_aerea"]["situacion"] == "EN_TIERRA"
+    assert rastreo["posicion_aerea"]["lugar"] == "FRA"

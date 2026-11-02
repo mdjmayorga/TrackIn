@@ -106,7 +106,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-57` | Saldo de créditos de ShipsGo y aviso antes de que se agoten | Story | OE2 | **Should** | Sprint 6 | 4h | Acuerdo del 06/10: compra anual de créditos |
 | `US-56` | ~~Leer los pedidos del Z-tracking desde la API de SAP~~ ❌ | Story | OE2 | — | — | — | **Cancelada el 07/10:** la API de SAP no va a existir. La reemplaza `US-58` |
 | `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga ✅ | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada · ✅ terminada 08/10 |
-| `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` |
+| `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar ✅ | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` · ✅ terminada 02/11: plantilla con el diseño de WK43, formato por campo y referencias que llegan en cargas posteriores |
 | `US-60` | Acciones del detalle: confirmar desembarco, pasar a aduana, recibir, ajustar días y liberar ✅ | Story | OE3 | **Must** | Sprint 6 | 8h | 15/10: los endpoints existían desde el Sprint 5; las pantallas, no · ✅ terminada 15/10 |
 | `US-61` | Cambiar la propia contraseña ✅ | Story | OE3 | **Should** | Sprint 6 | 4h | 20/10: creación de la cuenta de Compras · hoy solo el Administrador reinicia contraseñas · ✅ terminada 20/10 |
 | `US-63` | OC, POS y SOLPED en la grilla de la pantalla de planta ✅ | Story | OE3 | **Must** | Sprint 6 | 4h | Reunión con Compras 22/10 · solo planta: Compras no ve la SOLPED · ✅ terminada 26/10 |
@@ -2631,6 +2631,12 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 >
 > **28/10: adelantadas 40 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
 > reales), `US-30` y `US-33` terminadas y `TASK-10` cerrada sin retención.
+>
+> **02/11, primer día del sprint: 48 de 63 h.** `US-59` terminada. La primera carga real (WK43,
+> 29/10) dejó 109 de 115 pedidos `SIN_TRACKING`: el lector no reconocía las columnas de
+> referencia nuevas y la carga no asociaba referencias a pedidos existentes. Ambas cosas se
+> corrigieron con `US-59`. Quedan `US-44` (país de origen), `US-29`, `US-27` y cerrar `US-25` y
+> `US-26` con embarques en viaje.
 
 > **Hito: compra de los créditos de ShipsGo, ~06/11**, una semana antes de la entrega (acuerdo
 > con Compras y ShipsGo del 07/10). `US-55` y `US-57` llegan ya verificadas con los 49
@@ -2963,6 +2969,67 @@ Como usuario de Logística, quiero sustituir la nave de un pedido cuando hay tra
 > `MAEU271108898` (o `271108898`): ya está en la cuenta, el worker lo encuentra sin gastar
 > nada. El -40 con `MAEU274029064`: no está en la cuenta, así que necesita un alta nueva
 > (1 crédito), salvo que ShipsGo corrija el embarque 6969308.
+
+> **02/11/2026 — «En destino» lo decide nuestro destino final, no ShipsGo** (observación de
+> Mariano: un transbordo no es un destino). `EN_DESTINO` ya significaba llegada al destino
+> final: la llegada a un puerto de transbordo deja el pedido en `EN_TRANSITO`, y la etapa
+> `EN_DESTINO` que calcula la lectura nunca se aplica directo (el worker solo toma `EN_ORIGEN` y
+> `EN_TRANSITO` de la fuente). Pero la ATA, que es lo que dispara el arribo (`US-11`), salía de
+> la primera llegada al destino **que declara ShipsGo**, y si la ruta no traía destino, de
+> **cualquier** llegada. Con una ruta truncada —una guía cuyo último tramo conocido termina en
+> Fráncfort— una llegada al transbordo habría dado el pedido por arribado.
+>
+> - **Ahora la ATA es la primera llegada a un destino activo del maestro** (Moín, Limón,
+>   Caldera, Juan Santamaría), con los códigos de ShipsGo traducidos (`CRPMN`→`CRMOB`,
+>   `SJO`→`MROC`): `colector_shipsgo.llegada_a_destino_final`. Del maestro y no del destino de
+>   cada pedido, porque la carga corrige ese destino con el puerto de la naviera (`US-54`).
+> - **No se agrega una etapa «En transbordo»:** el pedido sigue en tránsito, y el transbordo ya
+>   se ve en el detalle (`US-30`) y en el mapa aéreo («En tierra en FRA, esperando vuelo»). Si
+>   hace falta en la grilla, iría como indicador dentro de «En tránsito», no como etapa.
+> - **Verificado contra `trackin_dev`:** los 10 embarques con ATA dan la misma fecha con la
+>   regla nueva; ninguno estaba mal dado por arribado.
+> - **El mapa aéreo, con la misma regla:** dos MAWB (`02028087662`, `020-05128546`) llegaron a
+>   SJO, pero el trazado que da ShipsGo solo traía el primer vuelo y el mapa las dibujaba
+>   «concluidas» en Fráncfort (Mariano lo vio en el pedido 4500018188). Ahora
+>   (`posicion_aerea.estimar`): si ya llegó a nuestro destino, se dibuja en el aeropuerto de
+>   destino del pedido; si el trazado se corta en otro aeropuerto y no llegó, está «en tierra,
+>   esperando vuelo» ahí, no «concluido». 4 pruebas más en `test_posicion_aerea.py`.
+> - **Pruebas:** 5 en `test_colector_shipsgo.py`, con la guía grabada PEK→FRA→SJO cortada en
+>   Fráncfort, con y sin destino declarado.
+>
+> **02/11, más tarde — el caso que la regla vieja ya había dejado mal, y los vuelos sin línea.**
+>
+> - **Pedido 4500018865 (MAWB `78469391954`, China Southern):** ShipsGo trae solo NKG→CAN→CDG y
+>   declara **París** como destino. El worker lo leyó a las 10:32, antes de la corrección: la
+>   llegada a CDG quedó como ATA, el pedido pasó a «En destino» y el embarque se apagó. La regla
+>   nueva no deshace lo guardado, y apagado el worker no lo iba a revisar. **Corregido con
+>   `scripts/revisar_arribos.py`** (`--ensayo` primero): vuelve a leer cada embarque de ShipsGo con
+>   ATA y, si no llegó a Costa Rica, borra la ATA, reactiva el embarque y devuelve a «En
+>   tránsito» los pedidos que estaban «En destino» solo por la fuente. De 11, era el único.
+> - **La ETA, con la misma regla:** ShipsGo la calcula para el destino que declara, así que la de
+>   esa guía era la llegada a París (24/10) y proyectaba el 31/10. Ahora `eta_api` se toma solo
+>   si el destino declarado es uno de los nuestros; si no, queda vacía y la proyección no
+>   inventa una fecha.
+> - **Los vuelos que ShipsGo no dibuja** (`shipsgo.completar_tramos`): el trazado de
+>   `020-05128546` y `02028087662` no traía el LH518 FRA→SJO. Los eventos sí traen ese vuelo
+>   —salida y llegada con aeropuerto y hora— y el trazado el punto de cada aeropuerto: el tramo
+>   se reconstruye con la ruta ortodrómica, continua al cruzar el antimeridiano. Sirve para
+>   ubicar el avión mientras vuela ese tramo y para dibujar su línea en nuestro mapa.
+> - **Pruebas:** 1 más en `test_colector_shipsgo.py` (la ETA) y 3 en `test_shipsgo_aereo.py`.
+> - **La ruta completa, en los dos mapas** (decisión de Mariano):
+>   - **Detalle de un envío aéreo:** el mapa propio en lugar del Embed de ShipsGo, con todos
+>     los vuelos —los reconstruidos incluidos; trazo continuo si ya aterrizó, punteado si
+>     no— y dónde está ahora la carga, con la misma regla del destino final
+>     (`rastreo.trayecto`, `rastreo.posicion_aerea`). Los marítimos siguen con el Embed.
+>   - **Mapa aéreo del panel:** un clic en un vuelo muestra su ruta completa
+>     (`marcador.trayecto`); un clic en el fondo la oculta.
+>   - **Por qué el Embed no mostraba la guía de París:** ShipsGo registra las MAWB como
+>     `784-69391954` y el Excel las trae sin guion (`78469391954`); el Embed busca por texto
+>     y no la encontraba. Pasaba con tres de las cinco MAWB. Con el mapa propio deja de
+>     importar para los aéreos.
+>   - **Pruebas:** 4 de API en `test_mapa_pedidos.py` y 4 de frontend (`DetallePedido`,
+>     `MapaEmbarques`). El clic del panel no se puede simular en jsdom (el mapa no tiene
+>     tamaño): se prueba lo que dibuja la ruta elegida.
 
 > **28/10, verificación con los 3 pedidos en destino de `trackin_dev` — y un defecto previo.**
 > Mariano no veía los transbordos en la línea de tiempo. Dos causas:
@@ -4420,6 +4487,83 @@ exactamente qué dato está mal antes de que un pedido entre con información eq
 >   Guatemala y México— y no confundirlo con ruido. No se rastrea, ningún destino terrestre
 >   existe en el maestro y hoy esas líneas ya no entran, pero por «sin destino». El filtro
 >   «Vía» del panel ofrece solo Marítimo y Aéreo desde el mismo día.
+
+> **✅ Terminada el 02/11/2026**, con tres decisiones de Mariano que ajustan los criterios al
+> archivo real.
+>
+> **Lo que mostró WK43 (29/10), la primera carga real.** Cambió de forma otra vez: las cuatro
+> columnas de `TASK-30` desaparecieron y `PRODUCCION` trae dos propias de Compras, `TIPO DE
+> DOCUMENTO AWB / BL` y `# DE DOCUMENTO` (con `AWB` o `BL`); `IDA` no trae ninguna, y
+> `Comentario comprador` pasó a `Comentarios`. **El lector no reconocía ninguna de las tres**:
+> de las 33 líneas que entraron, ninguna tomó su referencia, y 109 de los 115 pedidos quedaron
+> `SIN_TRACKING`. El comentario, además, escribe `BL MAEU_274029064`, y el guion bajo partía el
+> número.
+>
+> **Decisiones (02/11):**
+>
+> 1. **Encabezados: se rechaza solo si falta una columna que TrackIn usa**, no si sobra una. El
+>    criterio pedía rechazar también por «sobran», pero el archivo lo mantienen personas y cambia
+>    entre entregas: WK43 se habría rechazado entero. Las diferencias con la plantilla van al
+>    informe como aviso, por hoja («No trae estas columnas de la plantilla…», «Trae columnas que
+>    la plantilla no tiene…»). La vía pasa a ser columna obligatoria.
+> 2. **Formato según el campo.** No entran: OC (10 dígitos), posición (entero positivo),
+>    material (numérico), cantidad (mayor que cero) y fecha de entrega. Entran sin el dato y con
+>    incidencia `entro_sin_dato`: la ETA declarada. La referencia mal escrita sigue entrando sin
+>    rastreo (`US-32`): esconder el pedido por un BL mal tecleado sería peor. `PENDIENTE`, `NA`,
+>    `#N/A` y la celda en cero **no** son formato inválido: son «todavía no hay dato» (157 en la
+>    ETA de WK43). El arribo declarado no se valida como fecha: es `SI`/`NO`, no una fecha.
+> 3. **La plantilla usa los nombres de WK43**, los que Compras ya adoptó, en las dos hojas. Los de
+>    `TASK-30` se siguen aceptando como alias.
+> 4. **La plantilla trae solo lo que el sistema usa** (segunda decisión del 02/11, sobre la
+>    primera versión, que copiaba las 43 columnas de WK43): 17 columnas. Las 8 obligatorias van
+>    sin sufijo; las opcionales llevan «(opcional)», que el lector quita antes de comparar; el
+>    incoterm, «(obligatorio si es marítimo)». Fuera: las columnas internas de Compras, la
+>    posición duplicada de la SOLPED, la temperatura, el fabricante y el tipo de proveedor (se
+>    guardan, pero ninguna pantalla los usa) y `Carga arribo a Costa Rica` (se lee y no se
+>    guarda). Una hoja `INSTRUCCIONES` dice formato y uso de cada columna. Las diferencias
+>    se comparan **por campo**: el aviso dice solo las opcionales que faltan, y las columnas de
+>    más del archivo de Compras no se avisan. El mínimo de rótulos reconocidos baja de 10 a 8,
+>    para que la plantilla llena solo con las obligatorias se acepte. **Efecto a tener en
+>    cuenta:** cargar con la plantilla deja vacíos la temperatura, el fabricante y el tipo de
+>    proveedor de los pedidos que ya los tenían, porque el archivo es la fuente de esos campos.
+> 5. **Documento, texto del material y SOLPED pasan a ser columnas obligatorias** (tercera
+>    decisión del 02/11): `TIPO DE DOCUMENTO AWB / BL`, `# DE DOCUMENTO`, `Texto breve Material`
+>    y `Solicitud de pedido`, sin «(opcional)». Obligatoria quiere decir que **la columna tiene
+>    que estar**; la celda puede ir vacía. Para el documento no había otra opción razonable: en
+>    WK43, 80 de las 98 líneas con vía válida todavía no lo tenían, porque el BL existe al
+>    zarpar; esas entran `SIN_TRACKING` y lo toman en una carga posterior. Quedan 12
+>    obligatorias; la hoja `INSTRUCCIONES` marca estas cuatro como «Sí, puede ir vacía». Si
+>    solo faltan estas cuatro, el rechazo dice cuáles agregar; si faltan otras, sigue diciendo
+>    que el libro no parece un Z-tracking. **Consecuencia:** los archivos reales anteriores
+>    ya no se cargan tal cual. WK36 y WK38 se rechazan por `PRODUCCION`, y **WK43 por `IDA`**,
+>    que no trae las columnas de documento. Compras tiene que usar la plantilla, o agregar esas
+>    dos columnas a `IDA`, antes de la próxima carga.
+>
+> **Lo construido:**
+>
+> - **Plantilla** (`GET /cargas/plantilla`, Compras y Administrador; `ingesta/plantilla.py`):
+>   `PRODUCCION` e `IDA` con las 17 columnas de `ztracking.PLANTILLA`, 12 obligatorias (en azul
+>   oscuro), listas desplegables para la vía y el tipo de documento, formato de fecha y la hoja
+>   `INSTRUCCIONES`. En «Cargar Z-tracking», el enlace «Descargar plantilla».
+> - **Validación de formato** (`ILEGIBLE_FORMATO`): el informe dice hoja y fila, OC-posición,
+>   el campo, el valor que traía y lo esperado — «`«Fecha Entrega» trae «30/11.2026»; se espera
+>   una fecha, como 30/11/2026`». Las fechas escritas como texto `dd/mm/aaaa` se aceptan.
+> - **Lector:** alias de WK43 para las columnas de referencia y el comentario; `AWB` se
+>   clasifica como `MAWB` u `HAWB` por su forma; el comentario ignora el guion bajo.
+> - **Fuera del criterio, pero necesario (02/11):** la carga **solo asociaba la referencia al
+>   insertar** el pedido. La que llega en una semana posterior —lo normal: el BL existe al
+>   zarpar— no se tomaba nunca. Ahora la toma todo pedido **sin** referencia; una ya asociada, o
+>   corregida a mano en el detalle, no la pisa el archivo. Se cuenta en `referencias_nuevas`.
+>
+> **Ensayo con WK43 contra `trackin_dev`** (transacción revertida): **13 pedidos existentes
+> reciben su referencia**, el formato inválido aparece con su detalle e `IDA` recibe el aviso de
+> que le faltan las dos columnas de referencia. Siguen sin entrar 274 líneas sin vía y 65 EXW sin
+> puerto: eso es del archivo, no del lector. **Ojo:** el comentario de 4500016172-30 trae el BL
+> de 8 dígitos `MAEU71108898`, el mismo error que ya se corrigió en la -20; *Altas en ShipsGo*
+> lo marca con ⚠ antes de gastar un crédito.
+>
+> **Pruebas:** 39 de backend (`test_ztracking.py`, `test_plantilla.py`, `test_carga.py`,
+> `test_cargas_api.py`, `test_comentario.py`) y 4 de frontend (`Cargas.test.tsx`).
 
 ---
 

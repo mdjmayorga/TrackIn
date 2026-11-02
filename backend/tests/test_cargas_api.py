@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from sqlalchemy import delete, func, select
 
 from app.api.cargas import resolutor_de_destinos
@@ -405,3 +405,44 @@ def test_el_rechazo_guarda_el_nombre_sin_la_ruta_de_windows() -> None:
 def test_un_nombre_vacio_se_rechaza() -> None:
     with pytest.raises(carga_archivo.ArchivoInvalido):
         carga_archivo.validar_nombre("   ")
+
+
+# --- US-59: la plantilla y los avisos de estructura -------------------------
+
+
+async def test_compras_descarga_la_plantilla(api) -> None:
+    cliente, _ = api
+
+    respuesta = await cliente.get(f"{URL}/plantilla")
+
+    assert respuesta.status_code == 200
+    assert respuesta.headers["content-type"] == XLSX
+    assert "Plantilla Z-tracking.xlsx" in respuesta.headers["content-disposition"]
+    libro = load_workbook(io.BytesIO(respuesta.content))
+    assert libro.sheetnames == ["PRODUCCION", "IDA", "INSTRUCCIONES"]
+
+
+@pytest.mark.parametrize("rol", ["LOGISTICA", "PLANIFICACION", "PLANTA"])
+async def test_los_demas_roles_no_descargan_la_plantilla(api, sesion, rol) -> None:
+    cliente, _ = api
+    otro = await _usuario(sesion, rol)
+    app.dependency_overrides[usuario_actual] = lambda: Autenticado(
+        usuario=otro, sesion=Sesion(id=0, id_usuario=otro.id)
+    )
+
+    respuesta = await cliente.get(f"{URL}/plantilla")
+
+    assert respuesta.status_code == 403
+
+
+async def test_el_informe_avisa_en_que_se_aparta_el_archivo_de_la_plantilla(api) -> None:
+    cliente, _ = api
+
+    respuesta = await _subir(cliente, _ztracking(_WK36.linea()))
+
+    assert respuesta.status_code == 201
+    estructura = [a for a in respuesta.json()["avisos"] if a["tipo"] == "estructura"]
+    assert {a["clave"] for a in estructura} == {"PRODUCCION", "IDA"}
+    assert "Comentarios (opcional)" in estructura[0]["detalle"]
+    # Las columnas de más del archivo de Compras no se avisan: serían ruido.
+    assert "Fecha Entrega Solped" not in estructura[0]["detalle"]

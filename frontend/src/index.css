@@ -30,6 +30,12 @@
     width: max-content;
   }
 
+  /* El recuadro de un grupo que no se separa: la misma letra que el rótulo. */
+  .leaflet-popup.rotulo-mapa .leaflet-popup-content {
+    @apply my-2 text-[11px] leading-snug;
+    width: 15rem;
+  }
+
   .mapa-oscuro .leaflet-control-attribution {
     @apply bg-black/60 text-slate-300;
   }

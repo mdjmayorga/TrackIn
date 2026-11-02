@@ -466,6 +466,90 @@ describe('elemento rastreado y arribo', () => {
   })
 })
 
+describe('mapa de un envío aéreo (02/11/2026)', () => {
+  /** La guía `020-05128546`: ShipsGo no dibujaba el LH518 y TrackIn lo reconstruyó. */
+  function aereo() {
+    const base = detalle()
+    return {
+      ...base,
+      via_transporte: 'AEREO' as const,
+      rastreo: {
+        ...base.rastreo!,
+        tipo: 'MAWB',
+        referencia: '020-05128546',
+        via_transporte: 'AEREO' as const,
+        trayecto: [
+          {
+            vuelo: 'LH8401',
+            origen: 'PVG',
+            destino: 'FRA',
+            salida: '2026-10-27T02:01:00Z',
+            llegada: '2026-10-27T15:23:00Z',
+            ruta: [
+              [31.1, 121.8],
+              [50.0, 8.6],
+            ] as Array<[number, number]>,
+          },
+          {
+            vuelo: 'LH518',
+            origen: 'FRA',
+            destino: 'SJO',
+            salida: '2026-10-30T13:33:00Z',
+            llegada: '2026-10-31T01:09:00Z',
+            ruta: [
+              [50.0, 8.6],
+              [10.0, -84.2],
+            ] as Array<[number, number]>,
+          },
+        ],
+        posicion_aerea: {
+          latitud: 10.0,
+          longitud: -84.2,
+          situacion: 'FINALIZADO' as const,
+          vuelo: 'LH518',
+          lugar: 'SJO',
+        },
+      },
+    }
+  }
+
+  it('dibuja la ruta propia con todos los vuelos, aunque haya token del Embed', async () => {
+    vi.stubEnv('VITE_SHIPSGO_EMBED_TOKEN', 'tok')
+    try {
+      vi.mocked(obtenerPedido).mockResolvedValue(aereo())
+      montar()
+
+      expect(await screen.findByRole('heading', { name: 'Mapa del envío' })).toBeInTheDocument()
+      expect(screen.queryByTitle(/Mapa en vivo de ShipsGo/)).toBeNull()
+      expect(screen.getByText(/Vuelo LH518 concluido en SJO/)).toHaveTextContent(
+        'PVG → FRA · FRA → SJO',
+      )
+    } finally {
+      vi.stubEnv('VITE_SHIPSGO_EMBED_TOKEN', '')
+    }
+  })
+
+  it('en un transbordo dice dónde espera', async () => {
+    const guia = aereo()
+    vi.mocked(obtenerPedido).mockResolvedValue({
+      ...guia,
+      rastreo: {
+        ...guia.rastreo,
+        posicion_aerea: {
+          latitud: 50.0,
+          longitud: 8.6,
+          situacion: 'EN_TIERRA' as const,
+          vuelo: 'LH8401',
+          lugar: 'FRA',
+        },
+      },
+    })
+    montar()
+
+    expect(await screen.findByText(/En tierra en FRA, esperando vuelo/)).toBeInTheDocument()
+  })
+})
+
 describe('sin identificador: no rastreable (RN-02, §4.7)', () => {
   it('lo dice y ofrece asociar uno a Logística', async () => {
     vi.mocked(obtenerPedido).mockResolvedValue(detalle(SIN_RASTREO))

@@ -11,8 +11,21 @@ Qué se guarda y dónde
 | Payload completo | `historial_tracking.payload_api` | RF-21 / RNF-13, y porque ShipsGo **archiva** lo entregado |
 | Posición | `historial_tracking` + `elementos_rastreados.posicion_actual` | RF-20: el mapa lee la desnormalizada |
 | Nave e IMO | `elementos_rastreados.nombre` / `.imo` | `US-45`; el mapa (`US-27`) y el detalle (`US-44`) los consumen |
-| ETA | `elementos_rastreados.eta_api` | Es el tercer escalón de la precedencia de RN-14 que usa `US-09` |
-| ATA | `elementos_rastreados.ata_api` | Solo si hay hito de arribo **en el destino** |
+| ETA | `elementos_rastreados.eta_api` | Tercer escalón de RN-14 (`US-09`). Solo si ShipsGo la calcula para uno de nuestros destinos |
+| ATA | `elementos_rastreados.ata_api` | Solo si hay hito de arribo en **uno de nuestros destinos** |
+
+El destino final lo sabe TrackIn, no ShipsGo
+--------------------------------------------
+
+Hasta el 02/11/2026 la ATA salía de la primera llegada al destino **que declara
+ShipsGo** en la ruta, y si la ruta no traía destino, de **cualquier** llegada.
+Con una ruta incompleta —una guía cuyo último tramo conocido termina en
+Fráncfort— o sin destino, una llegada al puerto de transbordo daba el pedido por
+arribado. Ahora cuenta solo una llegada a un destino activo del maestro
+(Moín, Limón, Caldera, Juan Santamaría), con los códigos de ShipsGo traducidos
+(`destino_shipsgo.EQUIVALENCIAS`). Del maestro y no del destino de cada pedido:
+la carga corrige ese destino con el puerto que declara la naviera (`US-54`), y
+una llegada a Moín de un pedido que decía Limón también es la llegada final.
 
 El payload se guarda aunque no haya posición
 ---------------------------------------------
@@ -36,11 +49,14 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.elemento_rastreado import ElementoRastreado
+from app.models.maestro_destino import MaestroDestino
 from app.services import historial, transbordos
 from app.services.rastreo import shipsgo
+from app.services.rastreo.destino_shipsgo import EQUIVALENCIAS
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +77,39 @@ class ResultadoLectura:
     #: `True` si el payload quedó guardado, con o sin posición.
     payload_guardado: bool = False
     transbordo_detectado: bool = False
+
+
+async def destinos_finales(sesion: AsyncSession, via: str) -> frozenset[str]:
+    """Los códigos de los destinos activos del maestro para esa vía."""
+    codigos = await sesion.scalars(
+        select(MaestroDestino.codigo).where(
+            MaestroDestino.activo.is_(True), MaestroDestino.via_transporte == via
+        )
+    )
+    return frozenset(codigos)
+
+
+def es_destino_final(puerto: str | None, destinos: frozenset[str]) -> bool:
+    """Si un puerto o aeropuerto de ShipsGo es uno de nuestros destinos."""
+    return puerto is not None and EQUIVALENCIAS.get(puerto, puerto) in destinos
+
+
+def llegada_a_destino_final(
+    lectura: shipsgo.LecturaEmbarque, destinos: frozenset[str]
+) -> dt.datetime | None:
+    """La primera llegada ocurrida en uno de nuestros destinos, o `None`.
+
+    Una llegada a un puerto de transbordo no cuenta, aunque ShipsGo lo declare
+    como destino de la ruta: el pedido sigue en tránsito.
+    """
+    for hito in lectura.hitos:
+        if (
+            hito.ocurrido
+            and shipsgo.es_arribo(hito, lectura.via)
+            and es_destino_final(hito.puerto, destinos)
+        ):
+            return hito.instante
+    return None
 
 
 async def procesar(
@@ -95,10 +144,17 @@ async def procesar(
         elemento.nombre = lectura.vehiculo_actual.nombre[:120]
         if lectura.vehiculo_actual.imo is not None:
             elemento.imo = lectura.vehiculo_actual.imo
-    if lectura.eta is not None:
+    destinos = await destinos_finales(sesion, elemento.via_transporte)
+    if es_destino_final(lectura.puerto_destino, destinos):
         elemento.eta_api = lectura.eta
-    if lectura.ata is not None:
-        elemento.ata_api = lectura.ata
+    else:
+        # ShipsGo calcula la ETA para el destino que declara. Si es un
+        # transbordo —la guía `78469391954` declaraba París—, esa ETA no es la
+        # llegada a Costa Rica, y como fecha de llegada sería falsa (02/11/2026).
+        elemento.eta_api = None
+    ata = llegada_a_destino_final(lectura, destinos)
+    if ata is not None:
+        elemento.ata_api = ata
     elemento.ultima_actualizacion_api = ahora
     if lectura.tramos_aereos:
         # `US-26`: el horario y el trazado de los vuelos, para estimar dónde va.
@@ -166,5 +222,8 @@ __all__ = [
     "DESCARTE_SIN_DATOS",
     "DESCARTE_SIN_MADURAR",
     "ResultadoLectura",
+    "destinos_finales",
+    "es_destino_final",
+    "llegada_a_destino_final",
     "procesar",
 ]

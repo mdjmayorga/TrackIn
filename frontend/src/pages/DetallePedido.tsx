@@ -13,7 +13,8 @@
 
  */
 
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { CircleMarker, Tooltip, useMap } from 'react-leaflet'
 import { Link, useParams } from 'react-router-dom'
 
 import { puedeAsociar, puedeCargar } from '@/auth/permisos'
@@ -24,10 +25,12 @@ import { Distintivo } from '@/components/Distintivo'
 import { CUMPLIMIENTOS, ETAPAS, aparienciaDeEstado, etapaVisible } from '@/components/estados'
 import { MapaBase } from '@/components/MapaBase'
 import { MapaShipsGo } from '@/components/MapaShipsGo'
+import { RutaAerea } from '@/components/RutaAerea'
+import { BLANCO } from '@/components/paleta'
 import { SeguirGuiaMadre } from '@/components/SeguirGuiaMadre'
 import { useBitacora, usePedido } from '@/hooks/usePedidos'
 import { mensajeDeError } from '@/services/api'
-import type { AsientoBitacora, PedidoDetalle, Transbordo } from '@/types/api'
+import type { AsientoBitacora, PedidoDetalle, Rastreo, Transbordo } from '@/types/api'
 import {
   INTERVENCIONES,
   ORIGENES,
@@ -39,6 +42,7 @@ import {
 import { formatearFecha, formatearFechaHora, haceCuanto } from '@/utils/fechas'
 import { destinoCorto } from '@/utils/formatos'
 import { DE_SHIPSGO, urlMapaShipsGo } from '@/utils/mapaShipsGo'
+import { textoSituacion } from '@/utils/rotuloMapa'
 
 export default function DetallePedido() {
   const { id } = useParams()
@@ -461,6 +465,12 @@ function Evento({ asiento }: { asiento: AsientoBitacora }) {
 }
 
 function MapaDelEnvio({ pedido }: { pedido: PedidoDetalle }) {
+  // Aéreo con trayecto: el mapa propio, con todos los vuelos (02/11/2026). El de
+  // ShipsGo dejaba fuera los vuelos que no dibuja, y no encontraba las guías que
+  // el Excel trae sin guion (`78469391954` contra `784-69391954`).
+  if (pedido.via_transporte === 'AEREO' && pedido.rastreo?.trayecto?.length) {
+    return <MapaDelVuelo pedido={pedido} rastreo={pedido.rastreo} />
+  }
   // Con un envío rastreado por ShipsGo, su mapa en vivo; si no, el propio.
   const enVivo = urlMapaShipsGo(pedido.rastreo, pedido.via_transporte)
   if (enVivo && pedido.rastreo) {
@@ -489,4 +499,49 @@ function MapaDelEnvio({ pedido }: { pedido: PedidoDetalle }) {
       }}
     />
   )
+}
+
+/** La ruta completa de una guía aérea y dónde está ahora la carga. */
+function MapaDelVuelo({ pedido, rastreo }: { pedido: PedidoDetalle; rastreo: Rastreo }) {
+  const trayecto = rastreo.trayecto ?? []
+  const color = aparienciaDeEstado(pedido.estado_calculado).fondo
+  const actual = rastreo.posicion_aerea
+  const donde = actual ? textoSituacion(actual.situacion, actual.vuelo, actual.lugar) : null
+  const puntos = trayecto.flatMap((t) => t.ruta)
+  return (
+    <div>
+      <MapaBase titulo="Mapa del envío" ocultarTitulo centro={puntos[0] ?? [10, -84]} zoom={3}>
+        <RutaAerea trayecto={trayecto} color={color} />
+        {actual && (
+          <CircleMarker
+            center={[actual.latitud, actual.longitud]}
+            radius={8}
+            pathOptions={{ color: BLANCO, weight: 2, fillColor: color, fillOpacity: 1 }}
+          >
+            <Tooltip direction="top" offset={[0, -8]} className="rotulo-mapa">
+              {donde ?? `${rastreo.tipo} ${rastreo.referencia}`}
+            </Tooltip>
+          </CircleMarker>
+        )}
+        <Encuadrar puntos={puntos} />
+      </MapaBase>
+      <p className="mt-1 text-xs text-slate-400">
+        {donde ? `${donde}. ` : ''}
+        {trayecto.map((t) => `${t.origen ?? '?'} → ${t.destino ?? '?'}`).join(' · ')}. Trazo
+        continuo: vuelo ya aterrizado; punteado: pendiente.
+      </p>
+    </div>
+  )
+}
+
+/** Ajusta la vista a la ruta una sola vez, al abrir el detalle. */
+function Encuadrar({ puntos }: { puntos: Array<[number, number]> }) {
+  const mapa = useMap()
+  const hecho = useRef(false)
+  useEffect(() => {
+    if (hecho.current || puntos.length < 2) return
+    mapa.fitBounds(puntos, { padding: [24, 24] })
+    hecho.current = true
+  }, [mapa, puntos])
+  return null
 }

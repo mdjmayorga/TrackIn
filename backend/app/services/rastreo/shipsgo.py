@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import math
 from dataclasses import dataclass, field
 from typing import Any, Final
 
@@ -471,7 +472,9 @@ def interpretar(
     posicion, nave = _leer_posicion(geojson)
     lectura.posicion = posicion
     if lectura.via == VIA_AEREA:
-        lectura.tramos_aereos = leer_tramos_aereos(geojson)
+        lectura.tramos_aereos = completar_tramos(
+            leer_tramos_aereos(geojson), lectura.hitos, aeropuertos_del_trazado(geojson)
+        )
     lectura.vehiculo_actual = nave or (lectura.vehiculos[-1] if lectura.vehiculos else None)
     return lectura
 
@@ -604,6 +607,114 @@ def leer_tramos_aereos(geojson: dict[str, Any] | None) -> list[TramoAereo]:
             )
         )
     return tramos
+
+
+#: Puntos con que se dibuja un tramo reconstruido, como los que da ShipsGo.
+PUNTOS_POR_TRAMO: Final = 30
+
+
+def aeropuertos_del_trazado(geojson: dict[str, Any] | None) -> dict[str, tuple[float, float]]:
+    """IATA → `(longitud, latitud)`, de los `Point` del trazado.
+
+    ShipsGo marca cada aeropuerto del viaje aunque no tenga la línea del vuelo
+    que llega a él: la guía `020-05128546` trae el punto de SJO sin el LH518.
+    """
+    aeropuertos: dict[str, tuple[float, float]] = {}
+    if not isinstance(geojson, dict):
+        return aeropuertos
+    for feature in geojson.get("features") or []:
+        if not isinstance(feature, dict):
+            continue
+        geometria = _dict(feature.get("geometry"))
+        coordenadas = geometria.get("coordinates")
+        codigo = _iata(_dict(feature.get("properties")).get("location"))
+        if (
+            geometria.get("type") == "Point"
+            and codigo
+            and isinstance(coordenadas, list | tuple)
+            and len(coordenadas) >= 2
+            and all(isinstance(c, int | float) for c in coordenadas[:2])
+        ):
+            aeropuertos[codigo] = (float(coordenadas[0]), float(coordenadas[1]))
+    return aeropuertos
+
+
+def completar_tramos(
+    tramos: list[TramoAereo],
+    hitos: list[Hito],
+    aeropuertos: dict[str, tuple[float, float]],
+) -> list[TramoAereo]:
+    """Los tramos del trazado más los vuelos que ShipsGo no dibujó (02/11/2026).
+
+    A veces el trazado trae solo los primeros vuelos: la guía `020-05128546` llegó
+    a SJO en el LH518, pero su trazado terminaba en Fráncfort. Los eventos sí
+    traen ese vuelo —salida y llegada, con aeropuerto y hora—, y el trazado el
+    punto de cada aeropuerto: con eso se reconstruye el tramo, con la ruta más
+    corta sobre la Tierra. Sin las dos horas o sin los dos aeropuertos, no.
+    """
+    conocidos = {t.vuelo for t in tramos if t.vuelo}
+    salidas: dict[str, Hito] = {}
+    llegadas: dict[str, Hito] = {}
+    for hito in hitos:
+        if not hito.buque or hito.buque in conocidos or hito.instante is None:
+            continue
+        if hito.evento == "DEP":
+            salidas.setdefault(hito.buque, hito)
+        elif hito.evento in ("ARR", "RCF"):
+            # `ARR` viene antes que `RCF`: se queda la del aterrizaje.
+            llegadas.setdefault(hito.buque, hito)
+
+    nuevos: list[TramoAereo] = []
+    for vuelo, salida in salidas.items():
+        llegada = llegadas.get(vuelo)
+        if llegada is None or salida.puerto == llegada.puerto:
+            continue
+        desde = aeropuertos.get(salida.puerto or "")
+        hasta = aeropuertos.get(llegada.puerto or "")
+        if desde is None or hasta is None:
+            continue
+        nuevos.append(
+            TramoAereo(
+                vuelo=vuelo,
+                origen=salida.puerto,
+                destino=llegada.puerto,
+                salida=salida.instante,
+                llegada=llegada.instante,
+                ruta=_ortodromica(desde, hasta, PUNTOS_POR_TRAMO),
+            )
+        )
+    if not nuevos:
+        return tramos
+    lejano = dt.datetime.max.replace(tzinfo=dt.UTC)
+    return sorted([*tramos, *nuevos], key=lambda t: t.salida or lejano)
+
+
+def _ortodromica(
+    desde: tuple[float, float], hasta: tuple[float, float], puntos: int
+) -> tuple[tuple[float, float], ...]:
+    """La ruta más corta entre dos puntos `(longitud, latitud)`, en `puntos` pasos."""
+    lon1, lat1, lon2, lat2 = map(math.radians, (*desde, *hasta))
+    a = (math.cos(lat1) * math.cos(lon1), math.cos(lat1) * math.sin(lon1), math.sin(lat1))
+    b = (math.cos(lat2) * math.cos(lon2), math.cos(lat2) * math.sin(lon2), math.sin(lat2))
+    angulo = math.acos(max(-1.0, min(1.0, sum(x * y for x, y in zip(a, b, strict=True)))))
+    if angulo == 0:
+        return (desde, hasta)
+    ruta: list[tuple[float, float]] = []
+    for i in range(puntos):
+        f = i / (puntos - 1)
+        pa = math.sin((1 - f) * angulo) / math.sin(angulo)
+        pb = math.sin(f * angulo) / math.sin(angulo)
+        x, y, z = (pa * u + pb * v for u, v in zip(a, b, strict=True))
+        longitud = math.degrees(math.atan2(y, x))
+        if ruta:
+            # Continua al cruzar el antimeridiano: si no, Leaflet traza la línea
+            # de vuelta por todo el mapa (un PVG → LAX sobre el Pacífico).
+            while longitud - ruta[-1][0] > 180:
+                longitud -= 360
+            while longitud - ruta[-1][0] < -180:
+                longitud += 360
+        ruta.append((longitud, math.degrees(math.atan2(z, math.hypot(x, y)))))
+    return tuple(ruta)
 
 
 def _dict(valor: Any) -> dict[str, Any]:

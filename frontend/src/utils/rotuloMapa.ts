@@ -1,7 +1,7 @@
 /** El texto de un marcador de los mapas del panel (`US-25`). */
 
 import { aparienciaDeEstado } from '@/components/estados'
-import type { MarcadorMapa } from '@/types/api'
+import type { MarcadorMapa, SituacionVuelo } from '@/types/api'
 import { haceCuanto } from '@/utils/fechas'
 
 /** Las partes del rótulo, para mostrarlas en líneas en el mapa (28/10/2026). */
@@ -41,14 +41,24 @@ export function rotulo(m: MarcadorMapa): string {
  */
 function dondeEsta(m: MarcadorMapa): string | null {
   if (!m.posicion_estimada) return null
-  const vuelo = m.vuelo ? ` ${m.vuelo}` : ''
-  switch (m.situacion) {
+  return textoSituacion(m.situacion, m.vuelo, m.lugar)
+}
+
+/** «En vuelo LH518…», «En tierra en FRA, esperando vuelo», «Vuelo LH518 concluido en SJO». */
+export function textoSituacion(
+  situacion: SituacionVuelo | null,
+  vueloEnCurso: string | null,
+  lugar: string | null,
+): string | null {
+  const vuelo = vueloEnCurso ? ` ${vueloEnCurso}` : ''
+  const en = lugar ? ` en ${lugar}` : ''
+  switch (situacion) {
     case 'EN_VUELO':
       return `En vuelo${vuelo}, posición estimada según su horario`
     case 'EN_TIERRA':
-      return `En tierra${m.lugar ? ` en ${m.lugar}` : ''}, esperando vuelo`
+      return `En tierra${en}, esperando vuelo`
     case 'FINALIZADO':
-      return `Vuelo${vuelo} concluido${m.lugar ? ` en ${m.lugar}` : ''}`
+      return `Vuelo${vuelo} concluido${en}`
     default:
       return null
   }

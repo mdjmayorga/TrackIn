@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 EstadoCarga = Literal["APLICADA", "RECHAZADA"]
 OrigenCarga = Literal["EXCEL", "API_SAP"]
-Consecuencia = Literal["no_entro", "entro_sin_rastreo"]
+Consecuencia = Literal["no_entro", "entro_sin_rastreo", "entro_sin_dato"]
 
 
 class Autor(BaseModel):

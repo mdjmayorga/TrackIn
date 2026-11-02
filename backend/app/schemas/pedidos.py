@@ -199,6 +199,21 @@ class PedidoEnMapa(BaseModel):
     estado_calculado: EstadoCalculado
 
 
+class TramoMapa(BaseModel):
+    """Un vuelo del trayecto, para dibujarlo (02/11/2026).
+
+    Incluye los que ShipsGo no dibuja y TrackIn reconstruye con los eventos
+    (`shipsgo.completar_tramos`).
+    """
+
+    vuelo: str | None
+    origen: str | None = Field(description="Aeropuerto de salida (IATA).")
+    destino: str | None = Field(description="Aeropuerto de llegada (IATA).")
+    salida: dt.datetime | None
+    llegada: dt.datetime | None
+    ruta: list[tuple[float, float]] = Field(description="El trazado, `(latitud, longitud)`.")
+
+
 class MarcadorMapa(BaseModel):
     """Un embarque en el mapa: un buque (o un vuelo) con los pedidos que lleva.
 
@@ -248,6 +263,10 @@ class MarcadorMapa(BaseModel):
         default=None,
         description="El trazado del vuelo en curso, `(latitud, longitud)`, para dibujarlo.",
     )
+    trayecto: list[TramoMapa] | None = Field(
+        default=None,
+        description="Todos los vuelos del embarque, para mostrar la ruta completa al elegirlo.",
+    )
 
 
 class MapaPedidos(BaseModel):
@@ -271,6 +290,16 @@ class MapaPedidos(BaseModel):
 class Posicion(BaseModel):
     latitud: float
     longitud: float
+
+
+class PosicionAerea(BaseModel):
+    """Dónde está una guía aérea ahora, con la regla de nuestro destino final (`US-26`)."""
+
+    latitud: float
+    longitud: float
+    situacion: Literal["EN_VUELO", "EN_TIERRA", "FINALIZADO"]
+    vuelo: str | None
+    lugar: str | None = Field(description="Aeropuerto (IATA), si está en tierra.")
 
 
 class TransbordoOut(BaseModel):
@@ -311,6 +340,17 @@ class Rastreo(BaseModel):
     )
     manifiesto_aduana: str | None
     activo: bool = Field(description="`false` cuando ya arribó y no se consulta más.")
+    trayecto: list[TramoMapa] | None = Field(
+        default=None,
+        description="Solo aéreo: los vuelos del embarque, también los que ShipsGo no dibuja.",
+    )
+    posicion_aerea: PosicionAerea | None = Field(
+        default=None,
+        description=(
+            "Solo aéreo: dónde está ahora, estimado con el horario de los vuelos. Si ya "
+            "llegó a nuestro destino, ahí; si espera en un transbordo, en ese aeropuerto."
+        ),
+    )
     transbordos: list[TransbordoOut] = Field(
         default_factory=list,
         description=(
@@ -531,6 +571,8 @@ class AsientoBitacora(BaseModel):
 
 
 __all__ = [
+    "PosicionAerea",
+    "TramoMapa",
     "TransbordoOut",
     "Arribos",
     "AsientoBitacora",

@@ -135,3 +135,56 @@ def test_lee_los_tramos_del_geojson_de_shipsgo() -> None:
     # Lo que guarda el colector se vuelve a leer igual.
     estimacion = estimar([tramo.como_dict()], dt.datetime(2026, 9, 10, tzinfo=UTC))
     assert estimacion is not None and estimacion.situacion == FINALIZADO
+
+
+# --- El destino final lo sabe TrackIn, no el trazado (02/11/2026) -----------
+
+#: Como la guía `020-05128546`: ShipsGo dio el trazado PVG→FRA sin el FRA→SJO.
+SOLO_HASTA_FRANCFORT = TRAYECTO[:1]
+#: Juan Santamaría, con el código del maestro y el de ShipsGo.
+FINALES = frozenset({"MROC", "SJO"})
+
+
+def test_un_trazado_cortado_en_el_transbordo_no_es_un_vuelo_concluido() -> None:
+    """Sin la llegada a SJO, está en Fráncfort esperando el vuelo que falta."""
+    estimacion = estimar(
+        SOLO_HASTA_FRANCFORT, LLEGADA_2 + dt.timedelta(days=1), destinos_finales=FINALES
+    )
+
+    assert estimacion is not None
+    assert estimacion.situacion == EN_TIERRA
+    assert estimacion.lugar == "FRA"
+
+
+def test_si_ya_llego_se_dibuja_en_el_destino_aunque_falte_el_tramo() -> None:
+    estimacion = estimar(
+        SOLO_HASTA_FRANCFORT,
+        LLEGADA_2 + dt.timedelta(days=1),
+        destinos_finales=FINALES,
+        llegada=(-84.2088, 9.9939, "SJO"),
+    )
+
+    assert estimacion is not None
+    assert estimacion.situacion == FINALIZADO
+    assert (estimacion.longitud, estimacion.latitud, estimacion.lugar) == (-84.2088, 9.9939, "SJO")
+    # El último vuelo del trazado (PEK→FRA) no es el que aterrizó en SJO.
+    assert estimacion.vuelo is None
+
+
+def test_con_el_trazado_completo_conserva_el_vuelo_que_aterrizo() -> None:
+    estimacion = estimar(
+        TRAYECTO,
+        LLEGADA_2 + dt.timedelta(days=1),
+        destinos_finales=FINALES,
+        llegada=(-84.2088, 9.9939, "SJO"),
+    )
+
+    assert estimacion is not None
+    assert (estimacion.situacion, estimacion.vuelo) == (FINALIZADO, "LH518")
+
+
+def test_el_trazado_completo_sigue_terminando_en_el_destino() -> None:
+    estimacion = estimar(TRAYECTO, LLEGADA_2 + dt.timedelta(days=1), destinos_finales=FINALES)
+
+    assert estimacion is not None
+    assert (estimacion.situacion, estimacion.lugar) == (FINALIZADO, "SJO")

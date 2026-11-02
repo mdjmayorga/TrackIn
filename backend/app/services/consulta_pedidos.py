@@ -25,7 +25,7 @@ import datetime as dt
 from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any
+from typing import Any, Final
 
 from geoalchemy2 import Geometry
 from sqlalchemy import ColumnElement, Select, and_, cast, func, or_, select
@@ -50,7 +50,9 @@ from app.schemas.pedidos import (
     PedidoEnMapa,
     PedidoResumen,
     Posicion,
+    PosicionAerea,
     Rastreo,
+    TramoMapa,
     TransbordoOut,
     VentanaLiberacion,
 )
@@ -62,6 +64,7 @@ from app.services import (
     recalculo,
     transbordos,
 )
+from app.services.rastreo.destino_shipsgo import EQUIVALENCIAS
 
 #: Cuándo llegó a destino, con la precedencia de RN-05: lo confirmado a mano,
 #: lo que reportó la fuente y, por último, lo deducido por la geocerca. El
@@ -280,11 +283,72 @@ async def _posicion(sesion: AsyncSession, elemento: ElementoRastreado) -> Posici
     return Posicion(latitud=fila[0], longitud=fila[1])
 
 
+def _trayecto(trayecto: list[dict[str, Any]] | None) -> list[TramoMapa] | None:
+    """Los vuelos guardados, con la ruta en `(latitud, longitud)` como la espera Leaflet."""
+    if not trayecto:
+        return None
+    return [
+        TramoMapa(
+            vuelo=t.get("vuelo"),
+            origen=t.get("origen"),
+            destino=t.get("destino"),
+            salida=t.get("salida"),
+            llegada=t.get("llegada"),
+            ruta=[(p[1], p[0]) for p in t.get("ruta") or [] if len(p) >= 2],
+        )
+        for t in trayecto
+    ]
+
+
+async def _coordenadas(sesion: AsyncSession, id_destino: int) -> tuple[float, float, str] | None:
+    """`(longitud, latitud, código)` del destino del maestro."""
+    punto = cast(MaestroDestino.ubicacion, Geometry)
+    fila = (
+        await sesion.execute(
+            select(func.ST_X(punto), func.ST_Y(punto), MaestroDestino.codigo).where(
+                MaestroDestino.id == id_destino
+            )
+        )
+    ).one_or_none()
+    return (fila[0], fila[1], fila[2]) if fila else None
+
+
+async def _posicion_aerea(
+    sesion: AsyncSession, elemento: ElementoRastreado, id_destino: int | None
+) -> PosicionAerea | None:
+    """Dónde está la guía ahora, con la misma regla que el mapa del panel."""
+    llegada = None
+    if elemento.ata_api is not None and id_destino is not None:
+        destino = await _coordenadas(sesion, id_destino)
+        if destino is not None:
+            llegada = (destino[0], destino[1], _CODIGO_SHIPSGO.get(destino[2], destino[2]))
+    estimacion = posicion_aerea.estimar(
+        elemento.trayecto_aereo,
+        dt.datetime.now(dt.UTC),
+        destinos_finales=await _aeropuertos_finales(sesion),
+        llegada=llegada,
+    )
+    if estimacion is None:
+        return None
+    return PosicionAerea(
+        latitud=estimacion.latitud,
+        longitud=estimacion.longitud,
+        situacion=estimacion.situacion,
+        vuelo=estimacion.vuelo,
+        lugar=estimacion.lugar,
+    )
+
+
 async def _rastreo(
-    sesion: AsyncSession, elemento: ElementoRastreado | None, *, id_pedido: int | None = None
+    sesion: AsyncSession,
+    elemento: ElementoRastreado | None,
+    *,
+    id_pedido: int | None = None,
+    id_destino: int | None = None,
 ) -> Rastreo | None:
     if elemento is None:
         return None
+    aereo = elemento.via_transporte == "AEREO" and bool(elemento.trayecto_aereo)
     hija = (
         await intervenciones.guia_hija_de_origen(sesion, id_pedido)
         if id_pedido is not None and elemento.tipo_tracking_externo == "MAWB"
@@ -305,6 +369,8 @@ async def _rastreo(
         manifiesto_aduana=elemento.manifiesto_aduana,
         guia_hija=hija.tracking_externo if hija else None,
         activo=elemento.activo,
+        trayecto=_trayecto(elemento.trayecto_aereo) if aereo else None,
+        posicion_aerea=(await _posicion_aerea(sesion, elemento, id_destino) if aereo else None),
         transbordos=[
             TransbordoOut.model_validate(t)
             for t in await transbordos.del_elemento(sesion, elemento.id)
@@ -421,7 +487,9 @@ async def detalle(sesion: AsyncSession, id_pedido: int) -> PedidoDetalle | None:
             "tipo_proveedor": pedido.tipo_proveedor,
             "fabricante": pedido.fabricante,
             "pais_origen": PaisRef(codigo=pais.codigo, nombre=pais.nombre) if pais else None,
-            "rastreo": await _rastreo(sesion, elemento, id_pedido=pedido.id),
+            "rastreo": await _rastreo(
+                sesion, elemento, id_pedido=pedido.id, id_destino=pedido.id_destino
+            ),
             "arribos": Arribos(
                 confirmado=pedido.ata_confirmada,
                 fuente=elemento.ata_api if elemento else None,
@@ -485,13 +553,19 @@ def _ubicacion(
     longitud: float | None,
     trayecto: list[dict[str, Any]] | None,
     ahora: dt.datetime,
+    *,
+    destinos_finales: frozenset[str] = frozenset(),
+    llegada: tuple[float, float, str] | None = None,
 ) -> dict[str, Any] | None:
     """Dónde dibujar el marcador: la estimación del vuelo, o la posición leída.
 
     La estimación manda en la vía aérea porque es la única que se mueve con el
-    reloj; la leída es de lo que no es un vuelo (`US-26`).
+    reloj; la leída es de lo que no es un vuelo (`US-26`). Con nuestro destino
+    final, no con el del trazado (02/11/2026): ver `posicion_aerea`.
     """
-    estimacion = posicion_aerea.estimar(trayecto, ahora)
+    estimacion = posicion_aerea.estimar(
+        trayecto, ahora, destinos_finales=destinos_finales, llegada=llegada
+    )
     if estimacion is not None:
         return {
             "latitud": estimacion.latitud,
@@ -506,6 +580,22 @@ def _ubicacion(
     if latitud is None or longitud is None:
         return None
     return {"latitud": latitud, "longitud": longitud}
+
+
+#: El código del maestro al que usa ShipsGo en el trazado: `MROC` → `SJO`.
+_CODIGO_SHIPSGO: Final[dict[str, str]] = {
+    maestro: shipsgo for shipsgo, maestro in EQUIVALENCIAS.items()
+}
+
+
+async def _aeropuertos_finales(sesion: AsyncSession) -> frozenset[str]:
+    """Los aeropuertos de destino del maestro, con el código del maestro y el de ShipsGo."""
+    codigos = await sesion.scalars(
+        select(MaestroDestino.codigo).where(
+            MaestroDestino.activo.is_(True), MaestroDestino.via_transporte == "AEREO"
+        )
+    )
+    return frozenset(c for codigo in codigos for c in (codigo, _CODIGO_SHIPSGO.get(codigo, codigo)))
 
 
 def estado_mas_urgente(estados: Sequence[str]) -> str:
@@ -554,6 +644,10 @@ async def mapa(
             func.ST_Y(punto),
             func.ST_X(punto),
             ElementoRastreado.trayecto_aereo,
+            ElementoRastreado.ata_api,
+            MaestroDestino.codigo,
+            func.ST_X(cast(MaestroDestino.ubicacion, Geometry)),
+            func.ST_Y(cast(MaestroDestino.ubicacion, Geometry)),
         )
         .select_from(PedidoTransito)
         .join(PedidoTransito.proveedor)
@@ -576,16 +670,28 @@ async def mapa(
         .order_by(ElementoRastreado.id, PedidoTransito.oc_numero, PedidoTransito.posicion_oc)
     )
 
+    finales = await _aeropuertos_finales(sesion) if via == "AEREO" else frozenset()
     por_elemento: dict[int, dict[str, Any]] = {}
     for fila in filas:
         (id_pedido, oc, posicion, estado, id_elemento, tipo, referencia, nombre) = fila[:8]
-        (lectura, activo, latitud, longitud, trayecto) = fila[8:]
+        (lectura, activo, latitud, longitud, trayecto) = fila[8:13]
+        (ata, destino, destino_lon, destino_lat) = fila[13:]
         if id_elemento not in por_elemento:
-            ubicacion = _ubicacion(latitud, longitud, trayecto, ahora)
+            # Ya llegó a nuestro destino (`ata_api` solo cuenta esas llegadas):
+            # se dibuja ahí aunque el trazado de ShipsGo no lo alcance.
+            llegada = (
+                (destino_lon, destino_lat, _CODIGO_SHIPSGO.get(destino, destino))
+                if via == "AEREO" and ata is not None
+                else None
+            )
+            ubicacion = _ubicacion(
+                latitud, longitud, trayecto, ahora, destinos_finales=finales, llegada=llegada
+            )
             if ubicacion is None:
                 continue
             por_elemento[id_elemento] = {
                 **ubicacion,
+                "trayecto": _trayecto(trayecto) if via == "AEREO" else None,
                 "id_elemento": id_elemento,
                 "tipo": tipo,
                 "referencia": referencia,

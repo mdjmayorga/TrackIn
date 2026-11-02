@@ -36,6 +36,8 @@ from app.services.ingesta.ztracking import LineaIlegible
 #: Qué le pasó al pedido, que es lo que decide si alguien tiene que actuar.
 NO_ENTRO = "no_entro"
 ENTRO_SIN_RASTREO = "entro_sin_rastreo"
+#: `US-59`: entró, pero sin un dato que venía con formato inválido (la ETA).
+ENTRO_SIN_DATO = "entro_sin_dato"
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,6 +189,16 @@ def construir_informe(
             )
         )
 
+    for linea in resultado.datos_descartados:
+        incidencias.append(
+            Incidencia(
+                clave=f"{linea.oc_numero}-{linea.posicion_oc}",
+                motivo=linea.motivo,
+                detalle=linea.detalle,
+                consecuencia=ENTRO_SIN_DATO,
+            )
+        )
+
     return InformeValidacion(
         fuente=fuente,
         # Las ilegibles no están en `recibidas`: la fuente nunca las entregó.
@@ -202,6 +214,7 @@ def construir_informe(
 
 
 __all__ = [
+    "ENTRO_SIN_DATO",
     "ENTRO_SIN_RASTREO",
     "NO_ENTRO",
     "Incidencia",

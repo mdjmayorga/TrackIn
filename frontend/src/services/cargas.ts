@@ -20,6 +20,20 @@ export async function subirZtracking(archivo: File): Promise<CargaDetalle> {
   return data
 }
 
+/**
+ * Descarga la plantilla vacía del Z-tracking (`US-59`). Va por `api` y no por
+ * un enlace porque la sesión viaja en la cabecera, que un enlace no manda.
+ */
+export async function descargarPlantilla(): Promise<void> {
+  const { data } = await api.get<Blob>(`${API_V1}/cargas/plantilla`, { responseType: 'blob' })
+  const url = URL.createObjectURL(data)
+  const enlace = document.createElement('a')
+  enlace.href = url
+  enlace.download = 'Plantilla Z-tracking.xlsx'
+  enlace.click()
+  URL.revokeObjectURL(url)
+}
+
 export async function listarCargas(): Promise<CargaResumen[]> {
   const { data } = await api.get<CargaResumen[]>(`${API_V1}/cargas`)
   return data

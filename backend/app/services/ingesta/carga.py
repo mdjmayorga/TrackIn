@@ -138,6 +138,8 @@ ResolutorDestino = Callable[[str, str], Awaitable[str | None]]
 #: un rechazo de la línea sino de su rastreo: el pedido queda `SIN_TRACKING`
 #: (RN-02) hasta que alguien corrija el número (`US-32`).
 RECHAZO_REFERENCIA_INVALIDA = "referencia_invalida"
+#: `US-59`: la línea entró, pero un dato con formato inválido se descartó.
+DATO_DESCARTADO = "dato_descartado"
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,6 +196,11 @@ class ResultadoCarga:
     destinos_discrepantes: list[LineaRechazada] = field(default_factory=list)
     #: De los cargados, cuántos trajeron la referencia escrita en el comentario.
     referencias_de_comentario: int = 0
+    #: Pedidos que ya estaban sin referencia y la recibieron en esta carga
+    #: (02/11/2026). Aparte de `rastreables`, que cuenta solo los cargados.
+    referencias_nuevas: int = 0
+    #: Líneas que entraron con un dato descartado por su formato (`US-59`).
+    datos_descartados: list[LineaRechazada] = field(default_factory=list)
     #: El recálculo de lo que entró o cambió (`US-12`). `None` si no hubo nada.
     recalculo: recalculo.ResumenRecalculo | None = None
 
@@ -730,31 +737,24 @@ async def cargar(
             resultado.cerrados_omitidos += 1
             logger.warning("Carga: línea %s — %s", crudo, detalle)
             continue
-        if estado == "sin_cambios":
-            resultado.sin_cambios += 1
-            continue
-        a_recalcular.add(pedido.id)
-        if estado == "actualizado":
-            resultado.actualizados += 1
-            continue
-        if estado == "reaparecido":
-            resultado.reaparecidos += 1
-            resultado.actualizados += 1
-            continue
 
-        resultado.cargados += 1
-        if crudo.referencia_desde_comentario:
-            resultado.referencias_de_comentario += 1
+        for descartado in crudo.datos_descartados:
+            resultado.datos_descartados.append(
+                LineaRechazada(crudo.oc_numero, crudo.posicion_oc, DATO_DESCARTADO, descartado)
+            )
 
-        if crudo.tipo_referencia and crudo.numero_referencia:
+        # Solo un pedido **sin** referencia la toma del archivo: una ya asociada
+        # —o corregida a mano en el detalle— no la pisa la carga siguiente.
+        veredicto = None
+        if (
+            pedido.id_elemento_rastreado is None
+            and crudo.tipo_referencia
+            and crudo.numero_referencia
+        ):
             veredicto = await asociar_referencia(
                 sesion, pedido, crudo.tipo_referencia, crudo.numero_referencia
             )
-            if veredicto.valida and veredicto.rastreable:
-                resultado.rastreables += 1
-            elif veredicto.valida:
-                resultado.sin_rastreo_hoy += 1
-            else:
+            if not veredicto.valida:
                 # Hasta `US-32` este caso no se contaba en ninguna parte: el
                 # pedido entraba y la referencia mala desaparecía del informe.
                 # Con el dígito verificador en marcha el silencio importa, y es
@@ -764,10 +764,38 @@ async def cargar(
                         oc_numero=crudo.oc_numero,
                         posicion_oc=crudo.posicion_oc,
                         motivo=RECHAZO_REFERENCIA_INVALIDA,
-                        detalle=veredicto.motivo,
+                        detalle=(
+                            f"{crudo.tipo_referencia} «{crudo.numero_referencia}»: "
+                            f"{veredicto.motivo}"
+                        ),
                     )
                 )
                 logger.warning("Carga: referencia de %s inválida — %s", crudo, veredicto.motivo)
+        asociada = veredicto is not None and veredicto.valida
+
+        if estado != "cargado":
+            # 02/11/2026: antes solo se asociaba al insertar, y la referencia que
+            # llegaba en una semana posterior —lo normal: el BL se consigue al
+            # zarpar— no se tomaba nunca. Asociarla es un cambio del pedido.
+            if asociada:
+                resultado.referencias_nuevas += 1
+            if estado == "sin_cambios" and not asociada:
+                resultado.sin_cambios += 1
+                continue
+            a_recalcular.add(pedido.id)
+            resultado.actualizados += 1
+            if estado == "reaparecido":
+                resultado.reaparecidos += 1
+            continue
+
+        a_recalcular.add(pedido.id)
+        resultado.cargados += 1
+        if crudo.referencia_desde_comentario:
+            resultado.referencias_de_comentario += 1
+        if veredicto is not None and veredicto.valida and veredicto.rastreable:
+            resultado.rastreables += 1
+        elif asociada:
+            resultado.sin_rastreo_hoy += 1
 
     if señalar_ausentes:
         resultado.ausentes = await marcar_ausentes(sesion, presentes, instante=ahora)
@@ -788,6 +816,7 @@ async def cargar(
 
 
 __all__ = [
+    "DATO_DESCARTADO",
     "ETAPA_INICIAL",
     "RECHAZO_SIN_DESTINO",
     "RECHAZO_SIN_VIA",

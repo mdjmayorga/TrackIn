@@ -14,7 +14,7 @@ import { puedeCargar } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { InformeCarga } from '@/components/InformeCarga'
 import { mensajeDeError } from '@/services/api'
-import { listarCargas, obtenerCarga, subirZtracking } from '@/services/cargas'
+import { descargarPlantilla, listarCargas, obtenerCarga, subirZtracking } from '@/services/cargas'
 import { formatearFechaHora } from '@/utils/fechas'
 import { autorDeCarga } from '@/utils/formatos'
 
@@ -59,6 +59,7 @@ function FormularioCarga({ onCargada }: { onCargada: (id: number) => void }) {
   const queryClient = useQueryClient()
   const entrada = useRef<HTMLInputElement>(null)
   const [archivo, setArchivo] = useState<File | null>(null)
+  const plantilla = useMutation({ mutationFn: descargarPlantilla })
 
   const carga = useMutation({
     mutationFn: subirZtracking,
@@ -92,6 +93,26 @@ function FormularioCarga({ onCargada }: { onCargada: (id: number) => void }) {
         e IDA. Los pedidos nuevos se agregan, los existentes se actualizan, y los que{' '}
         <strong>ya no vengan</strong> en el archivo quedan marcados para revisión: no se borran.
       </p>
+
+      {/* `US-59`: la estructura que la carga espera, para no adivinarla. */}
+      <p className="max-w-3xl text-sm text-slate-300">
+        ¿Primera vez, o cambió el archivo?{' '}
+        <button
+          type="button"
+          onClick={() => plantilla.mutate()}
+          disabled={plantilla.isPending}
+          className="text-marca-300 underline hover:text-marca-200 disabled:opacity-50"
+        >
+          {plantilla.isPending ? 'Descargando…' : 'Descargar plantilla'}
+        </button>{' '}
+        con solo las columnas que usa TrackIn. Las obligatorias tienen que estar, entre ellas el
+        documento de embarque (BL o AWB), que puede ir vacío hasta que el pedido zarpe.
+      </p>
+      {plantilla.isError && (
+        <p role="alert" className="rounded bg-red-900/60 px-4 py-3 text-sm text-red-100">
+          {mensajeDeError(plantilla.error)}
+        </p>
+      )}
 
       <form onSubmit={enviar} className="flex flex-wrap items-center gap-3">
         <label htmlFor="archivo-ztracking" className="sr-only">

@@ -178,6 +178,33 @@ export interface Rastreo {
   activo: boolean
   /** Los cambios de nave o vuelo que informó ShipsGo, en orden (`US-30`). */
   transbordos: Transbordo[]
+  /** Solo aéreo: los vuelos del embarque, también los que ShipsGo no dibuja (02/11/2026). */
+  trayecto?: TramoMapa[] | null
+  /** Solo aéreo: dónde está ahora, con la regla de nuestro destino final. */
+  posicion_aerea?: PosicionAerea | null
+}
+
+/** Un vuelo del trayecto, para dibujarlo. */
+export interface TramoMapa {
+  vuelo: string | null
+  /** IATA. */
+  origen: string | null
+  destino: string | null
+  salida: string | null
+  llegada: string | null
+  /** `[latitud, longitud]`. */
+  ruta: Array<[number, number]>
+}
+
+export type SituacionVuelo = 'EN_VUELO' | 'EN_TIERRA' | 'FINALIZADO'
+
+export interface PosicionAerea {
+  latitud: number
+  longitud: number
+  situacion: SituacionVuelo
+  vuelo: string | null
+  /** Aeropuerto (IATA), si está en tierra. */
+  lugar: string | null
 }
 
 export interface Transbordo {
@@ -345,13 +372,15 @@ export interface MarcadorMapa {
   // --- Solo la vía aérea (`US-26`) ---
   /** La posición sale del horario del vuelo, no de una lectura. */
   posicion_estimada: boolean
-  situacion: 'EN_VUELO' | 'EN_TIERRA' | 'FINALIZADO' | null
+  situacion: SituacionVuelo | null
   /** El vuelo en curso o el último. */
   vuelo: string | null
   /** Aeropuerto (IATA), si está en tierra. */
   lugar: string | null
   /** El trazado del vuelo en curso, `[latitud, longitud]`. */
   ruta: Array<[number, number]> | null
+  /** Todos los vuelos del embarque, para mostrar la ruta al elegirlo (02/11/2026). */
+  trayecto?: TramoMapa[] | null
 }
 
 export interface MapaPedidos {
@@ -458,7 +487,8 @@ export interface IncidenciaCarga {
   clave: string
   motivo: string
   detalle: string
-  consecuencia: 'no_entro' | 'entro_sin_rastreo'
+  /** `entro_sin_dato`: entró, pero sin un dato con formato inválido (`US-59`). */
+  consecuencia: 'no_entro' | 'entro_sin_rastreo' | 'entro_sin_dato'
 }
 
 /** La carga con su informe completo (`POST` y `GET /api/v1/cargas/{id}`). */

@@ -47,6 +47,16 @@ def _con_digito(token: str) -> bool:
     return any(caracter.isdigit() for caracter in token)
 
 
+def tipo_de_guia(numero: str) -> str:
+    """`MAWB` si el número tiene forma de guía madre; si no, `HAWB`.
+
+    «AWB» se escribe para las dos guías, en el comentario y en la columna de
+    tipo de WK43. Solo la madre tiene la forma de once dígitos; lo demás es la
+    guía hija del agente de carga.
+    """
+    return "MAWB" if _FORMA_MAWB.match(numero) else "HAWB"
+
+
 def referencia_en_comentario(texto: str | None) -> tuple[str, str] | None:
     """El par `(tipo, número)` que el comentario nombra, o `None`.
 
@@ -56,7 +66,9 @@ def referencia_en_comentario(texto: str | None) -> tuple[str, str] | None:
     """
     if not texto:
         return None
-    limpio = texto.upper()
+    # WK43 escribe el BL con un guion bajo tras el código de la naviera
+    # (`BL MAEU_274029064`); sin quitarlo, el número quedaba en «MAEU», sin dígito.
+    limpio = texto.upper().replace("_", "")
 
     for patron, tipo in ((_BL, "BL"), (_BOOKING, "BOOKING"), (_HAWB, "HAWB")):
         for hallado in patron.finditer(limpio):
@@ -67,9 +79,7 @@ def referencia_en_comentario(texto: str | None) -> tuple[str, str] | None:
         numero = hallado.group(1)
         if not _con_digito(numero):
             continue
-        # «AWB» se escribe para las dos guías. Solo la madre tiene la forma de
-        # once dígitos; lo demás es la guía hija del agente de carga.
-        return ("MAWB" if _FORMA_MAWB.match(numero) else "HAWB"), numero
+        return tipo_de_guia(numero), numero
 
     contenedor = _CONTENEDOR.search(limpio)
     if contenedor:
@@ -77,4 +87,4 @@ def referencia_en_comentario(texto: str | None) -> tuple[str, str] | None:
     return None
 
 
-__all__ = ["referencia_en_comentario"]
+__all__ = ["referencia_en_comentario", "tipo_de_guia"]

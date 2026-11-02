@@ -10,7 +10,7 @@ import type { SesionGuardada } from '@/auth/sesion'
 import { InformeCarga } from '@/components/InformeCarga'
 import Cargas from '@/pages/Cargas'
 import { api } from '@/services/api'
-import { listarCargas, obtenerCarga, subirZtracking } from '@/services/cargas'
+import { descargarPlantilla, listarCargas, obtenerCarga, subirZtracking } from '@/services/cargas'
 import type { CargaDetalle, Rol } from '@/types/api'
 import { formatearFechaHora } from '@/utils/fechas'
 import { nombreMotivo } from '@/utils/motivosCarga'
@@ -22,6 +22,7 @@ vi.mock('@/services/cargas', async (original) => ({
   listarCargas: vi.fn(),
   obtenerCarga: vi.fn(),
   subirZtracking: vi.fn(),
+  descargarPlantilla: vi.fn(),
 }))
 
 function carga(cambios: Partial<CargaDetalle> = {}): CargaDetalle {
@@ -126,8 +127,45 @@ describe('subir el Z-tracking', () => {
     montar('PLANIFICACION')
 
     expect(screen.queryByLabelText('Archivo Z-tracking')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Descargar plantilla' })).toBeNull()
     expect(screen.getByText(/Las cargas las hacen Compras y el Administrador/)).toBeInTheDocument()
     expect(await screen.findByRole('table')).toBeInTheDocument()
+  })
+})
+
+describe('la plantilla (US-59)', () => {
+  it('Compras la descarga desde la pantalla de carga', async () => {
+    vi.mocked(descargarPlantilla).mockResolvedValue()
+    montar()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Descargar plantilla' }))
+
+    expect(descargarPlantilla).toHaveBeenCalledOnce()
+  })
+
+  it('si la descarga falla, lo dice', async () => {
+    vi.mocked(descargarPlantilla).mockRejectedValue(new Error('sin conexión'))
+    montar()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Descargar plantilla' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('sin conexión')
+  })
+
+  it('el servicio la pide como archivo y la guarda con su nombre', async () => {
+    const real = await vi.importActual<typeof import('@/services/cargas')>('@/services/cargas')
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: new Blob(['xlsx']) })
+    URL.createObjectURL = vi.fn(() => 'blob:plantilla')
+    URL.revokeObjectURL = vi.fn()
+    const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+
+    await real.descargarPlantilla()
+
+    expect(get).toHaveBeenCalledWith('/api/v1/cargas/plantilla', { responseType: 'blob' })
+    const enlace = clic.mock.contexts[0] as HTMLAnchorElement
+    expect(enlace.download).toBe('Plantilla Z-tracking.xlsx')
+    expect(enlace.href).toBe('blob:plantilla')
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:plantilla')
   })
 })
 
@@ -229,6 +267,33 @@ describe('informe de la carga', () => {
     )
     expect(screen.getByText('(entró sin rastreo)')).toBeInTheDocument()
     expect(screen.getByText(/conviene revisar en SAP \(1\)/)).toBeInTheDocument()
+  })
+
+  it('el formato inválido dice el campo, y el dato descartado se marca (US-59)', () => {
+    render(
+      <InformeCarga
+        carga={carga({
+          por_motivo: { formato_invalido: 1, dato_descartado: 1 },
+          incidencias: [
+            {
+              clave: 'PRODUCCION!103',
+              motivo: 'formato_invalido',
+              detalle: '4500018201-10: «Fecha Entrega» trae «30/11.2026»; se espera una fecha',
+              consecuencia: 'no_entro',
+            },
+            {
+              clave: '4500018201-20',
+              motivo: 'dato_descartado',
+              detalle: '«ETA CR (fecha)» trae «fin de mes»; se espera una fecha',
+              consecuencia: 'entro_sin_dato',
+            },
+          ],
+        })}
+      />,
+    )
+    expect(screen.getByText(/«Fecha Entrega» trae «30\/11.2026»/)).toBeInTheDocument()
+    expect(screen.getByText('(entró sin ese dato)')).toBeInTheDocument()
+    expect(screen.getAllByText('Formato inválido').length).toBeGreaterThan(0)
   })
 })
 

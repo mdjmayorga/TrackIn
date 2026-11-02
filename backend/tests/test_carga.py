@@ -22,6 +22,7 @@ from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.services.ingesta.carga import (
+    DATO_DESCARTADO,
     PREFIJO_DISCREPANCIA,
     RECHAZO_REFERENCIA_INVALIDA,
     RECHAZO_SIN_DESTINO,
@@ -35,7 +36,7 @@ from app.services.ingesta.carga import (
     resolver_destino,
 )
 from app.services.ingesta.dto import PedidoCrudo
-from app.services.ingesta.informe import construir_informe
+from app.services.ingesta.informe import ENTRO_SIN_DATO, construir_informe
 from app.services.ingesta.semilla import PEDIDOS_SEMILLA, FuenteSemilla
 
 
@@ -1042,3 +1043,86 @@ class TestRecalculoTrasLaCarga:
         segunda = await cargar(sesion, FuenteFalsa([linea]), señalar_ausentes=False)
 
         assert segunda.recalculo is None
+
+
+@pytest.mark.integration
+class TestReferenciaEnCargasSiguientes:
+    """02/11/2026: la referencia llega casi siempre **después** que el pedido
+    —el BL existe al zarpar—, y antes solo se tomaba al insertar."""
+
+    async def test_un_pedido_sin_referencia_la_toma_en_la_carga_siguiente(
+        self, sesion, sin_pedidos
+    ) -> None:
+        await cargar(sesion, FuenteFalsa([_crudo()]), señalar_ausentes=False)
+
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234566")]),
+            señalar_ausentes=False,
+        )
+
+        pedido = await sesion.scalar(select(PedidoTransito))
+        assert pedido is not None and pedido.id_elemento_rastreado is not None
+        assert pedido.etapa_viaje != "SIN_TRACKING"
+        assert resultado.referencias_nuevas == 1
+        # Es un cambio del pedido, no un «sin cambios».
+        assert (resultado.actualizados, resultado.sin_cambios) == (1, 0)
+        # `rastreables` sigue contando solo los insertados.
+        assert resultado.rastreables == 0
+
+    async def test_una_referencia_ya_asociada_no_la_pisa_el_archivo(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Puede venir de una corrección a mano en el detalle."""
+        await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234566")]),
+            señalar_ausentes=False,
+        )
+        pedido = await sesion.scalar(select(PedidoTransito))
+        antes = pedido.id_elemento_rastreado
+
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="BL", numero_referencia="COSU6508789000")]),
+            señalar_ausentes=False,
+        )
+
+        await sesion.refresh(pedido)
+        assert pedido.id_elemento_rastreado == antes
+        assert resultado.referencias_nuevas == 0
+        assert resultado.sin_cambios == 1
+
+    async def test_la_referencia_mala_de_un_pedido_existente_queda_en_el_informe(
+        self, sesion, sin_pedidos
+    ) -> None:
+        await cargar(sesion, FuenteFalsa([_crudo()]), señalar_ausentes=False)
+
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234567")]),
+            señalar_ausentes=False,
+        )
+
+        (invalida,) = resultado.referencias_invalidas
+        assert "«MSCU1234567»" in invalida.detalle
+        assert resultado.sin_cambios == 1
+
+
+@pytest.mark.integration
+async def test_el_dato_descartado_entra_al_informe_como_entro_sin_dato(sesion, sin_pedidos) -> None:
+    """`US-59`: la ETA con formato inválido no deja fuera la línea, pero se dice."""
+    descartado = "«ETA CR (fecha)» trae «fin de mes»; se espera una fecha"
+    resultado = await cargar(
+        sesion,
+        FuenteFalsa([_crudo(datos_descartados=(descartado,))]),
+        señalar_ausentes=False,
+    )
+
+    informe = construir_informe("prueba", resultado)
+
+    (incidencia,) = informe.incidencias
+    assert incidencia.consecuencia == ENTRO_SIN_DATO
+    assert incidencia.motivo == DATO_DESCARTADO
+    assert incidencia.clave == "4599999999-10"
+    assert informe.no_entraron == 0

@@ -101,6 +101,9 @@ export function InformeCarga({ carga }: { carga: CargaDetalle }) {
                             {i.consecuencia === 'entro_sin_rastreo' && (
                               <span className="ml-1 text-amber-300">(entró sin rastreo)</span>
                             )}
+                            {i.consecuencia === 'entro_sin_dato' && (
+                              <span className="ml-1 text-amber-300">(entró sin ese dato)</span>
+                            )}
                           </td>
                           <td className="px-2 py-1 text-slate-300">{i.detalle}</td>
                         </tr>

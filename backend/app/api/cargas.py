@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -20,7 +20,7 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.carga_ztracking import CargaZTracking
 from app.schemas.cargas import CargaDetalle, CargaResumen, EstadoCargas
-from app.services.ingesta import carga_archivo, frescura
+from app.services.ingesta import carga_archivo, frescura, plantilla
 from app.services.ingesta.carga import ResolutorDestino
 from app.services.rastreo import transporte_http
 from app.services.rastreo.destino_shipsgo import ResolutorDestinoShipsGo
@@ -129,7 +129,27 @@ async def listar_cargas(
     return list(filas)
 
 
-# Antes de `/{id_carga}`: si no, «estado» se intentaría leer como número de carga.
+# Antes de `/{id_carga}`: si no, «plantilla» se intentaría leer como número de carga.
+@router.get(
+    "/plantilla",
+    response_class=Response,
+    summary="Descargar la plantilla vacía del Z-tracking (US-59)",
+    description=(
+        "Un Excel con las hojas PRODUCCION e IDA y solo el encabezado, en el orden y con los "
+        "rótulos del archivo real (WK43), incluidas las columnas de referencia de embarque. "
+        "Llenada sin cambiarle la estructura, la carga la acepta sin diferencias. Solo Compras "
+        "y el Administrador."
+    ),
+    responses={200: {"content": {plantilla.TIPO_XLSX: {}}}},
+)
+async def descargar_plantilla(_: Annotated[Autenticado, Depends(compras)]) -> Response:
+    return Response(
+        plantilla.generar_plantilla(),
+        media_type=plantilla.TIPO_XLSX,
+        headers={"Content-Disposition": f'attachment; filename="{plantilla.NOMBRE_ARCHIVO}"'},
+    )
+
+
 @router.get(
     "/estado",
     response_model=EstadoCargas,

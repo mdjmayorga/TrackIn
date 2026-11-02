@@ -52,15 +52,19 @@ from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.ztracking import (
     COLUMNAS,
     HOJAS_EN_ALCANCE,
+    ILEGIBLE_FORMATO,
     ILEGIBLE_SIN_CLAVE,
     ILEGIBLE_SIN_DATOS_MINIMOS,
     ILEGIBLE_SIN_FECHA,
+    ROTULOS_PLANTILLA,
     FuenteZTracking,
     HojaInesperada,
     _a_decimal,
     _a_entero,
     _a_fecha,
     _a_texto,
+    _resolver_columnas,
+    diferencias_con_plantilla,
 )
 
 #: Los rótulos tal como aparecen en el archivo, con su paréntesis explicativo y
@@ -91,6 +95,7 @@ _ROTULOS: Final[dict[str, str]] = {
     "transportista": "Transportista",
     "fecha_referencia": "Fecha de obtención de la referencia",
     "comentario": "Comentario comprador",
+    "solicitud_pedido": "Solicitud de pedido",
 }
 
 
@@ -167,7 +172,7 @@ class Diseno:
 
 
 #: La entrega del 03/09/2026: las dos hojas con la misma forma, 42 columnas.
-_WK36 = Diseno(
+_WK36_ARCHIVO = Diseno(
     ancho=42,
     columnas={
         "oc_numero": 0,
@@ -193,10 +198,10 @@ _WK36 = Diseno(
 
 #: La entrega del 23/09/2026, hoja `PRODUCCION`: seis columnas insertadas en
 #: medio, una banda de agrupación encima y `ATA CR` en lugar de `Carga arribo`.
-_WK38_PRODUCCION = Diseno(
+_WK38_PRODUCCION_ARCHIVO = Diseno(
     ancho=47,
     columnas={
-        **_WK36.columnas,
+        **_WK36_ARCHIVO.columnas,
         "cantidad": 14,
         "unidad_medida": 15,
         # R en el libro real: las seis columnas insertadas la corrieron de P.
@@ -218,10 +223,10 @@ _WK38_PRODUCCION = Diseno(
 
 #: La misma entrega, hoja `IDA`: encabezado en la fila 1 y las cuatro columnas
 #: de referencia del contrato de `TASK-30` insertadas antes de la vía.
-_WK38_IDA = Diseno(
+_WK38_IDA_ARCHIVO = Diseno(
     ancho=45,
     columnas={
-        **_WK36.columnas,
+        **_WK36_ARCHIVO.columnas,
         "tipo_referencia": 36,
         "numero_referencia": 37,
         "transportista": 38,
@@ -232,6 +237,32 @@ _WK38_IDA = Diseno(
         "comentario": 44,
     },
 )
+
+
+#: Columnas que el lector exige desde el 02/11/2026 y que los archivos viejos no
+#: traían todas: sin ellas la hoja entera se rechaza (`US-59`).
+_OBLIGATORIAS_NUEVAS: Final = ("solicitud_pedido", "tipo_referencia", "numero_referencia")
+
+
+def _al_dia(diseno: Diseno) -> Diseno:
+    """El diseño con las columnas obligatorias de `US-59` que le falten, al final.
+
+    Las pruebas que estudian otra cosa —fechas, tipos, la vía— necesitan una hoja
+    que el lector acepte. Los diseños `_ARCHIVO` siguen siendo el archivo tal
+    cual vino, para las pruebas que miran justo eso.
+    """
+    faltan = [c for c in _OBLIGATORIAS_NUEVAS if c not in diseno.columnas]
+    return Diseno(
+        ancho=diseno.ancho + len(faltan),
+        columnas={**diseno.columnas, **{c: diseno.ancho + i for i, c in enumerate(faltan)}},
+        rotulos=diseno.rotulos,
+        banda=diseno.banda,
+    )
+
+
+_WK36 = _al_dia(_WK36_ARCHIVO)
+_WK38_PRODUCCION = _al_dia(_WK38_PRODUCCION_ARCHIVO)
+_WK38_IDA = _al_dia(_WK38_IDA_ARCHIVO)
 
 
 def _libro(tmp_path: Path, hojas: dict[str, list[list[Any]]], nombre: str = "zt.xlsx") -> Path:
@@ -297,6 +328,11 @@ def test_a_decimal(entrada: Any, esperado: float | None) -> None:
         # El serial de Excel, que es la mitad de la columna en IDA.
         (45779, dt.date(2025, 5, 2)),
         ("2026-05-29", dt.date(2026, 5, 29)),
+        # `US-59`: tecleada como texto, como se escribe aquí.
+        ("30/11/2026", dt.date(2026, 11, 30)),
+        ("30-11-2026", dt.date(2026, 11, 30)),
+        # WK43, OC 4500018201-10: un punto en lugar de la barra.
+        ("30/11.2026", None),
         (None, None),
         (0, None),  # dos líneas reales de IDA traen 0, que no es una fecha
         (-5, None),
@@ -789,22 +825,19 @@ _MUESTRAS_REALES = [
 
 @pytest.mark.parametrize(("nombre", "leidas", "ilegibles"), _MUESTRAS_REALES)
 async def test_contra_las_muestras_reales(nombre: str, leidas: int, ilegibles: int) -> None:
-    """El lector tiene que leer **las dos** entregas, no solo la última.
+    """Desde el 02/11/2026 las dos entregas viejas se **rechazan**: su `PRODUCCION`
+    no trae las columnas de documento, que `US-59` volvió obligatorias. El
+    rechazo dice qué agregar. Leídas sin esa hoja, `IDA` sigue entrando.
 
-    La carga histórica no se rehace cada vez que Logística mueve una columna.
+    Las cifras de `_MUESTRAS_REALES` son de las dos hojas, medidas antes del
+    cambio; quedan como registro.
     """
     ruta = _ANALISIS / nombre
     if not ruta.exists():
         pytest.skip(f"{nombre} no está versionado")
 
-    fuente = FuenteZTracking(ruta=ruta)
-    pedidos = await fuente.obtener_pedidos()
-
-    assert len(pedidos) == leidas
-    assert len(fuente.ilegibles) == ilegibles
-    assert {i.motivo for i in fuente.ilegibles} <= {ILEGIBLE_SIN_FECHA}
-    # La vía sucia llega entera hasta la normalización.
-    assert {"PENDIENTE", "N/A"} <= {p.via_transporte for p in pedidos}
+    with pytest.raises(HojaInesperada, match="TIPO DE DOCUMENTO AWB / BL, # DE DOCUMENTO"):
+        await FuenteZTracking(ruta=ruta).obtener_pedidos()
 
 
 # --- US-53: la fecha comprometida es la de llegada a Gutis ------------------
@@ -846,16 +879,224 @@ async def test_sin_la_columna_de_llegada_no_se_lee_la_solped_en_su_lugar(
 
 async def test_lee_la_solped_del_archivo_real() -> None:
     """22/10/2026: la pantalla de planta muestra OC, POS y SOLPED. En el WK38 la traen
-    460 de las 465 líneas, siempre con 10 dígitos; las otras 5 entran sin ella."""
+    460 de las 465 líneas, siempre con 10 dígitos. Desde `US-59` solo `IDA` se puede
+    leer (su `PRODUCCION` no trae las columnas de documento): 91 de sus 96 líneas."""
     ruta = _ANALISIS / "2026 - SEPTIEMBRE - WK38 MOD.xlsx"
     if not ruta.exists():
         pytest.skip("WK38 no está versionado")
 
-    pedidos = await FuenteZTracking(ruta=ruta).obtener_pedidos()
+    pedidos = await FuenteZTracking(ruta=ruta, hojas=("IDA",)).obtener_pedidos()
 
     con_solped = [p for p in pedidos if p.solicitud_pedido]
-    assert len(con_solped) == 460
+    assert (len(pedidos), len(con_solped)) == (96, 91)
     assert {len(p.solicitud_pedido or "") for p in con_solped} == {10}
     # La posición sigue siendo la de la OC, no la de la SOLPED, que también se llama así.
-    primera = next(p for p in pedidos if p.oc_numero == "4500017780" and p.posicion_oc == 10)
-    assert primera.solicitud_pedido == "1000033542"
+    primera = next(p for p in pedidos if p.oc_numero == "4500019506" and p.posicion_oc == 10)
+    assert primera.solicitud_pedido == "1000038385"
+
+
+# --- US-59: la entrega WK43 y la validación de formato ---------------------
+
+#: La entrega del 29/10/2026: misma forma que WK36 hasta la vía, y al final el
+#: comentario renombrado y dos columnas de referencia propias de Compras, solo
+#: en `PRODUCCION`. Los nombres de `TASK-30` desaparecieron.
+_WK43_ARCHIVO = Diseno(
+    ancho=43,
+    columnas={
+        **_WK36_ARCHIVO.columnas,
+        "comentario": 40,
+        "tipo_referencia": 41,
+        "numero_referencia": 42,
+    },
+    rotulos={
+        "comentario": "Comentarios ",
+        "tipo_referencia": "TIPO DE DOCUMENTO\nAWB / BL",
+        "numero_referencia": "# DE DOCUMENTO",
+    },
+)
+_WK43 = _al_dia(_WK43_ARCHIVO)
+
+
+@pytest.mark.parametrize(
+    ("tipo", "numero", "esperado"),
+    [
+        # «AWB» con once dígitos es la guía madre; con diez, la hija del agente.
+        ("AWB", 72474749194, ("MAWB", "72474749194")),
+        ("AWB", 2027766174, ("HAWB", "2027766174")),
+        ("BL", "SHE26092633", ("BL", "SHE26092633")),
+    ],
+)
+async def test_wk43_lee_la_referencia_de_sus_columnas(
+    tmp_path: Path, tipo: str, numero: Any, esperado: tuple[str, str]
+) -> None:
+    hojas = {"PRODUCCION": _WK43.hoja(_WK43.linea(tipo_referencia=tipo, numero_referencia=numero))}
+    (pedido,) = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert (pedido.tipo_referencia, pedido.numero_referencia) == esperado
+    assert pedido.referencia_desde_comentario is False
+
+
+async def test_wk43_lee_el_comentario_renombrado(tmp_path: Path) -> None:
+    """`Comentarios` en vez de `Comentario comprador`: sin el alias se perdían
+    las referencias escritas a mano de toda la entrega."""
+    hojas = {"PRODUCCION": _WK43.hoja(_WK43.linea(comentario="4500016172-4 / BL MAEU_274029064"))}
+    (pedido,) = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert (pedido.tipo_referencia, pedido.numero_referencia) == ("BL", "MAEU274029064")
+    assert pedido.referencia_desde_comentario is True
+
+
+@pytest.mark.parametrize(
+    ("campo", "valor", "rotulo", "esperado"),
+    [
+        ("oc_numero", "450001617", "Documento Compra", "10 dígitos"),
+        ("posicion_oc", "diez", "Posición", "entero positivo"),
+        ("material_codigo", "MAT-11", "Material", "código numérico"),
+        ("cantidad", -5, "Cantidad reparto", "mayor que cero"),
+        ("cantidad", "muchos", "Cantidad reparto", "mayor que cero"),
+        ("fecha_entrega_pedido", "30/11.2026", "Fecha Entrega", "una fecha"),
+    ],
+)
+async def test_un_formato_invalido_deja_la_linea_fuera_y_dice_campo_valor_y_esperado(
+    tmp_path: Path, campo: str, valor: Any, rotulo: str, esperado: str
+) -> None:
+    hojas = {"IDA": _WK36.hoja(_WK36.linea(**{campo: valor}), _WK36.linea(oc_numero="4500000002"))}
+    fuente = _fuente(tmp_path, hojas)
+    pedidos = await fuente.obtener_pedidos()
+
+    # La línea mala no entra; la buena sí (RN-17).
+    assert [p.oc_numero for p in pedidos] == ["4500000002"]
+    (ilegible,) = fuente.ilegibles
+    assert ilegible.motivo == ILEGIBLE_FORMATO
+    assert (ilegible.hoja, ilegible.fila) == ("IDA", 2)
+    assert f"«{rotulo}»" in ilegible.detalle
+    assert f"«{valor}»" in ilegible.detalle
+    assert esperado in ilegible.detalle
+
+
+async def test_la_fecha_escrita_como_texto_se_acepta(tmp_path: Path) -> None:
+    hojas = {"IDA": _WK36.hoja(_WK36.linea(fecha_entrega_pedido="30/11/2026"))}
+    (pedido,) = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert pedido.fecha_entrega_pedido == dt.date(2026, 11, 30)
+
+
+async def test_una_eta_invalida_se_descarta_pero_la_linea_entra(tmp_path: Path) -> None:
+    """Decisión del 02/11/2026: sin ETA el pedido se calcula igual."""
+    hojas = {"IDA": _WK36.hoja(_WK36.linea(eta_declarada="fin de mes"))}
+    (pedido,) = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert pedido.eta_declarada is None
+    (descartado,) = pedido.datos_descartados
+    assert "«ETA CR (fecha)» trae «fin de mes»" in descartado
+    assert "se espera una fecha" in descartado
+
+
+@pytest.mark.parametrize(
+    "sin_dato", ["PENDIENTE", "NA", "#N/A", "N/A", "pendiente ", dt.time(0, 0)]
+)
+async def test_una_eta_pendiente_no_es_un_formato_invalido(tmp_path: Path, sin_dato: Any) -> None:
+    """WK43 trae 157 así: marcarlas escondería las que sí hay que corregir."""
+    hojas = {"IDA": _WK36.hoja(_WK36.linea(eta_declarada=sin_dato))}
+    (pedido,) = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert pedido.datos_descartados == ()
+
+
+async def test_sin_la_columna_de_la_via_la_hoja_se_rechaza_entera(tmp_path: Path) -> None:
+    """Sin ella no entraría ninguna línea: se dice una vez, no 380."""
+    # La celda sigue ahí, pero con un rótulo que no es el de la vía.
+    sin_via = Diseno(
+        ancho=_WK36.ancho, columnas=_WK36.columnas, rotulos={"via_transporte": "Observaciones"}
+    )
+    hojas = {"IDA": sin_via.hoja(sin_via.linea())}
+
+    with pytest.raises(HojaInesperada, match="Tipo de transporte"):
+        await _fuente(tmp_path, hojas).obtener_pedidos()
+
+
+def test_el_encabezado_de_la_plantilla_no_tiene_diferencias() -> None:
+    assert diferencias_con_plantilla(_resolver_columnas(ROTULOS_PLANTILLA)) == []
+
+
+def test_la_plantilla_se_compara_por_campo_y_no_por_texto() -> None:
+    """El rótulo de Compras para la vía incluye TERRESTRE; sigue siendo la vía.
+    Lo que falta se dice con el rótulo de la plantilla; lo que sobra no se dice."""
+    encabezado = [
+        "Tipo de transporte (AEREO, MARITIMO, TERRESTRE)" if "transporte" in r else r
+        for r in ROTULOS_PLANTILLA
+        if not r.startswith(("Comentarios", "Pais"))
+    ]
+
+    faltan = diferencias_con_plantilla(_resolver_columnas((*encabezado, "Centro", "Usuario")))
+
+    assert faltan == ["Pais de Origen (opcional)", "Comentarios (opcional)"]
+
+
+async def test_la_lectura_guarda_lo_que_falta_por_hoja(tmp_path: Path) -> None:
+    """Solo las opcionales: si faltara una obligatoria, la hoja ya se habría rechazado."""
+    hojas = {"IDA": _WK36.hoja(_WK36.linea())}
+    fuente = _fuente(tmp_path, hojas)
+    await fuente.obtener_pedidos()
+
+    assert fuente.diferencias["IDA"] == ["Comentarios (opcional)"]
+
+
+async def test_sin_las_columnas_de_documento_la_hoja_se_rechaza_y_dice_cuales(
+    tmp_path: Path,
+) -> None:
+    """02/11/2026: el documento es columna obligatoria, aunque la celda vaya vacía.
+    Como `IDA` de WK43, que no las traía."""
+    sin_documento = Diseno(
+        ancho=_WK36.ancho,
+        columnas={
+            c: i
+            for c, i in _WK36.columnas.items()
+            if c not in ("tipo_referencia", "numero_referencia")
+        },
+    )
+    hojas = {"IDA": sin_documento.hoja(sin_documento.linea())}
+
+    with pytest.raises(HojaInesperada, match="no trae las columnas obligatorias") as error:
+        await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert "TIPO DE DOCUMENTO AWB / BL, # DE DOCUMENTO" in str(error.value)
+
+
+async def test_con_las_columnas_de_documento_vacias_la_linea_entra(tmp_path: Path) -> None:
+    """El documento existe al zarpar: hasta entonces el pedido entra `SIN_TRACKING`.
+    Lo mismo para la SOLPED y el texto del material: columna obligatoria, celda no."""
+    hojas = {"IDA": _WK36.hoja(_WK36.linea(material_descripcion=None))}
+
+    (pedido,) = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert pedido.numero_referencia is None
+    assert pedido.solicitud_pedido is None
+    assert pedido.material_descripcion == ""
+
+
+async def test_una_hoja_rechazada_no_deja_abierto_el_archivo(tmp_path: Path) -> None:
+    """02/11/2026: con el WK43 real, la carga respondía 500 en vez del rechazo.
+
+    El lector dejaba el archivo abierto al rechazar `IDA` a medio leer, y en
+    Windows el temporal de la subida no se podía borrar mientras se manejaba el
+    rechazo.
+    """
+    sin_documento = Diseno(
+        ancho=_WK36.ancho,
+        columnas={
+            c: i
+            for c, i in _WK36.columnas.items()
+            if c not in ("tipo_referencia", "numero_referencia")
+        },
+    )
+    lineas = [sin_documento.linea(oc_numero=f"45{n:08d}") for n in range(100)]
+    ruta = _libro(tmp_path, {"PRODUCCION": _WK36.hoja(), "IDA": sin_documento.hoja(*lineas)})
+
+    # Como `carga_archivo._leer`: el temporal se borra con el rechazo todavía vivo.
+    try:
+        await FuenteZTracking(ruta=ruta).obtener_pedidos()
+    except HojaInesperada:
+        ruta.unlink()  # sin la corrección: PermissionError en Windows
+    else:
+        pytest.fail("la hoja sin las columnas de documento tenía que rechazarse")

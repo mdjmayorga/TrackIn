@@ -28,6 +28,11 @@ from app.services.ingesta.comentario import referencia_en_comentario
         ("HAWB: SPX-99812", ("HAWB", "SPX-99812")),
         ("booking # 271108898", ("BOOKING", "271108898")),
         ("contenedor MRSU8132490 en patio", ("CONTENEDOR", "MRSU8132490")),
+        # WK43, OC 4500016172-40: el guion bajo partía el número en «MAEU».
+        (
+            "4500016172-4   / BL MAEU_274029064 \nOC en aprobación por mod",
+            ("BL", "MAEU274029064"),
+        ),
     ],
 )
 def test_reconoce_las_referencias_escritas_a_mano(

@@ -7,6 +7,7 @@ un embarque sin posición se procesa igual en vez de perderse.
 
 from __future__ import annotations
 
+import copy
 import datetime as dt
 import json
 from pathlib import Path
@@ -17,7 +18,8 @@ from sqlalchemy import func, select
 
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.historial_tracking import HistorialTracking
-from app.services.rastreo import colector_shipsgo
+from app.services.rastreo import colector_shipsgo, shipsgo
+from test_shipsgo_aereo import _aereo
 
 _SALIDA = Path(__file__).resolve().parents[1] / "scripts/spikes/task28/output"
 _MADUROS = _SALIDA / "06_payload_personal.json"
@@ -251,3 +253,79 @@ async def test_procesar_dos_veces_no_duplica_el_historial(sesion, elemento) -> N
         .where(HistorialTracking.id_elemento_rastreado == elemento.id)
     )
     assert filas == 1
+
+
+# --- La llegada cuenta solo en nuestro destino final (02/11/2026) -----------
+
+
+def _sin_llegada_a_sjo(destino: str | None) -> dict[str, Any]:
+    """La guía PEK→FRA→SJO cortada en Fráncfort, como una ruta incompleta de ShipsGo.
+
+    `destino` es lo que ShipsGo declararía en `route.destination`: `FRA` si la
+    ruta quedó truncada, `None` si no trae destino.
+    """
+    shipment = copy.deepcopy(_aereo()[0])
+    shipment["movements"] = [
+        m for m in shipment["movements"] if (m.get("location") or {}).get("iata") != "SJO"
+    ]
+    if destino is None:
+        shipment["route"].pop("destination", None)
+    else:
+        shipment["route"]["destination"]["location"]["iata"] = destino
+    return shipment
+
+
+def test_la_llegada_a_san_jose_es_la_final() -> None:
+    lectura = shipsgo.interpretar(_aereo()[0])
+
+    ata = colector_shipsgo.llegada_a_destino_final(lectura, frozenset({"MROC"}))
+
+    # `SJO` es `MROC` en el maestro (`EQUIVALENCIAS`).
+    llegada_sjo = next(h for h in lectura.hitos if h.puerto == "SJO" and h.evento == "ARR")
+    assert ata == llegada_sjo.instante
+
+
+@pytest.mark.parametrize("destino_de_shipsgo", ["FRA", None], ids=["ruta-truncada", "sin-destino"])
+def test_una_llegada_al_transbordo_no_es_la_final(destino_de_shipsgo: str | None) -> None:
+    """Antes, ShipsGo decidía: con la ruta truncada en Fráncfort, o sin destino,
+    la llegada a Fráncfort daba el pedido por arribado."""
+    lectura = shipsgo.interpretar(_sin_llegada_a_sjo(destino_de_shipsgo))
+    assert lectura.ata is not None, "lo que ShipsGo, por sí solo, tomaría por arribo"
+
+    assert colector_shipsgo.llegada_a_destino_final(lectura, frozenset({"MROC"})) is None
+
+
+async def test_el_colector_no_guarda_la_ata_de_un_transbordo(sesion) -> None:
+    guia = ElementoRastreado(
+        tipo_tracking_externo="MAWB", tracking_externo="020-50685434", via_transporte="AEREO"
+    )
+    sesion.add(guia)
+    await sesion.flush()
+
+    await colector_shipsgo.procesar(sesion, guia, _sin_llegada_a_sjo("FRA"))
+    assert guia.ata_api is None
+
+    await colector_shipsgo.procesar(sesion, guia, _aereo()[0])
+    assert guia.ata_api is not None
+    assert guia.ata_api.astimezone(dt.UTC).date() == dt.date(2026, 9, 5)  # en SJO
+
+
+async def test_los_destinos_finales_son_los_del_maestro(sesion) -> None:
+    assert "MROC" in await colector_shipsgo.destinos_finales(sesion, "AEREO")
+    assert {"CRMOB", "CRCAL"} <= await colector_shipsgo.destinos_finales(sesion, "MARITIMO")
+
+
+async def test_la_eta_para_un_destino_que_no_es_el_nuestro_no_se_guarda(sesion) -> None:
+    """ShipsGo calcula la ETA para el destino que declara: con la ruta truncada en
+    Fráncfort, la ETA es la de Fráncfort, no la de Costa Rica (02/11/2026)."""
+    guia = ElementoRastreado(
+        tipo_tracking_externo="MAWB", tracking_externo="020-50685434", via_transporte="AEREO"
+    )
+    sesion.add(guia)
+    await sesion.flush()
+
+    await colector_shipsgo.procesar(sesion, guia, _aereo()[0])
+    assert guia.eta_api is not None  # declarada para SJO: sirve
+
+    await colector_shipsgo.procesar(sesion, guia, _sin_llegada_a_sjo("FRA"))
+    assert guia.eta_api is None

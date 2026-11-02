@@ -12,8 +12,10 @@ Sin base y sin red.
 
 from __future__ import annotations
 
+import copy
 import datetime as dt
 import json
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -25,9 +27,12 @@ from app.services.rastreo import colector_shipsgo
 from app.services.rastreo.shipsgo import (
     ETAPA_POR_EVENTO_AEREO,
     EVENTOS_DE_ARRIBO_AEREO,
+    PUNTOS_POR_TRAMO,
     VIA_AEREA,
     VIA_MARITIMA,
     Hito,
+    aeropuertos_del_trazado,
+    completar_tramos,
     es_arribo,
     interpretar,
 )
@@ -378,3 +383,55 @@ async def test_el_colector_guarda_el_trayecto_en_el_elemento(sesion) -> None:
     assert (estimacion.situacion, estimacion.lugar) == (FINALIZADO, "SJO")
     # Una estimación no es una lectura: la geocerca no la ve.
     assert elemento.posicion_actual is None
+
+
+# --- Los vuelos que ShipsGo no dibuja (02/11/2026) ---------------------------
+
+
+def _sin_la_linea_del(vuelo: str) -> dict[str, Any]:
+    """El trazado grabado sin la línea de un vuelo, como la guía `020-05128546`."""
+    geojson = copy.deepcopy(_aereo()[1])
+    assert geojson is not None
+    geojson["features"] = [
+        f for f in geojson["features"] if (f.get("properties") or {}).get("flight") != vuelo
+    ]
+    return geojson
+
+
+def test_un_vuelo_sin_linea_se_reconstruye_con_sus_eventos() -> None:
+    completa = interpretar(_aereo()[0], _aereo()[1])
+    cortada = interpretar(_aereo()[0], _sin_la_linea_del("LH518"))
+
+    assert [t.vuelo for t in cortada.tramos_aereos] == ["LH8431", "LH518"]
+    reconstruido = cortada.tramos_aereos[1]
+    original = completa.tramos_aereos[1]
+    assert (reconstruido.origen, reconstruido.destino) == ("FRA", "SJO")
+    assert len(reconstruido.ruta) == PUNTOS_POR_TRAMO
+    # Empieza y termina en los aeropuertos que marca el trazado.
+    aeropuertos = aeropuertos_del_trazado(_aereo()[1])
+    assert reconstruido.ruta[0] == pytest.approx(aeropuertos["FRA"])
+    assert reconstruido.ruta[-1] == pytest.approx(aeropuertos["SJO"])
+    # Las horas salen de los eventos `DEP` y `ARR` del vuelo.
+    assert reconstruido.salida is not None and original.salida is not None
+    assert abs((reconstruido.salida - original.salida).total_seconds()) < 3600
+    assert reconstruido.llegada == next(
+        h.instante for h in cortada.hitos if h.evento == "ARR" and h.puerto == "SJO"
+    )
+
+
+def test_con_el_trazado_completo_no_se_agrega_nada() -> None:
+    lectura = interpretar(_aereo()[0], _aereo()[1])
+
+    assert [t.vuelo for t in lectura.tramos_aereos] == ["LH8431", "LH518"]
+
+
+def test_la_ruta_reconstruida_no_salta_al_cruzar_el_pacifico() -> None:
+    """PVG → LAX cruza el antimeridiano: la longitud tiene que ser continua."""
+    hitos = [
+        Hito("DEP", True, dt.datetime(2026, 10, 1, tzinfo=dt.UTC), "PVG", None, "CZ1", None),
+        Hito("ARR", True, dt.datetime(2026, 10, 2, tzinfo=dt.UTC), "LAX", None, "CZ1", None),
+    ]
+    (tramo,) = completar_tramos([], hitos, {"PVG": (121.8, 31.1), "LAX": (-118.4, 33.9)})
+
+    saltos = [abs(b[0] - a[0]) for a, b in pairwise(tramo.ruta)]
+    assert max(saltos) < 20

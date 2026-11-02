@@ -86,6 +86,11 @@ class PedidoCrudo:
     #: con Compras del 22/10/2026). Lo muestra la pantalla de planta.
     solicitud_pedido: str | None = None
 
+    #: Datos con formato inválido que no impiden la entrada, como una ETA que no
+    #: es fecha (`US-59`). Se descartaron al leer; la carga los informa si la
+    #: línea entra, con el campo, el valor y lo esperado.
+    datos_descartados: tuple[str, ...] = ()
+
     @property
     def clave(self) -> tuple[str, int]:
         """Clave natural de la línea: identifica el pedido entre cargas."""

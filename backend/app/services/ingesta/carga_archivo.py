@@ -131,7 +131,12 @@ async def _leer(contenido: bytes, nombre: str) -> tuple[list[PedidoCrudo], Fuent
         except HojaInesperada as exc:
             raise ArchivoInvalido(str(exc).replace(ruta.name, nombre)) from exc
     finally:
-        ruta.unlink(missing_ok=True)
+        try:
+            ruta.unlink(missing_ok=True)
+        except OSError:
+            # Un temporal que queda no puede tapar el motivo del rechazo: el
+            # 02/11/2026 eso convirtió un 422 explicado en un 500 sin mensaje.
+            logger.warning("Carga: no se pudo borrar el temporal %s.", ruta)
 
     if not pedidos:
         raise ArchivoInvalido(
@@ -153,9 +158,25 @@ async def tomar_candado(sesion: AsyncSession) -> None:
         )
 
 
-def avisos(resultado: ResultadoCarga) -> list[dict[str, str]]:
-    """Lo que entró bien pero conviene corregir en SAP (`US-52`, `US-54`)."""
-    return [
+def avisos(
+    resultado: ResultadoCarga,
+    diferencias: dict[str, list[str]] | None = None,
+) -> list[dict[str, str]]:
+    """Lo que entró bien pero conviene corregir en SAP (`US-52`, `US-54`).
+
+    Primero, por hoja, las columnas opcionales de la plantilla que el archivo no
+    trae (`US-59`): no rechazan nada, pero sin ellas falta ese dato en todas las
+    líneas de la hoja.
+    """
+    estructura = [
+        {
+            "clave": hoja,
+            "tipo": "estructura",
+            "detalle": f"No trae estas columnas de la plantilla: {', '.join(faltan)}.",
+        }
+        for hoja, faltan in (diferencias or {}).items()
+    ]
+    return estructura + [
         {
             "clave": f"{linea.oc_numero}-{linea.posicion_oc}",
             "tipo": linea.motivo,
@@ -241,7 +262,7 @@ async def cargar_archivo(
         tamano=len(contenido),
         instante=ahora,
         informe=informe,
-        avisos=avisos(resultado),
+        avisos=avisos(resultado, fuente.diferencias),
     )
     sesion.add(fila)
     await sesion.flush()

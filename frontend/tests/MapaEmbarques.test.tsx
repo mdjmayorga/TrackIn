@@ -3,7 +3,9 @@ import { render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { estadoMasUrgente } from '@/components/estados'
-import { MapaEmbarques } from '@/components/MapaEmbarques'
+import { MapaBase } from '@/components/MapaBase'
+import { DetalleDelGrupo, MapaEmbarques } from '@/components/MapaEmbarques'
+import { RutaAerea } from '@/components/RutaAerea'
 import { obtenerMapa } from '@/services/pedidos'
 import type { MapaPedidos, MarcadorMapa } from '@/types/api'
 import { agrupar } from '@/utils/agrupamiento'
@@ -123,6 +125,120 @@ describe('MapaEmbarques (US-25)', () => {
     montar()
 
     expect(await screen.findByTitle('2 embarques: acercar')).toHaveTextContent('2')
+  })
+
+  it('dos embarques en el mismo punto no se acercan: el clic ofrece el detalle', async () => {
+    // 02/11/2026: dos MAWB concluidas en SJO quedaban en un «2» sin forma de verlas.
+    vi.mocked(obtenerMapa).mockResolvedValue(
+      mapa({
+        marcadores: [
+          marcador({ referencia: '020-50685434', nombre: null }),
+          marcador({ id_elemento: 2, referencia: '72474749194', nombre: null }),
+        ],
+      }),
+    )
+    montar()
+
+    expect(
+      await screen.findByTitle('2 embarques en el mismo lugar: ver detalle'),
+    ).toHaveTextContent('2')
+    expect(screen.queryByTitle('2 embarques: acercar')).toBeNull()
+  })
+
+  it('el detalle del grupo lista cada embarque con su rótulo', () => {
+    // El recuadro de Leaflet no se abre en jsdom (el mapa no tiene tamaño): se
+    // prueba su contenido aparte.
+    render(
+      <DetalleDelGrupo
+        marcadores={[
+          marcador({ referencia: '020-50685434', nombre: null }),
+          marcador({ id_elemento: 2, referencia: '72474749194', nombre: null }),
+        ]}
+      />,
+    )
+
+    const lista = screen.getByRole('list', { name: 'Embarques en este lugar' })
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(2)
+    expect(lista).toHaveTextContent('020-50685434')
+    expect(lista).toHaveTextContent('72474749194')
+    expect(lista).toHaveTextContent('4500123456')
+  })
+
+  it('un vuelo con trayecto ofrece ver su ruta, y al elegirlo la dibuja (02/11/2026)', async () => {
+    vi.mocked(obtenerMapa).mockResolvedValue(
+      mapa({
+        marcadores: [
+          marcador({
+            tipo: 'MAWB',
+            referencia: '020-05128546',
+            nombre: null,
+            latitud: 10,
+            longitud: -84.2,
+            posicion_estimada: true,
+            situacion: 'FINALIZADO',
+            vuelo: 'LH518',
+            lugar: 'SJO',
+            trayecto: [
+              {
+                vuelo: 'LH518',
+                origen: 'FRA',
+                destino: 'SJO',
+                salida: '2026-10-30T13:33:00Z',
+                llegada: '2026-10-31T01:09:00Z',
+                ruta: [
+                  [50, 8.6],
+                  [10, -84.2],
+                ],
+              },
+            ],
+          }),
+        ],
+      }),
+    )
+    montar()
+
+    expect(await screen.findByText(/clic en un vuelo para ver su ruta/)).toBeInTheDocument()
+  })
+
+  it('la ruta dibuja un trazo por vuelo y un punto por aeropuerto', () => {
+    // El clic sobre el marcador no se puede simular en jsdom (el mapa no tiene
+    // tamaño): se prueba aparte lo que dibuja la ruta elegida.
+    render(
+      <MapaBase titulo="Ruta" centro={[30, 0]} zoom={2}>
+        <RutaAerea
+          color="#f00"
+          trayecto={[
+            {
+              vuelo: 'LH8401',
+              origen: 'PVG',
+              destino: 'FRA',
+              salida: '2026-10-27T02:01:00Z',
+              llegada: '2026-10-27T15:23:00Z',
+              ruta: [
+                [31.1, 121.8],
+                [50, 8.6],
+              ],
+            },
+            {
+              vuelo: 'LH518',
+              origen: 'FRA',
+              destino: 'SJO',
+              salida: '2026-10-30T13:33:00Z',
+              llegada: null,
+              ruta: [
+                [50, 8.6],
+                [10, -84.2],
+              ],
+            },
+          ]}
+        />
+      </MapaBase>,
+    )
+
+    // Dos vuelos y tres aeropuertos (FRA una sola vez).
+    expect(document.querySelectorAll('path.leaflet-interactive')).toHaveLength(5)
+    // El vuelo sin llegada va punteado.
+    expect(document.querySelectorAll('path[stroke-dasharray="4 6"]')).toHaveLength(1)
   })
 
   it('sin embarques con posición lo dice', async () => {

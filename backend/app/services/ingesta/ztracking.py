@@ -75,6 +75,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import re
 from dataclasses import dataclass, field
 from itertools import chain, islice
 from pathlib import Path
@@ -83,7 +84,7 @@ from typing import Any, Final
 from openpyxl import load_workbook
 from openpyxl.utils.datetime import from_excel
 
-from app.services.ingesta.comentario import referencia_en_comentario
+from app.services.ingesta.comentario import referencia_en_comentario, tipo_de_guia
 from app.services.ingesta.dto import PedidoCrudo
 
 logger = logging.getLogger(__name__)
@@ -113,7 +114,9 @@ class Columna:
     campo: str
     rotulo: str
     alias: tuple[str, ...] = ()
-    #: Sin esta columna la hoja no se puede leer: todo `PedidoCrudo` la exige.
+    #: Sin esta columna la hoja no se lee. No dice nada del **valor**: las cuatro
+    #: que `US-59` sumó (texto del material, SOLPED y documento) pueden venir
+    #: vacías en una línea; las demás ya la dejaban fuera vacías, en `_construir`.
     requerido: bool = False
     #: Índice de respaldo cuando el rótulo no aparece. Solo para columnas que
     #: **se sabe** que vienen rotas; poner uno "por si acaso" haría que una
@@ -136,7 +139,7 @@ COLUMNAS: Final[tuple[Columna, ...]] = (
     Columna("proveedor_codigo", "Proveedor", requerido=True),
     Columna("proveedor_nombre", "Nombre del Proveedor"),
     Columna("material_codigo", "Material", requerido=True),
-    Columna("material_descripcion", "Texto breve Material"),
+    Columna("material_descripcion", "Texto breve Material", requerido=True),
     # `US-53`, reunión con Compras del 29/09/2026: la fecha comprometida es
     # `Fecha Entrega`, la de **llegada a Gutis** (R en `PRODUCCION` de WK38, P
     # en `IDA`). Revierte la decisión de Planeación del 04/09, que usaba
@@ -149,7 +152,9 @@ COLUMNAS: Final[tuple[Columna, ...]] = (
     Columna("tipo_proveedor", "Tipo de proveedor"),
     Columna("temperatura", "Temperatura"),
     Columna("pais_origen", "Pais de Origen"),
-    Columna("via_transporte", "Tipo de transporte"),
+    # Obligatoria desde `US-59`: sin ella ninguna línea del archivo podría
+    # entrar (`sin_via_transporte`), y es mejor decirlo una vez que 380.
+    Columna("via_transporte", "Tipo de transporte", requerido=True),
     # Llega casi siempre vacía o con `PENDIENTE`: 18 fechas usables en las 429
     # líneas de WK36. Se ingesta igual, porque es la única ETA que el archivo
     # ofrece y `US-09` la usa como último recurso.
@@ -165,21 +170,77 @@ COLUMNAS: Final[tuple[Columna, ...]] = (
     # 23/09/2026 y añadidas a `IDA` en WK38. Vienen vacías en las 96 líneas de
     # esa entrega: la columna existe, el dato todavía no. Se mapean ya para que
     # el día que Logística empiece a llenarlas no haya que tocar código.
-    Columna("tipo_referencia", "Tipo de referencia"),
-    Columna("numero_referencia", "Número de referencia"),
+    #
+    # WK43 (29/10/2026) las cambió por dos propias de Compras, solo en
+    # `PRODUCCION`: `TIPO DE DOCUMENTO AWB / BL` y `# DE DOCUMENTO`. Son las que
+    # adopta la plantilla de `US-59`; los nombres de `TASK-30` siguen valiendo.
+    #
+    # Columnas obligatorias desde el 02/11/2026 (Mariano), con la celda vacía
+    # permitida: el documento existe recién al zarpar, y en WK43 80 de las 98
+    # líneas con vía válida todavía no lo tenían. Esas entran `SIN_TRACKING`.
+    Columna(
+        "tipo_referencia",
+        "Tipo de referencia",
+        alias=("Tipo de documento AWB / BL",),
+        requerido=True,
+    ),
+    Columna("numero_referencia", "Número de referencia", alias=("# de documento",), requerido=True),
     Columna("transportista", "Transportista"),
     # Mide la antelación con que se consigue la referencia respecto al zarpe.
     # Es lo que dirá si conviene dar de alta en ShipsGo apenas llega o esperar,
     # que es una decisión de presupuesto: cada alta cuesta un crédito.
     Columna("fecha_referencia", "Fecha de obtención de la referencia"),
     # `US-52`: mientras las columnas de arriba lleguen vacías, las referencias
-    # que Logística sí tiene están escritas a mano aquí («… BL COSU…»).
-    Columna("comentario", "Comentario comprador"),
+    # que Logística sí tiene están escritas a mano aquí («… BL COSU…»). WK43 la
+    # llama `Comentarios`; sin el alias se perdían las 184 de esa entrega.
+    Columna("comentario", "Comentario comprador", alias=("Comentarios",)),
     # `US-63`, reunión con Compras del 22/10/2026: la pantalla de planta muestra el
     # número de la solicitud de pedido. Solo el rótulo exacto: `Solicitud de
     # pedido` no debe tomar otra columna que empiece igual. Su `Posición` (la
     # segunda del archivo) no se pide.
-    Columna("solicitud_pedido", "Solicitud de pedido", solo_exacto=True),
+    Columna("solicitud_pedido", "Solicitud de pedido", solo_exacto=True, requerido=True),
+)
+
+#: Lo que se agrega a un rótulo opcional de la plantilla. Se quita antes de
+#: comparar, así que `Pais de Origen (opcional)` se lee como la columna.
+SUFIJO_OPCIONAL: Final = " (opcional)"
+
+#: La plantilla de `US-59`: **solo lo que el sistema usa**, campo y rótulo
+#: (decisión de Mariano del 02/11/2026). Las doce sin sufijo son las obligatorias
+#: de `COLUMNAS`: sin una de ellas la hoja no se lee. El incoterm se marca aparte
+#: porque es de donde sale el puerto de un marítimo sin BL (65 líneas de WK43
+#: quedaron fuera por eso). Quedan fuera las que TrackIn no lee o lee y no usa:
+#: las internas de Compras, la temperatura, el fabricante, el tipo de proveedor
+#: y `Carga arribo a Costa Rica`.
+PLANTILLA: Final[tuple[tuple[str, str], ...]] = (
+    ("oc_numero", "Documento Compra"),
+    ("posicion_oc", "Posición"),
+    ("proveedor_codigo", "Proveedor"),
+    ("proveedor_nombre", f"Nombre del Proveedor{SUFIJO_OPCIONAL}"),
+    ("material_codigo", "Material"),
+    ("material_descripcion", "Texto breve Material"),
+    ("cantidad", "Cantidad reparto"),
+    ("unidad_medida", "UMP"),
+    ("fecha_entrega_pedido", "Fecha Entrega"),
+    ("via_transporte", "Tipo de transporte (AEREO, MARITIMO)"),
+    ("incoterm", "Incoterm (obligatorio si es marítimo)"),
+    ("pais_origen", f"Pais de Origen{SUFIJO_OPCIONAL}"),
+    ("eta_declarada", f"ETA CR (fecha){SUFIJO_OPCIONAL}"),
+    ("solicitud_pedido", "Solicitud de pedido"),
+    ("tipo_referencia", "TIPO DE DOCUMENTO AWB / BL"),
+    ("numero_referencia", "# DE DOCUMENTO"),
+    ("comentario", f"Comentarios{SUFIJO_OPCIONAL}"),
+)
+ROTULOS_PLANTILLA: Final[tuple[str, ...]] = tuple(rotulo for _, rotulo in PLANTILLA)
+_ROTULO_EN_PLANTILLA: Final[dict[str, str]] = dict(PLANTILLA)
+
+#: Las columnas que pasaron a ser obligatorias el 02/11/2026. Su ausencia no
+#: dice que el libro sea otro: dice que no se adoptó la plantilla.
+_OBLIGATORIAS_US59: Final = (
+    "material_descripcion",
+    "solicitud_pedido",
+    "tipo_referencia",
+    "numero_referencia",
 )
 
 #: Cuántas filas del principio se inspeccionan buscando el encabezado. WK38 lo
@@ -189,8 +250,9 @@ _FILAS_INSPECCIONADAS: Final[int] = 5
 #: Cuántos rótulos reconocibles bastan para dar la hoja por válida. No se exigen
 #: todos —`ATA CR` y las de referencia viven en una sola hoja cada una—, pero sí
 #: una mayoría, para que un libro con otra estructura falle en vez de leer
-#: columnas equivocadas en silencio.
-_MINIMO_ROTULOS_RECONOCIDOS: Final[int] = 10
+#: columnas equivocadas en silencio. Doce desde `US-59`: las obligatorias, que
+#: es lo mínimo que trae la plantilla llenada sin ninguna opcional.
+_MINIMO_ROTULOS_RECONOCIDOS: Final[int] = 12
 
 #: Serial de Excel máximo que se acepta como fecha (≈ año 2173). Por encima de
 #: eso no hay fecha posible: es otro dato en la celda equivocada.
@@ -200,6 +262,16 @@ _SERIAL_MAXIMO: Final[int] = 100_000
 ILEGIBLE_SIN_CLAVE = "sin_clave_natural"
 ILEGIBLE_SIN_DATOS_MINIMOS = "sin_datos_minimos"
 ILEGIBLE_SIN_FECHA = "sin_fecha_de_entrega"
+#: `US-59`: el dato está, pero no tiene la forma de su campo.
+ILEGIBLE_FORMATO = "formato_invalido"
+
+#: Lo que el archivo escribe para decir «todavía no hay dato». No es un formato
+#: inválido: WK43 trae 89 `PENDIENTE`, 43 `NA` y 25 `#N/A` en la ETA, y marcar
+#: cada uno como error escondería los que sí hay que corregir.
+_SIN_DATO: Final[frozenset[str]] = frozenset({"PENDIENTE", "NA", "N/A", "#N/A", "-", "0"})
+
+#: Una OC de SAP: diez dígitos (`4500016172`). Las 381 líneas de WK43 la cumplen.
+_OC: Final = re.compile(r"\d{10}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -308,7 +380,35 @@ def _a_fecha(valor: Any) -> dt.date | None:
     try:
         return dt.date.fromisoformat(texto)
     except ValueError:
-        return None
+        pass
+    # `US-59`: una fecha tecleada como texto, como se escribe en Costa Rica. Es
+    # una fecha válida aunque la celda no tenga formato de fecha.
+    for formato in ("%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            return dt.datetime.strptime(texto, formato).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _sin_dato(valor: Any) -> bool:
+    """Si la celda dice «todavía no hay dato» en vez de traer uno.
+
+    Vacía, `PENDIENTE`, `N/A` y parecidos, el `0` y la hora `00:00` que openpyxl
+    devuelve para una celda de fecha en cero. Ninguno es un formato inválido.
+    """
+    if valor is None or isinstance(valor, dt.time):
+        return True
+    if isinstance(valor, int | float) and not isinstance(valor, bool):
+        return valor == 0
+    return " ".join(str(valor).upper().split()) in _SIN_DATO | {""}
+
+
+def _mostrar(valor: Any) -> str:
+    """El valor de la celda como lo vería quien abre el archivo."""
+    if isinstance(valor, dt.datetime):
+        return valor.strftime("%d/%m/%Y")
+    return " ".join((_a_texto(valor) or "").split())
 
 
 def _sin_tildes(texto: str) -> str:
@@ -332,7 +432,10 @@ def _resolver_columnas(encabezado: tuple[Any, ...]) -> dict[str, int]:
     repetida: la de la orden está a la izquierda, la de la solicitud de pedido
     mucho más a la derecha.
     """
-    reales = [_sin_tildes(celda) if isinstance(celda, str) else None for celda in encabezado]
+    reales = [
+        _sin_tildes(celda).removesuffix(SUFIJO_OPCIONAL) if isinstance(celda, str) else None
+        for celda in encabezado
+    ]
     mapa: dict[str, int] = {}
     for columna in COLUMNAS:
         buscados = [_sin_tildes(r) for r in (columna.rotulo, *columna.alias)]
@@ -349,6 +452,18 @@ def _resolver_columnas(encabezado: tuple[Any, ...]) -> dict[str, int]:
         if indice is not None:
             mapa[columna.campo] = indice
     return mapa
+
+
+def diferencias_con_plantilla(mapa: dict[str, int]) -> list[str]:
+    """Las columnas de la plantilla que la hoja no trae, con su rótulo.
+
+    Se compara por **campo**, no por texto: `Tipo de transporte (AEREO, MARITIMO,
+    TERRESTRE)` del archivo de Compras es la misma columna que la de la plantilla.
+    Las obligatorias que falten ya rechazaron la hoja, así que aquí solo quedan
+    opcionales. Las columnas de más no se informan: el archivo de Compras trae
+    25 que TrackIn no lee, y avisarlas en cada carga sería ruido.
+    """
+    return [rotulo for campo, rotulo in PLANTILLA if campo not in mapa]
 
 
 def _localizar_encabezado(cabecera: list[tuple[Any, ...]]) -> tuple[int, dict[str, int]]:
@@ -385,6 +500,8 @@ class FuenteZTracking:
     hojas: tuple[str, ...] = HOJAS_EN_ALCANCE
     #: Filas que no llegaron a línea, con su motivo. Se llena en cada lectura.
     ilegibles: list[LineaIlegible] = field(default_factory=list)
+    #: Por hoja, en qué se aparta el encabezado de la plantilla (`US-59`).
+    diferencias: dict[str, list[str]] = field(default_factory=dict)
 
     @property
     def nombre(self) -> str:
@@ -405,6 +522,7 @@ class FuenteZTracking:
             raise FileNotFoundError(f"No existe el archivo Z-tracking: {self.ruta}")
 
         self.ilegibles = []
+        self.diferencias = {}
         pedidos: list[PedidoCrudo] = []
 
         # `read_only` para no cargar 1 400 filas en memoria; `data_only` para
@@ -432,6 +550,16 @@ class FuenteZTracking:
 
     def _leer_hoja(self, hoja: Any, nombre: str) -> list[PedidoCrudo]:
         filas = hoja.iter_rows(values_only=True)
+        try:
+            return self._leer_filas(filas, nombre)
+        finally:
+            # En `read_only` el iterador sin agotar deja abierto el archivo, y
+            # `libro.close()` no lo suelta. Con una hoja rechazada a medio leer,
+            # Windows no dejaba borrar el temporal de la subida: el
+            # `PermissionError` tapaba el rechazo y la API respondía 500 (02/11/2026).
+            filas.close()
+
+    def _leer_filas(self, filas: Any, nombre: str) -> list[PedidoCrudo]:
         # Se materializan solo las primeras filas: el iterador de `read_only`
         # es de una pasada, así que hay que retener las candidatas a encabezado
         # para poder volver sobre las que resulten ser datos.
@@ -455,13 +583,32 @@ class FuenteZTracking:
                     columna.respaldo,
                 )
 
-        faltantes = [c.rotulo for c in COLUMNAS if c.requerido and c.campo not in mapa]
-        if faltantes or len(mapa) < _MINIMO_ROTULOS_RECONOCIDOS:
+        # Con el nombre de la plantilla, que es el que Compras tiene a la vista.
+        faltantes = [
+            _ROTULO_EN_PLANTILLA.get(c.campo, c.rotulo)
+            for c in COLUMNAS
+            if c.requerido and c.campo not in mapa
+        ]
+        de_siempre = [
+            r for r in faltantes if r not in (_ROTULO_EN_PLANTILLA[c] for c in _OBLIGATORIAS_US59)
+        ]
+        if de_siempre or len(mapa) < _MINIMO_ROTULOS_RECONOCIDOS - len(faltantes):
             detalle = f" y faltan las obligatorias {', '.join(faltantes)}" if faltantes else ""
             raise HojaInesperada(
                 f"La hoja {nombre!r} de {self.ruta.name} no parece un Z-tracking: se "
                 f"reconocieron {len(mapa)} de {len(COLUMNAS)} columnas{detalle}."
             )
+        if faltantes:
+            # Solo faltan las que `US-59` volvió obligatorias: es el archivo de
+            # siempre, sin adoptar la plantilla. Se dice qué agregar.
+            raise HojaInesperada(
+                f"La hoja {nombre!r} de {self.ruta.name} no trae las columnas obligatorias "
+                f"de la plantilla: {', '.join(faltantes)}. Agréguelas, aunque vayan vacías."
+            )
+
+        faltan = diferencias_con_plantilla(mapa)
+        if faltan:
+            self.diferencias[nombre] = faltan
 
         logger.debug(
             "Z-tracking: %s — encabezado en la fila %d, %d columnas reconocidas.",
@@ -493,9 +640,19 @@ class FuenteZTracking:
                 return None
             return fila[indice]
 
+        def formato(clave: str, rotulo: str, campo: str, esperado: str) -> None:
+            # Campo, valor y lo esperado: lo que pide `US-59` para corregir SAP
+            # sin tener que adivinar qué estaba mal en la celda.
+            self._anotar(
+                hoja,
+                numero,
+                ILEGIBLE_FORMATO,
+                f"{clave}: «{rotulo}» trae «{_mostrar(celda(campo))}»; se espera {esperado}",
+            )
+
         oc_numero = _a_texto(celda("oc_numero"))
         posicion = _a_entero(celda("posicion_oc"))
-        if not oc_numero or posicion is None:
+        if not oc_numero or _sin_dato(celda("posicion_oc")):
             self._anotar(
                 hoja,
                 numero,
@@ -504,6 +661,13 @@ class FuenteZTracking:
                 f"posición={celda('posicion_oc')!r}",
             )
             return None
+        if not _OC.fullmatch(oc_numero):
+            formato(oc_numero, "Documento Compra", "oc_numero", "un número de 10 dígitos")
+            return None
+        if posicion is None or posicion <= 0:
+            formato(oc_numero, "Posición", "posicion_oc", "un número entero positivo")
+            return None
+        clave = f"{oc_numero}-{posicion}"
 
         material_codigo = _a_texto(celda("material_codigo"))
         proveedor_codigo = _a_texto(celda("proveedor_codigo"))
@@ -512,24 +676,33 @@ class FuenteZTracking:
 
         faltantes = [
             rotulo
-            for rotulo, presente in (
-                ("material", material_codigo),
-                ("proveedor", proveedor_codigo),
-                ("cantidad", cantidad),
-                ("unidad de medida", unidad),
+            for rotulo, campo in (
+                ("material", "material_codigo"),
+                ("proveedor", "proveedor_codigo"),
+                ("cantidad", "cantidad"),
+                ("unidad de medida", "unidad_medida"),
             )
-            if not presente
+            if celda(campo) is None or _a_texto(celda(campo)) is None
         ]
         if faltantes:
             self._anotar(
                 hoja,
                 numero,
                 ILEGIBLE_SIN_DATOS_MINIMOS,
-                f"{oc_numero}-{posicion}: falta {', '.join(faltantes)}",
+                f"{clave}: falta {', '.join(faltantes)}",
             )
+            return None
+        if not (material_codigo or "").isdigit():
+            formato(clave, "Material", "material_codigo", "el código numérico de SAP")
+            return None
+        if cantidad is None or cantidad <= 0:
+            formato(clave, "Cantidad reparto", "cantidad", "un número mayor que cero")
             return None
 
         fecha = _a_fecha(celda("fecha_entrega_pedido"))
+        if fecha is None and not _sin_dato(celda("fecha_entrega_pedido")):
+            formato(clave, "Fecha Entrega", "fecha_entrega_pedido", "una fecha, como 30/11/2026")
+            return None
         if fecha is None:
             # Seis líneas de `IDA` de WK36 la traen vacía; WK38 la trae en todas.
             # Es la fecha comprometida de RN-07 a RN-09: sin ella no hay contra
@@ -538,13 +711,26 @@ class FuenteZTracking:
                 hoja,
                 numero,
                 ILEGIBLE_SIN_FECHA,
-                f"{oc_numero}-{posicion}: 'Fecha Entrega' (llegada a Gutis) vacía o ilegible "
+                f"{clave}: 'Fecha Entrega' (llegada a Gutis) vacía o ilegible "
                 f"({celda('fecha_entrega_pedido')!r})",
             )
             return None
 
+        # La ETA no es de las que dejan fuera la línea (decisión del 02/11/2026):
+        # sin ella el pedido se calcula igual. Se descarta y se avisa.
+        descartados: list[str] = []
+        eta = _a_fecha(celda("eta_declarada"))
+        if eta is None and not _sin_dato(celda("eta_declarada")):
+            descartados.append(
+                f"«ETA CR (fecha)» trae «{_mostrar(celda('eta_declarada'))}»; se espera "
+                "una fecha, como 30/11/2026. Entró sin ETA declarada"
+            )
+
         tipo_referencia = _a_texto(celda("tipo_referencia"))
         numero_referencia = _a_texto(celda("numero_referencia"))
+        if tipo_referencia and numero_referencia and tipo_referencia.upper() == "AWB":
+            # WK43 escribe «AWB» para las dos guías, como el comentario.
+            tipo_referencia = tipo_de_guia(numero_referencia)
         desde_comentario = False
         if not (tipo_referencia and numero_referencia):
             # La columna manda: el comentario solo se lee cuando está vacía.
@@ -571,7 +757,7 @@ class FuenteZTracking:
             via_transporte=_a_texto(celda("via_transporte")),
             # Aquí sí se convierte, porque `PENDIENTE` y `N/A` no son fechas y
             # `_a_fecha` ya los descarta: no hay decisión de negocio que tomar.
-            eta_declarada=_a_fecha(celda("eta_declarada")),
+            eta_declarada=eta,
             arribo_declarado=_a_texto(celda("arribo_declarado")),
             pais_origen=_a_texto(celda("pais_origen")),
             incoterm=_a_texto(celda("incoterm")),
@@ -587,6 +773,7 @@ class FuenteZTracking:
             transportista=_a_texto(celda("transportista")),
             fecha_referencia=_a_fecha(celda("fecha_referencia")),
             solicitud_pedido=_a_texto(celda("solicitud_pedido")),
+            datos_descartados=tuple(descartados),
         )
 
     def _anotar(self, hoja: str, fila: int, motivo: str, detalle: str) -> None:
@@ -597,11 +784,16 @@ class FuenteZTracking:
 __all__ = [
     "COLUMNAS",
     "HOJAS_EN_ALCANCE",
+    "ILEGIBLE_FORMATO",
     "ILEGIBLE_SIN_CLAVE",
     "ILEGIBLE_SIN_DATOS_MINIMOS",
     "ILEGIBLE_SIN_FECHA",
+    "PLANTILLA",
+    "ROTULOS_PLANTILLA",
+    "SUFIJO_OPCIONAL",
     "Columna",
     "FuenteZTracking",
     "HojaInesperada",
     "LineaIlegible",
+    "diferencias_con_plantilla",
 ]

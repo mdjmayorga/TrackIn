@@ -25,7 +25,8 @@ from app.services.ingesta.dto import PedidoCrudo
 CARPETA = Path(__file__).resolve().parents[2] / "docs" / "integraciones" / "sap"
 
 #: Lo que el lector deduce y la fuente no envía.
-_DERIVADOS = {"referencia_desde_comentario"}
+#: `datos_descartados` (`US-59`) lo anota el lector del Excel al validar formatos.
+_DERIVADOS = {"referencia_desde_comentario", "datos_descartados"}
 #: Lo que la fuente envía y el lector no guarda: `comentario` solo se lee para
 #: buscar referencias escritas a mano (`US-52`), de donde sale el derivado.
 _SOLO_ENTRADA = {"comentario"}
