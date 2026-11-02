@@ -25,6 +25,7 @@ from app.main import app
 from app.models import enums
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.maestro_destino import MaestroDestino
+from app.models.maestro_pais import MaestroPais
 from app.models.material import Material
 from app.models.parametro_sistema import ParametroSistema
 from app.models.pedido_transito import PedidoTransito
@@ -849,3 +850,17 @@ async def test_el_filtro_por_solped_vale_tambien_para_los_kpis(api, sesion) -> N
     kpis = (await api.get(f"{URL}/indicadores", params={"solped": "10000335"})).json()
 
     assert kpis["activos"] == 1
+
+
+async def test_el_detalle_trae_el_pais_de_origen_normalizado(api, sesion) -> None:
+    """`US-44`: del maestro de países (`TASK-29`), no el texto libre del archivo."""
+    india = await sesion.scalar(select(MaestroPais).where(MaestroPais.codigo == "IN"))
+    assert india is not None, "el maestro de países viene de la migración"
+    con_pais = await _pedido(sesion, "4588800091", id_pais_origen=india.id)
+    sin_pais = await _pedido(sesion, "4588800092")
+
+    assert (await api.get(f"{URL}/{con_pais.id}")).json()["pais_origen"] == {
+        "codigo": "IN",
+        "nombre": "India",
+    }
+    assert (await api.get(f"{URL}/{sin_pais.id}")).json()["pais_origen"] is None

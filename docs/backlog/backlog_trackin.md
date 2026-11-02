@@ -121,7 +121,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed · 22/10: la línea de tiempo del detalle suma los hitos del viaje, transbordos incluidos |
 | `US-30` | Registrar los transbordos: automáticos desde ShipsGo, a mano solo las excepciones ✅ | Story | OE2 | **Should** | Sprint 7 | ~~10h~~ 6h | RF-26 / CU-10 · **replanteada el 22/10**: con BL, contenedor o MAWB el transbordo lo informa ShipsGo y se registra solo; la captura manual queda para los pedidos sin referencia y el paso de guía hija a madre · ✅ adelantada y terminada 28/10 |
-| `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido | Story | OE3 | **Should** | Sprint 7 | ~~8h~~ 4h | Reunión Logística 03/09 / RF-05 (ampliado) · **mapa en vivo de ShipsGo en el detalle, funcionando desde el 21/10** (ShipsGo Embed) |
+| `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido ✅ | Story | OE3 | **Should** | Sprint 7 | ~~8h~~ 4h | Reunión Logística 03/09 / RF-05 (ampliado) · **mapa en vivo de ShipsGo en el detalle, funcionando desde el 21/10** (ShipsGo Embed) · ✅ terminada 02/11: país de origen en el encabezado; mapa propio con la ruta completa para los aéreos |
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande ✅ | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` · ✅ adelantada y terminada 28/10 |
 | `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
 | `TASK-07` | Manual de instalacion local | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
@@ -2632,6 +2632,8 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **28/10: adelantadas 40 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
 > reales), `US-30` y `US-33` terminadas y `TASK-10` cerrada sin retención.
 >
+> **02/11, más tarde: 52 de 63 h.** `US-44` terminada.
+>
 > **02/11, primer día del sprint: 48 de 63 h.** `US-59` terminada. La primera carga real (WK43,
 > 29/10) dejó 109 de 115 pedidos `SIN_TRACKING`: el lector no reconocía las columnas de
 > referencia nuevas y la carga no asociaba referencias a pedidos existentes. Ambas cosas se
@@ -3462,6 +3464,20 @@ seguimiento** de ese envío en particular, para saber de dónde viene y por dón
 >
 > **Pendiente:** el dominio de producción en «Allowed HTTP Origins», y verificar que la red de
 > Gutis deja pasar `embed.shipsgo.com`.
+
+> **✅ Terminada el 02/11/2026.**
+>
+> - **Primer criterio, el país de origen:** el encabezado del detalle dice «País de origen:
+>   India», el nombre del maestro (`TASK-29`), no el texto libre del Z-tracking. Si no hay
+>   —el archivo no lo trae o el maestro no lo reconoce—, dice «sin dato» con la explicación al
+>   pasar el cursor. El backend ya lo entregaba (`pais_origen`); faltaba mostrarlo. En
+>   `trackin_dev`, 111 de los 115 pedidos activos lo tienen (62 de India).
+> - **Segundo criterio, el mapa:** marítimo, el Embed de ShipsGo (21/10); aéreo, desde hoy,
+>   el mapa propio con todos los vuelos —también los que ShipsGo no dibuja— y dónde está la
+>   carga (ver la nota del 02/11 en `US-30`).
+> - **Pruebas:** 1 de API (`test_pedidos_api.py`) y 2 de frontend (`DetallePedido.test.tsx`).
+> - **Sigue pendiente**, y es del despliegue y no de la historia: el dominio de producción en
+>   el Embed y que la red de Gutis deje pasar `embed.shipsgo.com` (`TASK-09`).
 
 ### `TASK-30` — Contrato de captura de la referencia de embarque
 

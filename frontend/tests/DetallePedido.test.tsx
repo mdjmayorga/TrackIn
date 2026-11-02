@@ -155,6 +155,21 @@ describe('encabezado', () => {
     expect(obtenerPedido).toHaveBeenCalledWith(7)
   })
 
+  it('el país de origen normalizado, o que no hay dato (US-44)', async () => {
+    vi.mocked(obtenerPedido).mockResolvedValue(
+      detalle({ pais_origen: { codigo: 'IN', nombre: 'India' } }),
+    )
+    montar()
+
+    expect(await screen.findByText(/País de origen:/)).toHaveTextContent('País de origen: India')
+  })
+
+  it('sin país de origen lo dice', async () => {
+    montar()
+
+    expect(await screen.findByText(/País de origen:/)).toHaveTextContent('País de origen: sin dato')
+  })
+
   it('vuelve al dashboard', async () => {
     montar()
 

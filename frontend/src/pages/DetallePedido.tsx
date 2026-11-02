@@ -79,6 +79,20 @@ function Contenido({ pedido }: { pedido: PedidoDetalle }) {
             {pedido.material.codigo} | {pedido.material.descripcion} | {pedido.proveedor.nombre} |{' '}
             {formatearCantidad(pedido.cantidad_pedida, pedido.unidad_medida)}
           </p>
+          {/* `US-44`: normalizado contra el maestro de países (`TASK-29`). */}
+          <p className="mt-1 text-slate-300">
+            País de origen:{' '}
+            {pedido.pais_origen ? (
+              pedido.pais_origen.nombre
+            ) : (
+              <span
+                className="text-slate-500"
+                title="El Z-tracking no trae el país, o trae uno que el maestro no reconoce"
+              >
+                sin dato
+              </span>
+            )}
+          </p>
         </div>
         <p className="flex flex-wrap items-center gap-2 text-lg">
           Etapa: <Distintivo {...ETAPAS[etapaVisible(pedido)]} />
