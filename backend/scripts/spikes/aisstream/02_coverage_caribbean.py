@@ -37,12 +37,11 @@ import json
 import sys
 import time
 from collections import Counter
-from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     header,
@@ -121,13 +120,13 @@ async def capture(api_key: str, raw_path: Path) -> dict:
             connect(WS_URL, open_timeout=CONNECT_TIMEOUT_S, close_timeout=2, ping_interval=None),
             timeout=CONNECT_TIMEOUT_S + 5,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         stats["error"] = type(exc).__name__ + ": " + str(exc)[:200]
         return stats
 
     try:
         await websocket.send(json.dumps(subscription))
-        print("  Suscripcion enviada. Capturando {} s...".format(CAPTURE_SECONDS))
+        print(f"  Suscripcion enviada. Capturando {CAPTURE_SECONDS} s...")
 
         deadline = time.perf_counter() + CAPTURE_SECONDS
         last_report = time.perf_counter()
@@ -139,9 +138,9 @@ async def capture(api_key: str, raw_path: Path) -> dict:
                     break
                 try:
                     frame = await asyncio.wait_for(websocket.recv(), timeout=remaining)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     break
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     stats["error"] = "durante recv: " + type(exc).__name__ + ": " + str(exc)[:150]
                     break
 
@@ -257,17 +256,17 @@ def main() -> int:
     print(SUB)
     print("  VOLUMEN")
     print(SUB)
-    print("  Mensajes capturados  : {}".format(total))
-    print("  Duracion             : {} s".format(elapsed))
-    print("  Tasa                 : {:.1f} msg/s".format(total / elapsed if elapsed else 0))
+    print(f"  Mensajes capturados  : {total}")
+    print(f"  Duracion             : {elapsed} s")
+    print(f"  Tasa                 : {total / elapsed if elapsed else 0:.1f} msg/s")
     print(
         "  Volumen              : {:.1f} KB  ({:.2f} KB/s)".format(
             stats["bytes"] / 1024, stats["bytes"] / 1024 / elapsed if elapsed else 0
         )
     )
-    print("  Buques unicos (MMSI) : {}".format(unique_mmsi))
+    print(f"  Buques unicos (MMSI) : {unique_mmsi}")
     if unique_mmsi:
-        print("  Mensajes por buque   : {:.1f} en {} s".format(total / unique_mmsi, elapsed))
+        print(f"  Mensajes por buque   : {total / unique_mmsi:.1f} en {elapsed} s")
 
     print()
     print(SUB)
@@ -284,9 +283,7 @@ def main() -> int:
         ships = len(stats["mmsi_by_zone"].get(zone, set()))
         pct = 100.0 * count / total if total else 0.0
         print(
-            "  {:<32} {:>6} msg ({:>5.1f}%)  {:>4} buques".format(
-                zone_labels[zone], count, pct, ships
-            )
+            f"  {zone_labels[zone]:<32} {count:>6} msg ({pct:>5.1f}%)  {ships:>4} buques"
         )
 
     print()
@@ -295,7 +292,7 @@ def main() -> int:
     print(SUB)
     for msg_type, count in stats["message_types"].most_common(12):
         pct = 100.0 * count / total if total else 0.0
-        print("  {:<34} {:>6} ({:>5.1f}%)".format(msg_type, count, pct))
+        print(f"  {msg_type:<34} {count:>6} ({pct:>5.1f}%)")
 
     # --- Lectura -----------------------------------------------------------
     moin_ships = len(stats["mmsi_by_zone"].get("moin", set()))
@@ -313,18 +310,14 @@ def main() -> int:
     elif moin_ships == 0:
         verdict = "cobertura_aproximacion"
         print(
-            "  Hay {} buques en la aproximacion a Limon pero ninguno dentro del".format(
-                approach_ships
-            )
+            f"  Hay {approach_ships} buques en la aproximacion a Limon pero ninguno dentro del"
         )
         print("  radio de Moin. Coherente con un puerto de bajo trafico: los buques")
         print("  se detectan en ruta, no necesariamente atracados.")
     else:
         verdict = "cobertura_util"
         print(
-            "  {} buques dentro del radio de Puerto Moin y {} en aproximacion.".format(
-                moin_ships, approach_ships
-            )
+            f"  {moin_ships} buques dentro del radio de Puerto Moin y {approach_ships} en aproximacion."
         )
         print("  La cobertura AIS sirve para seguir un embarque hasta el destino.")
 

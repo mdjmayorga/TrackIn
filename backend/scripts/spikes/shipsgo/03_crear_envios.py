@@ -47,7 +47,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _comercial import (  # noqa: E402
+from _comercial import (
     TIMEOUT,
     Referencia,
     cargar_referencias,
@@ -69,7 +69,7 @@ from _common import (
     require,
     save_evidence,
     utc_now,
-)  # noqa: E402
+)
 
 BASE = "https://api.shipsgo.com/v2"
 REGISTRO = SPIKES_DIR / "shipsgo" / "output" / "envios_creados.json"
@@ -165,9 +165,7 @@ def main() -> int:
                 + (" (BL enviado como booking)" if ref.tipo == "BL" else "")
             )
         print(
-            "  {:<16} {:<10} {:<11} {:<16} {}".format(
-                ref.alias, ref.via, ref.tipo, ref.enmascarada, decision
-            )
+            f"  {ref.alias:<16} {ref.via:<10} {ref.tipo:<11} {ref.enmascarada:<16} {decision}"
         )
 
     print()

@@ -37,12 +37,11 @@ from __future__ import annotations
 
 import sys
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     describe_http_error,
@@ -82,7 +81,7 @@ def get_token(client_id: str, client_secret: str) -> str:
             },
             timeout=TIMEOUT,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         sys.exit("[FATAL] No se pudo pedir el token (" + category + "): " + explanation)
     if response.status_code != 200:
@@ -108,10 +107,10 @@ def probe(token: str | None, path: str, params: dict, title: str, expectation: s
     started = time.perf_counter()
     try:
         response = httpx.get(BASE + path, params=params, headers=headers, timeout=TIMEOUT)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         result.update(outcome="excepcion", error_category=category, error_detail=explanation)
-        print("  {:<34} [EXCEPCION] {}".format(title, category))
+        print(f"  {title:<34} [EXCEPCION] {category}")
         return result
 
     remaining = response.headers.get("x-rate-limit-remaining")
@@ -143,16 +142,16 @@ def probe(token: str | None, path: str, params: dict, title: str, expectation: s
                 else:
                     result["outcome"] = "200_con_datos"
                     result["item_count"] = len(states)
-                    detail = "200 con {} elementos".format(len(states))
+                    detail = f"200 con {len(states)} elementos"
             elif isinstance(payload, list):
                 result["outcome"] = "200_lista"
                 result["item_count"] = len(payload)
-                detail = "200 con lista de {} elementos".format(len(payload))
+                detail = f"200 con lista de {len(payload)} elementos"
     else:
         result["outcome"] = "http_" + str(response.status_code)
         detail = body[:110].replace("\n", " ")
 
-    print("  {:<34} [{}] {}".format(title, response.status_code, detail))
+    print(f"  {title:<34} [{response.status_code}] {detail}")
     print("  {:<34}   creditos_rest={}".format("", result.get("credits_remaining")))
     return result
 
@@ -189,10 +188,10 @@ def continuity_test(token: str) -> dict:
         return found, payload.get("time")
 
     first, t1 = snapshot()
-    print("  Muestra 1: {} aeronaves".format(len(first)))
+    print(f"  Muestra 1: {len(first)} aeronaves")
     time.sleep(CONTINUITY_GAP_S)
     second, t2 = snapshot()
-    print("  Muestra 2: {} aeronaves  (tras {} s)".format(len(second), CONTINUITY_GAP_S))
+    print(f"  Muestra 2: {len(second)} aeronaves  (tras {CONTINUITY_GAP_S} s)")
 
     disappeared = sorted(set(first) - set(second))
     appeared = sorted(set(second) - set(first))

@@ -171,6 +171,8 @@ export interface Rastreo {
   /** Cuándo respondió bien la fuente por última vez (RNF-12). */
   ultima_consulta_exitosa: string | null
   guia_madre: string | null
+  /** Si el pedido pasó de una guía hija a esta guía madre, la hija (`US-30`). */
+  guia_hija?: string | null
   manifiesto_aduana: string | null
   /** `false` cuando ya arribó y no se consulta más. */
   activo: boolean
@@ -387,6 +389,8 @@ export interface ReferenciaPendiente {
   aerolinea: string | null
   /** Se puede dar de alta: todo salvo una MAWB sin cobertura. */
   ofrecible: boolean
+  /** Algo raro en el número, para revisarlo antes de gastar el crédito (29/10/2026). */
+  advertencia?: string | null
 }
 
 /** El saldo de créditos de ShipsGo (`GET /api/v1/shipsgo/creditos`, `US-57`). */

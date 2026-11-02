@@ -38,7 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     header,
@@ -209,7 +209,7 @@ def main() -> int:
 
     print()
     print(SUB)
-    print("  IDENTIFICACION NAVE <-> CARGA  (sobre {} buques)".format(unique_ships))
+    print(f"  IDENTIFICACION NAVE <-> CARGA  (sobre {unique_ships} buques)")
     print(SUB)
     for label, subset in (
         ("con MMSI", ship_info),
@@ -220,9 +220,7 @@ def main() -> int:
     ):
         count = len(subset)
         print(
-            "  {:<16} {:>4} / {:<4} ({:>5.1f}%)".format(
-                label, count, unique_ships, 100.0 * count / unique_ships if unique_ships else 0
-            )
+            f"  {label:<16} {count:>4} / {unique_ships:<4} ({100.0 * count / unique_ships if unique_ships else 0:>5.1f}%)"
         )
 
     if with_dest:
@@ -250,7 +248,7 @@ def main() -> int:
             ordered = sorted(stamps)
             intervals.extend(
                 (b - a).total_seconds()
-                for a, b in zip(ordered, ordered[1:])
+                for a, b in zip(ordered, ordered[1:], strict=False)
                 if (b - a).total_seconds() > 0
             )
 
@@ -259,22 +257,15 @@ def main() -> int:
     print("  FRECUENCIA POR EMBARCACION")
     print(SUB)
     print(
-        "  Buques con 1 solo mensaje : {} / {}".format(
-            sum(1 for c in repeat_counts if c == 1), unique_ships
-        )
+        f"  Buques con 1 solo mensaje : {sum(1 for c in repeat_counts if c == 1)} / {unique_ships}"
     )
-    print("  Buques con 2 o mas        : {}".format(sum(1 for c in repeat_counts if c > 1)))
+    print(f"  Buques con 2 o mas        : {sum(1 for c in repeat_counts if c > 1)}")
     print(
-        "  Mensajes por buque        : media {:.1f}, max {}".format(
-            statistics.mean(repeat_counts) if repeat_counts else 0,
-            max(repeat_counts) if repeat_counts else 0,
-        )
+        f"  Mensajes por buque        : media {statistics.mean(repeat_counts) if repeat_counts else 0:.1f}, max {max(repeat_counts) if repeat_counts else 0}"
     )
     if intervals:
         print(
-            "  Intervalo entre mensajes  : mediana {:.0f}s  min {:.0f}s  max {:.0f}s".format(
-                statistics.median(intervals), min(intervals), max(intervals)
-            )
+            f"  Intervalo entre mensajes  : mediana {statistics.median(intervals):.0f}s  min {min(intervals):.0f}s  max {max(intervals):.0f}s"
         )
     else:
         print("  Intervalo entre mensajes  : no calculable (casi ningun buque repitio)")
@@ -282,19 +273,19 @@ def main() -> int:
     # --- Diagnostico de la anomalia ---------------------------------------
     print()
     print(SUB)
-    print("  DISTRIBUCION GEOGRAFICA (celdas de {:.0f} grados)".format(GRID_DEG))
+    print(f"  DISTRIBUCION GEOGRAFICA (celdas de {GRID_DEG:.0f} grados)")
     print(SUB)
     occupied = len(grid)
     top_cells = grid.most_common(8)
     concentration = (sum(c for _, c in top_cells) / total * 100) if total else 0
-    print("  Celdas con datos : {}".format(occupied))
-    print("  Top 8 celdas concentran el {:.0f}% de los mensajes".format(concentration))
+    print(f"  Celdas con datos : {occupied}")
+    print(f"  Top 8 celdas concentran el {concentration:.0f}% de los mensajes")
     print()
     print("  {:<18} {:>8} {:>8}".format("celda (lat,lon)", "msgs", "buques"))
     for (clat, clon), count in top_cells:
         print(
             "  {:<18} {:>8} {:>8}".format(
-                "{:+.0f}, {:+.0f}".format(clat, clon), count, len(grid_ships[(clat, clon)])
+                f"{clat:+.0f}, {clon:+.0f}", count, len(grid_ships[(clat, clon)])
             )
         )
 
@@ -310,20 +301,16 @@ def main() -> int:
     if single_ratio > 70 and concentration < 70:
         anomaly = "muestreo_del_plan"
         print(
-            "  El {:.0f}% de los buques aparece UNA sola vez y los mensajes estan".format(
-                single_ratio
-            )
+            f"  El {single_ratio:.0f}% de los buques aparece UNA sola vez y los mensajes estan"
         )
-        print("  repartidos entre {} celdas sin concentrarse en la costa.".format(occupied))
+        print(f"  repartidos entre {occupied} celdas sin concentrarse en la costa.")
         print("  => Apunta a que el plan gratuito de AISStream ENTREGA UNA MUESTRA")
         print("     del flujo, no el stream completo. Hay que confirmarlo con el")
         print("     soporte o la documentacion del plan antes de dimensionar Sprint 3.")
     elif concentration >= 70:
         anomaly = "cobertura_costera"
         print(
-            "  Los mensajes se concentran en pocas celdas ({:.0f}% en 8 celdas).".format(
-                concentration
-            )
+            f"  Los mensajes se concentran en pocas celdas ({concentration:.0f}% en 8 celdas)."
         )
         print("  => Apunta a COBERTURA de receptores, no a limitacion del plan: el AIS")
         print("     terrestre es VHF y solo alcanza 40-70 km desde la costa. En mar")
@@ -331,14 +318,10 @@ def main() -> int:
     else:
         anomaly = "indeterminado"
         print(
-            "  Los indicadores no son concluyentes: {:.0f}% de buques con un solo".format(
-                single_ratio
-            )
+            f"  Los indicadores no son concluyentes: {single_ratio:.0f}% de buques con un solo"
         )
         print(
-            "  mensaje y {:.0f}% de concentracion. Repetir con captura mas larga.".format(
-                concentration
-            )
+            f"  mensaje y {concentration:.0f}% de concentracion. Repetir con captura mas larga."
         )
 
     print()
@@ -358,7 +341,7 @@ def main() -> int:
     print("  DIMENSIONAMIENTO (extrapolado de esta captura):")
     per_day_msgs = total / 180.0 * 86400
     per_day_mb = total_bytes / 180.0 * 86400 / 1024 / 1024
-    print("    {:.0f} mensajes/dia  ~ {:.0f} MB/dia en bruto".format(per_day_msgs, per_day_mb))
+    print(f"    {per_day_msgs:.0f} mensajes/dia  ~ {per_day_mb:.0f} MB/dia en bruto")
     print("    Solo con submuestreo (1 posicion por buque cada N minutos) esto")
     print("    baja a un volumen razonable para PostgreSQL.")
     print(SEP)

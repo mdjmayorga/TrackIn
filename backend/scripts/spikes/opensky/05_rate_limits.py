@@ -47,7 +47,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     describe_http_error,
@@ -98,7 +98,7 @@ def get_token(client_id: str, client_secret: str) -> str:
             },
             timeout=TIMEOUT,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         sys.exit("[FATAL] No se pudo pedir el token (" + category + "): " + explanation)
     if response.status_code != 200:
@@ -121,7 +121,7 @@ def query(token: str, path: str, params: dict) -> dict:
             headers={"Authorization": "Bearer " + token},
             timeout=TIMEOUT,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         return {"ok": False, "error_category": category, "error_detail": explanation}
 
@@ -249,16 +249,12 @@ def main() -> int:
     valid = [m for m in measurements if m.get("ok") and m.get("measured_cost") is not None]
     if len(valid) == matches and valid:
         print(
-            "  El esquema escalonado por area se CONFIRMA en los {} tramos medidos:".format(
-                len(valid)
-            )
+            f"  El esquema escalonado por area se CONFIRMA en los {len(valid)} tramos medidos:"
         )
         print("    <25 grados^2 -> 1 | <400 -> 2 | <2500 -> 3 | resto -> 4")
     elif valid:
         print(
-            "  El esquema escalonado NO se confirma del todo: {}/{} tramos coinciden.".format(
-                matches, len(valid)
-            )
+            f"  El esquema escalonado NO se confirma del todo: {matches}/{len(valid)} tramos coinciden."
         )
         print("  Los costos reales medidos son los de la tabla de arriba; usar esos.")
     else:
@@ -266,7 +262,7 @@ def main() -> int:
 
     print()
     if tracks_cost is not None:
-        print("  /tracks/all cuesta {} credito(s) por consulta.".format(tracks_cost))
+        print(f"  /tracks/all cuesta {tracks_cost} credito(s) por consulta.")
     else:
         print("  /tracks/all: costo no medido en esta corrida.")
 

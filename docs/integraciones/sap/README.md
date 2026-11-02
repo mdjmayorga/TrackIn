@@ -212,7 +212,7 @@ encendida.
 > en el historial de cargas con origen «API de SAP». Los nombres de columna del Z-tracking se
 > revisan contra el Excel final que Compras entrega esta semana.
 
-## 7. El interruptor
+## 7¿6. El interruptor
 
 *Configuración → Integración con SAP* (`US-66`). Lo ve cualquier rol salvo Planta; **solo el
 Administrador lo cambia** (decisión del 27/10/2026), con confirmación, y queda quién y cuándo.
@@ -226,7 +226,7 @@ lote recibido. `/health` informa `sap_escucha_habilitada`.
 
 Apagarla no deshace nada de lo ya cargado: solo deja de aceptar envíos.
 
-## 6. Versiones
+## 7. Versiones
 
 | Versión | Fecha | Cambio |
 |---|---|---|

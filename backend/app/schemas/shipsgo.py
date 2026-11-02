@@ -76,6 +76,13 @@ class ReferenciaPendiente(BaseModel):
     )
     aerolinea: str | None
     ofrecible: bool = Field(description="Se puede dar de alta: todo salvo una MAWB sin cobertura.")
+    advertencia: str | None = Field(
+        default=None,
+        description=(
+            "Algo raro en el número —«BL» de más, dígitos que no cuadran—, para revisarlo "
+            "antes de gastar el crédito. No impide el alta."
+        ),
+    )
 
 
 class AltasPendientes(BaseModel):

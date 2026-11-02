@@ -276,3 +276,130 @@ async def test_lo_hacen_quienes_asocian_referencias(api, sesion, rol, esperado) 
     pedido, _ = await _con_guia_hija(sesion)
 
     assert (await cliente.post(_url(pedido, "guia-madre"), json={})).status_code == esperado
+
+
+# --- 29/10: escribir la guía madre a mano y corregirla -----------------------------------
+
+
+async def _tramos(sesion, pedido) -> list[tuple[int, str, bool]]:
+    filas = await sesion.execute(
+        select(
+            PedidoElementoRastreado.tramo,
+            ElementoRastreado.tracking_externo,
+            PedidoElementoRastreado.fecha_hasta.is_(None),
+        )
+        .join(
+            ElementoRastreado,
+            ElementoRastreado.id == PedidoElementoRastreado.id_elemento_rastreado,
+        )
+        .where(PedidoElementoRastreado.id_pedido == pedido.id)
+        .order_by(PedidoElementoRastreado.tramo)
+    )
+    return [tuple(f) for f in filas]
+
+
+async def test_sin_tica_se_puede_escribir_la_guia_madre(api, sesion) -> None:
+    cliente, _ = api
+    pedido, _ = await _con_guia_hija(sesion, guia_madre=None)
+
+    respuesta = await cliente.post(_url(pedido, "guia-madre"), json={"numero": "020-50685434"})
+
+    assert respuesta.status_code == 200, respuesta.text
+    assert respuesta.json()["rastreo"]["referencia"] == "020-50685434"
+    asiento = await sesion.scalar(
+        select(AuditoriaIntervencion).where(
+            AuditoriaIntervencion.id_pedido == pedido.id,
+            AuditoriaIntervencion.tipo_intervencion == "TRANSBORDO",
+        )
+    )
+    assert asiento is not None and asiento.motivo == intervenciones.MOTIVO_GUIA_MADRE_A_MANO
+
+
+async def test_lo_escrito_manda_sobre_lo_que_resolvio_tica(api, sesion) -> None:
+    cliente, _ = api
+    pedido, _ = await _con_guia_hija(sesion, guia_madre="176-12345675")
+
+    respuesta = await cliente.post(_url(pedido, "guia-madre"), json={"numero": "020-50685434"})
+
+    assert respuesta.json()["rastreo"]["referencia"] == "020-50685434"
+
+
+async def test_una_guia_madre_mal_escrita_no_cierra_ningun_tramo(api, sesion) -> None:
+    cliente, _ = api
+    pedido, _ = await _con_guia_hija(sesion, guia_madre=None)
+
+    # Dígito de control: 1234567 mod 7 = 5, no 0.
+    respuesta = await cliente.post(_url(pedido, "guia-madre"), json={"numero": "176-12345670"})
+
+    assert respuesta.status_code == 422
+    assert await _tramos(sesion, pedido) == []
+
+
+async def test_corregir_la_guia_madre_conserva_los_tramos(api, sesion) -> None:
+    cliente, _ = api
+    pedido, _ = await _con_guia_hija(sesion, guia_madre="176-12345675")
+    await cliente.post(_url(pedido, "guia-madre"), json={})
+
+    respuesta = await cliente.post(_url(pedido, "guia-madre"), json={"numero": "020-50685434"})
+
+    assert respuesta.status_code == 200, respuesta.text
+    rastreo = respuesta.json()["rastreo"]
+    assert (rastreo["referencia"], rastreo["guia_hija"]) == ("020-50685434", "ZIVHYD017")
+    assert await _tramos(sesion, pedido) == [
+        (1, "ZIVHYD017", False),
+        (2, "176-12345675", False),
+        (3, "020-50685434", True),
+    ]
+    corregido = await sesion.scalar(
+        select(AuditoriaIntervencion)
+        .where(
+            AuditoriaIntervencion.id_pedido == pedido.id,
+            AuditoriaIntervencion.tipo_intervencion == "TRANSBORDO",
+        )
+        .order_by(AuditoriaIntervencion.id.desc())
+        .limit(1)
+    )
+    assert corregido is not None
+    assert (corregido.valor_anterior, corregido.valor_nuevo, corregido.motivo) == (
+        "MAWB:176-12345675",
+        "MAWB:020-50685434",
+        intervenciones.MOTIVO_GUIA_MADRE_CORREGIDA,
+    )
+
+
+@pytest.mark.parametrize(
+    ("cuerpo", "dice"),
+    [({}, "Escriba la guía madre correcta"), ({"numero": "176-12345675"}, "ya se sigue")],
+)
+async def test_corregir_exige_otra_guia_madre(api, sesion, cuerpo, dice) -> None:
+    cliente, _ = api
+    pedido, _ = await _con_guia_hija(sesion, guia_madre="176-12345675")
+    await cliente.post(_url(pedido, "guia-madre"), json={})
+
+    respuesta = await cliente.post(_url(pedido, "guia-madre"), json=cuerpo)
+
+    assert respuesta.status_code == 409
+    assert dice in respuesta.json()["detail"]
+
+
+async def test_una_mawb_que_no_vino_de_una_guia_hija_no_se_corrige_aqui(api, sesion) -> None:
+    cliente, _ = api
+    aeropuerto = await sesion.scalar(select(MaestroDestino).where(MaestroDestino.codigo == "MROC"))
+    madre = ElementoRastreado(
+        tipo_tracking_externo="MAWB", tracking_externo="176-12345675", via_transporte="AEREO"
+    )
+    sesion.add(madre)
+    await sesion.flush()
+    pedido = await base._pedido(
+        sesion,
+        id_destino=aeropuerto.id,
+        via_transporte="AEREO",
+        lead_time_destino_dias=aeropuerto.lead_time_dias,
+        id_elemento_rastreado=madre.id,
+        etapa_viaje="EN_TRANSITO",
+        estado_calculado="EN_TRANSITO",
+    )
+
+    respuesta = await cliente.post(_url(pedido, "guia-madre"), json={"numero": "020-50685434"})
+
+    assert respuesta.status_code == 409

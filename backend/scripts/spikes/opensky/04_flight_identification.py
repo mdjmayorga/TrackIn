@@ -47,12 +47,12 @@ from __future__ import annotations
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     describe_http_error,
@@ -89,7 +89,7 @@ def get_token(client_id: str, client_secret: str) -> str:
             },
             timeout=TIMEOUT,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         sys.exit("[FATAL] No se pudo pedir el token (" + category + "): " + explanation)
     if response.status_code != 200:
@@ -116,7 +116,7 @@ def call(token: str, path: str, params: dict, label: str) -> dict:
         response = httpx.get(
             url, params=params, headers={"Authorization": "Bearer " + token}, timeout=TIMEOUT
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         diag.update(
             ok=False,
@@ -218,7 +218,7 @@ def main() -> int:
         return 1
 
     print(
-        "  Candidatos  : {} aeronaves tomadas de la evidencia de la Fase 2".format(len(candidates))
+        f"  Candidatos  : {len(candidates)} aeronaves tomadas de la evidencia de la Fase 2"
     )
     primary = candidates[0]
     print(
@@ -292,9 +292,7 @@ def main() -> int:
     print()
     if cost_one is not None and cost_multi is not None:
         print(
-            "  Costo por 1 icao24: {}   |   por {} icao24: {}".format(
-                cost_one, len(multi), cost_multi
-            )
+            f"  Costo por 1 icao24: {cost_one}   |   por {len(multi)} icao24: {cost_multi}"
         )
         if cost_multi <= cost_one:
             print("  => El costo NO escala con la cantidad de aeronaves. Filtrar por icao24")
@@ -304,14 +302,12 @@ def main() -> int:
             print("  => El costo escala con la cantidad de aeronaves consultadas.")
     if cost_bbox is not None and cost_one is not None:
         print(
-            "  Costo por bounding box de CR: {}  vs  consulta global por icao24: {}".format(
-                cost_bbox, cost_one
-            )
+            f"  Costo por bounding box de CR: {cost_bbox}  vs  consulta global por icao24: {cost_one}"
         )
 
     # --- VIA B: llegadas al aeropuerto ------------------------------------
     print(SUB)
-    print("  VIA B - /flights/arrival?airport={}  (la mas relevante para TrackIn)".format(AIRPORT))
+    print(f"  VIA B - /flights/arrival?airport={AIRPORT}  (la mas relevante para TrackIn)")
     print(SUB)
     windows = {
         "ultimas_24h": (now - 86400, now),
@@ -333,8 +329,8 @@ def main() -> int:
             arrival_cost = arrival_previous_remaining - remaining
             diag["measured_cost_credits"] = arrival_cost
         arrival_previous_remaining = remaining
-        begin_utc = datetime.fromtimestamp(begin, tz=timezone.utc).isoformat(timespec="minutes")
-        end_utc = datetime.fromtimestamp(end, tz=timezone.utc).isoformat(timespec="minutes")
+        begin_utc = datetime.fromtimestamp(begin, tz=UTC).isoformat(timespec="minutes")
+        end_utc = datetime.fromtimestamp(end, tz=UTC).isoformat(timespec="minutes")
         if diag.get("ok"):
             flights = diag["payload"] if isinstance(diag["payload"], list) else []
             print(
@@ -360,7 +356,7 @@ def main() -> int:
                 diag["publication_lag_hours"] = round(lag_h, 1)
                 print(
                     "      -> vuelo mas reciente conocido: {}  (retraso de publicacion: {:.1f} h)".format(
-                        datetime.fromtimestamp(latest, tz=timezone.utc).isoformat(
+                        datetime.fromtimestamp(latest, tz=UTC).isoformat(
                             timespec="minutes"
                         ),
                         lag_h,
@@ -370,7 +366,7 @@ def main() -> int:
                 callsign = (flight.get("callsign") or "").strip() or "(nulo)"
                 arrival = flight.get("lastSeen")
                 arrival_utc = (
-                    datetime.fromtimestamp(arrival, tz=timezone.utc).isoformat(timespec="minutes")
+                    datetime.fromtimestamp(arrival, tz=UTC).isoformat(timespec="minutes")
                     if isinstance(arrival, (int, float))
                     else "-"
                 )
@@ -399,7 +395,7 @@ def main() -> int:
     # ventana de 47 h desde media tarde toca tres dias y falla igual. Hay que
     # alinear el inicio a la medianoche UTC de ayer para tocar exactamente dos.
     midnight_today = int(
-        datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+        datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
     )
     begin_c = midnight_today - 86400  # medianoche UTC de ayer
     c_diag = call(
@@ -410,8 +406,8 @@ def main() -> int:
     )
     print(
         "  Ventana     : {} -> {} (2 dias UTC)".format(
-            datetime.fromtimestamp(begin_c, tz=timezone.utc).isoformat(timespec="minutes"),
-            datetime.fromtimestamp(now, tz=timezone.utc).isoformat(timespec="minutes"),
+            datetime.fromtimestamp(begin_c, tz=UTC).isoformat(timespec="minutes"),
+            datetime.fromtimestamp(now, tz=UTC).isoformat(timespec="minutes"),
         )
     )
     results["via_c_historial"] = c_diag
@@ -477,17 +473,13 @@ def main() -> int:
         print("  VIA A operativa: con el icao24 se consulta la posicion directamente.")
         if cost_multi is not None and cost_one is not None and cost_multi <= cost_one:
             print(
-                "  Costo plano: pedir {} aeronaves cuesta lo mismo que pedir 1 ({} creditos).".format(
-                    len(multi), cost_multi
-                )
+                f"  Costo plano: pedir {len(multi)} aeronaves cuesta lo mismo que pedir 1 ({cost_multi} creditos)."
             )
             print("  Filtrar por icao24 sin bbox es una consulta global y paga tarifa maxima.")
             print("  => Rastrear TODOS los embarques activos en una sola consulta agrupada.")
             if cost_bbox is not None and cost_bbox < cost_one:
                 print(
-                    "  Alternativa mas barata: bounding box de CR cuesta {} vs {}.".format(
-                        cost_bbox, cost_one
-                    )
+                    f"  Alternativa mas barata: bounding box de CR cuesta {cost_bbox} vs {cost_one}."
                 )
                 print("  Conviene si todos los embarques convergen al mismo destino.")
     else:
@@ -505,13 +497,11 @@ def main() -> int:
         lags = [x for x in lags if isinstance(x, (int, float))]
         min_lag = min(lags) if lags else None
         if min_lag is not None:
-            print("  Retraso de publicacion medido: {:.1f} h.".format(min_lag))
+            print(f"  Retraso de publicacion medido: {min_lag:.1f} h.")
             if min_lag > 2:
                 print("  [!] NO sirve para deteccion de aterrizaje en vivo: el dato llega")
                 print(
-                    "      con {:.0f} h de atraso. Sirve para CONCILIACION posterior.".format(
-                        min_lag
-                    )
+                    f"      con {min_lag:.0f} h de atraso. Sirve para CONCILIACION posterior."
                 )
                 print("      La deteccion en tiempo real debe hacerse por posicion:")
                 print(
@@ -520,12 +510,10 @@ def main() -> int:
             else:
                 print("  El retraso es bajo: se puede usar tambien para el corto plazo.")
         if arrival_cost is not None:
-            print("  Costo medido: {} creditos por consulta de 24 h.".format(arrival_cost))
+            print(f"  Costo medido: {arrival_cost} creditos por consulta de 24 h.")
             if cost_bbox:
                 print(
-                    "  Es {:.0f}x mas caro que una consulta de posicion por bounding box.".format(
-                        arrival_cost / cost_bbox
-                    )
+                    f"  Es {arrival_cost / cost_bbox:.0f}x mas caro que una consulta de posicion por bounding box."
                 )
         print("  Para cerrar la cadena AWB -> vuelo -> icao24: buscar por aeropuerto y")
         print("  fecha esperada, y cruzar por callsign.")

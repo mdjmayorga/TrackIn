@@ -91,6 +91,7 @@ def _pendiente(p: altas.Pendiente) -> ReferenciaPendiente:
         cubierta=p.cubierta,
         aerolinea=p.aerolinea,
         ofrecible=p.ofrecible,
+        advertencia=p.advertencia,
     )
 
 

@@ -16,7 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +30,7 @@ SUB = "-" * 72
 
 def utc_now() -> str:
     """Timestamp UTC ISO-8601 con segundos. Todas las evidencias lo usan."""
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def mask(value: str) -> str:
@@ -110,7 +110,7 @@ def header(title: str, network: str, extra: dict[str, str] | None = None) -> str
     print("  Fecha (UTC) : " + timestamp)
     print("  Red         : " + network)
     for key, value in (extra or {}).items():
-        print("  {:<12}: {}".format(key, value))
+        print(f"  {key:<12}: {value}")
     return timestamp
 
 

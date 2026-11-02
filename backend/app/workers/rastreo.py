@@ -69,7 +69,7 @@ from app.models.pedido_transito import PedidoTransito
 from app.services import arribo, planificador, recalculo, salud_fuentes
 from app.services import estado as estado_mod
 from app.services.rastreo import colector_shipsgo, colector_tica
-from app.services.rastreo.indice_shipsgo import clave_referencia, indice_shipsgo
+from app.services.rastreo.indice_shipsgo import buscar, indice_shipsgo
 from app.services.rastreo.shipsgo_aerolineas import CatalogoAerolineas
 from app.services.rastreo.shipsgo_cliente import ClienteShipsGo, ErrorShipsGo
 from app.services.rastreo.tica_cliente import ClienteTICA, ErrorTICA
@@ -392,7 +392,7 @@ async def ejecutar_ciclo(
 
         registrado: tuple[int, bool] | None = None
         if fuente == FUENTE_SHIPSGO:
-            registrado = indice.get(clave_referencia(tarea.tracking) or "")
+            registrado = buscar(indice, tarea.tracking)
             if registrado is None:
                 # Leer es gratis, dar de alta no: eso lo decide una persona.
                 resumen.omitir(OMITIDO_SIN_ALTA)

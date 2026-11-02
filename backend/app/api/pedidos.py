@@ -30,6 +30,7 @@ from app.schemas.pedidos import (
     AjusteEntrada,
     AsientoBitacora,
     ConfirmacionDesembarco,
+    CorreccionReferencia,
     CumplimientoFiltro,
     DesembarcoEntrada,
     EstadoCalculado,
@@ -640,20 +641,68 @@ async def asociar_referencia(
     return await _detalle_tras_intervenir(db, id_pedido)
 
 
-@router.post(
-    "/{id_pedido}/guia-madre",
+@router.put(
+    "/{id_pedido}/referencia",
     response_model=PedidoDetalle,
-    summary="Seguir por la guía madre (US-30)",
+    summary="Corregir la referencia de embarque",
     description=(
-        "Para un pedido que se sigue por una guía hija (HAWB) cuya guía madre ya resolvió "
-        "TICA (`US-49`): cierra el tramo de la hija —su historial se conserva— y abre uno "
-        "con la MAWB, que ShipsGo sí puede seguir. Se audita como TRANSBORDO. La MAWB "
-        "queda pendiente de alta en ShipsGo (`US-55`). El motivo es opcional."
+        "Para un pedido que **ya tiene** referencia y está mal escrita (29/10/2026). Valida "
+        "la nueva antes de tocar nada; cierra el tramo de la equivocada —su historial se "
+        "conserva— y abre uno con la correcta. Se audita como ASOCIACION_TRACKING con la "
+        "anterior y la nueva. Si la correcta no está en ShipsGo, queda pendiente de alta. "
+        "El motivo es opcional."
     ),
     responses={
         404: {"description": "No existe el pedido."},
-        409: {"description": "No es una guía hija, o TICA todavía no resolvió la madre."},
-        422: {"description": "La guía madre no tiene formato de MAWB."},
+        409: {"description": "Cerrado, sin referencia o con esa misma referencia."},
+        422: {"description": "Referencia con formato o dígito de control inválido."},
+    },
+)
+async def corregir_referencia(
+    id_pedido: int,
+    datos: CorreccionReferencia,
+    quien: Annotated[Autenticado, Depends(asociadores)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle:
+    try:
+        await intervenciones.corregir_referencia(
+            db,
+            id_pedido,
+            tipo=datos.tipo,
+            numero=datos.numero,
+            motivo=datos.motivo,
+            id_usuario=quien.usuario.id,
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        intervenciones.ReferenciaInvalida,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
+
+
+@router.post(
+    "/{id_pedido}/guia-madre",
+    response_model=PedidoDetalle,
+    summary="Seguir por la guía madre, o corregirla (US-30)",
+    description=(
+        "Para un pedido que se sigue por una guía hija (HAWB): cierra el tramo de la hija "
+        "—su historial se conserva— y abre uno con la MAWB, que ShipsGo sí puede seguir. "
+        "Sin `numero` usa la que resolvió TICA (`US-49`); con `numero`, la escrita a mano. "
+        "Para un pedido que ya pasó de una hija a una madre, `numero` la **corrige** "
+        "(29/10/2026). Se audita como TRANSBORDO. La MAWB queda pendiente de alta en "
+        "ShipsGo (`US-55`). El motivo es opcional."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {
+            "description": (
+                "No es una guía hija ni viene de una, falta la guía madre o ya se sigue por ella."
+            )
+        },
+        422: {"description": "La guía madre no tiene formato de MAWB o falla el dígito."},
     },
 )
 async def seguir_guia_madre(
@@ -664,7 +713,7 @@ async def seguir_guia_madre(
 ) -> PedidoDetalle:
     try:
         await intervenciones.seguir_guia_madre(
-            db, id_pedido, motivo=datos.motivo, id_usuario=quien.usuario.id
+            db, id_pedido, numero=datos.numero, motivo=datos.motivo, id_usuario=quien.usuario.id
         )
     except (
         LookupError,

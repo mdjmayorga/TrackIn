@@ -34,7 +34,6 @@ USO
 
 from __future__ import annotations
 
-import json
 import statistics
 import sys
 import time
@@ -42,7 +41,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     describe_http_error,
@@ -93,7 +92,7 @@ def get_token(client_id: str, client_secret: str) -> str:
             },
             timeout=TIMEOUT,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         sys.exit("[FATAL] No se pudo pedir el token (" + category + "): " + explanation)
 
@@ -116,7 +115,7 @@ def fetch(token: str) -> dict:
             headers={"Authorization": "Bearer " + token},
             timeout=TIMEOUT,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         return {"ok": False, "error_category": category, "error_detail": explanation}
 
@@ -247,7 +246,7 @@ def main() -> int:
         positions = [tp for _, tp in entries]
         distinct = sorted(set(positions))
         # Deltas entre actualizaciones efectivas de la posicion.
-        deltas = [b - a for a, b in zip(distinct, distinct[1:]) if b - a > 0]
+        deltas = [b - a for a, b in zip(distinct, distinct[1:], strict=False) if b - a > 0]
         all_deltas.extend(deltas)
 
         # Cuantas muestras consecutivas repitieron el mismo time_position.
@@ -305,9 +304,9 @@ def main() -> int:
     print(SUB)
     print("  AGREGADOS")
     print(SUB)
-    print("  Muestras validas       : {}/{}".format(SAMPLES - len(failures), SAMPLES))
-    print("  Aeronaves observadas   : {}".format(len(per_aircraft)))
-    print("  Seguidas >50% del test : {}".format(len(tracked)))
+    print(f"  Muestras validas       : {SAMPLES - len(failures)}/{SAMPLES}")
+    print(f"  Aeronaves observadas   : {len(per_aircraft)}")
+    print(f"  Seguidas >50% del test : {len(tracked)}")
     print(
         "  Creditos consumidos    : {}".format(
             (credits_start - credits_end + 1) if (credits_start and credits_end) else "-"
@@ -315,14 +314,10 @@ def main() -> int:
     )
     if global_median is not None:
         print(
-            "  Delta entre posiciones : mediana={:.0f}s  min={:.0f}s  max={:.0f}s".format(
-                global_median, min(all_deltas), max(all_deltas)
-            )
+            f"  Delta entre posiciones : mediana={global_median:.0f}s  min={min(all_deltas):.0f}s  max={max(all_deltas):.0f}s"
         )
     print(
-        "  Muestras redundantes   : {}/{} ({:.1f}%) devolvieron una posicion ya vista".format(
-            total_repeats, total_samples, repeat_ratio
-        )
+        f"  Muestras redundantes   : {total_repeats}/{total_samples} ({repeat_ratio:.1f}%) devolvieron una posicion ya vista"
     )
 
     # --- Recomendacion de polling -----------------------------------------
@@ -334,18 +329,16 @@ def main() -> int:
     polling_budget = DAILY_CREDITS * (1.0 - RESERVE_RATIO)
     sustainable_interval = SECONDS_PER_DAY / polling_budget
 
-    print("  Cuota diaria medida        : {} creditos".format(DAILY_CREDITS))
-    print("  Piso teorico (100% cuota)  : 1 consulta cada {:.1f}s".format(floor_interval))
+    print(f"  Cuota diaria medida        : {DAILY_CREDITS} creditos")
+    print(f"  Piso teorico (100% cuota)  : 1 consulta cada {floor_interval:.1f}s")
     print("  [!] Ese piso NO es utilizable: consume la cuota completa y no deja")
     print("      credito para /flights/*, reintentos ni un segundo bounding box.")
     print()
     print(
-        "  Reserva para otras llamadas: {:.0f}% ({:.0f} creditos)".format(
-            RESERVE_RATIO * 100, DAILY_CREDITS * RESERVE_RATIO
-        )
+        f"  Reserva para otras llamadas: {RESERVE_RATIO * 100:.0f}% ({DAILY_CREDITS * RESERVE_RATIO:.0f} creditos)"
     )
-    print("  Presupuesto de polling     : {:.0f} consultas/dia".format(polling_budget))
-    print("  => intervalo sostenible 24/7: {:.0f}s".format(sustainable_interval))
+    print(f"  Presupuesto de polling     : {polling_budget:.0f} consultas/dia")
+    print(f"  => intervalo sostenible 24/7: {sustainable_interval:.0f}s")
     print()
 
     if global_median is None:
@@ -355,19 +348,15 @@ def main() -> int:
         # El intervalo util no puede ser menor que el refresco del servidor
         # (seria dato repetido) ni menor que lo que la cuota permite sostener.
         recommended = max(global_median, sustainable_interval)
-        print("  Refresco real del servidor : ~{:.0f}s (mediana)".format(global_median))
-        print("  INTERVALO RECOMENDADO      : {:.0f}s en operacion continua".format(recommended))
+        print(f"  Refresco real del servidor : ~{global_median:.0f}s (mediana)")
+        print(f"  INTERVALO RECOMENDADO      : {recommended:.0f}s en operacion continua")
         print()
         if repeat_ratio > 35:
             print(
-                "  El {:.0f}% de las consultas de esta prueba devolvio una posicion ya".format(
-                    repeat_ratio
-                )
+                f"  El {repeat_ratio:.0f}% de las consultas de esta prueba devolvio una posicion ya"
             )
             print(
-                "  conocida: sondear cada {}s es mas rapido de lo que el servidor".format(
-                    INTERVAL_S
-                )
+                f"  conocida: sondear cada {INTERVAL_S}s es mas rapido de lo que el servidor"
             )
             print("  actualiza. El limite real lo pone la cuota, no la frescura del dato.")
         else:
@@ -379,12 +368,10 @@ def main() -> int:
         for window_h in (8, 12):
             window_interval = (window_h * 3600) / polling_budget
             print(
-                "  Alternativa: sondear solo {}h/dia (ventana de vuelos activos)".format(window_h)
+                f"  Alternativa: sondear solo {window_h}h/dia (ventana de vuelos activos)"
             )
             print(
-                "               => se puede bajar a {:.0f}s sin exceder el presupuesto.".format(
-                    max(global_median, window_interval)
-                )
+                f"               => se puede bajar a {max(global_median, window_interval):.0f}s sin exceder el presupuesto."
             )
     print(SEP)
 

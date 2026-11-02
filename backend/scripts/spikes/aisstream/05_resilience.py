@@ -41,7 +41,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     header,
@@ -99,7 +99,7 @@ async def probe_subscription(subscription: dict, label: str, wait_s: int) -> dic
     websocket = None
     try:
         websocket = await open_ws()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         result["connect_error"] = type(exc).__name__ + ": " + str(exc)[:150]
         return result
 
@@ -110,9 +110,9 @@ async def probe_subscription(subscription: dict, label: str, wait_s: int) -> dic
             remaining = deadline - time.perf_counter()
             try:
                 frame = await asyncio.wait_for(websocket.recv(), timeout=remaining)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 break
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 result["closed_by_server"] = True
                 result["close_reason"] = type(exc).__name__ + ": " + str(exc)[:150]
                 break
@@ -163,7 +163,7 @@ async def probe_concurrent(api_key: str) -> dict:
                 remaining = deadline - time.perf_counter()
                 try:
                     await asyncio.wait_for(websocket.recv(), timeout=remaining)
-                except (asyncio.TimeoutError, Exception):
+                except (TimeoutError, Exception):
                     break
                 total += 1
                 if total >= 10:
@@ -174,7 +174,7 @@ async def probe_concurrent(api_key: str) -> dict:
         result["messages_conn_1"] = counts[0] if isinstance(counts[0], int) else 0
         result["messages_conn_2"] = counts[1] if isinstance(counts[1], int) else 0
         result["both_received"] = result["messages_conn_1"] > 0 and result["messages_conn_2"] > 0
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         result["error"] = type(exc).__name__ + ": " + str(exc)[:150]
         result["both_opened"] = False
     finally:
@@ -201,10 +201,10 @@ async def probe_reconnect(api_key: str, cycles: int) -> dict:
                 await asyncio.wait_for(websocket.recv(), timeout=30)
                 entry["first_message_ms"] = round((time.perf_counter() - wait_started) * 1000, 1)
                 entry["ok"] = True
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 entry["ok"] = False
                 entry["error"] = "sin datos en 30 s"
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             entry["ok"] = False
             entry["error"] = type(exc).__name__ + ": " + str(exc)[:120]
         finally:
@@ -238,15 +238,15 @@ async def probe_watchdog(api_key: str, seconds: int) -> dict:
             remaining = deadline - time.perf_counter()
             try:
                 await asyncio.wait_for(websocket.recv(), timeout=remaining)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 break
-            except Exception:  # noqa: BLE001
+            except Exception:
                 break
             now = time.perf_counter()
             gaps.append(now - last)
             last = now
             total += 1
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {"error": type(exc).__name__ + ": " + str(exc)[:150], "messages": total}
     finally:
         if websocket is not None:
@@ -327,7 +327,7 @@ def main() -> int:
     results["d_reconnect"] = asyncio.run(probe_reconnect(api_key, RECONNECT_CYCLES))
 
     print(SUB)
-    print("  E. WATCHDOG - intervalos entre mensajes ({} s)".format(WATCHDOG_SECONDS))
+    print(f"  E. WATCHDOG - intervalos entre mensajes ({WATCHDOG_SECONDS} s)")
     print(SUB)
     results["e_watchdog"] = asyncio.run(probe_watchdog(api_key, WATCHDOG_SECONDS))
     watchdog = results["e_watchdog"]
@@ -356,7 +356,7 @@ def main() -> int:
         print("     tratarlo como fallo de credencial y alertar, no reintentar en bucle.")
     else:
         print(
-            "  1. Una API key invalida produce: {}. Se puede detectar y alertar".format(key_outcome)
+            f"  1. Una API key invalida produce: {key_outcome}. Se puede detectar y alertar"
         )
         print("     sin ambiguedad, en vez de reintentar indefinidamente.")
 
@@ -365,14 +365,10 @@ def main() -> int:
     if successful:
         avg_recovery = statistics.mean(a["connect_ms"] + a["first_message_ms"] for a in successful)
         print(
-            "  2. La reconexion es fiable: {}/{} ciclos con datos, recuperacion media".format(
-                len(successful), len(reconnects)
-            )
+            f"  2. La reconexion es fiable: {len(successful)}/{len(reconnects)} ciclos con datos, recuperacion media"
         )
         print(
-            "     de {:.0f} ms. Backoff exponencial arrancando en 1 s, techo 60 s.".format(
-                avg_recovery
-            )
+            f"     de {avg_recovery:.0f} ms. Backoff exponencial arrancando en 1 s, techo 60 s."
         )
     else:
         print("  2. Ningun ciclo de reconexion recupero datos: revisar antes de disenar.")
@@ -380,11 +376,9 @@ def main() -> int:
     max_gap = watchdog.get("max_gap_s")
     if max_gap:
         suggested = max(30, round(max_gap * 3))
-        print("  3. Watchdog de socket zombi: el gap maximo real fue {} s.".format(max_gap))
+        print(f"  3. Watchdog de socket zombi: el gap maximo real fue {max_gap} s.")
         print(
-            "     Umbral sugerido {} s sin mensajes = conexion muerta -> reconectar.".format(
-                suggested
-            )
+            f"     Umbral sugerido {suggested} s sin mensajes = conexion muerta -> reconectar."
         )
         print("     Un umbral menor daria falsos positivos en zonas de poco trafico.")
     else:

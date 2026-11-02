@@ -50,7 +50,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 SPIKES_DIR = Path(__file__).resolve().parent
@@ -255,7 +255,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    timestamp = datetime.now(UTC).isoformat(timespec="seconds")
     blocking: list[str] = []
     warnings: list[str] = []
 

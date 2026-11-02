@@ -13,6 +13,7 @@ líneas cuyo incoterm no lo nombra (`US-52`).
 from __future__ import annotations
 
 import logging
+import re
 from typing import Final
 
 from app.services.rastreo.shipsgo_cliente import ClienteShipsGo
@@ -29,6 +30,38 @@ def clave_referencia(numero: str | None) -> str | None:
     if not numero:
         return None
     return str(numero).replace("-", "").replace(" ", "").upper() or None
+
+
+#: El código de naviera (SCAC) pegado a un número de BL: `MAEU271108898`. Ocho
+#: dígitos o más, para no tocar los contenedores, que son cuatro letras y **siete**
+#: dígitos y en los que las letras sí son parte del número.
+_SCAC_Y_NUMERO: Final = re.compile(r"^[A-Z]{4}(\d{8,})$")
+
+
+def _sin_scac(clave: str) -> str:
+    coincidencia = _SCAC_Y_NUMERO.match(clave)
+    return coincidencia.group(1) if coincidencia else clave
+
+
+def buscar(indice: dict[str, tuple[int, bool]], numero: str | None) -> tuple[int, bool] | None:
+    """El embarque de la cuenta con esa referencia, o `None`.
+
+    Primero la clave exacta. Si no está, se compara **sin el código de la
+    naviera** de los dos lados (29/10/2026): ShipsGo guarda los BL de Maersk sin
+    `MAEU` (`271108898`) y en el Z-tracking o a mano suelen venir con él
+    (`MAEU271108898`), o al revés. Sin esto, un embarque dado de alta no se leía
+    nunca y el pedido se quedaba sin posición.
+    """
+    clave = clave_referencia(numero)
+    if clave is None:
+        return None
+    if clave in indice:
+        return indice[clave]
+    buscada = _sin_scac(clave)
+    for registrada, embarque in indice.items():
+        if _sin_scac(registrada) == buscada:
+            return embarque
+    return None
 
 
 async def indice_shipsgo(cliente: ClienteShipsGo) -> dict[str, tuple[int, bool]]:
@@ -66,4 +99,4 @@ async def indice_shipsgo(cliente: ClienteShipsGo) -> dict[str, tuple[int, bool]]
     return indice
 
 
-__all__ = ["PAGINAS_MAXIMAS", "clave_referencia", "indice_shipsgo"]
+__all__ = ["PAGINAS_MAXIMAS", "buscar", "clave_referencia", "indice_shipsgo"]

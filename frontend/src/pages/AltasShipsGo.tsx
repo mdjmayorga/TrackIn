@@ -123,7 +123,13 @@ function Seleccion({
   const pedida = parametros.get('ref')
   const ofrecibles = datos.pendientes.filter((p) => p.ofrecible)
   const [elegidas, setElegidas] = useState<Set<string>>(
-    () => new Set(ofrecibles.filter((p) => !pedida || p.numero === pedida).map((p) => p.numero)),
+    // Las que traen aviso no se marcan solas (29/10/2026): conviene revisarlas antes.
+    () =>
+      new Set(
+        ofrecibles
+          .filter((p) => (pedida ? p.numero === pedida : !p.advertencia))
+          .map((p) => p.numero),
+      ),
   )
   const [confirmando, setConfirmando] = useState(false)
   const [superarTope, setSuperarTope] = useState(false)
@@ -319,7 +325,15 @@ function Fila({
           onChange={onAlternar}
         />
       </td>
-      <td className="whitespace-nowrap px-3 py-2">{nombre}</td>
+      <td className="px-3 py-2">
+        <span className="whitespace-nowrap">{nombre}</span>
+        {pendiente.advertencia && (
+          <span role="note" className="mt-0.5 block max-w-xs text-xs text-amber-200">
+            ⚠ {pendiente.advertencia} Si está mal, corríjala en el detalle del pedido antes de
+            gastar el crédito.
+          </span>
+        )}
+      </td>
       <td className="px-3 py-2">{pendiente.via_transporte === 'AEREO' ? 'Aérea' : 'Marítima'}</td>
       <td className="px-3 py-2">
         <ul className="space-y-0.5">

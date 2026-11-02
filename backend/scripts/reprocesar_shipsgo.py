@@ -34,7 +34,7 @@ from app.db.session import AsyncSessionLocal, dispose_engine  # noqa: E402
 from app.models.elemento_rastreado import ElementoRastreado  # noqa: E402
 from app.services import transbordos  # noqa: E402
 from app.services.rastreo import colector_shipsgo, transporte_http  # noqa: E402
-from app.services.rastreo.indice_shipsgo import clave_referencia, indice_shipsgo  # noqa: E402
+from app.services.rastreo.indice_shipsgo import buscar, indice_shipsgo  # noqa: E402
 
 #: Los tipos que sigue ShipsGo (`referencia._FUENTE_POR_TIPO`).
 TIPOS_SHIPSGO = ("BL", "CONTENEDOR", "BOOKING", "MAWB")
@@ -63,7 +63,7 @@ async def principal(ensayo: bool) -> int:
             )
             print(f"{len(elementos)} embarque(s) arribado(s) de ShipsGo en la base.")
             for elemento in elementos:
-                registrado = indice.get(clave_referencia(elemento.tracking_externo) or "")
+                registrado = buscar(indice, elemento.tracking_externo)
                 etiqueta = f"{elemento.tipo_tracking_externo} {elemento.tracking_externo}"
                 if registrado is None:
                     print(f"  {etiqueta}: no está en la cuenta de ShipsGo; se salta.")

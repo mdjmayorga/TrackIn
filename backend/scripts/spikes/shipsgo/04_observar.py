@@ -40,14 +40,14 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _comercial import TIMEOUT, cuerpo_json, guardar_crudo, llamar, parser_base  # noqa: E402
-from _common import SEP, SPIKES_DIR, SUB, header, load_env, mask, require, utc_now  # noqa: E402
+from _comercial import TIMEOUT, cuerpo_json, guardar_crudo, llamar, parser_base
+from _common import SEP, SPIKES_DIR, SUB, header, load_env, mask, require, utc_now
 
 BASE = "https://api.shipsgo.com/v2"
 REGISTRO = SPIKES_DIR / "shipsgo" / "output" / "envios_creados.json"
@@ -94,8 +94,8 @@ def horas_desde(instante: Any) -> float | None:
     except ValueError:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return round((datetime.now(timezone.utc) - dt).total_seconds() / 3600, 1)
+        dt = dt.replace(tzinfo=UTC)
+    return round((datetime.now(UTC) - dt).total_seconds() / 3600, 1)
 
 
 def ultimo_real(movimientos: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -281,7 +281,7 @@ def main() -> int:
             resumen = (resumir_aereo if envio["via"] == "AEREO" else resumir_maritimo)(detalle)
 
             for clave, valor in resumen.items():
-                print("  {:<24}: {}".format(clave, valor))
+                print(f"  {clave:<24}: {valor}")
 
             anterior = observacion_anterior(alias)
             diferencias = cambios(anterior["resumen"], resumen) if anterior else None

@@ -54,7 +54,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     header,
@@ -123,7 +123,7 @@ def layer_tcp(address: str) -> dict:
     sock.settimeout(CONNECT_TIMEOUT_S)
     try:
         sock.connect((address, PORT))
-    except socket.timeout:
+    except TimeoutError:
         return {
             "ok": False,
             "error": "timeout",
@@ -159,7 +159,7 @@ def layer_tls() -> dict:
             "diagnosis": "El certificado no valida contra las CA del sistema. "
             "Sintoma tipico de inspeccion TLS corporativa.",
         }
-    except (ssl.SSLError, socket.timeout, OSError) as exc:
+    except (TimeoutError, ssl.SSLError, OSError) as exc:
         return {
             "ok": False,
             "error": type(exc).__name__ + ": " + str(exc),
@@ -204,7 +204,7 @@ def layer_https() -> dict:
     started = time.perf_counter()
     try:
         response = httpx.get(HTTPS_URL, timeout=CONNECT_TIMEOUT_S, follow_redirects=True)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {
             "ok": False,
             "error": type(exc).__name__ + ": " + str(exc)[:150],
@@ -259,9 +259,7 @@ async def layers_ws_and_data(api_key: str) -> tuple[dict, dict]:
                 "APIKey": "(enmascarada)",
             }
             print(
-                "  Capa 6 suscripcion enviada  ...  esperando frames hasta {} s".format(
-                    WAIT_FIRST_MESSAGE_S
-                )
+                f"  Capa 6 suscripcion enviada  ...  esperando frames hasta {WAIT_FIRST_MESSAGE_S} s"
             )
 
             wait_started = time.perf_counter()
@@ -272,7 +270,7 @@ async def layers_ws_and_data(api_key: str) -> tuple[dict, dict]:
                 remaining = deadline - time.perf_counter()
                 try:
                     raw = await asyncio.wait_for(websocket.recv(), timeout=remaining)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     break
 
                 if first_latency is None:
@@ -319,7 +317,7 @@ async def layers_ws_and_data(api_key: str) -> tuple[dict, dict]:
             except (AttributeError, OSError) as exc:
                 data_result["closed_by"] = "fallo el abort: " + type(exc).__name__
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         # Solo es fallo de handshake si el handshake no habia completado ya.
         if not ws_result.get("ok"):
             ws_result = {
@@ -330,7 +328,7 @@ async def layers_ws_and_data(api_key: str) -> tuple[dict, dict]:
             }
         else:
             data_result.setdefault("note", "Timeout despues de un handshake exitoso.")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         if not ws_result.get("ok"):
             ws_result = {
                 "ok": False,
@@ -454,7 +452,7 @@ def main() -> int:
 
     # --- Veredicto ---------------------------------------------------------
     print(SEP)
-    print("  VEREDICTO (red: {})".format(args.network))
+    print(f"  VEREDICTO (red: {args.network})")
     print(SEP)
 
     if not dns.get("ok"):
@@ -486,7 +484,7 @@ def main() -> int:
             print("  El servidor devolvio un error explicito: revisar arriba.")
     else:
         verdict = "operativo"
-        print("  TODO OPERATIVO desde la red {}: llegan datos AIS.".format(args.network))
+        print(f"  TODO OPERATIVO desde la red {args.network}: llegan datos AIS.")
         print("  Si en la red de Gutis falla, la causa es el firewall corporativo,")
         print("  no la cuenta ni la API key. Esa comparacion cierra TG-10.")
     print(SEP)

@@ -40,8 +40,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _comercial import TIMEOUT, cuerpo_json, imprimir_diag, llamar, parser_base  # noqa: E402
-from _common import SEP, header, load_env, mask, require, save_evidence, utc_now  # noqa: E402
+from _comercial import TIMEOUT, cuerpo_json, imprimir_diag, llamar, parser_base
+from _common import SEP, header, load_env, mask, require, save_evidence, utc_now
 
 BASE = "https://api.shipsgo.com/v2"
 

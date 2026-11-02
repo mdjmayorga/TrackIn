@@ -114,6 +114,42 @@ class ResultadoReferencia:
         return self.valida
 
 
+#: «BL» pegado delante del número (29/10/2026): `BLMAEU274029064`. Solo cuando
+#: sigue un código de naviera y dígitos, para no recortar un BL que empiece así.
+_PREFIJO_BL: Final = re.compile(r"^B/?L[-:#.]?(?=[A-Z]{4}\d)")
+
+#: Maersk: `MAEU` y nueve dígitos (medido en la cuenta de ShipsGo el 29/10/2026).
+_BL_MAERSK: Final = re.compile(r"^(?:MAEU)?(\d+)$")
+
+
+def limpiar_bl(numero: str) -> str:
+    """El número de BL sin un «BL» de más delante: `BLMAEU274029064` → `MAEU274029064`."""
+    return _PREFIJO_BL.sub("", numero)
+
+
+def advertencia_referencia(tipo: str, numero: str) -> str | None:
+    """Algo raro en una referencia válida, para avisar **antes** de gastar un crédito.
+
+    ShipsGo acepta y cobra cualquier número (spike `TASK-28`): un BL mal escrito
+    se da de alta, queda `UNTRACKED` y el crédito se pierde (pasó el 29/10/2026
+    con `BLMAEU274029064`). Esto no rechaza nada —un BL no tiene formato
+    universal—: solo marca lo que conviene revisar.
+    """
+    if tipo != "BL":
+        return None
+    if _PREFIJO_BL.match(numero):
+        return f"Empieza con «BL»: el número probablemente es {limpiar_bl(numero)}."
+    maersk = _BL_MAERSK.match(numero)
+    if numero.startswith("MAEU") and maersk and len(maersk.group(1)) != 9:
+        return (
+            f"Los BL de Maersk tienen 9 dígitos después de MAEU; este tiene "
+            f"{len(maersk.group(1))}. Revíselo contra el documento."
+        )
+    if len(numero) < 8:
+        return f"Es corto para un BL ({len(numero)} caracteres). Revíselo contra el documento."
+    return None
+
+
 def normalizar_referencia(numero: str | None) -> str | None:
     """Mayúsculas y sin espacios ni separadores sobrantes."""
     if numero is None:
@@ -211,6 +247,8 @@ def validar_referencia(
     """
     tipo_norm = (tipo or "").strip().upper() or None
     num_norm = normalizar_referencia(numero)
+    if tipo_norm == "BL" and num_norm is not None:
+        num_norm = limpiar_bl(num_norm)
 
     if tipo_norm is None or num_norm is None:
         return ResultadoReferencia(

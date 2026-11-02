@@ -54,7 +54,14 @@ from app.schemas.pedidos import (
     TransbordoOut,
     VentanaLiberacion,
 )
-from app.services import parametros, posicion_aerea, proyeccion, recalculo, transbordos
+from app.services import (
+    intervenciones,
+    parametros,
+    posicion_aerea,
+    proyeccion,
+    recalculo,
+    transbordos,
+)
 
 #: Cuándo llegó a destino, con la precedencia de RN-05: lo confirmado a mano,
 #: lo que reportó la fuente y, por último, lo deducido por la geocerca. El
@@ -273,9 +280,16 @@ async def _posicion(sesion: AsyncSession, elemento: ElementoRastreado) -> Posici
     return Posicion(latitud=fila[0], longitud=fila[1])
 
 
-async def _rastreo(sesion: AsyncSession, elemento: ElementoRastreado | None) -> Rastreo | None:
+async def _rastreo(
+    sesion: AsyncSession, elemento: ElementoRastreado | None, *, id_pedido: int | None = None
+) -> Rastreo | None:
     if elemento is None:
         return None
+    hija = (
+        await intervenciones.guia_hija_de_origen(sesion, id_pedido)
+        if id_pedido is not None and elemento.tipo_tracking_externo == "MAWB"
+        else None
+    )
     return Rastreo(
         tipo=elemento.tipo_tracking_externo,
         referencia=elemento.tracking_externo,
@@ -289,6 +303,7 @@ async def _rastreo(sesion: AsyncSession, elemento: ElementoRastreado | None) -> 
         ultima_consulta_exitosa=elemento.ultima_actualizacion_api,
         guia_madre=elemento.guia_madre,
         manifiesto_aduana=elemento.manifiesto_aduana,
+        guia_hija=hija.tracking_externo if hija else None,
         activo=elemento.activo,
         transbordos=[
             TransbordoOut.model_validate(t)
@@ -406,7 +421,7 @@ async def detalle(sesion: AsyncSession, id_pedido: int) -> PedidoDetalle | None:
             "tipo_proveedor": pedido.tipo_proveedor,
             "fabricante": pedido.fabricante,
             "pais_origen": PaisRef(codigo=pais.codigo, nombre=pais.nombre) if pais else None,
-            "rastreo": await _rastreo(sesion, elemento),
+            "rastreo": await _rastreo(sesion, elemento, id_pedido=pedido.id),
             "arribos": Arribos(
                 confirmado=pedido.ata_confirmada,
                 fuente=elemento.ata_api if elemento else None,

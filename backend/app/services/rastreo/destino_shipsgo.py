@@ -54,7 +54,7 @@ import logging
 from typing import Final
 
 from app.services.rastreo import shipsgo
-from app.services.rastreo.indice_shipsgo import clave_referencia, indice_shipsgo
+from app.services.rastreo.indice_shipsgo import buscar, clave_referencia, indice_shipsgo
 from app.services.rastreo.shipsgo_cliente import CAMPO_POR_TIPO, ClienteShipsGo, ErrorShipsGo
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ class ResolutorDestinoShipsGo:
             return self._resueltos[clave]
 
         try:
-            registrado = (await self._indice_de_la_cuenta()).get(clave)
+            registrado = buscar(await self._indice_de_la_cuenta(), numero)
             if registrado is None:
                 logger.info("ShipsGo: %s %s no está registrado; no se da de alta.", tipo, numero)
                 self._resueltos[clave] = None

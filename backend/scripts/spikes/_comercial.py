@@ -335,7 +335,7 @@ def imprimir_cobertura(resultado: dict[str, list[dict[str, Any]]], titulo: str) 
     for nombre, items in resultado.items():
         marca = "[SI]" if items else "[NO]"
         detalle = "; ".join(texto_de(i)[:60] for i in items[:3])
-        print("  {:<26} {:<5} {}".format(nombre, marca, detalle))
+        print(f"  {nombre:<26} {marca:<5} {detalle}")
     faltan = [n for n, items in resultado.items() if not items]
     print()
     print("  Cubiertas: " + str(len(resultado) - len(faltan)) + " de " + str(len(resultado)))
@@ -368,7 +368,7 @@ def llamar(client: Any, metodo: str, url: str, **kwargs: Any) -> tuple[Any, dict
     inicio = time.perf_counter()
     try:
         response = client.request(metodo, url, **kwargs)
-    except Exception as exc:  # noqa: BLE001 - queremos clasificar cualquier fallo
+    except Exception as exc:
         categoria, explicacion = describe_http_error(exc)
         diag.update(
             ok=False,

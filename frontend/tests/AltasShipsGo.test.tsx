@@ -146,6 +146,28 @@ describe('Altas en ShipsGo (US-55)', () => {
     )
   })
 
+  it('una referencia sospechosa avisa y no se marca sola (29/10)', async () => {
+    vi.mocked(obtenerAltasPendientes).mockResolvedValue(
+      datos({
+        pendientes: [
+          ref({
+            numero: 'BLMAEU274029064',
+            advertencia: 'Empieza con «BL»: el número probablemente es MAEU274029064.',
+          }),
+          MAWB,
+        ],
+      }),
+    )
+    montar()
+
+    expect(await screen.findByRole('note')).toHaveTextContent(
+      'Empieza con «BL»: el número probablemente es MAEU274029064.',
+    )
+    expect(casilla('BL BLMAEU274029064')).not.toBeChecked()
+    expect(casilla('BL BLMAEU274029064')).toBeEnabled()
+    expect(casilla('MAWB 020-50685434')).toBeChecked()
+  })
+
   it('desde el detalle de un pedido viene marcada solo su referencia', async () => {
     vi.mocked(obtenerAltasPendientes).mockResolvedValue(datos())
     montar('COMPRAS', '/shipsgo/altas?ref=020-50685434')

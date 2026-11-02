@@ -9,7 +9,12 @@ import { ContextoSesion } from '@/auth/contexto'
 import { GrillaPedidos } from '@/components/GrillaPedidos'
 import DetallePedido from '@/pages/DetallePedido'
 import { api } from '@/services/api'
-import { asociarReferencia, obtenerBitacora, obtenerPedido } from '@/services/pedidos'
+import {
+  asociarReferencia,
+  corregirReferencia,
+  obtenerBitacora,
+  obtenerPedido,
+} from '@/services/pedidos'
 import type { PedidoDetalle, Rol } from '@/types/api'
 import {
   formatearCantidad,
@@ -33,6 +38,7 @@ vi.mock('@/services/pedidos', async (original) => ({
   obtenerPedido: vi.fn(),
   obtenerBitacora: vi.fn(),
   asociarReferencia: vi.fn(),
+  corregirReferencia: vi.fn(),
 }))
 
 /** El pedido del Figma: 4500012847 · 10, marítimo, en tránsito, a tiempo. */
@@ -311,12 +317,112 @@ describe('elemento rastreado y arribo', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Seguir por la guía madre' }))
     expect(seguirGuiaMadre).not.toHaveBeenCalled()
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('guía madre 176-12345675')
-    await userEvent.click(
-      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Confirmar' }),
-    )
+    const formulario = within(screen.getByRole('form', { name: 'Seguir por la guía madre' }))
+    // Viene la de TICA: se confirma sin escribir, y no se manda como «escrita a mano».
+    expect(formulario.getByLabelText(/Guía madre/)).toHaveValue('176-12345675')
+    await userEvent.click(formulario.getByRole('button', { name: 'Confirmar' }))
 
-    expect(seguirGuiaMadre).toHaveBeenCalledWith(hija.id, { motivo: null })
+    expect(seguirGuiaMadre).toHaveBeenCalledWith(hija.id, { numero: null, motivo: null })
+  })
+
+  it('sin la de TICA, la guía madre se escribe a mano (29/10)', async () => {
+    const base = detalle()
+    const hija = {
+      ...base,
+      via_transporte: 'AEREO' as const,
+      rastreo: { ...base.rastreo!, tipo: 'HAWB', referencia: 'ZIVHYD017', guia_madre: null },
+    }
+    vi.mocked(obtenerPedido).mockResolvedValue(hija)
+    vi.mocked(seguirGuiaMadre).mockResolvedValue(hija)
+    montar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Indicar guía madre' }))
+    const formulario = within(screen.getByRole('form', { name: 'Indicar guía madre' }))
+    expect(formulario.getByRole('button', { name: 'Confirmar' })).toBeDisabled()
+    await userEvent.type(formulario.getByLabelText(/Guía madre/), '020-50685434')
+    await userEvent.click(formulario.getByRole('button', { name: 'Confirmar' }))
+
+    expect(seguirGuiaMadre).toHaveBeenCalledWith(hija.id, {
+      numero: '020-50685434',
+      motivo: null,
+    })
+  })
+
+  it('una guía madre que vino de una hija se puede corregir (29/10)', async () => {
+    const base = detalle()
+    const madre = {
+      ...base,
+      via_transporte: 'AEREO' as const,
+      rastreo: {
+        ...base.rastreo!,
+        tipo: 'MAWB',
+        referencia: '176-12345675',
+        guia_madre: null,
+        guia_hija: 'ZIVHYD017',
+      },
+    }
+    vi.mocked(obtenerPedido).mockResolvedValue(madre)
+    vi.mocked(seguirGuiaMadre).mockResolvedValue(madre)
+    montar()
+
+    expect(await screen.findByText('Viene de la guía hija ZIVHYD017')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Corregir guía madre' }))
+    const formulario = within(screen.getByRole('form', { name: 'Corregir guía madre' }))
+    expect(formulario.getByLabelText(/Guía madre/)).toHaveValue('')
+    await userEvent.type(formulario.getByLabelText(/Guía madre/), '020-50685434')
+    await userEvent.click(formulario.getByRole('button', { name: 'Confirmar' }))
+
+    expect(seguirGuiaMadre).toHaveBeenCalledWith(madre.id, {
+      numero: '020-50685434',
+      motivo: null,
+    })
+  })
+
+  it('una referencia mal escrita se corrige desde el detalle (29/10)', async () => {
+    const base = detalle()
+    const conError = {
+      ...base,
+      rastreo: { ...base.rastreo!, tipo: 'BL', referencia: 'BLMAEU274029064' },
+    }
+    vi.mocked(obtenerPedido).mockResolvedValue(conError)
+    vi.mocked(corregirReferencia).mockResolvedValue(conError)
+    montar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Corregir referencia' }))
+    const formulario = within(screen.getByRole('form', { name: 'Corregir referencia' }))
+    const numero = formulario.getByLabelText('Número')
+    expect(numero).toHaveValue('BLMAEU274029064')
+    expect(formulario.getByLabelText('Tipo')).toHaveValue('BL')
+    // Sin cambiar nada no hay qué corregir; el motivo es opcional.
+    expect(formulario.getByRole('button', { name: 'Corregir' })).toBeDisabled()
+    await userEvent.clear(numero)
+    await userEvent.type(numero, 'MAEU274029064')
+    await userEvent.click(formulario.getByRole('button', { name: 'Corregir' }))
+
+    expect(corregirReferencia).toHaveBeenCalledWith(conError.id, {
+      tipo: 'BL',
+      numero: 'MAEU274029064',
+      motivo: null,
+    })
+  })
+
+  it('Planificación no ve «Corregir referencia»', async () => {
+    montar('PLANIFICACION')
+    await screen.findByRole('heading', { name: 'Elemento rastreado y arribo' })
+
+    expect(screen.queryByRole('button', { name: 'Corregir referencia' })).toBeNull()
+  })
+
+  it('una guía madre cargada directo, sin guía hija, no ofrece corregir', async () => {
+    const base = detalle()
+    vi.mocked(obtenerPedido).mockResolvedValue({
+      ...base,
+      rastreo: { ...base.rastreo!, tipo: 'MAWB', referencia: '176-12345675', guia_hija: null },
+    })
+    montar()
+    await screen.findByRole('heading', { name: 'Elemento rastreado y arribo' })
+
+    expect(screen.queryByRole('button', { name: 'Corregir guía madre' })).toBeNull()
   })
 
   it('Planificación no ve la opción de la guía madre', async () => {

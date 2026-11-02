@@ -39,7 +39,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     header,
@@ -119,16 +119,14 @@ async def capture(api_key: str) -> dict:
             connect(WS_URL, open_timeout=CONNECT_TIMEOUT_S, close_timeout=2, ping_interval=None),
             timeout=CONNECT_TIMEOUT_S + 5,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         stats["error"] = type(exc).__name__ + ": " + str(exc)[:200]
         return stats
 
     try:
         await websocket.send(json.dumps(subscription))
         print(
-            "  Suscrito a 2 zonas. Capturando {} s ({:.0f} min)...".format(
-                CAPTURE_SECONDS, CAPTURE_SECONDS / 60
-            )
+            f"  Suscrito a 2 zonas. Capturando {CAPTURE_SECONDS} s ({CAPTURE_SECONDS / 60:.0f} min)..."
         )
 
         deadline = time.perf_counter() + CAPTURE_SECONDS
@@ -140,9 +138,9 @@ async def capture(api_key: str) -> dict:
                 break
             try:
                 frame = await asyncio.wait_for(websocket.recv(), timeout=remaining)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 break
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 stats["error"] = "durante recv: " + type(exc).__name__
                 break
 
@@ -313,7 +311,7 @@ def main() -> int:
     cr_ships = len(stats["cr_ships"])
     pa_ships = len(stats["pa_ships"])
     nearest = stats["min_distance_to_moin_km"]
-    nearest_txt = "{:.0f} km".format(nearest) if nearest != float("inf") else "sin datos"
+    nearest_txt = f"{nearest:.0f} km" if nearest != float("inf") else "sin datos"
 
     print()
     print("  Desglose de la zona de interes:")
@@ -327,7 +325,7 @@ def main() -> int:
             CR_PA_BORDER_LON, stats["pa_messages"], pa_ships
         )
     )
-    print("    Buque mas cercano a Puerto Moin: {}".format(nearest_txt))
+    print(f"    Buque mas cercano a Puerto Moin: {nearest_txt}")
     print()
 
     if control_ships == 0:
@@ -337,11 +335,11 @@ def main() -> int:
     elif cr_ships == 0:
         verdict = "sin_cobertura_costa_rica_confirmado"
         print(
-            "  CONCLUYENTE: el control detecto {} buques y Costa Rica CERO.".format(control_ships)
+            f"  CONCLUYENTE: el control detecto {control_ships} buques y Costa Rica CERO."
         )
         if pa_ships:
-            print("  Los {} buques de la zona son PANAMENOS (Bocas del Toro), no".format(pa_ships))
-            print("  costarricenses. El buque mas cercano a Moin quedo a {}.".format(nearest_txt))
+            print(f"  Los {pa_ships} buques de la zona son PANAMENOS (Bocas del Toro), no")
+            print(f"  costarricenses. El buque mas cercano a Moin quedo a {nearest_txt}.")
         print()
         print("  => NO hay cobertura AIS en la costa caribe de Costa Rica en el plan")
         print("     gratuito. El AIS terrestre es VHF (40-70 km desde costa) y el")
@@ -355,11 +353,9 @@ def main() -> int:
     else:
         verdict = "cobertura_costa_rica_confirmada"
         print(
-            "  Hay cobertura costarricense: {} buques en {:.0f} minutos.".format(
-                cr_ships, elapsed / 60
-            )
+            f"  Hay cobertura costarricense: {cr_ships} buques en {elapsed / 60:.0f} minutos."
         )
-        print("  Buque mas cercano a Moin: {}.".format(nearest_txt))
+        print(f"  Buque mas cercano a Moin: {nearest_txt}.")
     print(SEP)
 
     evidence = {

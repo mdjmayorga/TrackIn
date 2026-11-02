@@ -34,7 +34,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _comercial import (  # noqa: E402
+from _comercial import (
     TIMEOUT,
     cargar_referencias,
     cuerpo_json,
@@ -55,7 +55,7 @@ from _common import (
     require,
     save_evidence,
     utc_now,
-)  # noqa: E402
+)
 
 BASE = "https://api.trackingmore.com/v4"
 REGISTRO = SPIKES_DIR / "trackingmore" / "output" / "awb_consultadas.json"

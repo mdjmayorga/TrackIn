@@ -40,7 +40,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     header,
@@ -119,7 +119,7 @@ async def capture(api_key: str) -> dict:
                 ),
                 timeout=CONNECT_TIMEOUT_S + 5,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             stats.setdefault("connect_errors", []).append(type(exc).__name__)
             await asyncio.sleep(5)
             continue
@@ -132,11 +132,11 @@ async def capture(api_key: str) -> dict:
                     break
                 try:
                     frame = await asyncio.wait_for(websocket.recv(), timeout=min(remaining, 90))
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     if time.perf_counter() >= deadline:
                         break
                     continue  # silencio momentaneo, no es fallo
-                except Exception:  # noqa: BLE001
+                except Exception:
                     stats["reconnects"] += 1
                     break  # conexion caida -> reconectar
 
@@ -232,11 +232,11 @@ def main() -> int:
     control_ships = len(stats["control_ships"])
     elapsed = stats["elapsed_s"]
     nearest = stats["min_km_to_moin"]
-    nearest_txt = "{:.0f} km".format(nearest) if nearest != float("inf") else "ninguno"
+    nearest_txt = f"{nearest:.0f} km" if nearest != float("inf") else "ninguno"
 
     print()
     print(SUB)
-    print("  RESULTADO tras {:.0f} minutos".format(elapsed / 60))
+    print(f"  RESULTADO tras {elapsed / 60:.0f} minutos")
     print(SUB)
     print(
         "  {:<40} {:>6} msg   {:>4} buques".format(
@@ -249,7 +249,7 @@ def main() -> int:
         )
     )
     print("  {:<40} {:>6} msg".format("Fuera de ambas / sin posicion", stats["other_messages"]))
-    print("  Buque mas cercano a Puerto Moin: {}".format(nearest_txt))
+    print(f"  Buque mas cercano a Puerto Moin: {nearest_txt}")
     print("  Reconexiones durante la captura : {}".format(stats["reconnects"]))
 
     if stats["target_detail"]:
@@ -279,9 +279,7 @@ def main() -> int:
     elif target_ships == 0:
         verdict = "sin_cobertura_confirmado"
         print(
-            "  En {:.0f} minutos, el control detecto {} buques y la costa caribe de".format(
-                elapsed / 60, control_ships
-            )
+            f"  En {elapsed / 60:.0f} minutos, el control detecto {control_ships} buques y la costa caribe de"
         )
         print("  Costa Rica y Nicaragua CERO.")
         print()
@@ -298,11 +296,9 @@ def main() -> int:
     else:
         verdict = "cobertura_detectada"
         print(
-            "  Se detectaron {} buques en la zona en {:.0f} minutos.".format(
-                target_ships, elapsed / 60
-            )
+            f"  Se detectaron {target_ships} buques en la zona en {elapsed / 60:.0f} minutos."
         )
-        print("  El mas cercano a Moin quedo a {}.".format(nearest_txt))
+        print(f"  El mas cercano a Moin quedo a {nearest_txt}.")
         print("  La conclusion de las fases 2 y 4 era PREMATURA: hay cobertura, aunque")
         print("  escasa. Revisar el detalle de arriba para ver de que tipo de")
         print("  embarcaciones se trata y a que distancia del puerto.")

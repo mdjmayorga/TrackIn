@@ -41,9 +41,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.pedido_transito import PedidoTransito
 from app.services.rastreo import registro_embarque
-from app.services.rastreo.indice_shipsgo import clave_referencia
+from app.services.rastreo.indice_shipsgo import buscar
 from app.services.rastreo.shipsgo_aerolineas import CatalogoAerolineas
 from app.services.rastreo.shipsgo_cliente import ClienteShipsGo, ErrorShipsGo
+from app.services.referencia import advertencia_referencia
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,8 @@ class Pendiente:
     #: (marítimo) o si el catálogo no se pudo leer, que no es lo mismo que «no».
     cubierta: bool | None = None
     aerolinea: str | None = None
+    #: Algo raro en el número, para revisarlo antes de gastar el crédito (29/10/2026).
+    advertencia: str | None = None
 
     @property
     def ofrecible(self) -> bool:
@@ -96,7 +99,7 @@ async def pendientes(
     )
     por_elemento: dict[int, Pendiente] = {}
     for pedido, elemento in filas.tuples():
-        if clave_referencia(elemento.tracking_externo) in indice:
+        if buscar(indice, elemento.tracking_externo) is not None:
             continue
         pendiente = por_elemento.get(elemento.id)
         if pendiente is None:
@@ -105,6 +108,7 @@ async def pendientes(
                 numero=elemento.tracking_externo,
                 via=elemento.via_transporte,
             )
+            pendiente.advertencia = advertencia_referencia(pendiente.tipo, pendiente.numero)
             if pendiente.tipo == "MAWB" and catalogo:
                 aerolinea = catalogo.resolver(pendiente.numero)
                 pendiente.cubierta = aerolinea is not None

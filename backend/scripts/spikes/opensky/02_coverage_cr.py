@@ -43,12 +43,11 @@ import json
 import statistics
 import sys
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     describe_http_error,
@@ -128,7 +127,7 @@ def get_token(client_id: str, client_secret: str) -> str:
             },
             timeout=TIMEOUT,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         sys.exit("[FATAL] No se pudo pedir el token (" + category + "): " + explanation)
 
@@ -158,7 +157,7 @@ def fetch_sample(token: str, index: int) -> dict:
             headers={"Authorization": "Bearer " + token},
             timeout=TIMEOUT,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         sample.update(ok=False, error_category=category, error_detail=explanation)
         return sample
@@ -366,38 +365,34 @@ def main() -> int:
     print(SUB)
     print("  RESUMEN DE COBERTURA")
     print(SUB)
-    print("  Muestras validas      : {}/{}".format(len(valid), SAMPLES))
+    print(f"  Muestras validas      : {len(valid)}/{SAMPLES}")
     print(
-        "  Aeronaves por muestra : min={} max={} media={:.1f}".format(
-            min(counts), max(counts), statistics.mean(counts)
-        )
+        f"  Aeronaves por muestra : min={min(counts)} max={max(counts)} media={statistics.mean(counts):.1f}"
     )
-    print("  Aeronaves unicas      : {} (consolidadas por icao24)".format(total_unique))
+    print(f"  Aeronaves unicas      : {total_unique} (consolidadas por icao24)")
     print()
     print("  Por zona:")
     for zone in ("MROC", "MRLB", "en_ruta"):
         count = zone_totals.get(zone, 0)
         label = AIRPORTS[zone]["name"] if zone in AIRPORTS else "En ruta / sobrevuelo"
         pct = (100.0 * count / total_unique) if total_unique else 0.0
-        print("    {:<8} {:>3}  ({:>5.1f}%)  {}".format(zone, count, pct, label))
+        print(f"    {zone:<8} {count:>3}  ({pct:>5.1f}%)  {label}")
     print()
     print("  Por regimen de vuelo:")
     for regime in ("en_tierra", "aproximacion_o_salida", "crucero", "altitud_desconocida"):
         count = regime_totals.get(regime, 0)
         pct = (100.0 * count / total_unique) if total_unique else 0.0
-        print("    {:<24} {:>3}  ({:>5.1f}%)".format(regime, count, pct))
+        print(f"    {regime:<24} {count:>3}  ({pct:>5.1f}%)")
     print()
-    print("  Completitud de campos (sobre {} aeronaves):".format(total_unique))
+    print(f"  Completitud de campos (sobre {total_unique} aeronaves):")
     for field_name, count in nulls.items():
         pct = (100.0 * count / total_unique) if total_unique else 0.0
-        print("    {:<16} {:>3}  ({:>5.1f}%)".format(field_name, count, pct))
+        print(f"    {field_name:<16} {count:>3}  ({pct:>5.1f}%)")
     print()
     if staleness_values:
         print("  Frescura de la posicion (server_time - last_contact):")
         print(
-            "    min={:.0f}s  mediana={:.0f}s  max={:.0f}s".format(
-                min(staleness_values), statistics.median(staleness_values), max(staleness_values)
-            )
+            f"    min={min(staleness_values):.0f}s  mediana={statistics.median(staleness_values):.0f}s  max={max(staleness_values):.0f}s"
         )
     else:
         print("  Frescura: no se pudo calcular (faltan last_contact o server_time)")

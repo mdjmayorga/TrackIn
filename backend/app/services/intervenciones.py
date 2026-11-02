@@ -67,7 +67,7 @@ from app.models.elemento_rastreado import ElementoRastreado
 from app.models.pedido_elemento_rastreado import PedidoElementoRastreado
 from app.models.pedido_transito import PedidoTransito
 from app.services import asociacion, auditoria, dias_habiles, estado, parametros, recalculo
-from app.services.referencia import ResultadoReferencia
+from app.services.referencia import ResultadoReferencia, validar_referencia
 
 logger = logging.getLogger(__name__)
 
@@ -536,45 +536,25 @@ async def asociar_identificador(
     return resultado
 
 
-#: El motivo en la bitácora cuando se sigue por la guía madre sin escribir uno.
-MOTIVO_GUIA_MADRE_POR_OMISION = "Se sigue por la guía madre que resolvió TICA."
-
-
-async def seguir_guia_madre(
+async def _cambiar_elemento(
     sesion: AsyncSession,
-    id_pedido: int,
+    pedido: PedidoTransito,
+    actual: ElementoRastreado,
+    tipo: str,
+    numero: str,
     *,
-    motivo: str | None,
+    tipo_intervencion: str,
+    motivo: str,
     id_usuario: int,
-    instante: dt.datetime | None = None,
+    ahora: dt.datetime,
 ) -> ResultadoReferencia:
-    """Pasa el pedido de su guía hija a la guía madre que resolvió TICA (`US-30`).
+    """Cierra el tramo vigente y abre uno con otra referencia, y lo audita.
 
-    **La excepción manual del transbordo** (agregada el 21/10/2026). Una HAWB no
-    la sigue ninguna fuente comercial; cuando TICA encuentra la MAWB que la
-    ampara (`US-49`), ShipsGo sí puede seguir esa guía madre. Es el mismo
-    mecanismo que un transbordo: se cierra el tramo de la guía hija —su historial
-    se conserva en `pedido_elemento_rastreado`— y se abre otro con la madre.
-
-    El motivo es opcional, como el paso a aduana: la bitácora registra igual
-    quién lo hizo y cuándo. **No hace commit.** La guía madre queda lista para
-    darse de alta en ShipsGo (`US-55`): eso cuesta un crédito y lo decide Compras.
+    Lo comparten la guía madre (`US-30`) y la corrección de una referencia: en
+    los dos casos el historial del elemento anterior queda en su tramo
+    (`pedido_elemento_rastreado`), como pedía RF-26. Quien llama ya validó la
+    referencia nueva.
     """
-    ahora = instante or dt.datetime.now(dt.UTC)
-    motivo = auditoria.motivo_opcional(motivo, por_omision=MOTIVO_GUIA_MADRE_POR_OMISION)
-    pedido = await _pedido(sesion, id_pedido)
-    hija = (
-        await sesion.get(ElementoRastreado, pedido.id_elemento_rastreado)
-        if pedido.id_elemento_rastreado is not None
-        else None
-    )
-    if hija is None or hija.tipo_tracking_externo != "HAWB":
-        raise IntervencionRechazada("Solo un pedido que se sigue por una guía hija (HAWB).")
-    if not hija.guia_madre:
-        raise IntervencionRechazada(
-            "TICA todavía no resolvió la guía madre de esta guía hija: aparece cerca del arribo."
-        )
-
     tramos = list(
         await sesion.scalars(
             select(PedidoElementoRastreado)
@@ -584,24 +564,27 @@ async def seguir_guia_madre(
     )
     vigente = next((t for t in tramos if t.fecha_hasta is None), None)
     if vigente is None:
-        # La guía hija se asoció sin tramo (la carga y la asociación no lo abren):
+        # El elemento se asoció sin tramo (la carga y la asociación no lo abren):
         # se crea ahora para que su historial quede como el tramo anterior.
         vigente = PedidoElementoRastreado(
             id_pedido=pedido.id,
-            id_elemento_rastreado=hija.id,
+            id_elemento_rastreado=actual.id,
             tramo=(tramos[-1].tramo if tramos else 0) + 1,
             fecha_desde=pedido.creado_en or ahora,
         )
         sesion.add(vigente)
-        tramos.append(vigente)
     vigente.fecha_hasta = ahora
     await sesion.flush()
 
-    anterior = f"HAWB:{hija.tracking_externo}"
-    # Sin usuario: el registro de esta intervención es el `TRANSBORDO` de abajo.
-    resultado = await asociacion.asociar_referencia(sesion, pedido, "MAWB", hija.guia_madre)
+    anterior = f"{actual.tipo_tracking_externo}:{actual.tracking_externo}"
+    # Sin usuario: el registro de esta intervención es el de abajo.
+    resultado = await asociacion.asociar_referencia(sesion, pedido, tipo, numero)
     if not resultado.valida:
         raise ReferenciaInvalida(resultado.motivo)
+    # El FK cambió, pero la relación del pedido puede seguir en memoria con el
+    # elemento anterior (si ya se había cargado): se vuelve a leer.
+    await sesion.flush()
+    await sesion.refresh(pedido, attribute_names=["elemento_rastreado"])
 
     sesion.add(
         PedidoElementoRastreado(
@@ -616,7 +599,7 @@ async def seguir_guia_madre(
         sesion,
         id_pedido=pedido.id,
         id_usuario=id_usuario,
-        tipo="TRANSBORDO",
+        tipo=tipo_intervencion,
         campo="id_elemento_rastreado",
         anterior=anterior,
         nuevo=f"{resultado.tipo}:{resultado.numero}",
@@ -624,19 +607,207 @@ async def seguir_guia_madre(
         instante=ahora,
         exigir_minimo=False,
     )
+    return resultado
+
+
+#: El motivo de una corrección de referencia sin motivo escrito.
+MOTIVO_CORRECCION_POR_OMISION = "Corrección de la referencia de embarque."
+
+
+async def corregir_referencia(
+    sesion: AsyncSession,
+    id_pedido: int,
+    *,
+    tipo: str,
+    numero: str,
+    motivo: str | None,
+    id_usuario: int,
+    instante: dt.datetime | None = None,
+) -> ResultadoReferencia:
+    """Corrige la referencia de un pedido que ya tiene una (29/10/2026). **No hace commit.**
+
+    Para los errores de transcripción: un BL escrito con «BL» delante, o con un
+    dígito de menos, no lo encuentra ShipsGo y el pedido se queda sin posición.
+    Hasta ahora una referencia asociada no se podía cambiar. El tramo de la
+    equivocada se cierra —su historial se conserva— y se abre uno con la buena;
+    queda en la bitácora como `ASOCIACION_TRACKING`, con la anterior y la nueva.
+    El motivo es opcional. Si la buena no está en ShipsGo, queda pendiente de alta.
+    """
+    ahora = instante or dt.datetime.now(dt.UTC)
+    pedido = await _pedido(sesion, id_pedido)
+    actual = (
+        await sesion.get(ElementoRastreado, pedido.id_elemento_rastreado)
+        if pedido.id_elemento_rastreado is not None
+        else None
+    )
+    if actual is None:
+        raise IntervencionRechazada(
+            "El pedido no tiene referencia: asóciela en lugar de corregirla."
+        )
+    # Se valida antes de tocar los tramos: una referencia mal escrita no cierra nada.
+    validacion = validar_referencia(tipo, numero, pedido.via_transporte)
+    if not validacion.valida:
+        raise ReferenciaInvalida(validacion.motivo)
+    assert validacion.tipo is not None and validacion.numero is not None
+    if (
+        validacion.tipo == actual.tipo_tracking_externo
+        and validacion.numero == actual.tracking_externo
+    ):
+        raise IntervencionRechazada("El pedido ya tiene esa referencia.")
+    motivo = auditoria.motivo_opcional(motivo, por_omision=MOTIVO_CORRECCION_POR_OMISION)
+
+    resultado = await _cambiar_elemento(
+        sesion,
+        pedido,
+        actual,
+        validacion.tipo,
+        validacion.numero,
+        tipo_intervencion="ASOCIACION_TRACKING",
+        motivo=motivo,
+        id_usuario=id_usuario,
+        ahora=ahora,
+    )
     await recalculo.recalcular(sesion, pedido, instante=ahora)
     await sesion.flush()
     logger.info(
-        "Pedido %s: de la guía hija %s a la guía madre %s.",
+        "Pedido %s: referencia corregida de %s:%s a %s:%s.",
         pedido.tracking_interno,
-        hija.tracking_externo,
+        actual.tipo_tracking_externo,
+        actual.tracking_externo,
+        resultado.tipo,
+        resultado.numero,
+    )
+    return resultado
+
+
+#: El motivo en la bitácora cuando se sigue por la guía madre sin escribir uno.
+MOTIVO_GUIA_MADRE_POR_OMISION = "Se sigue por la guía madre que resolvió TICA."
+MOTIVO_GUIA_MADRE_A_MANO = "Guía madre indicada a mano."
+MOTIVO_GUIA_MADRE_CORREGIDA = "Corrección de la guía madre."
+
+
+async def guia_hija_de_origen(sesion: AsyncSession, id_pedido: int) -> ElementoRastreado | None:
+    """La guía hija de la que pasó el pedido a su guía madre, si lo hizo (`US-30`)."""
+    hija: ElementoRastreado | None = await sesion.scalar(
+        select(ElementoRastreado)
+        .join(
+            PedidoElementoRastreado,
+            PedidoElementoRastreado.id_elemento_rastreado == ElementoRastreado.id,
+        )
+        .where(
+            PedidoElementoRastreado.id_pedido == id_pedido,
+            PedidoElementoRastreado.fecha_hasta.is_not(None),
+            ElementoRastreado.tipo_tracking_externo == "HAWB",
+        )
+        .order_by(PedidoElementoRastreado.tramo.desc())
+        .limit(1)
+    )
+    return hija
+
+
+def _misma_guia(a: str | None, b: str | None) -> bool:
+    limpia = [(x or "").replace("-", "").replace(" ", "").upper() for x in (a, b)]
+    return bool(limpia[0]) and limpia[0] == limpia[1]
+
+
+async def seguir_guia_madre(
+    sesion: AsyncSession,
+    id_pedido: int,
+    *,
+    numero: str | None = None,
+    motivo: str | None,
+    id_usuario: int,
+    instante: dt.datetime | None = None,
+) -> ResultadoReferencia:
+    """Asocia al pedido la guía madre de su guía hija, o la corrige (`US-30`).
+
+    **La excepción manual del transbordo** (agregada el 21/10/2026). Una HAWB no
+    la sigue ninguna fuente comercial; la MAWB que la ampara, sí. Es el mismo
+    mecanismo que un transbordo: se cierra el tramo vigente —su historial se
+    conserva en `pedido_elemento_rastreado`— y se abre otro con la madre.
+
+    Tres casos (ampliado el 29/10/2026):
+
+    - **Guía hija, madre resuelta por TICA** (`US-49`): sin `numero`, se usa esa.
+    - **Guía hija, madre escrita a mano** —TICA todavía no la resolvió, o la
+      resolvió mal y el agente dio la correcta—: `numero`.
+    - **Ya se sigue por una guía madre que vino de una hija, y era la
+      equivocada:** `numero` con la correcta. Corrige sin perder el tramo.
+
+    El motivo es opcional, como el paso a aduana. **No hace commit.** La guía
+    madre queda pendiente de alta en ShipsGo (`US-55`): eso cuesta un crédito y
+    lo decide Compras.
+    """
+    ahora = instante or dt.datetime.now(dt.UTC)
+    pedido = await _pedido(sesion, id_pedido)
+    actual = (
+        await sesion.get(ElementoRastreado, pedido.id_elemento_rastreado)
+        if pedido.id_elemento_rastreado is not None
+        else None
+    )
+    numero = (numero or "").strip() or None
+
+    if actual is not None and actual.tipo_tracking_externo == "HAWB":
+        destino = numero or actual.guia_madre
+        if destino is None:
+            raise IntervencionRechazada(
+                "TICA todavía no resolvió la guía madre de esta guía hija (aparece cerca del "
+                "arribo). Si la conoce, escríbala."
+            )
+        por_omision = MOTIVO_GUIA_MADRE_A_MANO if numero else MOTIVO_GUIA_MADRE_POR_OMISION
+    elif (
+        actual is not None
+        and actual.tipo_tracking_externo == "MAWB"
+        and await guia_hija_de_origen(sesion, pedido.id) is not None
+    ):
+        if numero is None:
+            raise IntervencionRechazada("Escriba la guía madre correcta.")
+        if _misma_guia(numero, actual.tracking_externo):
+            raise IntervencionRechazada("El pedido ya se sigue por esa guía madre.")
+        destino = numero
+        por_omision = MOTIVO_GUIA_MADRE_CORREGIDA
+    else:
+        raise IntervencionRechazada(
+            "Solo un pedido que se sigue por una guía hija (HAWB), o por la guía madre a la "
+            "que pasó desde una."
+        )
+
+    # Se valida antes de tocar los tramos: una guía mal escrita no cierra nada.
+    validacion = validar_referencia("MAWB", destino, pedido.via_transporte)
+    if not validacion.valida:
+        raise ReferenciaInvalida(validacion.motivo)
+    motivo = auditoria.motivo_opcional(motivo, por_omision=por_omision)
+
+    resultado = await _cambiar_elemento(
+        sesion,
+        pedido,
+        actual,
+        "MAWB",
+        destino,
+        tipo_intervencion="TRANSBORDO",
+        motivo=motivo,
+        id_usuario=id_usuario,
+        ahora=ahora,
+    )
+    await recalculo.recalcular(sesion, pedido, instante=ahora)
+    await sesion.flush()
+    logger.info(
+        "Pedido %s: de %s:%s a la guía madre %s.",
+        pedido.tracking_interno,
+        actual.tipo_tracking_externo,
+        actual.tracking_externo,
         resultado.numero,
     )
     return resultado
 
 
 __all__ = [
+    "MOTIVO_CORRECCION_POR_OMISION",
+    "corregir_referencia",
+    "MOTIVO_GUIA_MADRE_A_MANO",
+    "MOTIVO_GUIA_MADRE_CORREGIDA",
     "MOTIVO_GUIA_MADRE_POR_OMISION",
+    "guia_hija_de_origen",
     "seguir_guia_madre",
     "RecepcionIncompleta",
     "ReferenciaInvalida",

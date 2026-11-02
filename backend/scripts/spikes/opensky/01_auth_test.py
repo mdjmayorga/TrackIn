@@ -42,12 +42,12 @@ import base64
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from _common import (  # noqa: E402
+from _common import (
     SEP,
     SUB,
     describe_http_error,
@@ -109,7 +109,7 @@ def fetch_token(client_id: str, client_secret: str) -> tuple[str | None, dict]:
             },
             timeout=TIMEOUT,
         )
-    except Exception as exc:  # noqa: BLE001 - queremos clasificar cualquier fallo
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         diag.update(
             ok=False,
@@ -190,7 +190,7 @@ def call_states(token: str | None, label: str) -> dict:
     started = time.perf_counter()
     try:
         response = httpx.get(STATES_URL, params=CR_BBOX, headers=headers, timeout=TIMEOUT)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         category, explanation = describe_http_error(exc)
         diag.update(
             ok=False,
@@ -258,7 +258,7 @@ def call_states(token: str | None, label: str) -> dict:
         aircraft_count=len(states),
         server_time=server_time,
         server_time_utc=(
-            datetime.fromtimestamp(server_time, tz=timezone.utc).isoformat(timespec="seconds")
+            datetime.fromtimestamp(server_time, tz=UTC).isoformat(timespec="seconds")
             if isinstance(server_time, (int, float))
             else None
         ),
@@ -312,10 +312,10 @@ def main() -> int:
             iat, exp = claims.get("iat"), claims.get("exp")
             if isinstance(iat, int) and isinstance(exp, int):
                 ttl_info = {
-                    "iat_utc": datetime.fromtimestamp(iat, tz=timezone.utc).isoformat(
+                    "iat_utc": datetime.fromtimestamp(iat, tz=UTC).isoformat(
                         timespec="seconds"
                     ),
-                    "exp_utc": datetime.fromtimestamp(exp, tz=timezone.utc).isoformat(
+                    "exp_utc": datetime.fromtimestamp(exp, tz=UTC).isoformat(
                         timespec="seconds"
                     ),
                     "ttl_seconds": exp - iat,

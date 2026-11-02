@@ -54,6 +54,15 @@ export async function asociarReferencia(
   return data
 }
 
+/** Corrige la referencia de un pedido que ya tiene una (29/10/2026). Motivo opcional. */
+export async function corregirReferencia(
+  id: number,
+  referencia: { tipo: TipoReferencia; numero: string; motivo: string | null },
+): Promise<PedidoDetalle> {
+  const { data } = await api.put<PedidoDetalle>(`${API_V1}/pedidos/${id}/referencia`, referencia)
+  return data
+}
+
 export async function obtenerIndicadores(
   filtros: FiltrosPanel = FILTROS_VACIOS,
 ): Promise<IndicadoresKpi> {

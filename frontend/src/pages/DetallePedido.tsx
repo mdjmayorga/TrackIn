@@ -13,7 +13,7 @@
 
  */
 
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { puedeAsociar, puedeCargar } from '@/auth/permisos'
@@ -238,8 +238,25 @@ function ElementoRastreado({ pedido }: { pedido: PedidoDetalle }) {
           {r.guia_madre && (
             <span className="block text-xs text-slate-400">Guía madre {r.guia_madre}</span>
           )}
-          {r.tipo === 'HAWB' && r.guia_madre && puedeAsociar(sesion?.usuario.rol) && (
-            <SeguirGuiaMadre idPedido={pedido.id} guiaMadre={r.guia_madre} />
+          {r.guia_hija && (
+            <span className="block text-xs text-slate-400">
+              Viene de la guía hija {r.guia_hija}
+            </span>
+          )}
+          {/* La guía madre de una guía hija: indicarla, o corregirla después (29/10). */}
+          {puedeAsociar(sesion?.usuario.rol) && r.tipo === 'HAWB' && (
+            <SeguirGuiaMadre idPedido={pedido.id} resueltaPorTica={r.guia_madre} />
+          )}
+          {puedeAsociar(sesion?.usuario.rol) && r.tipo === 'MAWB' && r.guia_hija && (
+            <SeguirGuiaMadre idPedido={pedido.id} corregir />
+          )}
+          {puedeAsociar(sesion?.usuario.rol) && (
+            <CorregirReferencia
+              idPedido={pedido.id}
+              via={pedido.via_transporte}
+              tipo={r.tipo}
+              numero={r.referencia}
+            />
           )}
           {/* Una referencia de ShipsGo que nunca respondió todavía no está dada de alta. */}
           {DE_SHIPSGO.has(r.tipo) &&
@@ -285,6 +302,52 @@ function ElementoRastreado({ pedido }: { pedido: PedidoDetalle }) {
         </Fila>
       </dl>
     </Bloque>
+  )
+}
+
+/**
+ * Corregir una referencia mal escrita (29/10/2026): un enlace que abre el mismo
+ * formulario de asociar, con la referencia actual para editarla.
+ */
+function CorregirReferencia({
+  idPedido,
+  via,
+  tipo,
+  numero,
+}: {
+  idPedido: number
+  via: PedidoDetalle['via_transporte']
+  tipo: string
+  numero: string
+}) {
+  const [abierto, setAbierto] = useState(false)
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="mt-1 block text-xs text-marca-300 underline hover:text-marca-200"
+      >
+        Corregir referencia
+      </button>
+    )
+  }
+  return (
+    <div className="mt-2 rounded border border-panel-borde p-3">
+      <AsociarReferencia
+        idPedido={idPedido}
+        via={via}
+        corregir={{ tipo, numero }}
+        onListo={() => setAbierto(false)}
+      />
+      <button
+        type="button"
+        onClick={() => setAbierto(false)}
+        className="mt-2 text-xs text-slate-300 underline"
+      >
+        Cancelar
+      </button>
+    </div>
   )
 }
 

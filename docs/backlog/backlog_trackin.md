@@ -2909,6 +2909,60 @@ Como usuario de Logística, quiero sustituir la nave de un pedido cuando hay tra
 >   ninguna fuente), así que cambiar la nave no cambiaría nada en el rastreo.
 > - **Pruebas:** 10 de backend (`test_transbordos.py`, dos con el envío real del spike) y 3
 >   de frontend.
+>
+> **29/10/2026 — la guía madre se puede escribir a mano y corregir** (pedido de Mariano). Antes,
+> «Seguir por la guía madre» solo aparecía si TICA ya la había resuelto.
+>
+> - **Indicar la guía madre:** en un pedido por guía hija, el formulario viene con la que
+>   resolvió TICA, si la hay, y se puede cambiar. Sin la de TICA, se escribe la que dio el
+>   agente («Indicar guía madre»). Lo escrito manda sobre lo de TICA.
+> - **Corregirla:** si el pedido ya pasó de la hija a una guía madre equivocada, el detalle
+>   muestra «Viene de la guía hija …» y ofrece «Corregir guía madre». Se cierra el tramo de la
+>   equivocada —queda en el historial— y se abre uno con la correcta. Solo para guías madre
+>   que vinieron de una hija; una MAWB cargada directo desde el Excel no se corrige aquí.
+> - **Validación antes de tocar nada:** formato y dígito de control de la MAWB. Una guía mal
+>   escrita responde 422 sin cerrar ningún tramo.
+> - **Bitácora:** `TRANSBORDO`, con la guía anterior y la nueva. Motivo opcional; sin escribir
+>   uno queda «Guía madre indicada a mano.» o «Corrección de la guía madre.».
+> - **API:** el mismo `POST /pedidos/{id}/guia-madre`, ahora con `numero` opcional. El detalle
+>   agrega `rastreo.guia_hija`.
+> - **Pruebas:** 7 más de backend y 3 más de frontend. De paso se corrigió que, tras el
+>   cambio, el detalle podía seguir mostrando la guía madre anterior.
+>
+> **29/10/2026 — referencias mal escritas: corregirlas, encontrarlas y no pagar por ellas.**
+> Mariano asoció dos BL y ninguno mostraba posición ni mapa, aunque había dado el alta:
+>
+> - **`BLMAEU274029064`** (pedido 4500016172-40): «BL» de más. Se dio de alta así desde
+>   TrackIn, **costó 1 crédito** y ShipsGo lo dejó `UNTRACKED` (embarque 6969308): no existe
+>   en Maersk. Lo correcto sería `MAEU274029064`. Queda preguntarle a ShipsGo si corrige el
+>   número o devuelve el crédito.
+> - **`MAEU71108898`** (pedido 4500016172-20): ocho dígitos; los BL de Maersk tienen nueve.
+>   La cuenta tiene `271108898`, dado de alta desde la web de ShipsGo, que **guarda los BL de
+>   Maersk sin `MAEU`**. Aunque estuviera bien escrito, TrackIn no lo habría encontrado.
+>
+> Lo construido:
+>
+> 1. **Corregir la referencia** de cualquier pedido (`PUT /pedidos/{id}/referencia`, Logística
+>    y Compras): «Corregir referencia» en el detalle, con la actual para editar y el motivo
+>    opcional. Valida antes de tocar nada, cierra el tramo de la equivocada —su historial
+>    queda— y abre otro; se audita como `ASOCIACION_TRACKING` con la anterior y la nueva.
+>    Comparte con la guía madre la misma función de tramos (`_cambiar_elemento`).
+> 2. **Buscar en la cuenta sin el código de la naviera** (`indice_shipsgo.buscar`): si no hay
+>    coincidencia exacta, compara sin las cuatro letras del SCAC (`MAEU271108898` ↔
+>    `271108898`), en los dos sentidos. Solo con 8 dígitos o más, para no tocar los
+>    contenedores, donde las letras son parte del número. Lo usan el worker, las altas, la
+>    carga del Excel y el script de reprocesamiento.
+> 3. **Limpiar «BL» y avisar antes de gastar:** la validación quita un «BL» pegado delante
+>    (`BLMAEU274029064` → `MAEU274029064`, también `B/L-`). *Altas en ShipsGo* marca con ⚠ lo
+>    sospechoso —«BL» de más, un BL de Maersk sin 9 dígitos, uno muy corto— y **no lo marca
+>    solo**: hay que elegirlo a propósito.
+>
+> **Pruebas:** 23 de backend (`test_correccion_referencia.py`) y 3 de frontend.
+>
+> **Para arreglar los dos pedidos:** en el detalle, «Corregir referencia». El -20 con
+> `MAEU271108898` (o `271108898`): ya está en la cuenta, el worker lo encuentra sin gastar
+> nada. El -40 con `MAEU274029064`: no está en la cuenta, así que necesita un alta nueva
+> (1 crédito), salvo que ShipsGo corrija el embarque 6969308.
 
 > **28/10, verificación con los 3 pedidos en destino de `trackin_dev` — y un defecto previo.**
 > Mariano no veía los transbordos en la línea de tiempo. Dos causas:

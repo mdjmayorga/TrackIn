@@ -302,6 +302,13 @@ class Rastreo(BaseModel):
         description="Cuándo respondió bien la fuente por última vez (RNF-12)."
     )
     guia_madre: str | None = Field(description="Solo guías hijas por TICA (`US-49`).")
+    guia_hija: str | None = Field(
+        default=None,
+        description=(
+            "Si el pedido pasó de una guía hija a esta guía madre, la hija (`US-30`). "
+            "Permite corregir la madre."
+        ),
+    )
     manifiesto_aduana: str | None
     activo: bool = Field(description="`false` cuando ya arribó y no se consulta más.")
     transbordos: list[TransbordoOut] = Field(
@@ -470,9 +477,24 @@ class RecepcionIncompleta(BaseModel):
     ofrece_cierre_forzado: bool = True
 
 
-class GuiaMadreEntrada(BaseModel):
-    """`US-30`: seguir el pedido por la guía madre que resolvió TICA."""
+class CorreccionReferencia(BaseModel):
+    """Corregir la referencia de un pedido que ya tiene una (29/10/2026)."""
 
+    tipo: TipoReferencia
+    numero: str = Field(min_length=1, max_length=50)
+    motivo: str | None = Field(default=None, description="Opcional.")
+
+
+class GuiaMadreEntrada(BaseModel):
+    """`US-30`: seguir el pedido por la guía madre de su guía hija, o corregirla."""
+
+    numero: str | None = Field(
+        default=None,
+        description=(
+            "La MAWB. Sin ella se usa la que resolvió TICA. Obligatoria para escribirla a "
+            "mano o para corregir una guía madre ya asociada (29/10/2026)."
+        ),
+    )
     motivo: str | None = Field(default=None, description="Opcional, como el paso a aduana.")
 
 
