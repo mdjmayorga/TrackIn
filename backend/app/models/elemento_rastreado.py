@@ -102,6 +102,10 @@ class ElementoRastreado(Base, TimestampMixin):
     #: esto en el momento en que se mira (`posicion_aerea.estimar`). No va a
     #: `posicion_actual` porque la geocerca la tomaría por real.
     trayecto_aereo: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
+    #: Las naves de un embarque marítimo con su trazado, de ShipsGo (03/11/2026),
+    #: en la misma forma que los vuelos. Solo para dibujar la ruta en el mapa del
+    #: panel: la posición del barco sí se lee y va a `posicion_actual`.
+    trayecto_maritimo: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
 
     #: Los hitos ocurridos del viaje —salidas, llegadas, descargas—, de la última
     #: lectura de ShipsGo (`US-29`). Se reemplaza entera en cada lectura: lo que la

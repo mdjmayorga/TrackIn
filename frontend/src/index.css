@@ -30,10 +30,10 @@
     width: max-content;
   }
 
-  /* El recuadro de un grupo que no se separa: la misma letra que el rótulo. */
+  /* El recuadro de un embarque (`US-27`) o de un grupo que no se separa. */
   .leaflet-popup.rotulo-mapa .leaflet-popup-content {
     @apply my-2 text-[11px] leading-snug;
-    width: 15rem;
+    width: 16rem;
   }
 
   .mapa-oscuro .leaflet-control-attribution {

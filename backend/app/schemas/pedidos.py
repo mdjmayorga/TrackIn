@@ -197,18 +197,29 @@ class PedidoEnMapa(BaseModel):
     oc_numero: str
     posicion_oc: int
     estado_calculado: EstadoCalculado
+    #: Las dos dimensiones por separado: el recuadro muestra las dos (03/11/2026).
+    etapa_viaje: EtapaViaje
+    estado_cumplimiento: Cumplimiento | None = None
+    # `US-27`: lo que muestra el recuadro del marcador (RF-18).
+    material: str | None = None
+    proveedor: str | None = None
+    eta: dt.date | None = Field(
+        default=None,
+        description="La fecha base del cálculo: la ETA a destino, o la llegada si ya llegó.",
+    )
+    fecha_proyectada: dt.date | None = None
 
 
 class TramoMapa(BaseModel):
-    """Un vuelo del trayecto, para dibujarlo (02/11/2026).
+    """Un tramo del trayecto, para dibujarlo: un vuelo (02/11/2026) o una nave (03/11).
 
-    Incluye los que ShipsGo no dibuja y TrackIn reconstruye con los eventos
+    Incluye los vuelos que ShipsGo no dibuja y TrackIn reconstruye con los eventos
     (`shipsgo.completar_tramos`).
     """
 
-    vuelo: str | None
-    origen: str | None = Field(description="Aeropuerto de salida (IATA).")
-    destino: str | None = Field(description="Aeropuerto de llegada (IATA).")
+    vuelo: str | None = Field(description="El vuelo, o la nave y el viaje en el marítimo.")
+    origen: str | None = Field(description="Aeropuerto (IATA) o puerto (LOCODE) de salida.")
+    destino: str | None = Field(description="Aeropuerto (IATA) o puerto (LOCODE) de llegada.")
     salida: dt.datetime | None
     llegada: dt.datetime | None
     ruta: list[tuple[float, float]] = Field(description="El trazado, `(latitud, longitud)`.")
@@ -230,8 +241,20 @@ class MarcadorMapa(BaseModel):
     longitud: float
     estado: EstadoCalculado = Field(
         description=(
-            "El color del marcador: el estado más urgente de sus pedidos (retrasado, en "
-            "riesgo, a tiempo y después la etapa más avanzada)."
+            "El estado más urgente de sus pedidos, como en la grilla (retrasado, en "
+            "riesgo, a tiempo y después la etapa más avanzada). No colorea el mapa."
+        )
+    )
+    etapa: EtapaViaje = Field(
+        description=(
+            "El relleno del marcador y el color de la ruta (`wireframes.md` §2.2): la "
+            "etapa menos avanzada de sus pedidos, la de la carga que sigue en camino."
+        )
+    )
+    cumplimiento: Cumplimiento | None = Field(
+        description=(
+            "El anillo del marcador: el peor cumplimiento a bordo. Nulo si ninguno "
+            "tiene fecha proyectada."
         )
     )
     ultima_lectura: dt.datetime | None = Field(

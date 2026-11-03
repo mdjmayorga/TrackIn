@@ -213,6 +213,9 @@ async def procesar(
     if lectura.tramos_aereos:
         # `US-26`: el horario y el trazado de los vuelos, para estimar dónde va.
         elemento.trayecto_aereo = [t.como_dict() for t in lectura.tramos_aereos]
+    if lectura.tramos_maritimos:
+        # La ruta del barco en el mapa del panel (03/11/2026).
+        elemento.trayecto_maritimo = [t.como_dict() for t in lectura.tramos_maritimos]
 
     # --- El historial -------------------------------------------------------
     if lectura.posicion is not None:

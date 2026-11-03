@@ -1,13 +1,14 @@
 /**
- * La ruta completa de una guía aérea (02/11/2026): un trazo por vuelo y un punto
- * por aeropuerto. La usan el detalle del pedido y el mapa del panel al elegir un
- * vuelo.
+ * La ruta completa de un embarque: un trazo por tramo y un punto por escala.
+ * Un tramo es un vuelo de una guía aérea (02/11/2026) o una nave de un BL
+ * (03/11/2026). La usan el detalle del pedido aéreo y los dos mapas del panel al
+ * elegir un embarque.
  *
  * Incluye los vuelos que ShipsGo no dibuja y TrackIn reconstruye con los eventos
  * (`shipsgo.completar_tramos`): sin ellos, una guía que llegó a SJO por
  * Fráncfort se veía terminar en Fráncfort.
  *
- * Un vuelo ya aterrizado va en trazo continuo; uno pendiente o en curso,
+ * Un tramo ya terminado va en trazo continuo; uno pendiente o en curso,
  * punteado.
  */
 
@@ -16,7 +17,7 @@ import { CircleMarker, Polyline, Tooltip } from 'react-leaflet'
 import { BLANCO } from '@/components/paleta'
 import type { TramoMapa } from '@/types/api'
 
-export function RutaAerea({
+export function RutaEmbarque({
   trayecto,
   color,
   ahora = new Date(),
@@ -45,7 +46,7 @@ export function RutaAerea({
           }}
         >
           <Tooltip sticky className="rotulo-mapa">
-            {`${tramo.vuelo ?? 'Vuelo'} ${tramo.origen ?? '?'} → ${tramo.destino ?? '?'}`}
+            {`${tramo.vuelo ?? 'Tramo'} ${tramo.origen ?? '?'} → ${tramo.destino ?? '?'}`}
           </Tooltip>
         </Polyline>
       ))}

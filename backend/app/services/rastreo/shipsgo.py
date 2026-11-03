@@ -265,6 +265,8 @@ class LecturaEmbarque:
     posicion: tuple[float, float] | None = None
     #: Solo en la vía aérea: los vuelos con su horario y su trazado (`US-26`).
     tramos_aereos: list[TramoAereo] = field(default_factory=list)
+    #: Solo en la vía marítima: las naves con su trazado, para el mapa (03/11/2026).
+    tramos_maritimos: list[TramoAereo] = field(default_factory=list)
     vehiculo_actual: Vehiculo | None = None
 
     #: ShipsGo archiva solo lo terminado: si viene, el embarque puede dejar de
@@ -479,6 +481,8 @@ def interpretar(
         lectura.tramos_aereos = completar_tramos(
             leer_tramos_aereos(geojson), lectura.hitos, aeropuertos_del_trazado(geojson)
         )
+    else:
+        lectura.tramos_maritimos = leer_tramos_maritimos(geojson)
     lectura.vehiculo_actual = nave or (lectura.vehiculos[-1] if lectura.vehiculos else None)
     return lectura
 
@@ -579,25 +583,8 @@ def leer_tramos_aereos(geojson: dict[str, Any] | None) -> list[TramoAereo]:
     tramo. Un tramo sin trazado se descarta; uno sin horas se guarda igual,
     porque la ruta sirve aunque no se pueda ubicar el avión.
     """
-    if not isinstance(geojson, dict):
-        return []
-    tramos: list[TramoAereo] = []
-    for feature in geojson.get("features") or []:
-        if not isinstance(feature, dict):
-            continue
-        geometria = feature.get("geometry")
-        if not isinstance(geometria, dict) or geometria.get("type") != "LineString":
-            continue
-        ruta = tuple(
-            (float(p[0]), float(p[1]))
-            for p in geometria.get("coordinates") or []
-            if isinstance(p, list | tuple)
-            and len(p) >= 2
-            and all(isinstance(c, int | float) for c in p[:2])
-        )
-        if not ruta:
-            continue
-        props = _dict(feature.get("properties"))
+    tramos = []
+    for props, ruta in _lineas(geojson):
         eventos = _dict(props.get("events"))
         salida = _dict(eventos.get("DEP"))
         llegada = _dict(eventos.get("ARR"))
@@ -613,6 +600,63 @@ def leer_tramos_aereos(geojson: dict[str, Any] | None) -> list[TramoAereo]:
             )
         )
     return tramos
+
+
+def leer_tramos_maritimos(geojson: dict[str, Any] | None) -> list[TramoAereo]:
+    """Los tramos del barco, para dibujar la ruta en el mapa del panel (03/11/2026).
+
+    El `geojson` marítimo tiene la misma forma que el aéreo: un `LineString` por
+    nave, con `properties.vessel`, `voyage` y `events` con `DEPA` y `ARRV`, cada
+    uno con su puerto (`location.code`, el LOCODE) y su hora. Medido en el
+    contenedor `TGBU4872990`: Ningbo → Chancay → … en dos naves. Se guarda en la
+    misma forma que los vuelos; en `vuelo` va la nave y el viaje, que es lo que
+    el mapa muestra sobre el trazo.
+    """
+    tramos = []
+    for props, ruta in _lineas(geojson):
+        eventos = _dict(props.get("events"))
+        salida = _dict(eventos.get("DEPA"))
+        llegada = _dict(eventos.get("ARRV"))
+        nave = _dict(props.get("vessel")).get("name")
+        viaje = props.get("voyage")
+        tramos.append(
+            TramoAereo(
+                vuelo=(f"{nave} · viaje {viaje}" if isinstance(viaje, str) and viaje else nave)
+                if isinstance(nave, str)
+                else None,
+                origen=_locode(salida.get("location")),
+                destino=_locode(llegada.get("location")),
+                salida=_a_instante(salida.get("timestamp")),
+                llegada=_a_instante(llegada.get("timestamp")),
+                ruta=ruta,
+            )
+        )
+    return tramos
+
+
+def _lineas(
+    geojson: dict[str, Any] | None,
+) -> list[tuple[dict[str, Any], tuple[tuple[float, float], ...]]]:
+    """Las `LineString` del trazado con sus propiedades; las vacías no cuentan."""
+    if not isinstance(geojson, dict):
+        return []
+    lineas = []
+    for feature in geojson.get("features") or []:
+        if not isinstance(feature, dict):
+            continue
+        geometria = feature.get("geometry")
+        if not isinstance(geometria, dict) or geometria.get("type") != "LineString":
+            continue
+        ruta = tuple(
+            (float(p[0]), float(p[1]))
+            for p in geometria.get("coordinates") or []
+            if isinstance(p, list | tuple)
+            and len(p) >= 2
+            and all(isinstance(c, int | float) for c in p[:2])
+        )
+        if ruta:
+            lineas.append((_dict(feature.get("properties")), ruta))
+    return lineas
 
 
 #: Puntos con que se dibuja un tramo reconstruido, como los que da ShipsGo.
@@ -733,6 +777,12 @@ def _iata(location: Any) -> str | None:
     return None
 
 
+def _locode(location: Any) -> str | None:
+    if isinstance(location, dict) and isinstance(location.get("code"), str):
+        return str(location["code"])
+    return None
+
+
 def esta_maduro(shipment: dict[str, Any] | None) -> bool:
     """Si el embarque ya tiene datos, o sigue madurando tras el alta.
 
@@ -775,4 +825,5 @@ __all__ = [
     "esta_maduro",
     "interpretar",
     "leer_tramos_aereos",
+    "leer_tramos_maritimos",
 ]

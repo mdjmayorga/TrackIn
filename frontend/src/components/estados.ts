@@ -136,6 +136,43 @@ export function estadoMasUrgente(estados: readonly EstadoCalculado[]): EstadoCal
   return [...estados].sort((a, b) => URGENCIA.indexOf(a) - URGENCIA.indexOf(b))[0]
 }
 
+/**
+ * El anillo de un marcador del mapa (`wireframes.md` §2.2 y el Figma de los mapas):
+ * del color del peor cumplimiento a bordo si es «Retrasado» o «En Riesgo»; blanco
+ * si todos van a tiempo o si ninguno tiene fecha para evaluarlo. El relleno, y la
+ * ruta, van con el color de la etapa.
+ */
+export function colorDelAnillo(cumplimiento: Cumplimiento | null): string {
+  return cumplimiento === 'RETRASADO' || cumplimiento === 'EN_RIESGO'
+    ? CUMPLIMIENTOS[cumplimiento].fondo
+    : BLANCO
+}
+
+/** La etapa menos avanzada: la de un grupo de marcadores, como la del embarque. */
+const ORDEN_ETAPAS: readonly EtapaViaje[] = [
+  'SIN_TRACKING',
+  'EN_ORIGEN',
+  'EN_TRANSITO',
+  'EN_DESTINO',
+  'EN_PROCESO_ADUANAL',
+  'RECIBIDO_EN_PLANTA',
+]
+
+export function etapaMenosAvanzada(etapas: readonly EtapaViaje[]): EtapaViaje {
+  return [...etapas].sort((a, b) => ORDEN_ETAPAS.indexOf(a) - ORDEN_ETAPAS.indexOf(b))[0]
+}
+
+const PEOR: readonly Cumplimiento[] = ['RETRASADO', 'EN_RIESGO', 'A_TIEMPO']
+
+export function peorCumplimiento(
+  cumplimientos: readonly (Cumplimiento | null)[],
+): Cumplimiento | null {
+  const evaluados = cumplimientos.filter((c): c is Cumplimiento => c !== null)
+  return evaluados.length
+    ? [...evaluados].sort((a, b) => PEOR.indexOf(a) - PEOR.indexOf(b))[0]
+    : null
+}
+
 const TERMINALES: ReadonlySet<EstadoCalculado> = new Set(['CERRADO', 'CANCELADO'])
 
 export function esTerminal(pedido: Pick<PedidoResumen, 'estado_calculado'>): boolean {

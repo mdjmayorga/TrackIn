@@ -1,6 +1,6 @@
 /** El texto de un marcador de los mapas del panel (`US-25`). */
 
-import { aparienciaDeEstado } from '@/components/estados'
+import { CUMPLIMIENTOS, ETAPAS } from '@/components/estados'
 import type { MarcadorMapa, SituacionVuelo } from '@/types/api'
 import { haceCuanto } from '@/utils/fechas'
 
@@ -8,7 +8,10 @@ import { haceCuanto } from '@/utils/fechas'
 export interface PartesRotulo {
   /** «COSCO PRIDE (BL COSU…)». */
   quien: string
-  /** «En Riesgo», y en el aéreo la situación del vuelo: «En Destino · Vuelo LH518 concluido en SJO». */
+  /**
+   * La etapa y el peor cumplimiento, juntos (03/11/2026): «En Tránsito · Retrasado»;
+   * en el aéreo, más la situación del vuelo: «En Destino · A Tiempo · Vuelo LH518 concluido en SJO».
+   */
   estado: string
   /** «Pedidos 4500123456-10, 4500123456-20». */
   pedidos: string
@@ -22,7 +25,9 @@ export function partesDelRotulo(m: MarcadorMapa): PartesRotulo {
   const donde = dondeEsta(m)
   return {
     quien: m.nombre ? `${m.nombre} (${m.tipo} ${m.referencia})` : `${m.tipo} ${m.referencia}`,
-    estado: `${aparienciaDeEstado(m.estado).texto}${donde ? ` · ${donde}` : ''}`,
+    estado: [ETAPAS[m.etapa].texto, m.cumplimiento && CUMPLIMIENTOS[m.cumplimiento].texto, donde]
+      .filter(Boolean)
+      .join(' · '),
     pedidos: `${m.pedidos.length === 1 ? 'Pedido' : 'Pedidos'} ${lineas}`,
     lectura: hace ? `Lectura ${hace}${m.desactualizada ? ', desactualizada' : ''}` : 'Sin lectura',
   }
@@ -30,9 +35,8 @@ export function partesDelRotulo(m: MarcadorMapa): PartesRotulo {
 
 /** Lo que dice el marcador en una frase: para lectores de pantalla y la lista oculta. */
 export function rotulo(m: MarcadorMapa): string {
-  const donde = dondeEsta(m)
   const p = partesDelRotulo(m)
-  return `${p.quien}: ${aparienciaDeEstado(m.estado).texto}.${donde ? ` ${donde}.` : ''} ${p.pedidos}. ${p.lectura}.`
+  return `${p.quien}: ${p.estado}. ${p.pedidos}. ${p.lectura}.`
 }
 
 /**

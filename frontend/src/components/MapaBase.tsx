@@ -28,11 +28,11 @@ export interface MapaBaseProps {
   /** Sin título visible, como el mapa del detalle; queda para lectores de pantalla. */
   ocultarTitulo?: boolean
   /**
-   * Un solo punto: la última posición del envío en el detalle (`US-20`). El
-   * color es el del estado del pedido (`aparienciaDeEstado(...).fondo`), el
-   * mismo de su distintivo en la grilla (`US-24`).
+   * Un solo punto: la última posición del envío en el detalle (`US-20`). Como
+   * en los mapas del panel, el relleno es el de la etapa y el anillo el del
+   * cumplimiento (`colorDelAnillo`, 03/11/2026).
    */
-  marcador?: { posicion: LatLngExpression; etiqueta: string; color: string }
+  marcador?: { posicion: LatLngExpression; etiqueta: string; color: string; anillo?: string }
   /** Capas propias, dentro del `MapContainer`: los embarques del panel. */
   children?: ReactNode
 }
@@ -67,8 +67,8 @@ export function MapaBase({
               center={marcador.posicion}
               radius={7}
               pathOptions={{
-                color: BLANCO,
-                weight: 2,
+                color: marcador.anillo ?? BLANCO,
+                weight: 3,
                 fillColor: marcador.color,
                 fillOpacity: 1,
               }}

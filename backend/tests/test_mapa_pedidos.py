@@ -354,3 +354,112 @@ async def test_el_detalle_aereo_trae_la_ruta_y_donde_esta(api, sesion) -> None:
     assert [t["destino"] for t in rastreo["trayecto"]] == ["FRA"]
     assert rastreo["posicion_aerea"]["situacion"] == "EN_TIERRA"
     assert rastreo["posicion_aerea"]["lugar"] == "FRA"
+
+
+# --- US-27: lo que muestra el recuadro del marcador ---------------------------
+
+
+async def test_cada_pedido_del_marcador_trae_lo_que_pide_rf_18(api, sesion) -> None:
+    """OC, material, proveedor, ETA, fecha proyectada y estado, y el id para el detalle."""
+    buque = await _buque(sesion, "BLMAPA0027")
+    pedido = await _pedido(
+        sesion,
+        "4588902700",
+        10,
+        id_elemento_rastreado=buque.id,
+        estado_calculado="A_TIEMPO",
+        eta_utilizada=dt.datetime(2026, 11, 5, tzinfo=dt.UTC),
+        fecha_proyectada_disponible=dt.date(2026, 11, 7),
+    )
+
+    (marcador,) = (await api.get(f"{URL}/MARITIMO")).json()["marcadores"]
+
+    (linea,) = marcador["pedidos"]
+    assert linea["id"] == pedido.id
+    assert linea["material"] == "Material uno"
+    assert linea["proveedor"] == "Proveedor Uno"
+    assert (linea["eta"], linea["fecha_proyectada"]) == ("2026-11-05", "2026-11-07")
+    assert linea["estado_calculado"] == "A_TIEMPO"
+
+
+async def test_sin_fechas_el_recuadro_las_trae_vacias(api, sesion) -> None:
+    buque = await _buque(sesion, "BLMAPA0028")
+    await _pedido(sesion, "4588902800", 10, id_elemento_rastreado=buque.id)
+
+    (marcador,) = (await api.get(f"{URL}/MARITIMO")).json()["marcadores"]
+
+    assert (marcador["pedidos"][0]["eta"], marcador["pedidos"][0]["fecha_proyectada"]) == (
+        None,
+        None,
+    )
+
+
+async def test_el_marcador_maritimo_trae_la_ruta_del_barco(api, sesion) -> None:
+    """03/11/2026: elegir un embarque en el mapa dibuja su ruta, también en el marítimo."""
+    buque = await _buque(
+        sesion,
+        "BLMAPA0029",
+        trayecto_maritimo=[
+            {
+                "vuelo": "POLAR BRASIL · viaje 637N",
+                "origen": "COCTG",
+                "destino": "CRPMN",
+                "salida": "2026-10-28T12:00:00-05:00",
+                "llegada": "2026-11-04T12:00:00-06:00",
+                "ruta": [[-75.5, 10.4], [-79.5, 9.3], [-83.0, 10.0]],
+            }
+        ],
+    )
+    await _pedido(sesion, "4588902900", 10, id_elemento_rastreado=buque.id)
+
+    (marcador,) = (await api.get(f"{URL}/MARITIMO")).json()["marcadores"]
+
+    (tramo,) = marcador["trayecto"]
+    assert (tramo["vuelo"], tramo["origen"], tramo["destino"]) == (
+        "POLAR BRASIL · viaje 637N",
+        "COCTG",
+        "CRPMN",
+    )
+    # En `(latitud, longitud)`, como la espera Leaflet; la posición sigue siendo la leída.
+    assert tramo["ruta"][0] == [10.4, -75.5]
+    assert (marcador["latitud"], marcador["longitud"]) == (9.3, -79.5)
+
+
+async def test_relleno_por_etapa_y_anillo_por_el_peor_cumplimiento(api, sesion) -> None:
+    """`wireframes.md` §2.2 y el Figma de los mapas (03/11/2026): el relleno y la ruta
+    van con la etapa menos avanzada; el anillo, con el peor cumplimiento a bordo."""
+    buque = await _buque(sesion, "BLMAPA0030")
+    await _pedido(
+        sesion,
+        "4588903000",
+        10,
+        id_elemento_rastreado=buque.id,
+        etapa_viaje="EN_DESTINO",
+        estado_calculado="A_TIEMPO",
+    )
+    await _pedido(
+        sesion,
+        "4588903000",
+        20,
+        id_elemento_rastreado=buque.id,
+        etapa_viaje="EN_TRANSITO",
+        estado_calculado="RETRASADO",
+    )
+
+    (marcador,) = (await api.get(f"{URL}/MARITIMO")).json()["marcadores"]
+
+    assert (marcador["etapa"], marcador["cumplimiento"]) == ("EN_TRANSITO", "RETRASADO")
+    # Cada pedido trae las dos dimensiones por separado, para el recuadro.
+    assert [(p["etapa_viaje"], p["estado_cumplimiento"]) for p in marcador["pedidos"]] == [
+        ("EN_DESTINO", "A_TIEMPO"),
+        ("EN_TRANSITO", "RETRASADO"),
+    ]
+
+
+async def test_sin_fecha_proyectada_no_hay_anillo(api, sesion) -> None:
+    buque = await _buque(sesion, "BLMAPA0031")
+    await _pedido(sesion, "4588903100", 10, id_elemento_rastreado=buque.id)
+
+    (marcador,) = (await api.get(f"{URL}/MARITIMO")).json()["marcadores"]
+
+    assert (marcador["etapa"], marcador["cumplimiento"]) == ("EN_TRANSITO", None)

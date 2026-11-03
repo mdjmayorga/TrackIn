@@ -22,11 +22,10 @@ import { useSesion } from '@/auth/useSesion'
 import { AccionesPedido } from '@/components/AccionesPedido'
 import { AsociarReferencia } from '@/components/AsociarReferencia'
 import { Distintivo } from '@/components/Distintivo'
-import { CUMPLIMIENTOS, ETAPAS, aparienciaDeEstado, etapaVisible } from '@/components/estados'
+import { CUMPLIMIENTOS, ETAPAS, colorDelAnillo, etapaVisible } from '@/components/estados'
 import { MapaBase } from '@/components/MapaBase'
 import { MapaShipsGo } from '@/components/MapaShipsGo'
-import { RutaAerea } from '@/components/RutaAerea'
-import { BLANCO } from '@/components/paleta'
+import { RutaEmbarque } from '@/components/RutaEmbarque'
 import { SeguirGuiaMadre } from '@/components/SeguirGuiaMadre'
 import { useBitacora, usePedido } from '@/hooks/usePedidos'
 import { mensajeDeError } from '@/services/api'
@@ -531,7 +530,8 @@ function MapaDelEnvio({ pedido }: { pedido: PedidoDetalle }) {
       marcador={{
         posicion: centro,
         etiqueta: r.nombre ?? `${r.tipo} ${r.referencia}`,
-        color: aparienciaDeEstado(pedido.estado_calculado).fondo,
+        color: ETAPAS[etapaVisible(pedido)].fondo,
+        anillo: colorDelAnillo(pedido.estado_cumplimiento),
       }}
     />
   )
@@ -540,19 +540,25 @@ function MapaDelEnvio({ pedido }: { pedido: PedidoDetalle }) {
 /** La ruta completa de una guía aérea y dónde está ahora la carga. */
 function MapaDelVuelo({ pedido, rastreo }: { pedido: PedidoDetalle; rastreo: Rastreo }) {
   const trayecto = rastreo.trayecto ?? []
-  const color = aparienciaDeEstado(pedido.estado_calculado).fondo
+  // Ruta y relleno con la etapa; anillo con el cumplimiento, como en el panel (03/11/2026).
+  const color = ETAPAS[etapaVisible(pedido)].fondo
   const actual = rastreo.posicion_aerea
   const donde = actual ? textoSituacion(actual.situacion, actual.vuelo, actual.lugar) : null
   const puntos = trayecto.flatMap((t) => t.ruta)
   return (
     <div>
       <MapaBase titulo="Mapa del envío" ocultarTitulo centro={puntos[0] ?? [10, -84]} zoom={3}>
-        <RutaAerea trayecto={trayecto} color={color} />
+        <RutaEmbarque trayecto={trayecto} color={color} />
         {actual && (
           <CircleMarker
             center={[actual.latitud, actual.longitud]}
             radius={8}
-            pathOptions={{ color: BLANCO, weight: 2, fillColor: color, fillOpacity: 1 }}
+            pathOptions={{
+              color: colorDelAnillo(pedido.estado_cumplimiento),
+              weight: 3,
+              fillColor: color,
+              fillOpacity: 1,
+            }}
           >
             <Tooltip direction="top" offset={[0, -8]} className="rotulo-mapa">
               {donde ?? `${rastreo.tipo} ${rastreo.referencia}`}

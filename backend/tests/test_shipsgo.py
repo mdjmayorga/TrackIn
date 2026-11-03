@@ -36,6 +36,7 @@ from app.services.rastreo.shipsgo import (
     es_arribo,
     esta_maduro,
     interpretar,
+    leer_tramos_maritimos,
 )
 
 _SALIDA = Path(__file__).resolve().parents[1] / "scripts/spikes/task28/output"
@@ -410,3 +411,29 @@ def test_el_hito_es_inmutable() -> None:
     hito = Hito("DEPA", True, None, "BRSSZ", "SANTOS", None, None)
     with pytest.raises(AttributeError):
         hito.evento = "ARRV"  # type: ignore[misc]
+
+
+# --- La ruta del barco en el mapa del panel (03/11/2026) -----------------------
+
+
+def test_los_tramos_maritimos_salen_del_geojson_con_nave_y_puertos() -> None:
+    lectura = _lectura(MAERSK_3_NAVES)
+
+    tramos = lectura.tramos_maritimos
+    assert [(t.vuelo, t.origen, t.destino) for t in tramos] == [
+        ("MAERSK CHACHAI · viaje 633N", "BRSSZ", "COCTG"),
+        ("MAERSK NACALA · viaje 637N", "COCTG", "PAMIT"),
+        ("MAERSK MONTE PASCOAL · viaje 634S", "PAMIT", "CRPMN"),
+    ]
+    assert all(t.ruta and t.salida and t.llegada for t in tramos)
+    # Cada tramo arranca donde terminó el anterior: la ruta es continua.
+    assert tramos[0].ruta[-1] == tramos[1].ruta[0]
+
+
+def test_la_guia_aerea_no_trae_tramos_maritimos() -> None:
+    assert _lectura(LUFTHANSA_AEREO).tramos_maritimos == []
+
+
+def test_sin_geojson_no_hay_tramos() -> None:
+    assert leer_tramos_maritimos(None) == []
+    assert leer_tramos_maritimos({"features": [{"geometry": {"type": "Point"}}]}) == []

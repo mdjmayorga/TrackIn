@@ -1,11 +1,20 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { estadoMasUrgente } from '@/components/estados'
+import {
+  CUMPLIMIENTOS,
+  colorDelAnillo,
+  estadoMasUrgente,
+  etapaMenosAvanzada,
+  peorCumplimiento,
+} from '@/components/estados'
+import { BLANCO } from '@/components/paleta'
 import { MapaBase } from '@/components/MapaBase'
 import { DetalleDelGrupo, MapaEmbarques } from '@/components/MapaEmbarques'
-import { RutaAerea } from '@/components/RutaAerea'
+import { RutaEmbarque } from '@/components/RutaEmbarque'
 import { obtenerMapa } from '@/services/pedidos'
 import type { MapaPedidos, MarcadorMapa } from '@/types/api'
 import { agrupar } from '@/utils/agrupamiento'
@@ -26,12 +35,28 @@ function marcador(cambios: Partial<MarcadorMapa> = {}): MarcadorMapa {
     latitud: 9.3,
     longitud: -79.5,
     estado: 'EN_RIESGO',
+    etapa: 'EN_TRANSITO',
+    cumplimiento: 'EN_RIESGO',
     ultima_lectura: haceHoras(2),
     desactualizada: false,
     activo: true,
     pedidos: [
-      { id: 1, oc_numero: '4500123456', posicion_oc: 10, estado_calculado: 'EN_RIESGO' },
-      { id: 2, oc_numero: '4500123456', posicion_oc: 20, estado_calculado: 'A_TIEMPO' },
+      {
+        id: 1,
+        oc_numero: '4500123456',
+        posicion_oc: 10,
+        estado_calculado: 'EN_RIESGO',
+        etapa_viaje: 'EN_TRANSITO',
+        estado_cumplimiento: 'EN_RIESGO',
+      },
+      {
+        id: 2,
+        oc_numero: '4500123456',
+        posicion_oc: 20,
+        estado_calculado: 'A_TIEMPO',
+        etapa_viaje: 'EN_TRANSITO',
+        estado_cumplimiento: 'A_TIEMPO',
+      },
     ],
     posicion_estimada: false,
     situacion: null,
@@ -87,7 +112,7 @@ describe('MapaEmbarques (US-25)', () => {
     vi.mocked(obtenerMapa).mockResolvedValue(mapa())
     montar()
 
-    expect(await screen.findByText('1 embarque · 2 pedidos · 3 sin posición')).toBeInTheDocument()
+    expect(await screen.findByText(/^1 embarque · 2 pedidos · 3 sin posición/)).toBeInTheDocument()
   })
 
   it('repite cada marcador en una lista para lectores de pantalla', async () => {
@@ -97,7 +122,7 @@ describe('MapaEmbarques (US-25)', () => {
     const items = await within(await lista()).findAllByRole('listitem')
     expect(items).toHaveLength(1)
     expect(items[0]).toHaveTextContent(
-      'COSCO PRIDE (BL COSU6508789000): En Riesgo. Pedidos 4500123456-10, 4500123456-20. Lectura hace 2 h.',
+      'COSCO PRIDE (BL COSU6508789000): En Tránsito · En Riesgo. Pedidos 4500123456-10, 4500123456-20. Lectura hace 2 h.',
     )
   })
 
@@ -145,23 +170,63 @@ describe('MapaEmbarques (US-25)', () => {
     expect(screen.queryByTitle('2 embarques: acercar')).toBeNull()
   })
 
-  it('el detalle del grupo lista cada embarque con su rótulo', () => {
+  it('el detalle del grupo lista cada embarque con sus pedidos', () => {
     // El recuadro de Leaflet no se abre en jsdom (el mapa no tiene tamaño): se
     // prueba su contenido aparte.
     render(
-      <DetalleDelGrupo
-        marcadores={[
-          marcador({ referencia: '020-50685434', nombre: null }),
-          marcador({ id_elemento: 2, referencia: '72474749194', nombre: null }),
-        ]}
-      />,
+      <MemoryRouter>
+        <DetalleDelGrupo
+          marcadores={[
+            marcador({ referencia: '020-50685434', nombre: null }),
+            marcador({ id_elemento: 2, referencia: '72474749194', nombre: null }),
+          ]}
+        />
+      </MemoryRouter>,
     )
 
     const lista = screen.getByRole('list', { name: 'Embarques en este lugar' })
-    expect(within(lista).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(lista).getAllByRole('region')).toHaveLength(2)
     expect(lista).toHaveTextContent('020-50685434')
     expect(lista).toHaveTextContent('72474749194')
     expect(lista).toHaveTextContent('4500123456')
+  })
+
+  it('en el grupo se elige de qué embarque ver la ruta (03/11/2026)', async () => {
+    const onVerRuta = vi.fn()
+    const conRuta = marcador({
+      id_elemento: 2,
+      referencia: '72474749194',
+      nombre: null,
+      trayecto: [
+        {
+          vuelo: 'LH518',
+          origen: 'FRA',
+          destino: 'SJO',
+          salida: '2026-10-30T13:33:00Z',
+          llegada: '2026-10-31T01:09:00Z',
+          ruta: [
+            [50.03, 8.57],
+            [9.99, -84.2],
+          ],
+        },
+      ],
+    })
+    render(
+      <MemoryRouter>
+        <DetalleDelGrupo
+          marcadores={[marcador({ referencia: '020-50685434', nombre: null }), conRuta]}
+          elegido={null}
+          onVerRuta={onVerRuta}
+        />
+      </MemoryRouter>,
+    )
+
+    // Solo el que tiene trayecto ofrece la ruta.
+    const botones = screen.getAllByRole('button', { name: 'Ver ruta' })
+    expect(botones).toHaveLength(1)
+    await userEvent.click(botones[0])
+
+    expect(onVerRuta).toHaveBeenCalledWith(conRuta)
   })
 
   it('un vuelo con trayecto ofrece ver su ruta, y al elegirlo la dibuja (02/11/2026)', async () => {
@@ -197,7 +262,7 @@ describe('MapaEmbarques (US-25)', () => {
     )
     montar()
 
-    expect(await screen.findByText(/clic en un vuelo para ver su ruta/)).toBeInTheDocument()
+    expect(await screen.findByText(/clic en un embarque para ver su ruta/)).toBeInTheDocument()
   })
 
   it('la ruta dibuja un trazo por vuelo y un punto por aeropuerto', () => {
@@ -205,7 +270,7 @@ describe('MapaEmbarques (US-25)', () => {
     // tamaño): se prueba aparte lo que dibuja la ruta elegida.
     render(
       <MapaBase titulo="Ruta" centro={[30, 0]} zoom={2}>
-        <RutaAerea
+        <RutaEmbarque
           color="#f00"
           trayecto={[
             {
@@ -286,8 +351,17 @@ describe('rotulo', () => {
           nombre: null,
           ultima_lectura: null,
           estado: 'EN_TRANSITO',
+          etapa: 'EN_TRANSITO',
+          cumplimiento: null,
           pedidos: [
-            { id: 1, oc_numero: '4500000001', posicion_oc: 10, estado_calculado: 'EN_TRANSITO' },
+            {
+              id: 1,
+              oc_numero: '4500000001',
+              posicion_oc: 10,
+              estado_calculado: 'EN_TRANSITO',
+              etapa_viaje: 'EN_TRANSITO',
+              estado_cumplimiento: null,
+            },
           ],
         }),
       ),
@@ -310,7 +384,14 @@ describe('mapa aéreo (US-26)', () => {
         [10, -84],
       ],
       pedidos: [
-        { id: 3, oc_numero: '4500123789', posicion_oc: 20, estado_calculado: 'EN_TRANSITO' },
+        {
+          id: 3,
+          oc_numero: '4500123789',
+          posicion_oc: 20,
+          estado_calculado: 'EN_TRANSITO',
+          etapa_viaje: 'EN_TRANSITO',
+          estado_cumplimiento: null,
+        },
       ],
       ...cambios,
     })
@@ -360,6 +441,8 @@ describe('el rótulo en líneas (28/10)', () => {
           referencia: '020-50685434',
           nombre: null,
           estado: 'EN_DESTINO',
+          etapa: 'EN_DESTINO',
+          cumplimiento: null,
           posicion_estimada: true,
           situacion: 'FINALIZADO',
           vuelo: 'LH518',
@@ -372,5 +455,26 @@ describe('el rótulo en líneas (28/10)', () => {
       pedidos: 'Pedidos 4500123456-10, 4500123456-20',
       lectura: 'Lectura hace 2 h',
     })
+  })
+})
+
+describe('relleno por etapa, anillo por cumplimiento (wireframes §2.2, 03/11/2026)', () => {
+  it('el anillo es rojo o naranja solo con carga retrasada o en riesgo', () => {
+    expect(colorDelAnillo('RETRASADO')).toBe(CUMPLIMIENTOS.RETRASADO.fondo)
+    expect(colorDelAnillo('EN_RIESGO')).toBe(CUMPLIMIENTOS.EN_RIESGO.fondo)
+    expect(colorDelAnillo('A_TIEMPO')).toBe(BLANCO)
+    expect(colorDelAnillo(null)).toBe(BLANCO)
+  })
+
+  it('un grupo toma la etapa menos avanzada y el peor cumplimiento', () => {
+    expect(etapaMenosAvanzada(['EN_DESTINO', 'EN_TRANSITO'])).toBe('EN_TRANSITO')
+    expect(peorCumplimiento(['A_TIEMPO', null, 'EN_RIESGO'])).toBe('EN_RIESGO')
+    expect(peorCumplimiento([null, null])).toBeNull()
+  })
+
+  it('el rótulo dice la etapa y el cumplimiento juntos', () => {
+    expect(
+      partesDelRotulo(marcador({ etapa: 'EN_TRANSITO', cumplimiento: 'RETRASADO' })).estado,
+    ).toBe('En Tránsito · Retrasado')
   })
 })

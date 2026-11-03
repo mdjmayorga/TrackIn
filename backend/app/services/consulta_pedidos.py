@@ -33,7 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, selectinload
 
 from app.models.elemento_rastreado import ElementoRastreado
-from app.models.enums import ESTADOS_TERMINALES
+from app.models.enums import ESTADOS_TERMINALES, ETAPAS_VIAJE
 from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
@@ -284,7 +284,7 @@ async def _posicion(sesion: AsyncSession, elemento: ElementoRastreado) -> Posici
 
 
 def _trayecto(trayecto: list[dict[str, Any]] | None) -> list[TramoMapa] | None:
-    """Los vuelos guardados, con la ruta en `(latitud, longitud)` como la espera Leaflet."""
+    """Los tramos guardados, con la ruta en `(latitud, longitud)` como la espera Leaflet."""
     if not trayecto:
         return None
     return [
@@ -538,6 +538,24 @@ _URGENCIA: tuple[str, ...] = (
     "CANCELADO",
 )
 
+#: El anillo de un marcador: el peor cumplimiento a bordo (`wireframes.md` §2.2).
+_PEOR_CUMPLIMIENTO: tuple[str, ...] = ("RETRASADO", "EN_RIESGO", "A_TIEMPO")
+
+
+def etapa_menos_avanzada(etapas: Sequence[str]) -> str:
+    """El relleno de un marcador y el color de su ruta (03/11/2026).
+
+    La etapa del embarque es la de la carga que todavía no llegó: mientras quede
+    una línea en camino, el embarque no terminó.
+    """
+    return min(etapas, key=ETAPAS_VIAJE.index)
+
+
+def peor_cumplimiento(cumplimientos: Sequence[str | None]) -> str | None:
+    evaluados = [c for c in cumplimientos if c in _PEOR_CUMPLIMIENTO]
+    return min(evaluados, key=_PEOR_CUMPLIMIENTO.index) if evaluados else None
+
+
 #: Las etapas que ya no van en el mapa (decisión del 28/10/2026): pasado a proceso
 #: aduanal, la carga salió del puerto o del aeropuerto y su posición ya no dice
 #: nada. Siguen en la grilla hasta cerrarse.
@@ -650,6 +668,13 @@ async def mapa(
             MaestroDestino.codigo,
             func.ST_X(cast(MaestroDestino.ubicacion, Geometry)),
             func.ST_Y(cast(MaestroDestino.ubicacion, Geometry)),
+            Material.descripcion,
+            Proveedor.nombre,
+            PedidoTransito.eta_utilizada,
+            PedidoTransito.fecha_proyectada_disponible,
+            ElementoRastreado.trayecto_maritimo,
+            PedidoTransito.etapa_viaje,
+            PedidoTransito.estado_cumplimiento,
         )
         .select_from(PedidoTransito)
         .join(PedidoTransito.proveedor)
@@ -677,7 +702,9 @@ async def mapa(
     for fila in filas:
         (id_pedido, oc, posicion, estado, id_elemento, tipo, referencia, nombre) = fila[:8]
         (lectura, activo, latitud, longitud, trayecto) = fila[8:13]
-        (ata, destino, destino_lon, destino_lat) = fila[13:]
+        (ata, destino, destino_lon, destino_lat) = fila[13:17]
+        (material, proveedor, eta, proyectada, trayecto_maritimo) = fila[17:22]
+        (etapa, cumplimiento) = fila[22:]
         if id_elemento not in por_elemento:
             # Ya llegó a nuestro destino (`ata_api` solo cuenta esas llegadas):
             # se dibuja ahí aunque el trazado de ShipsGo no lo alcance.
@@ -693,7 +720,8 @@ async def mapa(
                 continue
             por_elemento[id_elemento] = {
                 **ubicacion,
-                "trayecto": _trayecto(trayecto) if via == "AEREO" else None,
+                # La ruta completa, para dibujarla al elegir el embarque (02 y 03/11/2026).
+                "trayecto": _trayecto(trayecto if via == "AEREO" else trayecto_maritimo),
                 "id_elemento": id_elemento,
                 "tipo": tipo,
                 "referencia": referencia,
@@ -709,7 +737,19 @@ async def mapa(
         if marcador is None:
             continue  # sin posición ni trayecto: cuenta en `sin_posicion`
         marcador["pedidos"].append(
-            PedidoEnMapa(id=id_pedido, oc_numero=oc, posicion_oc=posicion, estado_calculado=estado)
+            PedidoEnMapa(
+                id=id_pedido,
+                oc_numero=oc,
+                posicion_oc=posicion,
+                estado_calculado=estado,
+                etapa_viaje=etapa,
+                estado_cumplimiento=cumplimiento,
+                material=material,
+                proveedor=proveedor,
+                # `eta_utilizada` es la base del cálculo al comienzo del día UTC.
+                eta=eta.date() if eta is not None else None,
+                fecha_proyectada=proyectada,
+            )
         )
 
     con_posicion = sum(len(m["pedidos"]) for m in por_elemento.values())
@@ -721,7 +761,10 @@ async def mapa(
         umbral_desactualizada_h=umbral.total_seconds() / 3600,
         marcadores=[
             MarcadorMapa(
-                **{**m, "estado": estado_mas_urgente([p.estado_calculado for p in m["pedidos"]])}
+                **m,
+                estado=estado_mas_urgente([p.estado_calculado for p in m["pedidos"]]),
+                etapa=etapa_menos_avanzada([p.etapa_viaje for p in m["pedidos"]]),
+                cumplimiento=peor_cumplimiento([p.estado_cumplimiento for p in m["pedidos"]]),
             )
             for m in por_elemento.values()
         ],

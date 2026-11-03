@@ -1,8 +1,12 @@
 /**
  * El mapa de una vía con sus embarques (`US-25`): un marcador por buque —un BL
- * lleva varias líneas—, coloreado por el estado más urgente de sus pedidos con
- * el mismo color de la grilla (`US-24`).
+ * lleva varias líneas—.
  *
+ * - **Relleno y ruta con el color de la etapa; anillo con el del peor
+ *   cumplimiento** (`wireframes.md` §2.2 y el Figma de los mapas): rojo si algo va
+ *   retrasado, naranja si algo va en riesgo, blanco si no. Corregido el 03/11/2026:
+ *   el mapa usaba el estado de la grilla, que es una etapa o un cumplimiento
+ *   según el caso, y la ruta salía a veces del color del cumplimiento.
  * - **Los filtros del panel se aplican** (`US-21`): el mapa muestra el mismo
  *   subconjunto que la grilla.
  * - **Una lectura vieja se distingue**: borde punteado y relleno tenue, y la
@@ -11,7 +15,9 @@
  * - **Los que se solapan se agrupan** en un círculo con el número, que al hacer
  *   clic acerca la vista hasta separarlos (`utils/agrupamiento`). Los que no se
  *   separan ni de cerca —dos guías en el mismo aeropuerto— muestran al clic el
- *   detalle de cada uno (02/11/2026).
+ *   detalle de cada uno (02/11/2026), con «Ver ruta» para elegir cuál (03/11/2026).
+ * - **Al pasar el cursor**, el rótulo corto; **al hacer clic**, el recuadro con
+ *   cada pedido y el enlace a su detalle (`US-27`, `DetalleDelEmbarque`).
  *
  * Debajo del mapa, una lista solo para lectores de pantalla repite lo que el
  * mapa muestra: un mapa no se puede recorrer con el teclado.
@@ -21,10 +27,10 @@ import L, { type LatLngExpression } from 'leaflet'
 import { useState } from 'react'
 import { CircleMarker, Marker, Polyline, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 
-import { aparienciaDeEstado, estadoMasUrgente } from '@/components/estados'
+import { DetalleDelEmbarque } from '@/components/DetalleDelEmbarque'
+import { ETAPAS, colorDelAnillo, etapaMenosAvanzada, peorCumplimiento } from '@/components/estados'
 import { MapaBase } from '@/components/MapaBase'
-import { RutaAerea } from '@/components/RutaAerea'
-import { BLANCO } from '@/components/paleta'
+import { RutaEmbarque } from '@/components/RutaEmbarque'
 import { useMapa } from '@/hooks/usePedidos'
 import type { MarcadorMapa } from '@/types/api'
 import { agrupar } from '@/utils/agrupamiento'
@@ -65,7 +71,9 @@ export function MapaEmbarques({
             ` · borde punteado: sin lectura en más de ${data.umbral_desactualizada_h} h`}
           {marcadores.some((m) => m.situacion === 'EN_VUELO') &&
             ' · ✈ posición estimada según el horario del vuelo'}
-          {marcadores.some((m) => m.trayecto?.length) && ' · clic en un vuelo para ver su ruta'}
+          {marcadores.some((m) => m.trayecto?.length) && ' · clic en un embarque para ver su ruta'}
+          {marcadores.some((m) => colorDelAnillo(m.cumplimiento) !== colorDelAnillo(null)) &&
+            ' · color: etapa; anillo rojo o naranja: lleva carga retrasada o en riesgo'}
         </p>
       )}
       <ul aria-label={`Embarques en el ${titulo}`} className="sr-only">
@@ -80,12 +88,25 @@ export function MapaEmbarques({
 function CapaAgrupada({ marcadores }: { marcadores: MarcadorMapa[] }) {
   const mapa = useMap()
   const [zoom, setZoom] = useState(() => mapa.getZoom())
-  // El vuelo elegido muestra su ruta completa (02/11/2026); un clic en el fondo la oculta.
+  // El embarque elegido muestra su ruta completa: un vuelo (02/11/2026) o un barco
+  // (03/11/2026). Un clic en el fondo la oculta.
   const [elegido, setElegido] = useState<number | null>(null)
   useMapEvents({ zoomend: () => setZoom(mapa.getZoom()), click: () => setElegido(null) })
   const conRuta = marcadores.find((m) => m.id_elemento === elegido && m.trayecto?.length)
   const alternar = (m: MarcadorMapa) =>
     setElegido((actual) => (actual === m.id_elemento ? null : m.id_elemento))
+  // Desde el recuadro de un grupo: además se cierra el recuadro y se encuadra la
+  // ruta, que puede cruzar medio mundo desde donde está el grupo.
+  const verRutaDesdeGrupo = (m: MarcadorMapa) => {
+    if (elegido === m.id_elemento) {
+      setElegido(null)
+      return
+    }
+    setElegido(m.id_elemento)
+    mapa.closePopup()
+    const puntos = (m.trayecto ?? []).flatMap((tramo) => tramo.ruta)
+    if (puntos.length) mapa.fitBounds(L.latLngBounds(puntos), { padding: [30, 30] })
+  }
 
   const grupos = agrupar(
     marcadores.map((m) => {
@@ -97,7 +118,7 @@ function CapaAgrupada({ marcadores }: { marcadores: MarcadorMapa[] }) {
   return (
     <>
       {conRuta?.trayecto && (
-        <RutaAerea trayecto={conRuta.trayecto} color={aparienciaDeEstado(conRuta.estado).fondo} />
+        <RutaEmbarque trayecto={conRuta.trayecto} color={ETAPAS[conRuta.etapa].fondo} />
       )}
       {grupos.map((g) =>
         g.datos.length === 1 ? (
@@ -111,6 +132,8 @@ function CapaAgrupada({ marcadores }: { marcadores: MarcadorMapa[] }) {
             key={g.datos.map((m) => m.id_elemento).join('-')}
             marcadores={g.datos}
             centro={mapa.unproject([g.x, g.y], zoom)}
+            elegido={elegido}
+            onVerRuta={verRutaDesdeGrupo}
           />
         ),
       )}
@@ -136,16 +159,17 @@ function Embarque({
       // Sin esto el clic llega también al mapa, que oculta la ruta recién elegida.
       bubblingMouseEvents={false}
       pathOptions={{
-        color: BLANCO,
-        weight: 2,
+        color: colorDelAnillo(marcador.cumplimiento),
+        weight: 3,
         dashArray: vieja ? '3 3' : undefined,
-        fillColor: aparienciaDeEstado(marcador.estado).fondo,
+        fillColor: ETAPAS[marcador.etapa].fondo,
         fillOpacity: vieja ? 0.45 : 1,
       }}
     >
       <Tooltip direction="top" offset={[0, -6]} className="rotulo-mapa">
         <RotuloEnLineas marcador={marcador} />
       </Tooltip>
+      <RecuadroDelEmbarque marcador={marcador} />
     </CircleMarker>
   )
 }
@@ -161,11 +185,12 @@ function EnVuelo({
   marcador: MarcadorMapa
   eventos?: { click: () => void }
 }) {
-  const apariencia = aparienciaDeEstado(marcador.estado)
+  const apariencia = ETAPAS[marcador.etapa]
+  const anillo = colorDelAnillo(marcador.cumplimiento)
   const icono = L.divIcon({
     className: '',
     iconSize: [24, 24],
-    html: `<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;border:2px ${marcador.desactualizada ? 'dashed' : 'solid'} ${BLANCO};background:${apariencia.fondo};color:${apariencia.letra};font-size:13px;opacity:${marcador.desactualizada ? 0.6 : 1}">✈</span>`,
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;border:3px ${marcador.desactualizada ? 'dashed' : 'solid'} ${anillo};background:${apariencia.fondo};color:${apariencia.letra};font-size:13px;opacity:${marcador.desactualizada ? 0.6 : 1}">✈</span>`,
   })
   return (
     <>
@@ -184,6 +209,7 @@ function EnVuelo({
         <Tooltip direction="top" offset={[0, -12]} className="rotulo-mapa">
           <RotuloEnLineas marcador={marcador} />
         </Tooltip>
+        <RecuadroDelEmbarque marcador={marcador} />
       </Marker>
     </>
   )
@@ -203,14 +229,34 @@ function RotuloEnLineas({ marcador }: { marcador: MarcadorMapa }) {
       <span className="block">{p.estado}</span>
       <span className="block">{p.pedidos}</span>
       <span className="block text-slate-500">{p.lectura}</span>
+      <span className="block text-slate-500">Clic para ver los pedidos.</span>
     </>
+  )
+}
+
+/** `US-27`: Leaflet lo abre al hacer clic en el marcador. */
+function RecuadroDelEmbarque({ marcador }: { marcador: MarcadorMapa }) {
+  return (
+    <Popup className="rotulo-mapa">
+      <DetalleDelEmbarque marcador={marcador} />
+    </Popup>
   )
 }
 
 /** Hasta dónde acerca el clic en un grupo: más cerca ya no aporta en un mapa de panel. */
 const ZOOM_MAXIMO_GRUPO = 12
 
-function Grupo({ marcadores, centro }: { marcadores: MarcadorMapa[]; centro: L.LatLng }) {
+function Grupo({
+  marcadores,
+  centro,
+  elegido,
+  onVerRuta,
+}: {
+  marcadores: MarcadorMapa[]
+  centro: L.LatLng
+  elegido: number | null
+  onVerRuta: (m: MarcadorMapa) => void
+}) {
   const mapa = useMap()
   // Si ni con el zoom máximo se separan, acercar no sirve: el 02/11/2026 dos MAWB
   // concluidas en SJO quedaban en un «2» sin forma de ver sus pedidos.
@@ -221,11 +267,12 @@ function Grupo({ marcadores, centro }: { marcadores: MarcadorMapa[]; centro: L.L
         return { x: punto.x, y: punto.y, dato: m }
       }),
     ).length > 1
-  const apariencia = aparienciaDeEstado(estadoMasUrgente(marcadores.map((m) => m.estado)))
+  const apariencia = ETAPAS[etapaMenosAvanzada(marcadores.map((m) => m.etapa))]
+  const anillo = colorDelAnillo(peorCumplimiento(marcadores.map((m) => m.cumplimiento)))
   const icono = L.divIcon({
     className: '',
     iconSize: [30, 30],
-    html: `<span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9999px;border:2px solid ${BLANCO};background:${apariencia.fondo};color:${apariencia.letra};font:600 12px sans-serif">${marcadores.length}</span>`,
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9999px;border:3px solid ${anillo};background:${apariencia.fondo};color:${apariencia.letra};font:600 12px sans-serif">${marcadores.length}</span>`,
   })
   const limites = L.latLngBounds(marcadores.map((m) => [m.latitud, m.longitud]))
 
@@ -255,23 +302,38 @@ function Grupo({ marcadores, centro }: { marcadores: MarcadorMapa[]; centro: L.L
       {/* Sin manejador de clic, Leaflet abre el recuadro al hacer clic. */}
       {!separables && (
         <Popup className="rotulo-mapa">
-          <DetalleDelGrupo marcadores={marcadores} />
+          <DetalleDelGrupo marcadores={marcadores} elegido={elegido} onVerRuta={onVerRuta} />
         </Popup>
       )}
     </Marker>
   )
 }
 
-/** Lo que muestra el recuadro de un grupo que no se separa: cada embarque con su rótulo. */
-export function DetalleDelGrupo({ marcadores }: { marcadores: MarcadorMapa[] }) {
+/**
+ * El recuadro de un grupo que no se separa: cada embarque con sus pedidos
+ * (`US-27`) y, si tiene trayecto, el botón para ver su ruta (03/11/2026).
+ */
+export function DetalleDelGrupo({
+  marcadores,
+  elegido = null,
+  onVerRuta,
+}: {
+  marcadores: MarcadorMapa[]
+  elegido?: number | null
+  onVerRuta?: (m: MarcadorMapa) => void
+}) {
   return (
-    <ul aria-label="Embarques en este lugar" className="max-h-60 space-y-2 overflow-y-auto">
+    <ul aria-label="Embarques en este lugar" className="max-h-72 space-y-3 overflow-y-auto">
       {marcadores.map((m) => (
         <li
           key={m.id_elemento}
-          className="border-t border-slate-200 pt-2 first:border-0 first:pt-0"
+          className="border-t-2 border-slate-300 pt-2 first:border-0 first:pt-0"
         >
-          <RotuloEnLineas marcador={m} />
+          <DetalleDelEmbarque
+            marcador={m}
+            rutaVisible={elegido === m.id_elemento}
+            onVerRuta={onVerRuta && (() => onVerRuta(m))}
+          />
         </li>
       ))}
     </ul>

@@ -117,7 +117,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales 🔶 | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 · 🔶 construida 27/10 (adelantada); falta verla con posiciones reales |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo 🔶 | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 · 🔶 construida 27/10 (adelantada); falta verla con un vuelo real |
-| `US-27` | Mostrar informacion emergente en los marcadores del mapa | Story | OE3 | **Could** | Sprint 7 | 6h | RF-18 (Media en SRS) |
+| `US-27` | Mostrar informacion emergente en los marcadores del mapa ✅ | Story | OE3 | **Could** | Sprint 7 | ~~6h~~ 3h | RF-18 (Media en SRS) · el rótulo al pasar el cursor ya estaba desde `US-25` · ✅ terminada 03/11: recuadro al clic con cada pedido y enlace a su detalle |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto ✅ | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed · 22/10: la línea de tiempo del detalle suma los hitos del viaje, transbordos incluidos · ✅ terminada 02/11: hitos del viaje en la línea de tiempo, desde la salida del origen |
 | `US-30` | Registrar los transbordos: automáticos desde ShipsGo, a mano solo las excepciones ✅ | Story | OE2 | **Should** | Sprint 7 | ~~10h~~ 6h | RF-26 / CU-10 · **replanteada el 22/10**: con BL, contenedor o MAWB el transbordo lo informa ShipsGo y se registra solo; la captura manual queda para los pedidos sin referencia y el paso de guía hija a madre · ✅ adelantada y terminada 28/10 |
@@ -2633,6 +2633,9 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **28/10: adelantadas 40 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
 > reales), `US-30` y `US-33` terminadas y `TASK-10` cerrada sin retención.
 >
+> **03/11: 63 de 63 h.** `US-27` terminada en 3 h de las 6 estimadas, y el sprint baja de 66 a 63 h. Solo quedan cerrar `US-25` y
+> `US-26` con datos reales.
+>
 > **02/11: el motivo de cambio pasa a ser opcional en todo el sistema** (decisión del usuario).
 > Antes RF-14 lo exigía en las intervenciones, con 5 caracteres como mínimo; solo el paso a
 > aduana y la corrección de referencia eran opcionales. Ahora ninguna lo exige: la bitácora
@@ -2813,6 +2816,56 @@ Como usuario, quiero ver los datos del pedido al posarme sobre su marcador, para
 | Estimacion | 6 h |
 | Origen en el SRS | RF-18 (Media en SRS) |
 | Etiquetas | `frontend,mapas` |
+
+> **✅ Terminada el 03/11/2026, en 3 h de las 6 estimadas:** el rótulo al pasar el cursor ya
+> existía desde `US-25` (28/10) y el recuadro de los grupos desde el 02/11.
+>
+> - **Al pasar el cursor**, el rótulo corto de siempre: embarque, estado y situación, pedidos
+>   y lectura, más «Clic para ver los pedidos». Con varios pedidos, el detalle completo no
+>   cabe en un tooltip.
+> - **Al hacer clic** se abre el recuadro (`DetalleDelEmbarque`) con cada pedido: **OC y
+>   posición, material, proveedor, ETA, fecha proyectada y estado**. El número de pedido es
+>   un enlace a su detalle (segundo criterio). Lo que falta dice «sin dato» o «–».
+> - **La ETA** es la fecha base del cálculo (`eta_utilizada`): la ETA a destino, o la llegada
+>   si el pedido ya llegó.
+> - El clic en un vuelo sigue mostrando también su ruta (02/11). Un grupo que no se separa
+>   muestra el recuadro de cada embarque.
+> - El backend agrega `material`, `proveedor`, `eta` y `fecha_proyectada` a cada pedido del
+>   marcador (`GET /pedidos/mapa/{via}`), sin consultas nuevas: ya estaban en la misma
+>   consulta.
+> - **Pruebas:** 2 de backend (`test_mapa_pedidos.py`) y 2 de frontend
+>   (`DetalleDelEmbarque.test.tsx`).
+>
+> **03/11, ampliada: elegir la ruta en un grupo, también en el marítimo** (pedido del usuario).
+> En una burbuja de varios embarques que no se separan acercando el mapa —dos guías en SJO—, el
+> recuadro trae **«Ver ruta»** en cada embarque con trayecto. Al tocarlo, se cierra el
+> recuadro, se dibuja la ruta en el mapa del panel y la vista se ajusta a ella. Un clic en el
+> fondo la oculta. Las burbujas que se separan siguen acercando al clic (decisión del 03/11).
+>
+> - **Ruta del barco:** ShipsGo ya mandaba el trazado de cada nave en el `geojson` marítimo,
+>   con la misma forma que el aéreo (un `LineString` por nave, con `DEPA`/`ARRV`). TrackIn
+>   solo leía de ahí la posición. Ahora se guarda en `elementos_rastreados.trayecto_maritimo`
+>   (migración `0032`) y el mapa marítimo la dibuja igual que los vuelos: al hacer clic en un
+>   barco, o con «Ver ruta» en un grupo. Se llenó para los 6 BL actuales leyendo ShipsGo, sin
+>   créditos (`MAEU271108898`: Santos → Cartagena → Manzanillo (PA) → Moín).
+> - `RutaAerea` pasa a llamarse `RutaEmbarque`: dibuja tramos de vuelos o de naves.
+>
+> **03/11, corregido: el color del mapa sigue el diseño** (`wireframes.md` §2.2, decisión A8 de
+> la validación y el Figma de los mapas). Los marcadores y las rutas usaban el estado de la
+> grilla, que es una etapa o un cumplimiento según el caso: la ruta salía a veces del color del
+> cumplimiento y el recuadro mostraba uno u otro. Ahora:
+>
+> - **Relleno del marcador y ruta: color de la etapa.** Con varios pedidos, la etapa menos
+>   avanzada: mientras quede carga en camino, el embarque no terminó.
+> - **Anillo: el peor cumplimiento a bordo.** Rojo si alguno va retrasado, naranja si alguno va
+>   en riesgo, blanco si todos van a tiempo o ninguno tiene fecha proyectada. Igual en los
+>   grupos, en el avión y en el mapa del detalle del pedido.
+> - **El recuadro y el rótulo dicen las dos cosas juntas:** «En Tránsito · Retrasado», y cada
+>   pedido con su etapa y su cumplimiento.
+> - El backend agrega `etapa` y `cumplimiento` al marcador, y `etapa_viaje` y
+>   `estado_cumplimiento` a cada pedido.
+> - **Pruebas:** 5 de backend (`test_shipsgo.py`, `test_colector_shipsgo.py`,
+>   `test_mapa_pedidos.py`) y 5 de frontend.
 
 #### US-29 — Consultar el historial de tracking y dibujar el trayecto
 

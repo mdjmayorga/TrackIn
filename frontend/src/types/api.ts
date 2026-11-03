@@ -361,8 +361,12 @@ export interface MarcadorMapa {
   nombre: string | null
   latitud: number
   longitud: number
-  /** El estado más urgente de sus pedidos: el color del marcador. */
+  /** El estado más urgente de sus pedidos, como en la grilla. No colorea el mapa. */
   estado: EstadoCalculado
+  /** El relleno del marcador y el color de la ruta: la etapa menos avanzada (§2.2). */
+  etapa: EtapaViaje
+  /** El anillo: el peor cumplimiento a bordo; nulo si ninguno tiene fecha proyectada. */
+  cumplimiento: Cumplimiento | null
   ultima_lectura: string | null
   /** Sin lectura en más del doble de la frecuencia de consulta de la vía. */
   desactualizada: boolean
@@ -373,6 +377,15 @@ export interface MarcadorMapa {
     oc_numero: string
     posicion_oc: number
     estado_calculado: EstadoCalculado
+    /** Las dos dimensiones por separado: el recuadro muestra las dos (03/11/2026). */
+    etapa_viaje: EtapaViaje
+    estado_cumplimiento: Cumplimiento | null
+    // `US-27`: lo que muestra el recuadro del marcador (RF-18).
+    material?: string | null
+    proveedor?: string | null
+    /** La fecha base del cálculo: la ETA a destino, o la llegada si ya llegó. */
+    eta?: string | null
+    fecha_proyectada?: string | null
   }>
   // --- Solo la vía aérea (`US-26`) ---
   /** La posición sale del horario del vuelo, no de una lectura. */

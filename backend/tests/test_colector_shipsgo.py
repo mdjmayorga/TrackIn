@@ -351,3 +351,19 @@ async def test_guarda_el_numero_como_lo_registro_shipsgo(sesion) -> None:
 
     assert bl.referencia_fuente == "271102440"
     assert guia.referencia_fuente == "020-50685434"
+
+
+async def test_guarda_la_ruta_del_barco_para_el_mapa(sesion) -> None:
+    """03/11/2026: el mapa marítimo del panel dibuja la ruta al elegir el embarque."""
+    shipment, geojson = CASOS[MAERSK_CON_POSICION]
+    bl = ElementoRastreado(
+        tipo_tracking_externo="BL", tracking_externo="MAEU271102441", via_transporte="MARITIMO"
+    )
+    sesion.add(bl)
+    await sesion.flush()
+
+    await colector_shipsgo.procesar(sesion, bl, shipment, geojson)
+
+    assert bl.trayecto_maritimo
+    assert all(t["ruta"] and t["origen"] and t["destino"] for t in bl.trayecto_maritimo)
+    assert bl.trayecto_aereo is None
