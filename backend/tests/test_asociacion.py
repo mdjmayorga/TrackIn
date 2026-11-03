@@ -288,3 +288,18 @@ async def test_no_degrada_una_etapa_ya_avanzada(sesion) -> None:
 
     await asociar_referencia(sesion, pedido, "CONTENEDOR", "MSCU3000063")
     assert pedido.etapa_viaje == "EN_TRANSITO"
+
+
+@pytest.mark.parametrize("tipo", ["BL", "CONTENEDOR", "MAWB"])
+async def test_un_embarque_que_ya_llego_se_reutiliza_y_se_reactiva(sesion, tipo) -> None:
+    """03/11/2026: un BL es un solo embarque aunque haya llegado. Crear otro al
+    volver a asociarlo dejaba BL repetidos, dibujados dos veces en el mapa."""
+    viejo = await obtener_o_crear_elemento(sesion, tipo, "MAEU274029064", "MARITIMO")
+    viejo.activo = False
+    await sesion.flush()
+
+    otra_vez = await obtener_o_crear_elemento(sesion, tipo, "MAEU274029064", "MARITIMO")
+
+    assert otra_vez.id == viejo.id
+    # El worker lo vuelve a leer y aplica la llegada al pedido nuevo.
+    assert otra_vez.activo is True

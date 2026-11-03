@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.elemento_rastreado import ElementoRastreado
@@ -32,26 +32,49 @@ logger = logging.getLogger(__name__)
 ETAPA_AL_ASOCIAR = "EN_ORIGEN"
 
 
+#: Los identificadores de un **vehículo**, que se reciclan: un MMSI vuelve a
+#: asignarse años después y el elemento viejo no debe revivir (§4.3 del modelo).
+_RECICLABLES = frozenset({"MMSI", "ICAO24"})
+
+
 async def obtener_o_crear_elemento(
     sesion: AsyncSession,
     tipo: str,
     numero: str,
     via_transporte: str,
 ) -> ElementoRastreado:
-    """Devuelve el elemento activo con esa referencia, o lo crea.
+    """Devuelve el elemento con esa referencia, o lo crea.
 
-    La unicidad es *mientras esté activo* (§4.3 del modelo): un MMSI puede
-    reutilizarse años después, pero no puede haber dos filas activas con el
-    mismo identificador.
+    **Un BL, contenedor, booking o guía es un solo embarque**, aunque ya haya
+    llegado (03/11/2026): se reutiliza el que exista, activo o no. La unicidad
+    *mientras esté activo* de §4.3 del modelo se pensó para el MMSI, que una
+    naviera recicla años después; estas referencias no se reciclan. Reutilizar
+    solo el activo dejaba un BL repetido cada vez que se volvía a asociar uno ya
+    llegado —al corregir `BLMAEU274029064` el 02/11—, y el mapa lo dibujaba dos
+    veces.
+
+    Si estaba inactivo se **reactiva**: el worker lo vuelve a leer (leer no
+    cuesta créditos), aplica la llegada al pedido nuevo y lo apaga otra vez
+    cuando todos sus pedidos arribaron (`arribo`, decisión B7).
     """
-    existente = await sesion.scalar(
-        select(ElementoRastreado).where(
-            ElementoRastreado.tipo_tracking_externo == tipo,
-            ElementoRastreado.tracking_externo == numero,
-            ElementoRastreado.activo.is_(True),
+    existentes = (
+        await sesion.scalars(
+            select(ElementoRastreado)
+            .where(
+                ElementoRastreado.tipo_tracking_externo == tipo,
+                ElementoRastreado.tracking_externo == numero,
+                # Un MMSI o un ICAO24 solo se reutiliza activo.
+                ElementoRastreado.activo.is_(True) if tipo in _RECICLABLES else true(),
+            )
+            # El activo primero (hay a lo sumo uno); si no, el más reciente.
+            .order_by(ElementoRastreado.activo.desc(), ElementoRastreado.id.desc())
         )
-    )
-    if existente is not None:
+    ).all()
+    if existentes:
+        existente = existentes[0]
+        if not existente.activo:
+            existente.activo = True
+            logger.info("Elemento %s %s reactivado: se asocia a otro pedido.", tipo, numero)
         return existente
 
     elemento = ElementoRastreado(

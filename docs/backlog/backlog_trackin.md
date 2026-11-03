@@ -2633,6 +2633,9 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **28/10: adelantadas 40 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
 > reales), `US-30` y `US-33` terminadas y `TASK-10` cerrada sin retención.
 >
+> **03/11, más tarde: 65 de 65 h.** Leyenda de los mapas (+2 h), criterio nuevo de `US-25` y
+> `US-26`: el diseño la pedía y se había pasado. Solo falta ver `US-25` y `US-26` con datos reales.
+>
 > **03/11: 63 de 63 h.** `US-27` terminada en 3 h de las 6 estimadas, y el sprint baja de 66 a 63 h. Solo quedan cerrar `US-25` y
 > `US-26` con datos reales.
 >
@@ -2675,6 +2678,40 @@ Como usuario de Logística, quiero ver mis buques en un mapa, para ubicar geogra
 - Dado un filtro activo, cuando cambia, entonces el mapa muestra solo los buques del subconjunto
 - Dada una nave sin lectura reciente, cuando la represento, entonces la diferencio visualmente e indico la antiguedad del dato
 - Dadas varias naves proximas, cuando se solapan, entonces se agrupan y se despliegan al acercar la vista
+- Dado el mapa, cuando lo miro, entonces una leyenda explica el relleno (etapa), el anillo (cumplimiento) y la opacidad (lectura vieja), con solo las etapas que aparecen (RNF-08, `wireframes.md` §2.4) — **agregado el 03/11/2026**
+
+> **03/11/2026: leyenda (+2 h, compartidas con `US-26`).** El Figma y `wireframes.md` (§2.4 y
+> §3.9) la pedían, con origen en RNF-08, pero ningún criterio la nombraba y quedó como una línea
+> de texto. `LeyendaMapa`, debajo de cada mapa, con los mismos colores que el mapa
+> (`estados.ts`): relleno por etapa (solo las presentes), los tres anillos, la opacidad con el
+> umbral de la vía y, si hay embarques con ruta, el trazo continuo o punteado. 4 pruebas de
+> frontend (`LeyendaMapa.test.tsx`).
+>
+> **03/11/2026: un barco que llegó se dibuja en su puerto de destino**, como el aéreo desde el
+> 02/11. ShipsGo deja de dar la posición al terminar el embarque, y el mapa marítimo quedaba
+> vacío con 7 pedidos todavía «En destino». Ahora, con la llegada informada por la fuente
+> (`ata_api`, que solo cuenta nuestros puertos), el marcador va en el puerto del pedido hasta
+> que pase a aduana, con su ruta completa. 2 pruebas de backend (`test_mapa_pedidos.py`).
+>
+> **BL repetidos, corregido el 03/11/2026.** Había dos filas de `COSU6508789000` y de
+> `MAEU274029064` en `elementos_rastreados`, y el mapa los dibujaba como dos embarques en el
+> mismo lugar. `asociacion.obtener_o_crear_elemento` reutilizaba el elemento solo si estaba
+> **activo** (§4.3 del modelo, pensado para el MMSI, que se recicla); un BL que ya llegó queda
+> inactivo, y volver a asociarlo —la corrección de `BLMAEU274029064` del 02/11— creaba otro.
+> Ahora un BL, contenedor, booking o guía se reutiliza aunque esté inactivo, y se **reactiva**:
+> el worker lo lee una vez (sin créditos), aplica la llegada al pedido nuevo y lo vuelve a
+> apagar. MMSI e ICAO24 siguen como antes. `scripts/unir_elementos_duplicados.py` (`--ensayo`)
+> unió los dos existentes: pedidos, tramos, historial y transbordos pasan a la fila de la
+> lectura más reciente. 3 pruebas (`test_asociacion.py`).
+>
+> **ShipsGo apagada hasta reiniciar el worker, corregido el 03/11/2026.** Al arrancar el
+> equipo, cinco errores de red seguidos agotaron los reintentos y `resiliencia` marcó la fuente
+> como degradada **sin volver a probar**: «se recupera al primer contacto bueno», pero nunca lo
+> intentaba. `/health` mostró ShipsGo caída toda la mañana con ShipsGo respondiendo bien. Ahora,
+> en el worker, una fuente degradada por fallos **transitorios** se sigue probando cada
+> `resiliencia_espera_maxima_s` (5 min) y se recupera sola; solo un fallo permanente la apaga.
+> Leer el índice de ShipsGo también cuenta como contacto bueno. 1 prueba
+> (`test_worker_rastreo.py`), que falla con el código anterior.
 
 | | |
 |---|---|
@@ -2756,6 +2793,7 @@ Como usuario de Compras, quiero un mapa aéreo independiente, para seguir los em
 - Dados pedidos aéreos con posicion, cuando abro el mapa aéreo, entonces cada aeronave aparece con el mismo esquema de color por estado
 - Dado un vuelo finalizado que ya no emite, cuando lo represento, entonces muestro la ultima posicion e indico que el vuelo concluyo
 - Dada una aeronave fuera de cobertura ADS-B, cuando la represento, entonces conservo la ultima posicion valida y senalo su antiguedad
+- Dado el mapa aéreo, cuando lo miro, entonces la leyenda es la del marítimo más el trazo de la ruta: continuo lo recorrido, punteado lo previsto (`wireframes.md` §3.9) — **agregado el 03/11/2026**, hecho con `US-25`
 
 | | |
 |---|---|

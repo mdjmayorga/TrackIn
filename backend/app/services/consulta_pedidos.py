@@ -685,13 +685,18 @@ async def mapa(
             *_condiciones(filtros),
             *en_el_mapa,
             # Un vuelo no tiene posición leída: se estima con su trayecto (`US-26`).
+            # Un barco que ya llegó tampoco: ShipsGo deja de darla al terminar el
+            # embarque, y se dibuja en el puerto de destino (03/11/2026).
             (
                 or_(
                     ElementoRastreado.posicion_actual.is_not(None),
                     ElementoRastreado.trayecto_aereo.is_not(None),
                 )
                 if via == "AEREO"
-                else ElementoRastreado.posicion_actual.is_not(None)
+                else or_(
+                    ElementoRastreado.posicion_actual.is_not(None),
+                    ElementoRastreado.ata_api.is_not(None),
+                )
             ),
         )
         .order_by(ElementoRastreado.id, PedidoTransito.oc_numero, PedidoTransito.posicion_oc)
@@ -713,6 +718,11 @@ async def mapa(
                 if via == "AEREO" and ata is not None
                 else None
             )
+            if via == "MARITIMO" and ata is not None and destino_lat is not None:
+                # Llegó a uno de nuestros puertos: se dibuja ahí, como el aéreo, hasta
+                # que pase a aduana. La última posición leída sería la de la bahía o
+                # ninguna (03/11/2026).
+                latitud, longitud = destino_lat, destino_lon
             ubicacion = _ubicacion(
                 latitud, longitud, trayecto, ahora, destinos_finales=finales, llegada=llegada
             )

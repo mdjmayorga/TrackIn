@@ -135,7 +135,10 @@ describe('MapaEmbarques (US-25)', () => {
     expect(await within(await lista()).findByRole('listitem')).toHaveTextContent(
       'Lectura hace 1 día, desactualizada.',
     )
-    expect(screen.getByText(/borde punteado: sin lectura en más de 12 h/)).toBeInTheDocument()
+    // El umbral lo explica la leyenda (03/11/2026).
+    expect(screen.getByRole('region', { name: 'Leyenda del mapa' })).toHaveTextContent(
+      'Sin lectura en más de 12 h',
+    )
   })
 
   it('dos embarques en el mismo puerto se agrupan en un marcador con el número', async () => {

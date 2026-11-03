@@ -19,7 +19,7 @@
  * - **Al pasar el cursor**, el rótulo corto; **al hacer clic**, el recuadro con
  *   cada pedido y el enlace a su detalle (`US-27`, `DetalleDelEmbarque`).
  *
- * Debajo del mapa, una lista solo para lectores de pantalla repite lo que el
+ * Debajo del mapa, la leyenda (`LeyendaMapa`, 03/11/2026) y una lista solo para lectores de pantalla repite lo que el
  * mapa muestra: un mapa no se puede recorrer con el teclado.
  */
 
@@ -29,6 +29,7 @@ import { CircleMarker, Marker, Polyline, Popup, Tooltip, useMap, useMapEvents } 
 
 import { DetalleDelEmbarque } from '@/components/DetalleDelEmbarque'
 import { ETAPAS, colorDelAnillo, etapaMenosAvanzada, peorCumplimiento } from '@/components/estados'
+import { LeyendaMapa } from '@/components/LeyendaMapa'
 import { MapaBase } from '@/components/MapaBase'
 import { RutaEmbarque } from '@/components/RutaEmbarque'
 import { useMapa } from '@/hooks/usePedidos'
@@ -67,15 +68,12 @@ export function MapaEmbarques({
             ? 'Ningún embarque con posición'
             : `${marcadores.length} ${marcadores.length === 1 ? 'embarque' : 'embarques'} · ${pedidos} ${pedidos === 1 ? 'pedido' : 'pedidos'}`}
           {data.sin_posicion > 0 && ` · ${data.sin_posicion} sin posición`}
-          {marcadores.some((m) => m.desactualizada) &&
-            ` · borde punteado: sin lectura en más de ${data.umbral_desactualizada_h} h`}
           {marcadores.some((m) => m.situacion === 'EN_VUELO') &&
             ' · ✈ posición estimada según el horario del vuelo'}
           {marcadores.some((m) => m.trayecto?.length) && ' · clic en un embarque para ver su ruta'}
-          {marcadores.some((m) => colorDelAnillo(m.cumplimiento) !== colorDelAnillo(null)) &&
-            ' · color: etapa; anillo rojo o naranja: lleva carga retrasada o en riesgo'}
         </p>
       )}
+      {data && <LeyendaMapa marcadores={marcadores} umbralHoras={data.umbral_desactualizada_h} />}
       <ul aria-label={`Embarques en el ${titulo}`} className="sr-only">
         {marcadores.map((m) => (
           <li key={m.id_elemento}>{rotulo(m)}</li>

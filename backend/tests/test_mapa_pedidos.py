@@ -10,8 +10,11 @@ from __future__ import annotations
 import datetime as dt
 
 import pytest
+from geoalchemy2 import Geometry
+from sqlalchemy import cast, func, select
 
 import test_pedidos_api as base
+from app.models.maestro_destino import MaestroDestino
 from app.services import historial
 from app.services.consulta_pedidos import estado_mas_urgente
 
@@ -463,3 +466,49 @@ async def test_sin_fecha_proyectada_no_hay_anillo(api, sesion) -> None:
     (marcador,) = (await api.get(f"{URL}/MARITIMO")).json()["marcadores"]
 
     assert (marcador["etapa"], marcador["cumplimiento"]) == ("EN_TRANSITO", None)
+
+
+async def test_un_barco_que_llego_se_dibuja_en_el_puerto_de_destino(api, sesion) -> None:
+    """03/11/2026: ShipsGo deja de dar la posición al terminar el embarque, y el mapa
+    marítimo quedaba vacío con pedidos todavía «En destino». Como el aéreo, se dibuja
+    en nuestro puerto hasta que pase a aduana."""
+    buque = await _buque(
+        sesion,
+        "BLMAPA0032",
+        posicion_actual=None,
+        activo=False,
+        ata_api=AHORA - dt.timedelta(days=30),
+    )
+    await _pedido(
+        sesion,
+        "4588903200",
+        10,
+        id_elemento_rastreado=buque.id,
+        etapa_viaje="EN_DESTINO",
+        estado_calculado="EN_DESTINO",
+    )
+
+    cuerpo = (await api.get(f"{URL}/MARITIMO")).json()
+
+    (marcador,) = cuerpo["marcadores"]
+    punto = cast(MaestroDestino.ubicacion, Geometry)
+    moin = (
+        await sesion.execute(
+            select(func.ST_Y(punto), func.ST_X(punto)).where(MaestroDestino.codigo == "CRMOB")
+        )
+    ).one()
+    assert (marcador["latitud"], marcador["longitud"]) == pytest.approx(tuple(moin))
+    assert marcador["etapa"] == "EN_DESTINO"
+    # Ya arribó: su lectura vieja no es un problema.
+    assert marcador["desactualizada"] is False
+    assert cuerpo["sin_posicion"] == 0
+
+
+async def test_un_barco_sin_posicion_ni_llegada_no_se_dibuja(api, sesion) -> None:
+    buque = await _buque(sesion, "BLMAPA0033", posicion_actual=None)
+    await _pedido(sesion, "4588903300", 10, id_elemento_rastreado=buque.id)
+
+    cuerpo = (await api.get(f"{URL}/MARITIMO")).json()
+
+    assert cuerpo["marcadores"] == []
+    assert cuerpo["sin_posicion"] == 1

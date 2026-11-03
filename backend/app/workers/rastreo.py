@@ -168,8 +168,14 @@ def _salud(fuente: str) -> EstadoFuente:
 
 
 def _disponible(fuente: str, estado: EstadoWorker, ahora: dt.datetime) -> str | None:
-    """`None` si se puede consultar la fuente; si no, el motivo de omitirla."""
-    if not _salud(fuente).debe_reintentar:
+    """`None` si se puede consultar la fuente; si no, el motivo de omitirla.
+
+    Una fuente degradada por fallos **transitorios** se sigue probando, con la
+    espera máxima entre intentos (03/11/2026): solo un fallo permanente la apaga
+    hasta reiniciar. Ver `_registrar_fallo`.
+    """
+    salud = _salud(fuente)
+    if not salud.debe_reintentar and salud.clase_ultimo_fallo is not ClaseFallo.TRANSITORIO:
         return OMITIDO_FUENTE_DEGRADADA
     hasta = estado.en_espera_hasta.get(fuente)
     if hasta is not None and ahora < hasta:
@@ -183,6 +189,13 @@ def _registrar_fallo(
     salud = _salud(fuente)
     salud.registrar_fallo(instante=ahora, clase=error.clase, motivo=error.motivo)
     espera = salud.espera_hasta_el_proximo_intento()
+    if espera is None and error.clase is ClaseFallo.TRANSITORIO:
+        # Agotados los intentos, la fuente queda degradada —`/health` lo dice—
+        # pero el worker sigue probando cada `espera_maxima_s`. Antes dejaba de
+        # intentar hasta reiniciarse: el 03/11/2026 cinco errores de red al
+        # arrancar el equipo dejaron a ShipsGo apagada toda la mañana, con
+        # ShipsGo respondiendo bien. La red se arregla sola; el worker no.
+        espera = salud.politica.espera_maxima_s
     if espera:
         estado.en_espera_hasta[fuente] = ahora + dt.timedelta(seconds=espera)
     if error.clase is ClaseFallo.PERMANENTE:
@@ -373,6 +386,9 @@ async def ejecutar_ciclo(
     ):
         try:
             indice = await indice_shipsgo(fuentes.shipsgo)
+            # Contestó: es contacto bueno aunque no haya qué leer (primer principio
+            # de `resiliencia`). Es lo que saca a ShipsGo de degradada.
+            _registrar_exito(FUENTE_SHIPSGO, estado, ahora, con_datos=bool(indice))
         except ErrorShipsGo as exc:
             _registrar_fallo(FUENTE_SHIPSGO, exc, estado, ahora)
             resumen.errores[FUENTE_SHIPSGO] = exc.motivo

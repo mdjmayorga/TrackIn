@@ -282,6 +282,38 @@ async def test_una_caida_transitoria_espera_antes_de_reintentar(sesion, limpio, 
     assert transporte.peticiones == 1
 
 
+async def test_agotados_los_reintentos_sigue_probando_y_se_recupera(
+    sesion, limpio, fabrica
+) -> None:
+    """03/11/2026: cinco errores de red al arrancar el equipo dejaban la fuente
+    apagada hasta reiniciar el worker, aunque ya respondiera bien. Ahora queda
+    degradada pero se vuelve a probar con la espera máxima, y se recupera sola."""
+    _, pedido = await _seguido(sesion, "HAWB", "ZIVHYD017", "AEREO", "4599900008")
+    transporte = TransporteTICA(estado=503)
+    fuentes = rastreo.Fuentes(tica=_tica(transporte))
+    estado = rastreo.EstadoWorker()
+    salud = salud_fuentes.registro.estado("tica")
+
+    instante = MEDIODIA
+    for _ in range(salud.politica.intentos_maximos):
+        await rastreo.ejecutar_ciclo(fabrica, fuentes, estado, instante)
+        instante += dt.timedelta(seconds=salud.politica.espera_maxima_s * 2)
+    assert salud.degradada
+    # En espera, no apagada: antes de la espera máxima no insiste...
+    reintento = estado.en_espera_hasta["tica"]
+    assert reintento - (instante - dt.timedelta(seconds=salud.politica.espera_maxima_s * 2)) == (
+        dt.timedelta(seconds=salud.politica.espera_maxima_s)
+    )
+
+    # ...y pasada, vuelve a probar. La fuente ya responde.
+    transporte.estado = 200
+    resumen = await rastreo.ejecutar_ciclo(fabrica, fuentes, estado, reintento)
+
+    assert resumen.consultados == {"tica": 1}
+    assert not salud.degradada
+    assert pedido.etapa_viaje == "EN_DESTINO"
+
+
 async def test_la_caida_de_tica_no_detiene_a_shipsgo(sesion, limpio, fabrica) -> None:
     await _seguido(sesion, "HAWB", "ZIVHYD017", "AEREO", "4599900006")
     await _seguido(sesion, "CONTENEDOR", CONTENEDOR, "MARITIMO", "4599900007")

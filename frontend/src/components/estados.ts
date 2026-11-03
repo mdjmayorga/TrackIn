@@ -149,7 +149,7 @@ export function colorDelAnillo(cumplimiento: Cumplimiento | null): string {
 }
 
 /** La etapa menos avanzada: la de un grupo de marcadores, como la del embarque. */
-const ORDEN_ETAPAS: readonly EtapaViaje[] = [
+export const ORDEN_ETAPAS: readonly EtapaViaje[] = [
   'SIN_TRACKING',
   'EN_ORIGEN',
   'EN_TRANSITO',
