@@ -76,6 +76,11 @@ Detalle en [docs/api-references.md](docs/api-references.md) y en el SRS
 
 ## Setup
 
+> **¿Equipo nuevo?** Este resumen supone Python, Node y PostgreSQL ya
+> instalados. Para instalar todo desde cero y sin permisos de administrador,
+> seguir el [manual de instalación local](docs/manual-instalacion.md) (`TASK-07`),
+> probado en una instalación limpia.
+
 ### 1. Clonar y configurar variables de entorno
 
 ```bash

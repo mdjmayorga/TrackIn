@@ -125,7 +125,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande ✅ | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` · ✅ adelantada y terminada 28/10 |
 | `US-67` | Registrar a mano la ETA a Costa Rica cuando la fuente no la da ✅ | Story | OE2 | **Should** | Sprint 7 | 3h | 02/11: la guía de 4500018865 termina en París y no había fecha que ajustar · solo Compras y el Administrador · ✅ terminada 02/11 |
 | `TASK-06` | Pruebas de integracion extremo a extremo ✅ | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 · ✅ adelantada y terminada 03/11: flujo completo del Excel al cierre; reglas de la §7 al 98,5 %, verificado en CI |
-| `TASK-07` | Manual de instalacion local | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
+| `TASK-07` | Manual de instalacion local ✅ | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 · ✅ adelantada y terminada 03/11: `docs/manual-instalacion.md`, probado en una instalación limpia |
 | `TASK-08` | Manual de usuario del dashboard | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 |
 | `TASK-09` | Guia de despliegue para produccion | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
 | `TASK-10` | Politica de retencion y submuestreo del historial de posiciones ✅ | Task | OE4 | **Could** | Sprint 7 | 8h | RNF-22 / spike TG-10 · ✅ cerrada 28/10 sin retención: el volumen con ShipsGo no la justifica |
@@ -3315,6 +3315,22 @@ Como técnico del Centro de Competencias, quiero un manual de instalación repro
 | Estimacion | 6 h |
 | Origen en el SRS | Criterios seccion 10 |
 | Etiquetas | `documentacion,cierre` |
+
+> **✅ Adelantada del cierre y terminada el 03/11/2026:** `docs/manual-instalacion.md`, enlazado
+> desde el README.
+>
+> - **Segundo criterio:** documenta la ejecución nativa de la §9.3, desde un Windows **sin
+>   administrador ni Docker**: Python con instalador de usuario, Node desde el ZIP (el MSI pide
+>   elevación), PostgreSQL y PostGIS con binarios portables, el clúster, las dos bases, el
+>   `.env` mínimo, el primer Administrador, los cuatro procesos y los primeros pasos en el panel.
+>   Cada paso cierra con una verificación, y hay una tabla de problemas conocidos.
+> - **Primer criterio, probado:** se siguió el manual en una instalación limpia —clúster nuevo
+>   en otro puerto, clon nuevo, entorno de Python nuevo—. Migraciones, primer Administrador,
+>   inicio de sesión, `/health`, un ciclo del worker y el build del panel funcionaron. La prueba
+>   encontró tres cosas que se corrigieron en el manual: `pip` falla en rutas muy profundas
+>   (Windows sin rutas largas), `python -m alembic` da un error engañoso si `pip` no terminó (se
+>   usa `alembic.exe`) y una instalación nueva necesita registrar el paquete de créditos de
+>   ShipsGo.
 
 #### TASK-08 — Manual de usuario del dashboard
 
