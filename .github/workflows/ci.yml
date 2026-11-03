@@ -85,6 +85,11 @@ jobs:
       - name: Tests
         run: pytest
 
+      # `TASK-06` / RNF-18: las reglas de la §7 del SRS, una por una, sobre el
+      # `.coverage` que deja el paso anterior. Falla si bajan del 70 %.
+      - name: Cobertura de las reglas de negocio (RNF-18)
+        run: python scripts/cobertura_reglas.py
+
   frontend:
     name: Frontend (lint + tests + build)
     runs-on: ubuntu-latest

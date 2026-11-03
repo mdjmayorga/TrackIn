@@ -116,7 +116,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-62` | Administrar usuarios desde la interfaz ✅ | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no · ✅ terminada 21/10 |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
 | `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales 🔶 | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 · 🔶 construida 27/10 (adelantada); falta verla con posiciones reales |
-| `US-26` | Presentar el mapa interactivo aéreo separado del marítimo 🔶 | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 · 🔶 construida 27/10 (adelantada); falta verla con un vuelo real |
+| `US-26` | Presentar el mapa interactivo aéreo separado del marítimo ✅ | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 · construida 27/10 (adelantada) · ✅ cerrada 03/11, vista con vuelos reales |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa ✅ | Story | OE3 | **Could** | Sprint 7 | ~~6h~~ 3h | RF-18 (Media en SRS) · el rótulo al pasar el cursor ya estaba desde `US-25` · ✅ terminada 03/11: recuadro al clic con cada pedido y enlace a su detalle |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
 | `US-29` | Consultar el historial de tracking y dibujar el trayecto ✅ | Story | OE3 | **Could** | Sprint 7 | ~~10h~~ 5h | RF-22 (Media en SRS) / CU-09 · reestimada el 21/10: el trayecto llega en el GeoJSON de ShipsGo y el detalle ya lo muestra con el Embed · 22/10: la línea de tiempo del detalle suma los hitos del viaje, transbordos incluidos · ✅ terminada 02/11: hitos del viaje en la línea de tiempo, desde la salida del origen |
@@ -124,7 +124,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido ✅ | Story | OE3 | **Should** | Sprint 7 | ~~8h~~ 4h | Reunión Logística 03/09 / RF-05 (ampliado) · **mapa en vivo de ShipsGo en el detalle, funcionando desde el 21/10** (ShipsGo Embed) · ✅ terminada 02/11: país de origen en el encabezado; mapa propio con la ruta completa para los aéreos |
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande ✅ | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` · ✅ adelantada y terminada 28/10 |
 | `US-67` | Registrar a mano la ETA a Costa Rica cuando la fuente no la da ✅ | Story | OE2 | **Should** | Sprint 7 | 3h | 02/11: la guía de 4500018865 termina en París y no había fecha que ajustar · solo Compras y el Administrador · ✅ terminada 02/11 |
-| `TASK-06` | Pruebas de integracion extremo a extremo | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 |
+| `TASK-06` | Pruebas de integracion extremo a extremo ✅ | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 · ✅ adelantada y terminada 03/11: flujo completo del Excel al cierre; reglas de la §7 al 98,5 %, verificado en CI |
 | `TASK-07` | Manual de instalacion local | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
 | `TASK-08` | Manual de usuario del dashboard | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 |
 | `TASK-09` | Guia de despliegue para produccion | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
@@ -2633,6 +2633,15 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **28/10: adelantadas 40 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
 > reales), `US-30` y `US-33` terminadas y `TASK-10` cerrada sin retención.
 >
+> **03/11, al cierre: `TASK-06` terminada**, adelantada del cierre (12 h del bloque de cierre,
+> fuera de las horas del sprint): flujo completo del Excel al cierre y las reglas de la §7 al
+> 98,5 %, verificadas en el CI.
+>
+> **03/11, al cierre: `US-26` cerrada** con datos reales. Decisiones: se agregan al maestro los
+> países de tránsito (migración `0033`, 25 países: Panamá, Colombia, Perú y los hubs de carga),
+> y se descarta el «detalle técnico con el payload» de `US-29`. Arranca `TASK-06`, adelantada
+> del cierre.
+>
 > **03/11, más tarde: 65 de 65 h.** Leyenda de los mapas (+2 h), criterio nuevo de `US-25` y
 > `US-26`: el diseño la pedía y se había pasado. Solo falta ver `US-25` y `US-26` con datos reales.
 >
@@ -2837,6 +2846,14 @@ Como usuario de Compras, quiero un mapa aéreo independiente, para seguir los em
 > el mapa aéreo lo muestra **concluido en SJO**. Un vuelo en curso se verá con los MAWB del
 > Excel final.
 
+> **✅ Cerrada el 03/11/2026, vista con datos reales.** Con las guías del WK43: la del
+> 4500018865 en tierra en París (CDG) esperando el tramo a San José, la del 4500018188 en
+> Fráncfort y las llegadas a SJO dibujadas en su destino. Lo que cambió al verla con datos
+> reales, todo ya entregado: el destino final decide la llegada (un transbordo no es «En
+> destino»), los vuelos que ShipsGo no dibuja se reconstruyen con los eventos, la ruta completa
+> al hacer clic, relleno por etapa y anillo por cumplimiento (`wireframes.md` §2.2) y la leyenda
+> (criterio agregado el 03/11).
+
 #### US-27 — Mostrar información emergente en los marcadores del mapa
 
 Como usuario, quiero ver los datos del pedido al posarme sobre su marcador, para obtener contexto sin salir del mapa.
@@ -2965,7 +2982,11 @@ Como usuario de Logística, quiero ver el recorrido histórico de un pedido, par
 >   → París, sin llegada a destino).
 > - **Del criterio original quedan:** la secuencia cronológica (la línea de tiempo) y el
 >   trayecto sobre el mapa (Embed marítimo, mapa propio aéreo desde el 02/11). **No se
->   construyó** el «detalle técnico con el payload original» de cada registro: queda a decisión.
+>   construyó** el «detalle técnico con el payload original» de cada registro.
+> - **03/11/2026: ese tercer criterio se descarta** (decisión del usuario). El payload sí se
+>   guarda —`historial_tracking`, RF-21 / RNF-13, `US-04`— y queda para auditoría técnica
+>   en la base; mostrarlo en pantalla no le sirve a Compras ni a Logística, que leen los
+>   hitos ya traducidos en la línea de tiempo. La historia queda cerrada con los otros dos.
 > - **Pruebas:** 10 de backend (`test_hitos_viaje.py`) y 1 de frontend; 1 ajustada.
 >
 > **02/11, el mapa de ShipsGo vacío en el detalle** (Mariano, con el 4500016172-20). Su mapa
@@ -3258,6 +3279,24 @@ Como desarrollador, quiero pruebas que recorran el flujo completo, para demostra
 | Estimacion | 12 h |
 | Origen en el SRS | RNF-18 / Criterios seccion 10 |
 | Etiquetas | `pruebas,cierre` |
+
+> **✅ Adelantada del cierre y terminada el 03/11/2026.**
+>
+> - **Primer criterio — el flujo completo** (`tests/test_flujo_completo.py`). Un solo
+>   recorrido por las mismas puertas que usan las personas y el worker: Compras descarga la
+>   plantilla real del Z-tracking (`US-59`), la llena con una línea con contenedor y otra sin
+>   referencia, y la sube. Un ciclo del worker lee el contenedor en ShipsGo —el payload
+>   grabado de `TASK-28`, Santos → Cartagena → Moín, navegando— y el pedido queda «En
+>   tránsito» con la ETA de la fuente. Otro ciclo, con el arribo confirmado, lo deja «En
+>   destino» y la fecha proyectada pasa a salir de la ATA más el lead time. La grilla, los
+>   indicadores, el detalle, el mapa y la línea de tiempo dicen lo mismo. Paso a aduana,
+>   recepción y liberación lo cierran, y el worker deja de consultarlo. La línea sin
+>   referencia queda «Sin tracking» todo el recorrido.
+> - **Segundo criterio — RNF-18** (`scripts/cobertura_reglas.py`, en el CI después de
+>   `pytest`). Mide solo los 13 módulos que implementan RN-01 a RN-14 y lo informa regla por
+>   regla, con las pruebas de cada una. Resultado: **98,5 %** (1496 líneas), cada regla
+>   entre 97,0 % y 99,2 %. El CI falla si baja del 70 %. RN-12 se mide sobre el maestro de
+>   destinos: se resolvió con un solo lead time por destino.
 
 #### TASK-07 — Manual de instalación local
 
