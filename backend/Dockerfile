@@ -68,6 +68,10 @@ RUN pip install --no-index --find-links=/wheels -r requirements.txt \
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
+# El primer Administrador se crea con `scripts/crear_usuario.py`, y los de
+# mantenimiento (`unir_elementos_duplicados`, `revisar_arribos`) corren contra
+# la base del servidor. Las grabaciones de los spikes quedan fuera (.dockerignore).
+COPY scripts ./scripts
 
 # Nunca correr la API como root.
 RUN useradd --create-home --uid 1000 trackin \

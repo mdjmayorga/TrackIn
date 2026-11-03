@@ -280,8 +280,8 @@ aceptó prescindir de contenedores.
 El detalle de instalación —origen de los binarios portables, `initdb -E UTF8
 --locale=C` para que el ordenamiento de índices coincida con el del contenedor,
 y el bundle de PostGIS que se descomprime encima de PostgreSQL— está en
-[`deployment.md`](deployment.md) §«Entorno de desarrollo sin Docker» y no se
-repite aquí.
+el [manual de instalación local](manual-instalacion.md) (`TASK-07`, antes en
+`deployment.md`) y no se repite aquí.
 
 ### 2.4 Dependencias del equipo
 
@@ -410,4 +410,5 @@ afuera.
 - [`data-model.md`](data-model.md) — modelo de datos y ER consolidado
 - [`data-dictionary.md`](data-dictionary.md) — diccionario de datos
 - [`api-references.md`](api-references.md) — contratos y hallazgos de las APIs externas
-- [`deployment.md`](deployment.md) — entorno de ejecución
+- [`manual-instalacion.md`](manual-instalacion.md) — instalación local, sin Docker
+- [`deployment.md`](deployment.md) — guía de despliegue en servidor

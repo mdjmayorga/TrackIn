@@ -4,6 +4,10 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
 import { borrarSesion, sesionActual } from '@/auth/sesion'
 
+/**
+ * Vacía en el servidor (`TASK-09`): el panel llama a la API en su mismo
+ * origen y nginx la reenvía. Sin la variable, la API local de desarrollo.
+ */
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 /** Prefijo de la API versionada. `/health` vive fuera de él. */
@@ -34,7 +38,9 @@ export function mensajeDeError(error: unknown): string {
       return `El servidor respondió ${error.response.status}`
     }
     if (error.request) {
-      return `No se pudo contactar la API en ${API_BASE_URL}. ¿Está corriendo el backend?`
+      // Con la API en el mismo origen la URL base es vacía: se nombra el origen.
+      const donde = API_BASE_URL || window.location.origin
+      return `No se pudo contactar la API en ${donde}. ¿Está corriendo el backend?`
     }
   }
   return error instanceof Error ? error.message : 'Error desconocido'

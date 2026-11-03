@@ -127,7 +127,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `TASK-06` | Pruebas de integracion extremo a extremo ✅ | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 · ✅ adelantada y terminada 03/11: flujo completo del Excel al cierre; reglas de la §7 al 98,5 %, verificado en CI |
 | `TASK-07` | Manual de instalacion local ✅ | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 · ✅ adelantada y terminada 03/11: `docs/manual-instalacion.md`, probado en una instalación limpia |
 | `TASK-08` | Manual de usuario del dashboard | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 |
-| `TASK-09` | Guia de despliegue para produccion | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 |
+| `TASK-09` | Guia de despliegue para produccion ✅ | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 · ✅ adelantada y terminada 03/11: `docs/deployment.md` y los artefactos de contenedor al día |
 | `TASK-10` | Politica de retencion y submuestreo del historial de posiciones ✅ | Task | OE4 | **Could** | Sprint 7 | 8h | RNF-22 / spike TG-10 · ✅ cerrada 28/10 sin retención: el volumen con ShipsGo no la justifica |
 | `TASK-11` | Actualizar el SRS con los hallazgos de los spikes tecnicos ✅ | Task | OE1 | **Must** | Sprint 3 | ~~6h~~ 0h | Fase 6 de TG-18 (cumplida por el SRS v0.3) |
 
@@ -3367,6 +3367,28 @@ Como técnico del Centro de Competencias, quiero la guía de despliegue, para as
 | Estimacion | 6 h |
 | Origen en el SRS | Criterios seccion 10 |
 | Etiquetas | `documentacion,cierre` |
+
+> **✅ Adelantada del cierre y terminada el 03/11/2026:** `docs/deployment.md`, reescrita como
+> guía para el Centro de Competencias.
+>
+> - **Primer criterio:** documenta las **variables de entorno** (las de la API y el worker, y las
+>   del panel, que se fijan al construir), las **dependencias** (servidor, imágenes, librerías y
+>   servicios externos, con la salida a internet que necesita el servidor) y los **artefactos de
+>   contenedor conservados**, uno por uno. Además: primer despliegue con verificación,
+>   respaldos y restauración, operación, actualización, la alternativa de un servidor Windows
+>   sin Docker y el checklist de salida. Nueva plantilla `.env.produccion.example`.
+> - **Segundo criterio:** la §1 lleva cada exclusión del SRS §1.2.2 a lo que significa para el
+>   despliegue y a lo que entrega el proyecto, más lo que tampoco es de TrackIn (respaldos
+>   programados, custodia de secretos, mantenimiento).
+> - **Los artefactos estaban desactualizados** (Sprint 0) y se corrigieron: faltaba el
+>   **worker**, la API recibía las claves de AISStream y OpenSky en vez de la de ShipsGo, la
+>   URL de la API del panel iba como variable de ejecución (Vite la fija al construir) y la
+>   imagen no traía `scripts/` (sin `crear_usuario.py` no hay primer Administrador). Ahora nginx
+>   sirve el panel y reenvía `/api/` a la API: **un solo puerto publicado** y sin CORS.
+> - **Verificado:** `docker compose config` valida el stack de servidor y el de desarrollo, y
+>   detiene el arranque si falta un secreto. Un build del panel con `VITE_API_URL` vacía deja la
+>   API en el mismo origen. **No se construyeron imágenes**: Docker no corre en el equipo de la
+>   práctica (SRS §9.3); la primera construcción real será en el servidor.
 
 ---
 

@@ -1,26 +1,57 @@
 # ===========================================================================
-# TrackIn — stack base.
+# TrackIn — stack de servidor (`TASK-09`, docs/deployment.md).
 #
-# Este archivo define los servicios de forma "cerrada": sin bind mounts y sin
-# publicar puertos innecesarios al host. Para desarrollo, componer con el
-# override:
+#   docker compose --env-file .env.produccion build
+#   docker compose --env-file .env.produccion run --rm backend alembic upgrade head
+#   docker compose --env-file .env.produccion up -d
+#
+# Cinco servicios, un solo puerto publicado: el `frontend` (nginx) sirve el
+# panel y reenvía `/api/` y `/health` a la API. La base y la API no se exponen.
+#
+# Para desarrollo con contenedores, componer con el override:
 #
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Actualizado el 03/11/2026: el archivo era del Sprint 0. Faltaba el worker de
+# rastreo, la API recibía las claves de AISStream y OpenSky (ya no se usan) en
+# vez de la de ShipsGo, y la URL de la API del panel iba como variable de
+# ejecución, cuando Vite la fija al construir la imagen.
 # ===========================================================================
 
 name: trackin
 
+# La configuración que comparten la API y el worker: la misma imagen, el mismo
+# `app.core.config`. Ninguna variable con `:?` puede faltar.
+x-entorno-backend: &entorno-backend
+  # Dentro de la red de compose la base se resuelve por nombre de servicio.
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
+  POSTGRES_USER: ${POSTGRES_USER:-trackin}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatorio}
+  POSTGRES_DB: ${POSTGRES_DB:-trackin}
+  ENVIRONMENT: ${ENVIRONMENT:-production}
+  DEBUG: ${DEBUG:-false}
+  SECRET_KEY: ${SECRET_KEY:?SECRET_KEY es obligatorio}
+  # Con el panel y la API en el mismo origen (nginx) no hace falta CORS; se deja
+  # el dominio público por si se llama la API desde otro lado.
+  BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost}
+  # Vacío: el sistema funciona pero no rastrea (el worker lo dice al arrancar).
+  SHIPSGO_API_TOKEN: ${SHIPSGO_API_TOKEN:-}
+  # Vacío: el receptor de SAP responde 503 (`US-65`).
+  SAP_INTEGRACION_CLAVE: ${SAP_INTEGRACION_CLAVE:-}
+  # Los pedidos entran por la carga del Excel desde el panel (`US-58`).
+  INGESTA_ADAPTADOR: ninguno
+
 services:
   postgres:
-    # 3.6 y no 3.4: es la versión de PostGIS que corre en el entorno de
-    # desarrollo nativo (ver docs/deployment.md), y ambos deben coincidir.
+    # 3.6: la misma versión de PostGIS que el entorno nativo de desarrollo.
     image: postgis/postgis:16-3.6
     container_name: trackin-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-trackin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatorio}
-      POSTGRES_DB: ${POSTGRES_DB:-trackin_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-trackin}
       # Evita que el locale del host afecte el ordenamiento de índices.
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     volumes:
@@ -30,7 +61,7 @@ services:
       # que son los que habilitan la extensión al inicializar el cluster.
       - ./scripts/init-db/01-extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trackin} -d ${POSTGRES_DB:-trackin_dev}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trackin} -d ${POSTGRES_DB:-trackin}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,26 +74,33 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: runtime
+    image: trackin-backend
     container_name: trackin-backend
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      # Dentro de la red de compose la base se resuelve por nombre de servicio,
-      # no por localhost. Esto pisa el valor del .env a propósito.
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER:-trackin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatorio}
-      POSTGRES_DB: ${POSTGRES_DB:-trackin_dev}
-      ENVIRONMENT: ${ENVIRONMENT:-production}
-      DEBUG: ${DEBUG:-false}
-      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:5173}
-      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY es obligatorio}
-      AISSTREAM_API_KEY: ${AISSTREAM_API_KEY:-}
-      OPENSKY_USERNAME: ${OPENSKY_USERNAME:-}
-      OPENSKY_PASSWORD: ${OPENSKY_PASSWORD:-}
+    environment: *entorno-backend
+    networks:
+      - trackin-net
+
+  # El rastreo corre en un proceso aparte de la API (`TASK-20`,
+  # docs/architecture.md §1.4): misma imagen, otro comando.
+  worker:
+    image: trackin-backend
+    container_name: trackin-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    command: ["python", "-m", "app.workers"]
+    environment: *entorno-backend
+    # La imagen revisa `/health` por HTTP, y el worker no abre puertos: su
+    # salud la publica en la base y la muestra el `/health` de la API.
+    healthcheck:
+      disable: true
     networks:
       - trackin-net
 
@@ -71,12 +109,20 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: runtime
+      # Vite fija estas variables en el bundle AL CONSTRUIR: cambiarlas exige
+      # `docker compose build frontend`, no basta reiniciar.
+      args:
+        # Vacía: el panel llama a la API en su mismo origen y nginx la reenvía.
+        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_SHIPSGO_EMBED_TOKEN: ${VITE_SHIPSGO_EMBED_TOKEN:-}
     container_name: trackin-frontend
     restart: unless-stopped
     depends_on:
       - backend
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      # El único puerto publicado. El TLS lo pone delante el proxy corporativo
+      # (fuera del alcance de la práctica, SRS §1.2.2).
+      - "${TRACKIN_PUERTO:-8080}:80"
     networks:
       - trackin-net
 

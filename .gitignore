@@ -4,6 +4,8 @@
 .env
 .env.*
 !.env.example
+# La plantilla del servidor (`TASK-09`); el `.env.produccion` real no se sube.
+!.env.produccion.example
 *.pem
 *.key
 secrets/

@@ -49,7 +49,7 @@ lo respalda.
 | Descripción técnica y fuentes | `docs/api-references.md` §ShipsGo Embed |
 | Decisión de arquitectura | `docs/architecture.md` §1.6 |
 | Reestimación del Sprint 7 | `docs/backlog/backlog_trackin.md` §Sprint 7 y `US-44` |
-| Checklist de producción | `docs/deployment.md` §Checklist previo a producción |
+| Checklist de producción | `docs/deployment.md` §11 «Checklist antes de la salida» |
 | Código | `frontend/src/components/MapaShipsGo.tsx`, `frontend/src/utils/mapaShipsGo.ts` |
 | Pruebas | `frontend/tests/MapaShipsGo.test.tsx`, `frontend/tests/DetallePedido.test.tsx` |
 

@@ -61,16 +61,27 @@ services:
       - ./backend/alembic:/app/alembic
       - ./backend/alembic.ini:/app/alembic.ini
 
+  # La misma imagen de desarrollo que `backend` (comparten `image:`), con el
+  # código montado. Sin --reload: hay que reiniciarlo al cambiar el rastreo.
+  worker:
+    environment:
+      ENVIRONMENT: development
+      DEBUG: "true"
+    volumes:
+      - ./backend/app:/app/app
+
   frontend:
     build:
       target: builder
     command: npm run dev -- --host 0.0.0.0 --port 5173
     environment:
+      # En desarrollo el panel habla con la API publicada en el host.
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
       # Los eventos de filesystem de Windows no siempre llegan al contenedor;
       # el polling asegura que el hot reload funcione.
       CHOKIDAR_USEPOLLING: "true"
-    ports:
+    # `!override`: sin esto se sumaría el puerto de nginx del archivo base.
+    ports: !override
       - "${FRONTEND_PORT:-5173}:5173"
     volumes:
       - ./frontend/src:/app/src

@@ -35,8 +35,13 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 # build: compila el bundle de producción.
 # --------------------------------------------------------------------------
 FROM builder AS build
-ARG VITE_API_URL=http://localhost:8000
-ENV VITE_API_URL=$VITE_API_URL
+# Vacía por omisión: el panel llama a la API en su mismo origen, y nginx la
+# reenvía (nginx.conf). Solo se completa si la API vive en otro dominio.
+ARG VITE_API_URL=
+# Opcional: el mapa en vivo de ShipsGo en el detalle. Vacío, usa el mapa propio.
+ARG VITE_SHIPSGO_EMBED_TOKEN=
+ENV VITE_API_URL=$VITE_API_URL \
+    VITE_SHIPSGO_EMBED_TOKEN=$VITE_SHIPSGO_EMBED_TOKEN
 RUN npm run build
 
 # --------------------------------------------------------------------------

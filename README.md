@@ -64,13 +64,14 @@ Detalle en [docs/api-references.md](docs/api-references.md) y en el SRS
 > contenedores: todo runtime de Linux en Windows necesita WSL2 o Hyper-V, que
 > exigen permisos de administrador. El stack corre de forma nativa, con
 > PostgreSQL y PostGIS en binarios portables. Cómo se instalaron, en
-> [docs/deployment.md](docs/deployment.md) §«Entorno de desarrollo sin Docker»;
+> el [manual de instalación local](docs/manual-instalacion.md);
 > la decisión, en [docs/architecture.md](docs/architecture.md) §2.3 y en el
 > SRS §9.3.
 >
 > Los `docker-compose.yml` y los `Dockerfile` **no se usan en desarrollo**. Se
 > conservan como artefacto para el despliegue en servidor, que hace el Centro de
-> Competencias fuera del alcance de la práctica.
+> Competencias fuera del alcance de la práctica: ver la
+> [guía de despliegue](docs/deployment.md).
 
 ---
 
@@ -250,7 +251,8 @@ trackin/
 | [docs/data-model.md](docs/data-model.md) | Modelo de datos y diagrama ER |
 | [docs/data-dictionary.md](docs/data-dictionary.md) | Diccionario de datos |
 | [docs/api-references.md](docs/api-references.md) | Fuentes externas y reglas de negocio |
-| [docs/deployment.md](docs/deployment.md) | Entorno de desarrollo nativo y despliegue |
+| [docs/manual-instalacion.md](docs/manual-instalacion.md) | Instalación local desde cero, sin administrador ni Docker |
+| [docs/deployment.md](docs/deployment.md) | Guía de despliegue en servidor, para el Centro de Competencias |
 | [docs/adr/](docs/adr/) | Registro de decisiones de arquitectura |
 | [GLOSSARY.md](GLOSSARY.md) | Glosario del dominio |
 | [backend/README.md](backend/README.md) | Detalle del backend |
