@@ -621,9 +621,11 @@ def leer_tramos_maritimos(geojson: dict[str, Any] | None) -> list[TramoAereo]:
         viaje = props.get("voyage")
         tramos.append(
             TramoAereo(
-                vuelo=(f"{nave} · viaje {viaje}" if isinstance(viaje, str) and viaje else nave)
-                if isinstance(nave, str)
-                else None,
+                vuelo=(
+                    (f"{nave} · viaje {viaje}" if isinstance(viaje, str) and viaje else nave)
+                    if isinstance(nave, str)
+                    else None
+                ),
                 origen=_locode(salida.get("location")),
                 destino=_locode(llegada.get("location")),
                 salida=_a_instante(salida.get("timestamp")),

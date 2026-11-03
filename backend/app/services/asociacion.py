@@ -59,8 +59,7 @@ async def obtener_o_crear_elemento(
     """
     existentes = (
         await sesion.scalars(
-            select(ElementoRastreado)
-            .where(
+            select(ElementoRastreado).where(
                 ElementoRastreado.tipo_tracking_externo == tipo,
                 ElementoRastreado.tracking_externo == numero,
                 # Un MMSI o un ICAO24 solo se reutiliza activo.
