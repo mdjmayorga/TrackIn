@@ -106,7 +106,7 @@ function FormularioCarga({ onCargada }: { onCargada: (id: number) => void }) {
           {plantilla.isPending ? 'Descargando…' : 'Descargar plantilla'}
         </button>{' '}
         con solo las columnas que usa TrackIn. Las obligatorias tienen que estar, entre ellas el
-        documento de embarque (BL o AWB), que puede ir vacío hasta que el pedido zarpe.
+        documento de embarque (BL o AWB): sin él, la línea no entra.
       </p>
       {plantilla.isError && (
         <p role="alert" className="rounded bg-red-900/60 px-4 py-3 text-sm text-red-100">

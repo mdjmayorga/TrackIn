@@ -252,6 +252,7 @@ trackin/
 | [docs/data-dictionary.md](docs/data-dictionary.md) | Diccionario de datos |
 | [docs/api-references.md](docs/api-references.md) | Fuentes externas y reglas de negocio |
 | [docs/manual-instalacion.md](docs/manual-instalacion.md) | Instalación local desde cero, sin administrador ni Docker |
+| [docs/manual-usuario.md](docs/manual-usuario.md) | Manual de usuario del panel, por tarea y rol |
 | [docs/deployment.md](docs/deployment.md) | Guía de despliegue en servidor, para el Centro de Competencias |
 | [docs/adr/](docs/adr/) | Registro de decisiones de arquitectura |
 | [GLOSSARY.md](GLOSSARY.md) | Glosario del dominio |

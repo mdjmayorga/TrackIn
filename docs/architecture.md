@@ -412,3 +412,4 @@ afuera.
 - [`api-references.md`](api-references.md) — contratos y hallazgos de las APIs externas
 - [`manual-instalacion.md`](manual-instalacion.md) — instalación local, sin Docker
 - [`deployment.md`](deployment.md) — guía de despliegue en servidor
+- [`manual-usuario.md`](manual-usuario.md) — manual de usuario del panel

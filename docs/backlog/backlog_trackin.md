@@ -126,7 +126,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-67` | Registrar a mano la ETA a Costa Rica cuando la fuente no la da ✅ | Story | OE2 | **Should** | Sprint 7 | 3h | 02/11: la guía de 4500018865 termina en París y no había fecha que ajustar · solo Compras y el Administrador · ✅ terminada 02/11 |
 | `TASK-06` | Pruebas de integracion extremo a extremo ✅ | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 · ✅ adelantada y terminada 03/11: flujo completo del Excel al cierre; reglas de la §7 al 98,5 %, verificado en CI |
 | `TASK-07` | Manual de instalacion local ✅ | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 · ✅ adelantada y terminada 03/11: `docs/manual-instalacion.md`, probado en una instalación limpia |
-| `TASK-08` | Manual de usuario del dashboard | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 |
+| `TASK-08` | Manual de usuario del dashboard 🔶 | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 · 🔶 redactado 04/11; faltan las capturas |
 | `TASK-09` | Guia de despliegue para produccion ✅ | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 · ✅ adelantada y terminada 03/11: `docs/deployment.md` y los artefactos de contenedor al día |
 | `TASK-10` | Politica de retencion y submuestreo del historial de posiciones ✅ | Task | OE4 | **Could** | Sprint 7 | 8h | RNF-22 / spike TG-10 · ✅ cerrada 28/10 sin retención: el volumen con ShipsGo no la justifica |
 | `TASK-11` | Actualizar el SRS con los hallazgos de los spikes tecnicos ✅ | Task | OE1 | **Must** | Sprint 3 | ~~6h~~ 0h | Fase 6 de TG-18 (cumplida por el SRS v0.3) |
@@ -3365,6 +3365,17 @@ Como técnico del Centro de Competencias, quiero un manual de instalación repro
 >   ShipsGo.
 
 #### TASK-08 — Manual de usuario del dashboard
+
+> **🔶 Redactado el 04/11/2026** en [`docs/manual-usuario.md`](../manual-usuario.md). Decisiones:
+> Markdown en el repositorio, como los manuales de instalación y despliegue; organizado
+> **por tarea**, con los roles de cada una; redacción impersonal; todo lo de la interfaz,
+> administración incluida; al final, la tabla de permisos por rol y los problemas
+> frecuentes. Cubre los dos criterios: filtrar (§4), consultar el detalle (§6) y confirmar
+> un desembarco (§7.1), íntegramente en español. **Falta:** las 12 capturas, marcadas en el
+> texto y listadas al final del manual, con qué debe mostrar cada una.
+>
+> De paso se corrigió el texto de la pantalla de carga, que todavía decía que el documento de
+> embarque «puede ir vacío hasta que el pedido zarpe»: desde el 04/11 la línea sin él no entra.
 
 Como usuario de Compras, quiero un manual de uso, para operar el dashboard sin capacitación previa.
 
