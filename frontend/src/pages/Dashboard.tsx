@@ -206,7 +206,6 @@ export default function Dashboard() {
             onLimpiarFiltros={limpiarFiltros}
             versionFiltros={versionFiltros}
             vista={planta ? 'simple' : 'completa'}
-            rotarPaginas={planta}
           />
         </div>
       </main>

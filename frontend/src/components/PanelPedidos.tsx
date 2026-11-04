@@ -11,9 +11,10 @@ import { type FiltrosPanel, filtraTerminales, hayFiltros } from '@/utils/filtros
 export const FILAS_POR_PAGINA = 10
 
 /**
- * La pantalla de planta pasa sola de página (`US-33`): nadie la toca, y con 10
- * filas por página las demás no se verían nunca. Al llegar a la última, vuelve
- * a la primera.
+ * Modalidad carrusel: la grilla pasa sola de página. Nació para la pantalla de
+ * planta (`US-33`), donde nadie la toca y con 10 filas por página las demás no se
+ * verían nunca; desde el 04/11/2026 corre en todas las vistas. Al llegar a la
+ * última página vuelve a la primera.
  */
 export const ROTACION_MS = 20_000
 
@@ -28,7 +29,7 @@ export interface PanelPedidosProps {
   versionFiltros: number
   /** La grilla simple de la pantalla de planta (`US-43`); los filtros son los mismos. */
   vista?: VistaGrilla
-  /** Pasar de página solo cada `ROTACION_MS` (`US-33`, pantalla de planta). */
+  /** Modalidad carrusel: pasar de página solo cada `ROTACION_MS`. */
   rotarPaginas?: boolean
 }
 
@@ -45,7 +46,7 @@ export function PanelPedidos({
   onLimpiarFiltros,
   versionFiltros,
   vista = 'completa',
-  rotarPaginas = false,
+  rotarPaginas = true,
 }: PanelPedidosProps) {
   const [orden, setOrden] = useState<Orden>(ORDEN_INICIAL)
   // La página se recuerda junto con los filtros con que se pidió: otro filtro
@@ -61,17 +62,22 @@ export function PanelPedidos({
   const filtrado = hayFiltros(filtros)
   const total = data?.total ?? 0
 
+  // Quien está leyendo u operando la grilla no debe perder la página: el carrusel
+  // se detiene con el cursor encima, y se puede pausar a mano.
+  const [pausado, setPausado] = useState(false)
+  const [encima, setEncima] = useState(false)
+  const carrusel = rotarPaginas && total > FILAS_POR_PAGINA
+  const girando = carrusel && !pausado && !encima
+
   useEffect(() => {
-    if (!rotarPaginas || total <= FILAS_POR_PAGINA) return
-    const temporizador = window.setInterval(() => {
-      setPagina((actual) => {
-        const desde = actual.clave === claveFiltros ? actual.desplazamiento : 0
-        const siguiente = desde + FILAS_POR_PAGINA
-        return { clave: claveFiltros, desplazamiento: siguiente >= total ? 0 : siguiente }
-      })
+    if (!girando) return
+    // Depende del desplazamiento: pasar de página a mano vuelve a contar los 20 s.
+    const temporizador = window.setTimeout(() => {
+      const siguiente = desplazamiento + FILAS_POR_PAGINA
+      setPagina({ clave: claveFiltros, desplazamiento: siguiente >= total ? 0 : siguiente })
     }, ROTACION_MS)
-    return () => window.clearInterval(temporizador)
-  }, [rotarPaginas, total, claveFiltros])
+    return () => window.clearTimeout(temporizador)
+  }, [girando, desplazamiento, total, claveFiltros])
 
   function paginar(nuevo: number) {
     setPagina({ clave: claveFiltros, desplazamiento: nuevo })
@@ -92,15 +98,33 @@ export function PanelPedidos({
       <div className="rounded border border-panel-borde bg-panel-superficie/40 p-1.5">
         <div className="mb-1.5 flex items-baseline justify-between gap-2">
           <h3 className="text-sm text-slate-100">Filtros de consulta</h3>
-          {filtrado && (
-            <button
-              type="button"
-              onClick={onLimpiarFiltros}
-              className="text-xs text-marca-300 underline hover:text-marca-200"
-            >
-              Limpiar filtros
-            </button>
-          )}
+          <div className="flex items-baseline gap-3">
+            {carrusel && (
+              <p className="text-xs text-slate-400">
+                {pausado
+                  ? 'Carrusel en pausa'
+                  : encima
+                    ? 'Carrusel detenido mientras el cursor está sobre la grilla'
+                    : `Las páginas cambian solas cada ${ROTACION_MS / 1000} s`}{' '}
+                <button
+                  type="button"
+                  onClick={() => setPausado(!pausado)}
+                  className="text-marca-300 underline hover:text-marca-200"
+                >
+                  {pausado ? 'Reanudar' : 'Pausar'}
+                </button>
+              </p>
+            )}
+            {filtrado && (
+              <button
+                type="button"
+                onClick={onLimpiarFiltros}
+                className="text-xs text-marca-300 underline hover:text-marca-200"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
         </div>
         <div className="mb-2">
           <BarraFiltros key={versionFiltros} filtros={filtros} onCambio={onCambioFiltros} />
@@ -114,36 +138,32 @@ export function PanelPedidos({
           </p>
         )}
 
-        {rotarPaginas && total > FILAS_POR_PAGINA && (
-          <p className="mb-1 text-right text-xs text-slate-400">
-            Las páginas cambian solas cada {ROTACION_MS / 1000} s
-          </p>
-        )}
-
         {data && (
-          <GrillaPedidos
-            pagina={data}
-            orden={orden}
-            onOrdenar={ordenar}
-            onPaginar={paginar}
-            actualizando={isFetching && isPlaceholderData}
-            terminales={filtraTerminales(filtros)}
-            vista={vista}
-            vacio={
-              filtrado ? (
-                <>
-                  Ningún pedido coincide con los filtros.{' '}
-                  <button
-                    type="button"
-                    onClick={onLimpiarFiltros}
-                    className="text-marca-300 underline hover:text-marca-200"
-                  >
-                    Limpiar filtros
-                  </button>
-                </>
-              ) : undefined
-            }
-          />
+          <div onMouseEnter={() => setEncima(true)} onMouseLeave={() => setEncima(false)}>
+            <GrillaPedidos
+              pagina={data}
+              orden={orden}
+              onOrdenar={ordenar}
+              onPaginar={paginar}
+              actualizando={isFetching && isPlaceholderData}
+              terminales={filtraTerminales(filtros)}
+              vista={vista}
+              vacio={
+                filtrado ? (
+                  <>
+                    Ningún pedido coincide con los filtros.{' '}
+                    <button
+                      type="button"
+                      onClick={onLimpiarFiltros}
+                      className="text-marca-300 underline hover:text-marca-200"
+                    >
+                      Limpiar filtros
+                    </button>
+                  </>
+                ) : undefined
+              }
+            />
+          </div>
         )}
       </div>
     </section>

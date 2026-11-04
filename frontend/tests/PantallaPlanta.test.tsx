@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, renderHook, screen } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -59,7 +59,7 @@ afterEach(() => {
   vi.mocked(listarPedidos).mockReset()
 })
 
-describe('pantalla de planta (US-33)', () => {
+describe('modalidad carrusel (US-33, todas las vistas)', () => {
   it('pasa sola de página y al llegar a la última vuelve a la primera', async () => {
     veinticinco()
     montar(true)
@@ -81,6 +81,71 @@ describe('pantalla de planta (US-33)', () => {
 
     expect(desplazamientos()).toEqual([0])
     expect(screen.queryByText(/cambian solas/)).toBeNull()
+  })
+
+  it('el carrusel corre por omisión, también en la grilla completa', async () => {
+    veinticinco()
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <PanelPedidos
+            filtros={FILTROS_VACIOS}
+            onCambioFiltros={() => undefined}
+            onLimpiarFiltros={() => undefined}
+            versionFiltros={0}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await screen.findByText(/cambian solas cada 20 s/)
+
+    await act(() => vi.advanceTimersByTimeAsync(ROTACION_MS))
+
+    expect(desplazamientos()).toEqual([0, 10])
+  })
+
+  it('con el cursor sobre la grilla se detiene, y retoma al salir', async () => {
+    veinticinco()
+    montar(true)
+    const tabla = await screen.findByRole('table')
+
+    fireEvent.mouseEnter(tabla)
+    expect(screen.getByText(/detenido mientras el cursor/)).toBeInTheDocument()
+    await act(() => vi.advanceTimersByTimeAsync(ROTACION_MS * 2))
+    expect(desplazamientos()).toEqual([0])
+
+    fireEvent.mouseLeave(tabla)
+    await act(() => vi.advanceTimersByTimeAsync(ROTACION_MS))
+    expect(desplazamientos()).toEqual([0, 10])
+  })
+
+  it('se puede pausar y reanudar a mano', async () => {
+    veinticinco()
+    montar(true)
+    fireEvent.click(await screen.findByRole('button', { name: 'Pausar' }))
+
+    expect(screen.getByText(/Carrusel en pausa/)).toBeInTheDocument()
+    await act(() => vi.advanceTimersByTimeAsync(ROTACION_MS * 2))
+    expect(desplazamientos()).toEqual([0])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reanudar' }))
+    await act(() => vi.advanceTimersByTimeAsync(ROTACION_MS))
+    expect(desplazamientos()).toEqual([0, 10])
+  })
+
+  it('pasar de página a mano vuelve a contar los 20 s', async () => {
+    veinticinco()
+    montar(true)
+    await screen.findAllByRole('row')
+
+    await act(() => vi.advanceTimersByTimeAsync(ROTACION_MS / 2))
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await act(() => vi.advanceTimersByTimeAsync(ROTACION_MS / 2 + 1))
+    expect(desplazamientos()).toEqual([0, 10])
+
+    await act(() => vi.advanceTimersByTimeAsync(ROTACION_MS / 2))
+    expect(desplazamientos()).toEqual([0, 10, 20])
   })
 
   it('con una sola página no rota', async () => {

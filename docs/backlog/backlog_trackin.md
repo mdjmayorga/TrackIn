@@ -2660,6 +2660,11 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > las etapas de los dos mapas y los dos umbrales, y la grilla pasa a cinco sextos del ancho. Los
 > indicadores y los próximos arribos se centran en el alto entre los dos mapas.
 >
+> **04/11, más tarde: carrusel en todas las vistas.** La grilla pasa sola de página cada 20 s
+> para todos los roles, no solo en planta. Para no quitarle la página a quien la está usando,
+> se detiene con el cursor encima, se puede pausar y reanudar a mano, y pasar de página a mano
+> vuelve a contar los 20 s. Con una sola página no corre.
+>
 > **03/11, al cierre: `TASK-06` terminada**, adelantada del cierre (12 h del bloque de cierre,
 > fuera de las horas del sprint): flujo completo del Excel al cierre y las reglas de la §7 al
 > 98,5 %, verificadas en el CI.
@@ -3509,7 +3514,8 @@ de los pedidos sin interactuar con el sistema.
 >   los mapas, cada 5. Lo que hay en pantalla se conserva mientras llega lo nuevo.
 > - **La grilla pasa sola de página** cada 20 s y vuelve a la primera al llegar a la última:
 >   en una pantalla que nadie toca, con 10 filas por página, el resto no se vería nunca. Solo
->   en la pantalla de planta, con un aviso «Las páginas cambian solas cada 20 s».
+>   en la pantalla de planta, con un aviso «Las páginas cambian solas cada 20 s». Desde el
+>   04/11 corre en todas las vistas (carrusel).
 > - **Inactividad (`US-42`):** no hubo que excluir a `PLANTA`. La sesión se cierra tras
 >   `sesion_inactividad_min` (30) sin uso, y cada refresco es uso: la pantalla queda abierta
 >   mientras esté encendida. Si el equipo se apaga o se corta la red más de 30 min, vuelve al
