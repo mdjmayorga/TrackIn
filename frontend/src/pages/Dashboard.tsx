@@ -6,7 +6,7 @@ import { useSesion } from '@/auth/useSesion'
 import { EstadoShipsGo } from '@/components/EstadoShipsGo'
 import { AvisoCreditos } from '@/components/AvisoCreditos'
 import { CintaKpis } from '@/components/CintaKpis'
-import { MapaEmbarques } from '@/components/MapaEmbarques'
+import { LeyendaDelPanel, MapaEmbarques } from '@/components/MapaEmbarques'
 import { MenuConfiguracion } from '@/components/MenuConfiguracion'
 import { MenuZtracking } from '@/components/MenuZtracking'
 import { PanelPedidos } from '@/components/PanelPedidos'
@@ -135,23 +135,24 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-panel-fondo text-slate-100">
-      <header className="grid grid-cols-1 items-start gap-3 px-4 pb-4 pt-3 lg:grid-cols-[1fr_auto_1fr]">
+      {/*
+        Un encabezado de una sola franja (04/11/2026): sin subtítulo y con los
+        avisos de la derecha en fila, para que la grilla se vea al entrar sin deslizar.
+      */}
+      <header className="grid grid-cols-1 items-center gap-3 px-4 pb-3 pt-2 lg:grid-cols-[1fr_auto_1fr]">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-300">
           {sesion && <MenuConfiguracion sesion={sesion} />}
         </div>
 
-        <div className="text-center">
-          <h1 className="text-2xl font-bold sm:text-3xl">
-            Panel de Control Logístico - Compras en Tránsito
-          </h1>
-          <p className="mt-1 text-lg text-slate-300">Tracking aéreo-marítimo</p>
-        </div>
+        <h1 className="text-center text-xl font-bold sm:text-2xl">
+          Panel de Control Logístico - Compras en Tránsito
+        </h1>
 
         {/* La separación deja sitio a las burbujas, que sobresalen sobre cada botón. */}
-        <div className="flex flex-col items-start gap-2.5 lg:items-end">
-          {/* De arriba abajo (pedido del 26/10): la insignia de ShipsGo —su última
-              consulta, al pasar el cursor— y los dos avisos con burbuja. Los avisos van
-              fuera de los menús: escondidos dejarían de avisar (`US-48`, `US-23`). */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5 lg:justify-end">
+          {/* En fila (04/11/2026; antes, apilados): la insignia de ShipsGo —su última
+              consulta, al pasar el cursor— junto a los dos avisos con burbuja. Los avisos
+              van fuera de los menús: escondidos dejarían de avisar (`US-48`, `US-23`). */}
           <EstadoShipsGo />
           {sesion && puedeVerBandeja(sesion.usuario.rol) && <AvisoBandeja />}
           {/* Planta no carga archivos. */}
@@ -160,22 +161,45 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Bajo el subtítulo, centrado: el saldo de créditos (`US-57`). */}
+      {/* Bajo el título, centrado: el saldo de créditos (`US-57`), solo si hay que avisar. */}
       {sesion && puedeCargar(sesion.usuario.rol) && <AvisoCreditos />}
 
-      <main className="grid grid-cols-1 gap-6 px-4 pb-12 xl:grid-cols-3">
-        <div className="order-2 min-w-0 xl:order-none">
+      {/*
+        Pantalla ancha (04/11/2026, pedidos del supervisor): arriba, los mapas de igual
+        ancho a los costados y, centrados en el alto entre ellos, los indicadores y los
+        próximos arribos; abajo, una sola leyenda para los dos mapas a la izquierda y la
+        grilla en los cinco sextos restantes. Así se ven más columnas sin deslizar.
+        Angosta: todo en una columna, la leyenda después de los mapas.
+      */}
+      <main className="grid grid-cols-1 gap-x-6 gap-y-5 px-4 pb-12 xl:grid-cols-6">
+        <div className="order-3 min-w-0 xl:order-none xl:col-span-2 xl:col-start-1 xl:row-start-1">
           <MapaEmbarques
             titulo="Mapa Marítimo"
             capa="MARITIMO"
             centro={MARITIMO}
             zoom={4}
             filtros={filtros}
+            leyendaAparte
           />
         </div>
-        <div className="order-1 flex min-w-0 flex-col gap-5 xl:order-none">
+        <div className="order-1 flex min-w-0 flex-col gap-5 xl:order-none xl:col-span-2 xl:col-start-3 xl:row-start-1 xl:justify-center">
           <CintaKpis filtros={filtros} />
           <ProximosArribos filtros={filtros} />
+        </div>
+        <div className="order-4 min-w-0 xl:order-none xl:col-span-2 xl:col-start-5 xl:row-start-1">
+          <MapaEmbarques
+            titulo="Mapa Aéreo"
+            capa="AEREO"
+            centro={AEREO}
+            zoom={4}
+            filtros={filtros}
+            leyendaAparte
+          />
+        </div>
+        <div className="order-6 min-w-0 xl:order-none xl:col-start-1 xl:row-start-2">
+          <LeyendaDelPanel filtros={filtros} />
+        </div>
+        <div className="order-2 min-w-0 xl:order-none xl:col-span-5 xl:col-start-2 xl:row-start-2">
           <PanelPedidos
             filtros={filtros}
             onCambioFiltros={cambiarFiltros}
@@ -183,15 +207,6 @@ export default function Dashboard() {
             versionFiltros={versionFiltros}
             vista={planta ? 'simple' : 'completa'}
             rotarPaginas={planta}
-          />
-        </div>
-        <div className="order-3 min-w-0 xl:order-none">
-          <MapaEmbarques
-            titulo="Mapa Aéreo"
-            capa="AEREO"
-            centro={AEREO}
-            zoom={4}
-            filtros={filtros}
           />
         </div>
       </main>

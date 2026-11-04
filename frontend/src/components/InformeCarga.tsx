@@ -124,6 +124,22 @@ export function InformeCarga({ carga }: { carga: CargaDetalle }) {
             </>
           )}
 
+          {(carga.cerrados_sin_referencia?.length ?? 0) > 0 && (
+            <section aria-labelledby={`cerrados-${carga.id}`}>
+              <h4 id={`cerrados-${carga.id}`} className="mb-1 font-semibold">
+                Cerrados por no tener referencia de embarque (
+                {carga.cerrados_sin_referencia!.length})
+              </h4>
+              <p className="mb-1 text-sm text-slate-400">
+                Seguían activos sin BL ni guía aérea y esta carga no se la trajo: no se pueden
+                seguir. Quedan en el filtro de cerrados, con el motivo en su bitácora.
+              </p>
+              <p className="font-mono text-sm text-slate-300">
+                {carga.cerrados_sin_referencia!.join(', ')}
+              </p>
+            </section>
+          )}
+
           {carga.avisos.length > 0 && (
             <section aria-labelledby={`avisos-${carga.id}`}>
               <h4 id={`avisos-${carga.id}`} className="mb-1 font-semibold">

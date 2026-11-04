@@ -96,8 +96,10 @@ def test_las_instrucciones_explican_cada_columna() -> None:
     assert filas["Documento Compra"][1] == "Sí"
     assert filas["Comentarios (opcional)"][1] == "No"
     # 02/11/2026: columna obligatoria, celda que puede ir en blanco.
-    for rotulo in ("# DE DOCUMENTO", "TIPO DE DOCUMENTO AWB / BL", "Solicitud de pedido"):
-        assert filas[rotulo][1] == "Sí, puede ir vacía"
+    assert filas["Solicitud de pedido"][1] == "Sí, puede ir vacía"
+    # 04/11/2026: sin referencia la línea no entra; la celda ya no puede ir vacía.
+    for rotulo in ("# DE DOCUMENTO", "TIPO DE DOCUMENTO AWB / BL"):
+        assert filas[rotulo][1] == "Sí"
     assert filas["Incoterm (obligatorio si es marítimo)"][1] == "Si es marítimo"
 
 

@@ -22,8 +22,6 @@ export interface FiltrosPanel {
   via: Via | ''
   etapa: EtapaVisible | ''
   cumplimiento: CumplimientoFiltro | ''
-  /** Prefijo de la solicitud de pedido: solo lo ofrece la pantalla de planta (`US-63`). */
-  solped: string
 }
 
 export const FILTROS_VACIOS: FiltrosPanel = {
@@ -33,7 +31,6 @@ export const FILTROS_VACIOS: FiltrosPanel = {
   via: '',
   etapa: '',
   cumplimiento: '',
-  solped: '',
 }
 
 export function hayFiltros(filtros: FiltrosPanel): boolean {
@@ -55,7 +52,6 @@ export function aParametros(filtros: FiltrosPanel): Record<string, string> {
   if (filtros.via) parametros.via = filtros.via
   if (filtros.etapa) parametros.etapa = filtros.etapa
   if (filtros.cumplimiento) parametros.cumplimiento = filtros.cumplimiento
-  if (texto(filtros.solped)) parametros.solped = texto(filtros.solped)
   return parametros
 }
 

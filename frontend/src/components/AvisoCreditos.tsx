@@ -1,6 +1,6 @@
 /**
  * El aviso de créditos de ShipsGo en el panel (`US-57`): una franja centrada bajo
- * el subtítulo «Tracking aéreo-marítimo», encima de los KPIs y la grilla. La
+ * el título del panel (el subtítulo se quitó el 04/11/2026), encima de los mapas. La
  * ubicación la dejó Compras a criterio del desarrollador (26/10/2026).
  *
  * Solo para Compras y el Administrador, que son quienes autorizan las altas y la

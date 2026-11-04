@@ -101,12 +101,18 @@ Z-tracking. Fechas en `AAAA-MM-DD`. Un campo opcional sin dato va como `null` o 
 | 16 | `fabricante` | texto (≤ 200) | | Fabricante | EKPO-EMNFR | `"Fabricante Ltd."` |
 | 17 | `eta_declarada` | fecha | | ETA CR | campo Z | `"2026-12-01"` |
 | 18 | `arribo_declarado` | `SI` \| `NO` \| `PENDIENTE` \| `N/A` | | ATA CR | campo Z | `"NO"` |
-| 19 | `tipo_referencia` | `BL` \| `CONTENEDOR` \| `BOOKING` \| `MAWB` \| `HAWB` | | Tipo de referencia | campo Z | `"BL"` |
-| 20 | `numero_referencia` | texto (≤ 40) | | Número de referencia | campo Z | `"COSU6508789000"` |
+| 19 | `tipo_referencia` | `BL` \| `CONTENEDOR` \| `BOOKING` \| `MAWB` \| `HAWB` | ✓¹ | Tipo de referencia | campo Z | `"BL"` |
+| 20 | `numero_referencia` | texto (≤ 40) | ✓¹ | Número de referencia | campo Z | `"COSU6508789000"` |
 | 21 | `transportista` | texto (≤ 120) | | Transportista | campo Z | `"COSCO"` |
 | 22 | `fecha_referencia` | fecha | | Fecha de obtención de la referencia | campo Z | `"2026-10-20"` |
 | 23 | `comentario` | texto (≤ 1 000) | | Comentario comprador | campo Z / texto de posición | `"Zarpó el 18/10"` — no se guarda: TrackIn busca en él referencias escritas a mano |
 | 24 | `solicitud_pedido` | texto (≤ 20) | | Solicitud de pedido | EKPO-BANFN | `"10012345"` |
+
+¹ **Desde el 04/11/2026 un pedido sin referencia de embarque no entra**: se rechaza con el
+motivo `sin_referencia` (o `referencia_invalida` si no pasa la validación), salvo que TrackIn
+ya le tenga una asociada. Las dos columnas siguen siendo opcionales en el JSON —un lote no se
+rechaza entero por eso—, pero la línea sin ellas no se puede seguir. También vale escribirla
+en `comentario`.
 
 \* **La referencia SAP es orientativa**: son los campos estándar donde ese dato suele vivir
 (tablas EKKO, EKPO, EKET, LFA1). «Campo Z» quiere decir que hoy lo llena el reporte del

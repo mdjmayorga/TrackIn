@@ -54,6 +54,9 @@ MOTIVOS_CIERRE: Final[tuple[str, ...]] = (
     "RECEPCION_CONFORME",
     "CIERRE_FORZADO",
     "CANCELACION",
+    # Activo sin referencia de embarque, y una carga completa no se la trajo: no
+    # se puede seguir (pedido del supervisor, 04/11/2026). Ver `ingesta.carga`.
+    "SIN_REFERENCIA",
 )
 
 # --- Referencia de rastreo externo ------------------------------------------

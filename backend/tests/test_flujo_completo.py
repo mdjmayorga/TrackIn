@@ -3,7 +3,8 @@
 Un solo recorrido, por las mismas puertas que usa la gente y el worker:
 
 1. **Ingesta.** Compras descarga la plantilla del Z-tracking (`US-59`), la llena
-   con dos líneas —una con contenedor, otra sin referencia— y la sube.
+   con dos líneas —una con contenedor, otra sin referencia— y la sube. La que no
+   trae referencia no entra (04/11/2026): no se podría seguir.
 2. **Rastreo en viaje.** Un ciclo del worker lee el contenedor en ShipsGo (el
    payload grabado del spike `TASK-28`: Santos → Cartagena → Moín, navegando).
    El pedido pasa a «En tránsito», con la ETA de la fuente y su posición.
@@ -130,7 +131,7 @@ async def test_un_pedido_va_del_excel_al_cierre(compras, sesion, fabrica) -> Non
     contenido = await _plantilla_llena(
         cliente,
         _linea("10", tipo_referencia="CONTENEDOR", numero_referencia=CONTENEDOR),
-        # Sin referencia: entra, pero no se rastrea (RN-02).
+        # Sin referencia: no entra (04/11/2026). Antes quedaba «Sin tracking».
         _linea("20"),
     )
     carga = await cliente.post(
@@ -138,16 +139,18 @@ async def test_un_pedido_va_del_excel_al_cierre(compras, sesion, fabrica) -> Non
     )
 
     assert carga.status_code == 201, carga.text
-    assert (carga.json()["estado"], carga.json()["insertadas"]) == ("APLICADA", 2)
-    rastreado, sin_rastreo = (
-        await sesion.scalars(
-            select(PedidoTransito)
-            .where(PedidoTransito.oc_numero == OC)
-            .order_by(PedidoTransito.posicion_oc)
-        )
+    informe = carga.json()
+    assert (informe["estado"], informe["insertadas"], informe["no_entraron"]) == (
+        "APLICADA",
+        1,
+        1,
+    )
+    (rechazada,) = informe["incidencias"]
+    assert (rechazada["clave"], rechazada["motivo"]) == (f"{OC}-20", "sin_referencia")
+    (rastreado,) = (
+        await sesion.scalars(select(PedidoTransito).where(PedidoTransito.oc_numero == OC))
     ).all()
     assert rastreado.etapa_viaje == "EN_ORIGEN"  # RN-03: con referencia, sin salida
-    assert sin_rastreo.etapa_viaje == "SIN_TRACKING"  # RN-02
     assert rastreado.fecha_proyectada_disponible is None  # nada que proyectar todavía
 
     # --- 2. Rastreo en viaje: el worker lee el contenedor en ShipsGo --------------
@@ -200,14 +203,12 @@ async def test_un_pedido_va_del_excel_al_cierre(compras, sesion, fabrica) -> Non
 
     # --- 4. Consulta: grilla, indicadores, detalle, mapa y línea de tiempo --------
     grilla = (await cliente.get("/api/v1/pedidos")).json()
-    assert grilla["total"] == 2
-    filas = {f["posicion_oc"]: f for f in grilla["items"]}
-    assert filas[10]["etapa_viaje"] == "EN_DESTINO"
-    assert filas[20]["estado_calculado"] == "SIN_TRACKING"
+    assert grilla["total"] == 1
+    assert grilla["items"][0]["etapa_viaje"] == "EN_DESTINO"
 
     kpi = (await cliente.get("/api/v1/pedidos/indicadores")).json()
-    assert kpi["activos"] == 2
-    assert kpi["sin_proyeccion"] == 1  # el de la línea 20
+    assert kpi["activos"] == 1
+    assert kpi["sin_proyeccion"] == 0
 
     detalle = await _detalle(cliente, rastreado.id)
     assert detalle["calculo"]["origen"] == "ATA_FUENTE"
@@ -223,7 +224,7 @@ async def test_un_pedido_va_del_excel_al_cierre(compras, sesion, fabrica) -> Non
         rastreado.estado_cumplimiento,
     )
     assert marcador["trayecto"]  # la ruta del barco, para dibujarla al elegirlo
-    assert mapa["sin_posicion"] == 1  # el de la línea 20
+    assert mapa["sin_posicion"] == 0
 
     hitos = [
         a

@@ -82,4 +82,27 @@ describe('la leyenda de los mapas (RNF-08, wireframes §2.4 y §3.9, 03/11/2026)
     render(<LeyendaMapa marcadores={[]} umbralHoras={12} />)
     expect(screen.queryByRole('region', { name: 'Leyenda del mapa' })).toBeNull()
   })
+
+  it('una sola para los dos mapas: sus etapas juntas y el umbral de cada vía (04/11/2026)', () => {
+    render(
+      <LeyendaMapa
+        marcadores={[
+          marcador({ etapa: 'EN_DESTINO' }),
+          marcador({ id_elemento: 2, etapa: 'EN_TRANSITO', tipo: 'MAWB' }),
+        ]}
+        umbralesPorVia={{ maritimo: 12, aereo: 2 }}
+        nombre="Leyenda de los mapas"
+      />,
+    )
+
+    expect(screen.getByRole('region', { name: 'Leyenda de los mapas' })).toBeInTheDocument()
+    expect(
+      within(grupo('Relleno: etapa'))
+        .getAllByRole('listitem')
+        .map((li) => li.textContent),
+    ).toEqual(['En Tránsito', 'En Destino'])
+    expect(grupo('Opacidad: lectura')).toHaveTextContent(
+      'Sin lectura en más de 12 h (marítimo) o 2 h (aéreo)',
+    )
+  })
 })

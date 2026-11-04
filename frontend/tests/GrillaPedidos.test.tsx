@@ -34,15 +34,16 @@ function fila(n: number) {
 }
 
 describe('columnas', () => {
-  it('las nueve del Figma, en su orden', () => {
+  // Material, Etapa y Cumplimiento primero (pedido del supervisor, 04/11/2026).
+  it('las nueve, con Material, Etapa y Cumplimiento primero', () => {
     montar()
 
     expect(encabezados()).toEqual([
-      'OC',
-      'POS',
       'Material',
       'Etapa',
       'Cumplimiento',
+      'OC',
+      'POS',
       'F. Proyectada',
       'F. Comprometida',
       'Vía',
@@ -57,11 +58,11 @@ describe('columnas', () => {
       .getAllByRole('cell')
       .map((td) => td.textContent)
     expect(celdas).toEqual([
-      '4500012847',
-      '10',
       '13002006 Lactosa monohidrato',
       'En Tránsito',
       'A Tiempo',
+      '4500012847',
+      '10',
       '08/09/2026',
       '15/09/2026',
       'Marítimo',
@@ -101,33 +102,21 @@ describe('columnas', () => {
 })
 
 describe('grilla de la pantalla de planta (US-43, US-63)', () => {
-  it('OC, POS y SOLPED delante de las de la «Grilla simple» del Figma', () => {
+  it('Material, Etapa y Cumplimiento primero, y después OC y POS (04/11/2026)', () => {
     montar({ vista: 'simple' })
 
-    expect(encabezados()).toEqual(['OC', 'POS', 'SOLPED', 'Material', 'Etapa', 'Cumplimiento'])
+    expect(encabezados()).toEqual(['Material', 'Etapa', 'Cumplimiento', 'OC', 'POS'])
   })
 
-  it('muestra la SOLPED de cada línea, y el guion si no la trae', () => {
-    montar({
-      vista: 'simple',
-      pagina: pagina([
-        pedido({ id: 1, solicitud_pedido: '1000033542' }),
-        pedido({ id: 2, posicion_oc: 20, solicitud_pedido: null }),
-      ]),
-    })
+  it.each(['simple', 'completa'] as const)(
+    'la grilla %s no muestra la SOLPED (se quitó de planta el 04/11/2026)',
+    (vista) => {
+      montar({ vista, pagina: pagina([pedido({ solicitud_pedido: '1000033542' })]) })
 
-    expect(fila(1).getByText('4500012847')).toBeInTheDocument()
-    expect(fila(1).getByText('10')).toBeInTheDocument()
-    expect(fila(1).getByText('1000033542')).toBeInTheDocument()
-    expect(fila(2).getByLabelText('Sin solicitud de pedido')).toBeInTheDocument()
-  })
-
-  it('la grilla completa no muestra la SOLPED: Compras no la ve', () => {
-    montar({ pagina: pagina([pedido({ solicitud_pedido: '1000033542' })]) })
-
-    expect(encabezados()).not.toContain('SOLPED')
-    expect(screen.queryByText('1000033542')).toBeNull()
-  })
+      expect(encabezados()).not.toContain('SOLPED')
+      expect(screen.queryByText('1000033542')).toBeNull()
+    },
+  )
 
   it('con los mismos textos y colores que la completa, y sin enlace al detalle', () => {
     montar({

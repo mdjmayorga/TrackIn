@@ -68,6 +68,8 @@ class InformeValidacion:
     sin_cambios: int = 0
     ausentes: int = 0
     incidencias: list[Incidencia] = field(default_factory=list)
+    #: `OC-posición` de los activos sin referencia que la carga cerró (04/11/2026).
+    cerrados_sin_referencia: list[str] = field(default_factory=list)
 
     @property
     def total_incidencias(self) -> int:
@@ -110,6 +112,7 @@ class InformeValidacion:
                 for i in self.incidencias
             ],
             "por_motivo": self.por_motivo(),
+            "cerrados_sin_referencia": self.cerrados_sin_referencia,
         }
 
     def como_texto(self, ejemplos: int = 10) -> str:
@@ -210,6 +213,7 @@ def construir_informe(
         sin_cambios=resultado.sin_cambios,
         ausentes=len(resultado.ausentes),
         incidencias=incidencias,
+        cerrados_sin_referencia=[f"{oc}-{pos}" for oc, pos in resultado.cerrados_sin_referencia],
     )
 
 

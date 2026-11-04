@@ -64,6 +64,8 @@ _TERMINAL_POR_MOTIVO: Final[dict[str, str]] = {
     "RECEPCION_CONFORME": CERRADO,
     "CIERRE_FORZADO": CERRADO,
     "CANCELACION": CANCELADO,
+    # Sale de la grilla como un cerrado (04/11/2026): no se sigue más.
+    "SIN_REFERENCIA": CERRADO,
 }
 
 

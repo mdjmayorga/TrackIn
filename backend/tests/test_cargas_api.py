@@ -24,6 +24,7 @@ from app.api.cargas import resolutor_de_destinos
 from app.api.dependencias import Autenticado, usuario_actual
 from app.db.session import get_db
 from app.main import app
+from app.models.auditoria_intervencion import AuditoriaIntervencion
 from app.models.carga_ztracking import CargaZTracking
 from app.models.pedido_transito import PedidoTransito
 from app.models.sesion import Sesion
@@ -112,6 +113,13 @@ def _excel(hojas: dict[str, list[list[Any]]]) -> bytes:
     return salida.getvalue()
 
 
+def _linea(**valores: Any) -> list[Any]:
+    """Una línea del WK36 con un contenedor válido: sin referencia no entra (04/11/2026)."""
+    return _WK36.linea(
+        **{"tipo_referencia": "CONTENEDOR", "numero_referencia": "MSCU1234566", **valores}
+    )
+
+
 def _ztracking(*lineas_produccion: list[Any], ida: list[list[Any]] | None = None) -> bytes:
     return _excel(
         {
@@ -139,10 +147,10 @@ async def _cargas(sesion) -> list[CargaZTracking]:
 async def test_subir_el_excel_carga_los_pedidos_y_devuelve_el_informe(api, sesion) -> None:
     cliente, usuario = api
     contenido = _ztracking(
-        _WK36.linea(oc_numero="4500090001", posicion_oc="10"),
-        _WK36.linea(oc_numero="4500090002", posicion_oc="20"),
+        _linea(oc_numero="4500090001", posicion_oc="10"),
+        _linea(oc_numero="4500090002", posicion_oc="20"),
         # Sin vía: no entra, y el informe dice cuál y por qué.
-        _WK36.linea(oc_numero="4500090003", posicion_oc="30", via_transporte="N/A"),
+        _linea(oc_numero="4500090003", posicion_oc="30", via_transporte="N/A"),
     )
 
     respuesta = await _subir(cliente, contenido, "2026 - OCTUBRE - WK40.xlsx")
@@ -162,7 +170,7 @@ async def test_subir_el_excel_carga_los_pedidos_y_devuelve_el_informe(api, sesio
 async def test_queda_registrada_quien_cargo_y_cuando(api, sesion) -> None:
     cliente, usuario = api
 
-    await _subir(cliente, _ztracking(_WK36.linea(oc_numero="4500090001")))
+    await _subir(cliente, _ztracking(_linea(oc_numero="4500090001")))
 
     (carga,) = await _cargas(sesion)
     assert carga.id_usuario == usuario.id
@@ -173,7 +181,7 @@ async def test_queda_registrada_quien_cargo_y_cuando(api, sesion) -> None:
 
 async def test_recargar_el_mismo_archivo_no_cambia_nada(api, sesion) -> None:
     cliente, _ = api
-    contenido = _ztracking(_WK36.linea(oc_numero="4500090001"))
+    contenido = _ztracking(_linea(oc_numero="4500090001"))
 
     await _subir(cliente, contenido)
     segunda = (await _subir(cliente, contenido)).json()
@@ -185,10 +193,10 @@ async def test_lo_que_deja_de_venir_queda_ausente_y_no_se_borra(api, sesion) -> 
     cliente, _ = api
     await _subir(
         cliente,
-        _ztracking(_WK36.linea(oc_numero="4500090001"), _WK36.linea(oc_numero="4500090002")),
+        _ztracking(_linea(oc_numero="4500090001"), _linea(oc_numero="4500090002")),
     )
 
-    segunda = (await _subir(cliente, _ztracking(_WK36.linea(oc_numero="4500090001")))).json()
+    segunda = (await _subir(cliente, _ztracking(_linea(oc_numero="4500090001")))).json()
 
     assert segunda["ausentes"] == 1
     assert await _pedidos(sesion) == 2
@@ -218,7 +226,7 @@ async def test_un_excel_sin_las_hojas_del_ztracking_no_marca_ausente_nada(api, s
     """El caso peligroso: se lee bien, pero no es el Z-tracking. Sin la guarda,
     la carga no vería ninguna línea y daría por ausentes **todos** los pedidos."""
     cliente, _ = api
-    await _subir(cliente, _ztracking(_WK36.linea(oc_numero="4500090001")))
+    await _subir(cliente, _ztracking(_linea(oc_numero="4500090001")))
 
     respuesta = await _subir(cliente, _excel({"Hoja1": [["otra", "cosa"], [1, 2]]}), "otro.xlsx")
 
@@ -270,7 +278,7 @@ async def test_un_archivo_demasiado_grande_se_rechaza(api, monkeypatch) -> None:
     cliente, _ = api
     monkeypatch.setattr(carga_archivo, "TAMANO_MAXIMO_BYTES", 10)
 
-    respuesta = await _subir(cliente, _ztracking(_WK36.linea()))
+    respuesta = await _subir(cliente, _ztracking(_linea()))
 
     assert respuesta.status_code == 422
     assert "el máximo es" in respuesta.json()["detail"]
@@ -284,7 +292,7 @@ async def test_con_otra_carga_en_curso_responde_409(api, monkeypatch) -> None:
 
     monkeypatch.setattr(carga_archivo, "cargar_archivo", _ocupado)
 
-    respuesta = await _subir(cliente, _ztracking(_WK36.linea()))
+    respuesta = await _subir(cliente, _ztracking(_linea()))
 
     assert respuesta.status_code == 409
     assert "en curso" in respuesta.json()["detail"]
@@ -301,7 +309,7 @@ async def test_solo_compras_y_el_administrador_cargan(api, sesion, rol) -> None:
         usuario=otro, sesion=Sesion(id=0, id_usuario=otro.id)
     )
 
-    respuesta = await _subir(cliente, _ztracking(_WK36.linea()))
+    respuesta = await _subir(cliente, _ztracking(_linea()))
 
     assert respuesta.status_code == 403
     assert await _cargas(sesion) == []
@@ -314,7 +322,7 @@ async def test_el_administrador_tambien_carga(api, sesion) -> None:
         usuario=admin, sesion=Sesion(id=0, id_usuario=admin.id)
     )
 
-    respuesta = await _subir(cliente, _ztracking(_WK36.linea()))
+    respuesta = await _subir(cliente, _ztracking(_linea()))
 
     assert respuesta.status_code == 201
 
@@ -331,7 +339,7 @@ async def test_sin_sesion_no_se_carga(sesion) -> None:
 
 async def test_el_historial_muestra_lo_mas_reciente_primero(api, sesion) -> None:
     cliente, _ = api
-    await _subir(cliente, _ztracking(_WK36.linea()), "primero.xlsx")
+    await _subir(cliente, _ztracking(_linea()), "primero.xlsx")
     await _subir(cliente, b"roto", "segundo.xlsx")
 
     historial = (await cliente.get(URL)).json()
@@ -344,9 +352,7 @@ async def test_el_historial_muestra_lo_mas_reciente_primero(api, sesion) -> None
 async def test_el_detalle_trae_el_informe_completo(api, sesion) -> None:
     cliente, _ = api
     creada = (
-        await _subir(
-            cliente, _ztracking(_WK36.linea(), _WK36.linea(oc_numero="x", via_transporte="N/A"))
-        )
+        await _subir(cliente, _ztracking(_linea(), _linea(oc_numero="x", via_transporte="N/A")))
     ).json()
 
     detalle = await cliente.get(f"{URL}/{creada['id']}")
@@ -438,7 +444,7 @@ async def test_los_demas_roles_no_descargan_la_plantilla(api, sesion, rol) -> No
 async def test_el_informe_avisa_en_que_se_aparta_el_archivo_de_la_plantilla(api) -> None:
     cliente, _ = api
 
-    respuesta = await _subir(cliente, _ztracking(_WK36.linea()))
+    respuesta = await _subir(cliente, _ztracking(_linea()))
 
     assert respuesta.status_code == 201
     estructura = [a for a in respuesta.json()["avisos"] if a["tipo"] == "estructura"]
@@ -446,3 +452,41 @@ async def test_el_informe_avisa_en_que_se_aparta_el_archivo_de_la_plantilla(api)
     assert "Comentarios (opcional)" in estructura[0]["detalle"]
     # Las columnas de más del archivo de Compras no se avisan: serían ruido.
     assert "Fecha Entrega Solped" not in estructura[0]["detalle"]
+
+
+# --- Sin referencia (04/11/2026) ----------------------------------------------
+
+
+async def test_sin_referencia_no_entra_y_el_activo_que_sigue_sin_una_se_cierra(api, sesion) -> None:
+    """La regla del supervisor, por la puerta real: la línea sin BL ni guía no entra,
+    y el pedido que ya estaba sin referencia se cierra a nombre de quien cargó."""
+    cliente, usuario = api
+    await _subir(cliente, _ztracking(_linea(oc_numero="4500090011")))
+    viejo = await sesion.scalar(
+        select(PedidoTransito).where(PedidoTransito.oc_numero == "4500090011")
+    )
+    # Uno de los que entraron antes de la regla: activo y sin referencia.
+    viejo.id_elemento_rastreado = None
+    viejo.etapa_viaje = viejo.estado_calculado = "SIN_TRACKING"
+    await sesion.flush()
+
+    respuesta = await _subir(
+        cliente,
+        _ztracking(
+            _linea(oc_numero="4500090012"),
+            _linea(oc_numero="4500090013", tipo_referencia=None, numero_referencia=None),
+        ),
+        "WK45.xlsx",
+    )
+
+    carga = respuesta.json()
+    assert (carga["insertadas"], carga["no_entraron"]) == (1, 1)
+    assert carga["incidencias"][0]["motivo"] == "sin_referencia"
+    assert carga["cerrados_sin_referencia"] == ["4500090011-90"]
+    await sesion.refresh(viejo)
+    assert (viejo.motivo_cierre, viejo.estado_calculado) == ("SIN_REFERENCIA", "CERRADO")
+    asiento = await sesion.scalar(
+        select(AuditoriaIntervencion).where(AuditoriaIntervencion.id_pedido == viejo.id)
+    )
+    assert asiento is not None and asiento.id_usuario == usuario.id
+    assert "sin referencia" in asiento.motivo

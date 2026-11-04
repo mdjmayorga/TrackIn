@@ -82,6 +82,21 @@ Borrarlo destruiría su historial de tracking, que es inmutable por RNF-13.
 La marca es reversible: si la línea vuelve a aparecer, `ausente_desde` se limpia
 y se anota en el log, porque una línea que va y viene es un síntoma del archivo,
 no del pedido.
+
+Sin referencia no entra — 04/11/2026
+-------------------------------------
+
+Pedido del supervisor: un pedido sin BL, contenedor, booking ni guía aérea no se
+puede seguir, y varios que ya habían llegado a planta seguían en el panel como
+«Sin tracking» porque nada los movía. Desde entonces:
+
+- **La línea sin una referencia válida se rechaza** (`sin_referencia`,
+  `referencia_invalida`), igual que una sin vía o sin destino. Salvo que el
+  pedido **ya tenga** referencia: la asociada antes, o corregida a mano en el
+  detalle, sigue valiendo aunque el archivo venga sin ella.
+- **Una carga completa cierra los activos que siguen sin referencia**, con el
+  motivo `SIN_REFERENCIA` y su asiento en la bitácora a nombre de quien cargó.
+  Una carga parcial —un lote de SAP— no cierra nada: no es el universo.
 """
 
 from __future__ import annotations
@@ -99,7 +114,7 @@ from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
-from app.services import normalizacion, recalculo
+from app.services import auditoria, estado, normalizacion, recalculo
 from app.services.asociacion import asociar_referencia
 from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.dto import PedidoCrudo
@@ -134,10 +149,13 @@ PREFIJO_DISCREPANCIA = "ShipsGo corrige el destino"
 #: Devuelve `None` cuando no lo sabe; nunca da de alta nada.
 ResolutorDestino = Callable[[str, str], Awaitable[str | None]]
 
-#: La línea **sí** entró; lo que no sirve es su referencia de embarque. No es
-#: un rechazo de la línea sino de su rastreo: el pedido queda `SIN_TRACKING`
-#: (RN-02) hasta que alguien corrija el número (`US-32`).
+#: La referencia de embarque no pasa la validación (`TASK-30`). Hasta el
+#: 04/11/2026 la línea entraba igual, `SIN_TRACKING`; desde entonces no entra.
 RECHAZO_REFERENCIA_INVALIDA = "referencia_invalida"
+#: La línea no trae BL, contenedor, booking ni guía aérea (04/11/2026).
+RECHAZO_SIN_REFERENCIA = "sin_referencia"
+#: El motivo de cierre de un activo que sigue sin referencia tras una carga completa.
+MOTIVO_CIERRE_SIN_REFERENCIA = "SIN_REFERENCIA"
 #: `US-59`: la línea entró, pero un dato con formato inválido se descartó.
 DATO_DESCARTADO = "dato_descartado"
 
@@ -180,6 +198,8 @@ class ResultadoCarga:
     #: Estaban en la base y no vinieron: marcados `ausente_desde`, nunca
     #: borrados (segundo criterio de `US-31`).
     ausentes: list[tuple[str, int]] = field(default_factory=list)
+    #: Activos sin referencia que la carga cerró (04/11/2026).
+    cerrados_sin_referencia: list[tuple[str, int]] = field(default_factory=list)
     rechazadas: list[LineaRechazada] = field(default_factory=list)
     #: Líneas que **sí** entraron pero cuya referencia no sirve. Van aparte de
     #: `rechazadas` porque el pedido está en la base: lo que falta es su rastreo.
@@ -570,6 +590,9 @@ async def cargar_pedido(
     )
     if resuelto is None:
         return None, motivo, detalle
+    sin_referencia = _sin_referencia_valida(crudo, resuelto.via, ya_esta)
+    if sin_referencia is not None:
+        return None, *sin_referencia
     if resuelto.destino_de_la_fuente:
         detalle = resuelto.detalle
 
@@ -599,6 +622,31 @@ async def cargar_pedido(
     sesion.add(pedido)
     await sesion.flush()
     return pedido, "cargado", detalle
+
+
+def _sin_referencia_valida(
+    crudo: PedidoCrudo, via: str, ya_esta: PedidoTransito | None
+) -> tuple[str, str] | None:
+    """El motivo de rechazo si la línea no trae una referencia que sirva (04/11/2026).
+
+    `None` si la trae, o si el pedido ya tiene una: la asociada antes —o corregida
+    a mano en el detalle— no se pierde porque el archivo venga sin ella.
+    """
+    if ya_esta is not None and ya_esta.id_elemento_rastreado is not None:
+        return None
+    if not (crudo.tipo_referencia and crudo.numero_referencia):
+        tipos = "guía aérea (MAWB o HAWB)" if via == "AEREO" else "BL, contenedor ni booking"
+        return (
+            RECHAZO_SIN_REFERENCIA,
+            f"no trae {tipos}: sin referencia de embarque no se puede seguir",
+        )
+    veredicto = validar_referencia(crudo.tipo_referencia, crudo.numero_referencia, via)
+    if not veredicto.valida:
+        return (
+            RECHAZO_REFERENCIA_INVALIDA,
+            f"{crudo.tipo_referencia} «{crudo.numero_referencia}»: {veredicto.motivo}",
+        )
+    return None
 
 
 def _actualizar(
@@ -678,11 +726,64 @@ async def marcar_ausentes(
     return marcados
 
 
+async def cerrar_sin_referencia(
+    sesion: AsyncSession, ahora: dt.datetime, id_usuario: int | None = None
+) -> list[tuple[str, int]]:
+    """Cierra los activos que siguen sin referencia tras una carga completa (04/11/2026).
+
+    Solo los que vinieron de una carga (`fecha_ultima_carga`), como
+    `marcar_ausentes`. Con quien cargó el archivo, el cierre queda en la bitácora;
+    sin él —una carga desde la consola— queda en el log.
+    """
+    # La sesión no vacía sola antes de consultar: la referencia que la carga
+    # acaba de asociar a la última línea todavía no estaría en la base, y ese
+    # pedido se cerraría con su referencia recién puesta.
+    await sesion.flush()
+    pedidos = list(
+        await sesion.scalars(
+            select(PedidoTransito)
+            .where(
+                PedidoTransito.motivo_cierre.is_(None),
+                PedidoTransito.id_elemento_rastreado.is_(None),
+                PedidoTransito.fecha_ultima_carga.is_not(None),
+            )
+            .order_by(PedidoTransito.oc_numero, PedidoTransito.posicion_oc)
+        )
+    )
+    for pedido in pedidos:
+        pedido.motivo_cierre = MOTIVO_CIERRE_SIN_REFERENCIA
+        pedido.estado_calculado = estado.derivar_estado_calculado(
+            pedido.etapa_viaje, pedido.estado_cumplimiento, pedido.motivo_cierre
+        )
+        if id_usuario is not None:
+            auditoria.registrar(
+                sesion,
+                id_pedido=pedido.id,
+                id_usuario=id_usuario,
+                tipo="CIERRE_FORZADO",
+                campo="motivo_cierre",
+                anterior=None,
+                nuevo=MOTIVO_CIERRE_SIN_REFERENCIA,
+                motivo=(
+                    "Cerrado por la carga del Z-tracking: sigue sin BL, contenedor, booking "
+                    "ni guía aérea, y sin referencia no se puede seguir."
+                ),
+                instante=ahora,
+            )
+    if pedidos:
+        await sesion.flush()
+        logger.warning(
+            "Carga: %d pedidos sin referencia de embarque quedan cerrados.", len(pedidos)
+        )
+    return [(p.oc_numero, p.posicion_oc) for p in pedidos]
+
+
 async def cargar(
     sesion: AsyncSession,
     fuente: FuentePedidos,
     señalar_ausentes: bool = True,
     resolutor_destino: ResolutorDestino | None = None,
+    id_usuario: int | None = None,
 ) -> ResultadoCarga:
     """Carga todo lo que entregue la fuente. **No hace commit**: es de quien llama.
 
@@ -692,6 +793,10 @@ async def cargar(
     `señalar_ausentes` permite desactivar el segundo criterio de `US-31` cuando
     la fuente **no** es el universo completo —una carga parcial o de prueba—,
     porque marcar media base como ausente sería peor que no marcar nada.
+
+    Con `señalar_ausentes`, la carga es el universo completo: además cierra los
+    activos que siguen sin referencia (`cerrar_sin_referencia`). `id_usuario` es
+    quien la subió, para la bitácora de esos cierres.
 
     Todas las líneas del lote comparten el mismo instante: una carga es un acto,
     y que dos líneas del mismo archivo difieran en milisegundos solo complica
@@ -798,6 +903,8 @@ async def cargar(
             resultado.sin_rastreo_hoy += 1
 
     if señalar_ausentes:
+        # Antes de marcar ausentes: un cerrado ya no se espera en el archivo.
+        resultado.cerrados_sin_referencia = await cerrar_sin_referencia(sesion, ahora, id_usuario)
         resultado.ausentes = await marcar_ausentes(sesion, presentes, instante=ahora)
 
     # `US-12`: el archivo es un insumo. Una ETA declarada, una fecha
@@ -818,6 +925,9 @@ async def cargar(
 __all__ = [
     "DATO_DESCARTADO",
     "ETAPA_INICIAL",
+    "MOTIVO_CIERRE_SIN_REFERENCIA",
+    "RECHAZO_REFERENCIA_INVALIDA",
+    "RECHAZO_SIN_REFERENCIA",
     "RECHAZO_SIN_DESTINO",
     "RECHAZO_SIN_VIA",
     "RECHAZO_VIA_FUERA_DE_ALCANCE",
@@ -826,6 +936,7 @@ __all__ = [
     "ResultadoCarga",
     "cargar",
     "cargar_pedido",
+    "cerrar_sin_referencia",
     "generar_tracking_interno",
     "marcar_ausentes",
     "resolver_destino",

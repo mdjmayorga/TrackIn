@@ -269,6 +269,32 @@ describe('informe de la carga', () => {
     expect(screen.getByText(/conviene revisar en SAP \(1\)/)).toBeInTheDocument()
   })
 
+  it('sin referencia: la línea no entra, dice qué hacer, y lista los cerrados (04/11/2026)', () => {
+    render(
+      <InformeCarga
+        carga={carga({
+          por_motivo: { sin_referencia: 1 },
+          incidencias: [
+            {
+              clave: '4500000003-10',
+              motivo: 'sin_referencia',
+              detalle: 'no trae BL, contenedor ni booking',
+              consecuencia: 'no_entro',
+            },
+          ],
+          cerrados_sin_referencia: ['4500016171-90', '4500016172-30'],
+        })}
+      />,
+    )
+
+    expect(screen.getAllByText(/Sin referencia de embarque/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Sin referencia el pedido no se puede seguir/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /Cerrados por no tener referencia de embarque \(2\)/ }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('4500016171-90, 4500016172-30')).toBeInTheDocument()
+  })
+
   it('el formato inválido dice el campo, y el dato descartado se marca (US-59)', () => {
     render(
       <InformeCarga

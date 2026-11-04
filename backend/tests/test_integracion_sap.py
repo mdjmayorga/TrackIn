@@ -103,7 +103,15 @@ def _lote(*pedidos: dict[str, Any], lote_id: str = "SAP-PRUEBA-1") -> dict[str, 
 
 
 def _minimo(oc: str, posicion: int = 10, **extra: Any) -> dict[str, Any]:
+    # Desde el 04/11/2026 un pedido sin referencia de embarque no entra. Si la
+    # prueba la pone en el comentario, esa es la que vale.
+    referencia = (
+        {}
+        if "comentario" in extra
+        else {"tipo_referencia": "MAWB", "numero_referencia": "020-50685434"}
+    )
     return {
+        **referencia,
         "oc_numero": oc,
         "posicion_oc": posicion,
         "proveedor_codigo": "P-SAP",

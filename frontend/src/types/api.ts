@@ -514,4 +514,6 @@ export interface CargaDetalle extends CargaResumen {
   por_motivo: Record<string, number>
   incidencias: IncidenciaCarga[]
   avisos: Array<{ clave: string; tipo: string; detalle: string }>
+  /** `OC-posición` de los activos sin referencia que la carga cerró (04/11/2026). */
+  cerrados_sin_referencia?: string[]
 }

@@ -230,9 +230,10 @@ describe('pantalla de planta (US-43)', () => {
       within(grilla)
         .getAllByRole('columnheader')
         .map((th) => th.textContent?.replace(/[▲▼↕]/g, '')),
-    ).toEqual(['OC', 'POS', 'SOLPED', 'Material', 'Etapa', 'Cumplimiento'])
+    ).toEqual(['Material', 'Etapa', 'Cumplimiento', 'OC', 'POS'])
     expect(screen.getByRole('heading', { name: 'Filtros de consulta' })).toBeInTheDocument()
-    expect(screen.getByLabelText(/SOLPED/)).toBeInTheDocument() // `US-63`, 26/10
+    // La SOLPED se quitó de la pantalla de planta el 04/11/2026, con su filtro.
+    expect(screen.queryByLabelText(/SOLPED/)).toBeNull()
     expect(screen.queryByRole('link', { name: /Arribos pendientes/ })).toBeNull()
     expect(listarPedidos).not.toHaveBeenCalledWith(...CONSULTA_BANDEJA)
 

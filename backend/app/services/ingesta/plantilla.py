@@ -72,7 +72,8 @@ _AYUDA: Final[dict[str, tuple[str, str]]] = {
     "solicitud_pedido": ("Número de la SOLPED", "Se muestra en la pantalla de planta"),
     "tipo_referencia": (
         "BL, AWB, CONTENEDOR o BOOKING",
-        "Con el número, permite rastrear el envío",
+        "Con el número, permite rastrear el envío. Sin referencia la línea no entra "
+        "(puede ir en Comentarios)",
     ),
     "numero_referencia": (
         "El número tal cual el documento, como MAEU274029064",
@@ -84,11 +85,10 @@ _AYUDA: Final[dict[str, tuple[str, str]]] = {
     ),
 }
 
-#: Columnas obligatorias cuya celda puede venir en blanco (02/11/2026): el
-#: documento existe recién al zarpar, y la línea entra `SIN_TRACKING`.
-_PUEDEN_IR_VACIAS: Final = frozenset(
-    {"material_descripcion", "solicitud_pedido", "tipo_referencia", "numero_referencia"}
-)
+#: Columnas obligatorias cuya celda puede venir en blanco (02/11/2026). Las del
+#: documento salieron de aquí el 04/11/2026: sin referencia de embarque la línea
+#: ya no entra (`ingesta.carga`), salvo que la traiga en Comentarios.
+_PUEDEN_IR_VACIAS: Final = frozenset({"material_descripcion", "solicitud_pedido"})
 
 #: La fila de títulos de la tabla de instrucciones, debajo de las dos notas.
 _FILA_TITULOS: Final = 4

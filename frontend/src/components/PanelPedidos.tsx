@@ -103,12 +103,7 @@ export function PanelPedidos({
           )}
         </div>
         <div className="mb-2">
-          <BarraFiltros
-            key={versionFiltros}
-            filtros={filtros}
-            onCambio={onCambioFiltros}
-            conSolped={vista === 'simple'}
-          />
+          <BarraFiltros key={versionFiltros} filtros={filtros} onCambio={onCambioFiltros} />
         </div>
 
         {isPending && <p className="py-8 text-center text-slate-400">Cargando pedidos…</p>}

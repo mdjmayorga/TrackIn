@@ -88,15 +88,16 @@ describe('Dashboard', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('ShipsGo API Online')
   })
 
-  it('los dos mapas a los lados y, al centro, arribos y grilla', async () => {
+  it('arriba los mapas a los lados y los arribos al centro; abajo, la grilla ancha', async () => {
+    // 04/11/2026: la grilla baja a todo el ancho entre las dos leyendas.
     renderConProviders(<Dashboard />)
 
     const titulos = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
     expect(titulos).toEqual([
       'Mapa Marítimo',
       'Próximos Arribos',
-      'Grilla de Pedidos',
       'Mapa Aéreo',
+      'Grilla de Pedidos',
     ])
   })
 

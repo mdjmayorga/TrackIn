@@ -26,17 +26,30 @@ const NEUTRO = ETAPAS.EN_TRANSITO.fondo
 export function LeyendaMapa({
   marcadores,
   umbralHoras,
+  umbralesPorVia,
+  nombre = 'Leyenda del mapa',
 }: {
+  /** Los de un mapa, o los de los dos juntos en la leyenda del panel. */
   marcadores: MarcadorMapa[]
-  umbralHoras: number
+  umbralHoras?: number
+  /**
+   * La leyenda única del panel (04/11/2026): es lo único que cambia entre los dos
+   * mapas, porque cada vía se consulta con su frecuencia.
+   */
+  umbralesPorVia?: { maritimo: number; aereo: number }
+  /** El nombre para lectores de pantalla. */
+  nombre?: string
 }) {
+  const umbral = umbralesPorVia
+    ? `${umbralesPorVia.maritimo} h (marítimo) o ${umbralesPorVia.aereo} h (aéreo)`
+    : `${umbralHoras} h`
   const etapas = ORDEN_ETAPAS.filter((e) => marcadores.some((m) => m.etapa === e))
   const conRuta = marcadores.some((m) => m.trayecto?.length)
   if (marcadores.length === 0) return null
 
   return (
     <section
-      aria-label="Leyenda del mapa"
+      aria-label={nombre}
       className="mt-2 flex flex-wrap gap-x-8 gap-y-2 rounded border border-panel-borde px-3 py-2 text-xs text-slate-300"
     >
       <Grupo titulo="Relleno: etapa">
@@ -57,9 +70,7 @@ export function LeyendaMapa({
       </Grupo>
       <Grupo titulo="Opacidad: lectura">
         <Item muestra={<Punto relleno={NEUTRO} />}>Lectura reciente</Item>
-        <Item muestra={<Punto relleno={NEUTRO} vieja />}>
-          Sin lectura en más de {umbralHoras} h
-        </Item>
+        <Item muestra={<Punto relleno={NEUTRO} vieja />}>Sin lectura en más de {umbral}</Item>
       </Grupo>
       {conRuta && (
         <Grupo titulo="Trazo: ruta">

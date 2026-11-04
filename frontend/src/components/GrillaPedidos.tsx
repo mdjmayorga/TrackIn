@@ -51,8 +51,11 @@ function destino(pedido: PedidoResumen) {
 
 /**
  * Las dos grillas (`US-43`): la completa, para todos los roles, y la de la
- * pantalla de planta, la «Grilla simple» del Figma más OC, POS y SOLPED, que
- * pidió Compras el 22/10/2026 (`US-63`). La SOLPED solo la ve planta.
+ * pantalla de planta, la «Grilla simple» del Figma más OC y POS (`US-63`).
+ *
+ * **Las dos empiezan por Material, Etapa y Cumplimiento** (pedido del supervisor,
+ * 04/11/2026): lo que se busca primero es qué material es y cómo viene. La SOLPED
+ * se quitó de la pantalla de planta ese mismo día: no la necesitaban.
  */
 export type VistaGrilla = 'completa' | 'simple'
 
@@ -63,17 +66,12 @@ const OC_SIN_ENLACE: Columna = { titulo: 'OC', orden: 'oc', celda: (p) => p.oc_n
 
 const POS: Columna = { titulo: 'POS', celda: (p) => p.posicion_oc }
 
-const SOLPED: Columna = {
-  titulo: 'SOLPED',
-  celda: (p) => p.solicitud_pedido ?? <Guion motivo="Sin solicitud de pedido" />,
-}
-
 function columnas(terminales: boolean, vista: VistaGrilla): Columna[] {
   const todas = columnasCompletas(terminales)
   if (vista === 'completa') return todas
   // Material, Etapa y Cumplimiento son las de la completa, con los mismos textos y
-  // colores; delante, los tres números con que se ubica una línea en planta.
-  return [OC_SIN_ENLACE, POS, SOLPED, ...todas.filter((c) => COLUMNAS_SIMPLES.has(c.titulo))]
+  // colores; detrás, los dos números con que se ubica una línea en planta.
+  return [...todas.filter((c) => COLUMNAS_SIMPLES.has(c.titulo)), OC_SIN_ENLACE, POS]
 }
 
 function columnasCompletas(terminales: boolean): Columna[] {
@@ -90,21 +88,21 @@ function columnasCompletas(terminales: boolean): Columna[] {
         celda: (p) => fecha(p.fecha_proyectada_disponible, 'Sin fecha proyectada'),
       }
 
+  const oc: Columna = {
+    titulo: 'OC',
+    orden: 'oc',
+    // La OC abre el detalle (`US-20`).
+    celda: (p) => (
+      <Link
+        to={`/pedidos/${p.id}`}
+        className="underline decoration-slate-500 underline-offset-2 hover:text-white hover:decoration-white"
+      >
+        {p.oc_numero}
+      </Link>
+    ),
+  }
+
   return [
-    {
-      titulo: 'OC',
-      orden: 'oc',
-      // La OC abre el detalle (`US-20`).
-      celda: (p) => (
-        <Link
-          to={`/pedidos/${p.id}`}
-          className="underline decoration-slate-500 underline-offset-2 hover:text-white hover:decoration-white"
-        >
-          {p.oc_numero}
-        </Link>
-      ),
-    },
-    { titulo: 'POS', celda: (p) => p.posicion_oc },
     {
       titulo: 'Material',
       orden: 'material',
@@ -126,6 +124,8 @@ function columnasCompletas(terminales: boolean): Columna[] {
           <Guion motivo="Cumplimiento no evaluable" />
         ),
     },
+    oc,
+    POS,
     proyectada,
     {
       titulo: 'F. Comprometida',

@@ -64,6 +64,13 @@ class CargaDetalle(CargaResumen):
     )
     incidencias: list[Incidencia] = Field(default_factory=list)
     avisos: list[Aviso] = Field(default_factory=list)
+    cerrados_sin_referencia: list[str] = Field(
+        default_factory=list,
+        description=(
+            "`OC-posición` de los activos sin referencia de embarque que esta carga "
+            "cerró (04/11/2026): no se pueden seguir."
+        ),
+    )
 
 
 class EstadoCargas(BaseModel):

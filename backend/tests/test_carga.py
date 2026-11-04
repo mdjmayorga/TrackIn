@@ -23,9 +23,11 @@ from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.services.ingesta.carga import (
     DATO_DESCARTADO,
+    MOTIVO_CIERRE_SIN_REFERENCIA,
     PREFIJO_DISCREPANCIA,
     RECHAZO_REFERENCIA_INVALIDA,
     RECHAZO_SIN_DESTINO,
+    RECHAZO_SIN_REFERENCIA,
     RECHAZO_SIN_VIA,
     RECHAZO_VIA_FUERA_DE_ALCANCE,
     LineaRechazada,
@@ -58,7 +60,15 @@ def _crudo(**kwargs) -> PedidoCrudo:
         "incoterm": "CIF LIMON",
         "temperatura": "Ambiente",
     }
-    return PedidoCrudo(**{**base, **kwargs})
+    # Desde el 04/11/2026 una línea sin referencia de embarque no entra: la limpia
+    # trae una válida para su vía.
+    aerea = kwargs.get("via_transporte", base["via_transporte"]) == "AEREO"
+    referencia = (
+        {"tipo_referencia": "MAWB", "numero_referencia": "020-50685434"}
+        if aerea
+        else {"tipo_referencia": "CONTENEDOR", "numero_referencia": "MSCU1234566"}
+    )
+    return PedidoCrudo(**{**base, **referencia, **kwargs})
 
 
 class FuenteFalsa:
@@ -336,7 +346,14 @@ class TestCargarPedido:
     async def test_el_maestro_manda_sobre_la_via_del_archivo(self, sesion) -> None:
         """El destino es dato verificado; la columna del archivo es texto libre."""
         pedido, _, _ = await cargar_pedido(
-            sesion, _crudo(destino_codigo="MROC", via_transporte="MARITIMO")
+            sesion,
+            _crudo(
+                destino_codigo="MROC",
+                via_transporte="MARITIMO",
+                # La referencia es de la vía que manda: la del maestro.
+                tipo_referencia="MAWB",
+                numero_referencia="020-50685434",
+            ),
         )
         assert pedido is not None
         assert pedido.via_transporte == "AEREO"
@@ -365,12 +382,14 @@ async def sin_pedidos(sesion):
 @pytest.mark.integration
 class TestCargarLote:
     async def test_la_semilla_entera_se_carga(self, sesion, sin_pedidos) -> None:
-        """El caso que se demuestra: 8 líneas, 6 entran y 2 quedan a la vista."""
+        """8 líneas: 4 entran; 2 sucias y, desde el 04/11/2026, 2 sin referencia no."""
         resultado = await cargar(sesion, FuenteSemilla())
 
         assert resultado.leidas == len(PEDIDOS_SEMILLA) == 8
-        assert resultado.cargados == 6
-        assert len(resultado.rechazadas) == 2
+        assert resultado.cargados == 4
+        assert len(resultado.rechazadas) == 4
+        motivos = [r.motivo for r in resultado.rechazadas]
+        assert motivos.count(RECHAZO_SIN_REFERENCIA) == 2
 
     async def test_las_dos_rechazadas_son_las_sucias_y_dicen_por_que(
         self, sesion, sin_pedidos
@@ -412,7 +431,8 @@ class TestCargarLote:
 
         assert resultado.rastreables == 4
         assert resultado.sin_rastreo_hoy == 0
-        assert resultado.sin_tracking == 2
+        # Las dos sin referencia ya no entran (04/11/2026).
+        assert resultado.sin_tracking == 0
 
     async def test_las_lineas_con_referencia_salen_de_sin_tracking(
         self, sesion, sin_pedidos
@@ -669,73 +689,95 @@ class TestAusentes:
 
 
 @pytest.mark.integration
-class TestReferenciaInvalida:
-    """Una referencia mala **no** impide que el pedido entre (RN-17), pero
-    tampoco puede desaparecer del informe: hasta `US-32` no se contaba en
-    ninguna parte."""
+class TestSinReferenciaNoEntra:
+    """04/11/2026, pedido del supervisor: sin BL, contenedor, booking ni guía aérea
+    el pedido no se puede seguir, así que la línea no entra. Hasta entonces entraba
+    «Sin tracking» y se quedaba en el panel aunque ya hubiera llegado a planta."""
 
-    async def test_el_pedido_entra_aunque_la_referencia_no_sirva(self, sesion, sin_pedidos) -> None:
+    async def test_una_linea_sin_referencia_se_rechaza_y_dice_por_que(
+        self, sesion, sin_pedidos
+    ) -> None:
         resultado = await cargar(
             sesion,
-            # `MSCU1234567`: formato correcto, dígito verificador equivocado.
+            FuenteFalsa([_crudo(tipo_referencia=None, numero_referencia=None)]),
+            señalar_ausentes=False,
+        )
+
+        (rechazada,) = resultado.rechazadas
+        assert rechazada.motivo == RECHAZO_SIN_REFERENCIA
+        assert "BL, contenedor ni booking" in rechazada.detalle
+        assert resultado.cargados == 0
+        assert await sesion.scalar(select(PedidoTransito)) is None
+
+    async def test_en_un_aereo_pide_la_guia(self, sesion, sin_pedidos) -> None:
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa(
+                [
+                    _crudo(
+                        destino_codigo="MROC",
+                        via_transporte="AEREO",
+                        tipo_referencia=None,
+                        numero_referencia=None,
+                    )
+                ]
+            ),
+            señalar_ausentes=False,
+        )
+
+        assert "guía aérea (MAWB o HAWB)" in resultado.rechazadas[0].detalle
+
+    async def test_una_referencia_mal_escrita_tambien_se_rechaza(self, sesion, sin_pedidos) -> None:
+        """`MSCU1234567`: formato correcto, dígito verificador equivocado."""
+        resultado = await cargar(
+            sesion,
             FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234567")]),
             señalar_ausentes=False,
         )
 
-        assert resultado.cargados == 1
-        assert len(resultado.rechazadas) == 0  # la línea no se rechaza
-        pedido = await sesion.scalar(select(PedidoTransito))
-        assert pedido is not None
-        assert pedido.etapa_viaje == "SIN_TRACKING"  # RN-02: no se asoció nada
-        assert pedido.id_elemento_rastreado is None
+        (rechazada,) = resultado.rechazadas
+        assert (rechazada.oc_numero, rechazada.posicion_oc) == ("4599999999", 10)
+        assert rechazada.motivo == RECHAZO_REFERENCIA_INVALIDA
+        assert "dígito verificador" in rechazada.detalle
+        assert resultado.cargados == 0
 
-    async def test_la_referencia_mala_queda_en_el_informe_con_su_clave(
+    async def test_una_guia_aerea_en_una_linea_maritima_se_rechaza(
         self, sesion, sin_pedidos
     ) -> None:
-        """Lo que se gana: el número mal transcrito se puede ir a corregir."""
-        resultado = await cargar(
-            sesion,
-            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234567")]),
-            señalar_ausentes=False,
-        )
-
-        (invalida,) = resultado.referencias_invalidas
-        assert (invalida.oc_numero, invalida.posicion_oc) == ("4599999999", 10)
-        assert invalida.motivo == RECHAZO_REFERENCIA_INVALIDA
-        assert "dígito verificador" in invalida.detalle
-
-    async def test_no_se_cuenta_ni_como_rastreable_ni_como_sin_rastreo_hoy(
-        self, sesion, sin_pedidos
-    ) -> None:
-        """Son tres cosas distintas: se sigue hoy, se seguiría con créditos, y
-        no se seguirá nunca porque el número está mal."""
-        resultado = await cargar(
-            sesion,
-            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234567")]),
-            señalar_ausentes=False,
-        )
-
-        assert resultado.rastreables == 0
-        assert resultado.sin_rastreo_hoy == 0
-        assert len(resultado.referencias_invalidas) == 1
-
-    async def test_una_guia_aerea_en_una_linea_maritima_queda_en_el_informe(
-        self, sesion, sin_pedidos
-    ) -> None:
-        """21/10: la línea entra, pero la guía no se asocia y el informe dice por qué."""
         resultado = await cargar(
             sesion,
             FuenteFalsa([_crudo(tipo_referencia="HAWB", numero_referencia="ZIVHYD017")]),
             señalar_ausentes=False,
         )
 
-        (invalida,) = resultado.referencias_invalidas
-        assert invalida.motivo == RECHAZO_REFERENCIA_INVALIDA
-        assert "no corresponde a un pedido marítimo" in invalida.detalle
-        pedido = await sesion.scalar(select(PedidoTransito))
-        assert pedido is not None and pedido.id_elemento_rastreado is None
+        (rechazada,) = resultado.rechazadas
+        assert rechazada.motivo == RECHAZO_REFERENCIA_INVALIDA
+        assert "no corresponde a un pedido marítimo" in rechazada.detalle
 
-    async def test_un_contenedor_bien_transcrito_si_se_asocia(self, sesion, sin_pedidos) -> None:
+    async def test_el_informe_las_cuenta_como_no_entraron(self, sesion, sin_pedidos) -> None:
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa(
+                [
+                    _crudo(posicion_oc=10, tipo_referencia=None, numero_referencia=None),
+                    _crudo(
+                        posicion_oc=20,
+                        tipo_referencia="CONTENEDOR",
+                        numero_referencia="MSCU1234567",
+                    ),
+                ]
+            ),
+            señalar_ausentes=False,
+        )
+
+        informe = construir_informe("prueba", resultado)
+
+        assert informe.no_entraron == 2
+        assert informe.entraron_sin_rastreo == 0
+
+    async def test_un_contenedor_bien_transcrito_si_entra_y_se_asocia(
+        self, sesion, sin_pedidos
+    ) -> None:
         """El contraste: mismo tipo, mismo formato, dígito correcto."""
         resultado = await cargar(
             sesion,
@@ -743,27 +785,106 @@ class TestReferenciaInvalida:
             señalar_ausentes=False,
         )
 
-        assert resultado.referencias_invalidas == []
-        # Con los créditos comprados (23/09/2026) un contenedor nace rastreable.
+        assert resultado.rechazadas == []
         assert resultado.rastreables == 1
-        assert resultado.sin_rastreo_hoy == 0
         pedido = await sesion.scalar(select(PedidoTransito))
-        assert pedido is not None
-        assert pedido.id_elemento_rastreado is not None
+        assert pedido is not None and pedido.id_elemento_rastreado is not None
 
-    async def test_el_informe_la_marca_como_entro_sin_rastreo(self, sesion, sin_pedidos) -> None:
-        """La distinción que necesita quien lee: hay un pedido en la base, lo
-        que falta es poder seguirlo."""
+    async def test_un_pedido_que_ya_tiene_referencia_no_se_rechaza_si_el_archivo_no_la_trae(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """La asociada antes —o corregida a mano en el detalle— sigue valiendo."""
+        await cargar(sesion, FuenteFalsa([_crudo()]), señalar_ausentes=False)
+
         resultado = await cargar(
             sesion,
-            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234567")]),
+            FuenteFalsa([_crudo(tipo_referencia=None, numero_referencia=None)]),
             señalar_ausentes=False,
         )
 
-        informe = construir_informe("prueba", resultado)
+        assert resultado.rechazadas == []
+        assert resultado.sin_cambios == 1
 
-        assert informe.no_entraron == 0
-        assert informe.entraron_sin_rastreo == 1
+
+async def _activo_sin_referencia(sesion, posicion_oc: int = 10) -> PedidoTransito:
+    """Un pedido que entró antes de la regla del 04/11/2026: activo y sin referencia."""
+    await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=posicion_oc)]), señalar_ausentes=False)
+    pedido = await sesion.scalar(
+        select(PedidoTransito).where(PedidoTransito.posicion_oc == posicion_oc)
+    )
+    assert pedido is not None
+    pedido.id_elemento_rastreado = None
+    pedido.etapa_viaje = "SIN_TRACKING"
+    pedido.estado_calculado = "SIN_TRACKING"
+    await sesion.flush()
+    return pedido
+
+
+@pytest.mark.integration
+class TestCierreSinReferencia:
+    """Los activos que siguen sin referencia se cierran en la carga completa
+    (decisión del 04/11/2026): «Cerrarlos al cargar»."""
+
+    async def test_la_carga_completa_los_cierra_sin_referencia(self, sesion, sin_pedidos) -> None:
+        viejo = await _activo_sin_referencia(sesion, posicion_oc=20)
+
+        resultado = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+
+        assert resultado.cerrados_sin_referencia == [("4599999999", 20)]
+        await sesion.refresh(viejo)
+        assert viejo.motivo_cierre == MOTIVO_CIERRE_SIN_REFERENCIA
+        assert viejo.estado_calculado == "CERRADO"
+        # Cerrado, ya no se espera en el archivo: no es además un ausente.
+        assert resultado.ausentes == []
+
+    async def test_si_vuelve_con_referencia_la_toma_y_no_se_cierra(
+        self, sesion, sin_pedidos
+    ) -> None:
+        viejo = await _activo_sin_referencia(sesion)
+
+        resultado = await cargar(
+            sesion,
+            FuenteFalsa([_crudo(tipo_referencia="CONTENEDOR", numero_referencia="MSCU1234566")]),
+        )
+
+        assert resultado.cerrados_sin_referencia == []
+        assert resultado.referencias_nuevas == 1
+        await sesion.refresh(viejo)
+        assert viejo.motivo_cierre is None
+        assert viejo.id_elemento_rastreado is not None
+
+    async def test_si_vuelve_sin_referencia_la_linea_se_rechaza_y_el_pedido_se_cierra(
+        self, sesion, sin_pedidos
+    ) -> None:
+        viejo = await _activo_sin_referencia(sesion)
+
+        resultado = await cargar(
+            sesion, FuenteFalsa([_crudo(tipo_referencia=None, numero_referencia=None)])
+        )
+
+        assert [r.motivo for r in resultado.rechazadas] == [RECHAZO_SIN_REFERENCIA]
+        assert resultado.cerrados_sin_referencia == [("4599999999", 10)]
+        await sesion.refresh(viejo)
+        assert viejo.motivo_cierre == MOTIVO_CIERRE_SIN_REFERENCIA
+
+    async def test_una_carga_parcial_no_cierra_nada(self, sesion, sin_pedidos) -> None:
+        """Un lote de SAP no es el universo: no puede cerrar lo que no trae."""
+        viejo = await _activo_sin_referencia(sesion, posicion_oc=20)
+
+        resultado = await cargar(
+            sesion, FuenteFalsa([_crudo(posicion_oc=10)]), señalar_ausentes=False
+        )
+
+        assert resultado.cerrados_sin_referencia == []
+        await sesion.refresh(viejo)
+        assert viejo.motivo_cierre is None
+
+    async def test_el_informe_los_lista(self, sesion, sin_pedidos) -> None:
+        await _activo_sin_referencia(sesion, posicion_oc=20)
+
+        resultado = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+
+        assert construir_informe("prueba", resultado).cerrados_sin_referencia == ["4599999999-20"]
 
 
 # --- El destino según la fuente de rastreo (`US-52`) -----------------------
@@ -1053,7 +1174,7 @@ class TestReferenciaEnCargasSiguientes:
     async def test_un_pedido_sin_referencia_la_toma_en_la_carga_siguiente(
         self, sesion, sin_pedidos
     ) -> None:
-        await cargar(sesion, FuenteFalsa([_crudo()]), señalar_ausentes=False)
+        await _activo_sin_referencia(sesion)
 
         resultado = await cargar(
             sesion,
@@ -1093,10 +1214,11 @@ class TestReferenciaEnCargasSiguientes:
         assert resultado.referencias_nuevas == 0
         assert resultado.sin_cambios == 1
 
-    async def test_la_referencia_mala_de_un_pedido_existente_queda_en_el_informe(
+    async def test_la_referencia_mala_de_un_pedido_sin_referencia_se_rechaza(
         self, sesion, sin_pedidos
     ) -> None:
-        await cargar(sesion, FuenteFalsa([_crudo()]), señalar_ausentes=False)
+        """04/11/2026: antes entraba igual y la referencia quedaba en el informe."""
+        await _activo_sin_referencia(sesion)
 
         resultado = await cargar(
             sesion,
@@ -1104,9 +1226,9 @@ class TestReferenciaEnCargasSiguientes:
             señalar_ausentes=False,
         )
 
-        (invalida,) = resultado.referencias_invalidas
-        assert "«MSCU1234567»" in invalida.detalle
-        assert resultado.sin_cambios == 1
+        (rechazada,) = resultado.rechazadas
+        assert rechazada.motivo == RECHAZO_REFERENCIA_INVALIDA
+        assert "«MSCU1234567»" in rechazada.detalle
 
 
 @pytest.mark.integration

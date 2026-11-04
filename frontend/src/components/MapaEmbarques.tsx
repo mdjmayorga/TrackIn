@@ -44,6 +44,11 @@ export interface MapaEmbarquesProps {
   centro: LatLngExpression
   zoom: number
   filtros?: FiltrosPanel
+  /**
+   * El panel pone la leyenda en otro lugar, contra el borde de la pantalla, para
+   * darle ancho a la grilla (04/11/2026): ver `LeyendaDeCapa`.
+   */
+  leyendaAparte?: boolean
 }
 
 export function MapaEmbarques({
@@ -52,6 +57,7 @@ export function MapaEmbarques({
   centro,
   zoom,
   filtros = FILTROS_VACIOS,
+  leyendaAparte = false,
 }: MapaEmbarquesProps) {
   const { data } = useMapa(capa, filtros)
   const marcadores = data?.marcadores ?? []
@@ -59,7 +65,7 @@ export function MapaEmbarques({
 
   return (
     <div>
-      <MapaBase titulo={titulo} centro={centro} zoom={zoom}>
+      <MapaBase titulo={titulo} centro={centro} zoom={zoom} compacto>
         <CapaAgrupada marcadores={marcadores} />
       </MapaBase>
       {data && (
@@ -73,13 +79,37 @@ export function MapaEmbarques({
           {marcadores.some((m) => m.trayecto?.length) && ' · clic en un embarque para ver su ruta'}
         </p>
       )}
-      {data && <LeyendaMapa marcadores={marcadores} umbralHoras={data.umbral_desactualizada_h} />}
+      {data && !leyendaAparte && (
+        <LeyendaMapa marcadores={marcadores} umbralHoras={data.umbral_desactualizada_h} />
+      )}
       <ul aria-label={`Embarques en el ${titulo}`} className="sr-only">
         {marcadores.map((m) => (
           <li key={m.id_elemento}>{rotulo(m)}</li>
         ))}
       </ul>
     </div>
+  )
+}
+
+/**
+ * Una sola leyenda para los dos mapas del panel (04/11/2026): las dos decían lo
+ * mismo salvo el umbral de lectura vieja, y el espacio de la segunda pasó a la
+ * grilla. Las etapas son las de los dos mapas juntos. Pide los mismos datos que
+ * los mapas, y React Query los comparte: no hay una consulta más.
+ */
+export function LeyendaDelPanel({ filtros = FILTROS_VACIOS }: { filtros?: FiltrosPanel }) {
+  const maritimo = useMapa('MARITIMO', filtros).data
+  const aereo = useMapa('AEREO', filtros).data
+  if (!maritimo || !aereo) return null
+  return (
+    <LeyendaMapa
+      marcadores={[...maritimo.marcadores, ...aereo.marcadores]}
+      umbralesPorVia={{
+        maritimo: maritimo.umbral_desactualizada_h,
+        aereo: aereo.umbral_desactualizada_h,
+      }}
+      nombre="Leyenda de los mapas"
+    />
   )
 }
 

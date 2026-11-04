@@ -2633,6 +2633,33 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **28/10: adelantadas 40 de 63 h.** `US-25` y `US-26` construidas (falta verlas con datos
 > reales), `US-30` y `US-33` terminadas y `TASK-10` cerrada sin retención.
 >
+> **04/11: cambios pedidos por el supervisor** (reunión del 04/11), hechos el mismo día:
+>
+> 1. **Grilla:** Material, Etapa y Cumplimiento primero; después OC, POS y el resto. Igual en la
+>    pantalla de planta.
+> 2. **Más ancho para la grilla:** en pantalla ancha, arriba los mapas de igual ancho a los
+>    costados y al centro los indicadores y los próximos arribos; abajo la grilla, a dos tercios
+>    del ancho, con las leyendas contra los bordes (la del aéreo, alineada a la derecha). En
+>    pantalla angosta, todo en una columna y cada leyenda bajo su mapa.
+> 3. **Sin referencia no entra:** la carga rechaza la línea sin BL, contenedor, booking ni guía
+>    aérea (`sin_referencia`) o con una que no pasa la validación (`referencia_invalida`, que
+>    antes entraba «Sin tracking»), salvo que el pedido ya tenga referencia. Una carga completa
+>    **cierra** los activos que siguen sin referencia, con el motivo nuevo `SIN_REFERENCIA`
+>    (estado `CERRADO`, migración `0034`), su asiento en la bitácora a nombre de quien cargó y
+>    la lista en el informe de la carga. Vale también para los lotes de SAP, que rechazan pero
+>    no cierran (no son el universo). La plantilla y el contrato de SAP ya lo dicen.
+> 4. **Sin SOLPED en la pantalla de planta**, ni la columna ni su filtro.
+>
+> **04/11, después: la grilla se ve al entrar, sin deslizar.** Encabezado en una sola franja
+> (sin el subtítulo «Tracking aéreo-marítimo»), la insignia de ShipsGo en fila con los avisos de
+> la derecha en vez de apilados, y los mapas del panel en 16:10 en vez de 5:4 (el del detalle
+> del pedido no cambia).
+>
+> **04/11, más tarde: una sola leyenda.** Las dos decían lo mismo salvo el umbral de lectura vieja
+> (12 h el marítimo, 2 h el aéreo, por su frecuencia de consulta): queda una a la izquierda, con
+> las etapas de los dos mapas y los dos umbrales, y la grilla pasa a cinco sextos del ancho. Los
+> indicadores y los próximos arribos se centran en el alto entre los dos mapas.
+>
 > **03/11, al cierre: `TASK-06` terminada**, adelantada del cierre (12 h del bloque de cierre,
 > fuera de las horas del sprint): flujo completo del Excel al cierre y las reglas de la §7 al
 > 98,5 %, verificadas en el CI.

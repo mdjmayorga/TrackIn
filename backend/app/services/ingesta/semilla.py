@@ -12,7 +12,8 @@ validación de `US-32` tiene que saber manejar:
 - Mayúsculas mezcladas en el incoterm (`Exw`).
 - La vía en `PENDIENTE`, que no es un dato.
 - Y sobre todo, **la mayoría de las líneas sin referencia de embarque**: en la
-  muestra real ninguna de las 429 la traía.
+  muestra real ninguna de las 429 la traía. Desde el 04/11/2026 esas líneas ya
+  no entran (`ingesta.carga`): de las 8 de la semilla entran 4.
 """
 
 from __future__ import annotations

@@ -254,6 +254,8 @@ async def cargar_archivo(
         sesion,
         FuenteLeida("ztracking", f"Z-tracking subido ({nombre})", pedidos),
         resolutor_destino=resolutor_destino,
+        # Los cierres por falta de referencia quedan en la bitácora a su nombre.
+        id_usuario=id_usuario,
     )
     informe = construir_informe("ztracking", resultado, fuente.ilegibles)
     fila = registro_de_carga(

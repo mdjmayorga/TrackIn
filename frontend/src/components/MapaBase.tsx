@@ -35,6 +35,11 @@ export interface MapaBaseProps {
   marcador?: { posicion: LatLngExpression; etiqueta: string; color: string; anillo?: string }
   /** Capas propias, dentro del `MapContainer`: los embarques del panel. */
   children?: ReactNode
+  /**
+   * Más bajo (16:10 en vez de 5:4) para que en el panel la grilla se vea sin
+   * deslizar (04/11/2026). El detalle del pedido conserva el alto de siempre.
+   */
+  compacto?: boolean
 }
 
 export function MapaBase({
@@ -43,6 +48,7 @@ export function MapaBase({
   zoom,
   ocultarTitulo,
   marcador,
+  compacto = false,
   children,
 }: MapaBaseProps) {
   const id = `mapa-${titulo.toLowerCase().replace(/\W+/g, '-')}`
@@ -51,7 +57,9 @@ export function MapaBase({
       <h2 id={id} className={ocultarTitulo ? 'sr-only' : 'mb-2 text-xl font-semibold'}>
         {titulo}
       </h2>
-      <div className="mapa-oscuro aspect-[5/4] overflow-hidden rounded border border-panel-borde">
+      <div
+        className={`mapa-oscuro ${compacto ? 'aspect-[16/10]' : 'aspect-[5/4]'} overflow-hidden rounded border border-panel-borde`}
+      >
         <MapContainer
           center={centro}
           zoom={zoom}

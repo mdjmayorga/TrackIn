@@ -12,6 +12,8 @@ const MOTIVOS: Record<string, string> = {
   formato_invalido: 'Formato inválido',
   dato_descartado: 'Dato descartado',
   referencia_invalida: 'Referencia de embarque inválida',
+  // 04/11/2026: sin BL, contenedor, booking ni guía aérea la línea no entra.
+  sin_referencia: 'Sin referencia de embarque',
   no_la_sigue_shipsgo: 'Referencia que ShipsGo no sigue',
   aerolinea_sin_cobertura: 'Aerolínea sin cobertura en ShipsGo',
 }
@@ -27,6 +29,10 @@ export const QUE_HACER: Record<string, string> = {
     'Corrija la celda que dice el detalle, con el formato que pide, y vuelva a cargar.',
   dato_descartado:
     'La línea entró sin ese dato. Corríjalo en SAP para que la próxima carga lo tome.',
+  sin_referencia:
+    'Complete «TIPO DE DOCUMENTO AWB / BL» y «# DE DOCUMENTO» (BL, contenedor o booking si es marítimo; MAWB o HAWB si es aéreo). Sin referencia el pedido no se puede seguir y no entra.',
+  referencia_invalida:
+    'Revise el número: un dígito de más o de menos, letras de otra referencia, o una guía aérea en un pedido marítimo. Corregido, la línea entra en la próxima carga.',
 }
 
 export function nombreMotivo(motivo: string): string {
