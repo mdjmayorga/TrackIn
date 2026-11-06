@@ -159,6 +159,9 @@ postgres-data/
 # Datos y artefactos del proyecto (no versionar datos de Gutis)
 # ---------------------------------------------------------------------------
 data/
+# Respaldos de la base (scripts/asistente_produccion.sh): son datos de Gutis
+respaldos/
+*.dump
 *.xlsx
 *.xls
 *.csv

@@ -109,3 +109,25 @@ _Avoid_: Cierre manual
 **Cancelado**:
 Pedido que dejó de esperarse antes de llegar.
 _Avoid_: Anulado, eliminado
+
+### Operación
+
+**Carga**:
+Cada vez que se sube un Z-tracking a TrackIn. La de rutina es semanal, después de que SAP se actualiza los lunes.
+_Avoid_: Importación, sincronización
+
+**Alta**:
+Inscribir una referencia de embarque en la cuenta de la fuente comercial de rastreo para que empiece a seguirla. Cada alta consume un crédito y no se deshace.
+_Avoid_: Registro, suscripción
+
+**Crédito**:
+La unidad que la fuente comercial de rastreo cobra por cada alta. Se compran por paquetes con vencimiento.
+_Avoid_: Saldo (es la cantidad de créditos que quedan), consulta
+
+**Piloto**:
+El período en que TrackIn se usa junto al proceso actual con el Excel, antes de ser la fuente oficial del seguimiento.
+_Avoid_: Prueba, marcha blanca
+
+**Salida a producción**:
+El momento en que TrackIn queda accesible en la red de Gutis con datos reales y pasa a usarse en el trabajo diario.
+_Avoid_: Lanzamiento, go-live, despliegue (es el procedimiento técnico, no el hito)
