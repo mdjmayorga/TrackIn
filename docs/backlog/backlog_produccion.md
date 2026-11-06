@@ -67,7 +67,7 @@ cambia, cambian las tareas que la citan.
 |---|---|---|---|---|---|---|---|
 | `PROD-01` | Pedir a TI el servidor, el DNS, el certificado y la salida a internet | Task | 0 | **Must** | 3h | — | Mariano + TI |
 | `PROD-02` | Confirmar las decisiones de partida con el supervisor y Compras | Task | 0 | **Must** | 2h | — | Mariano |
-| `PROD-03` | Ensayo local del stack de contenedores, de punta a punta | Task | 0 | **Must** | 6h | — | Mariano |
+| `PROD-03` | Ensayo local del stack de contenedores, de punta a punta ✅ | Task | 0 | **Must** | 6h | — | Mariano |
 | `PROD-04` | Corregir lo que encuentre el ensayo local | Task | 0 | **Must** | 4h | `PROD-03` | Mariano |
 | `PROD-05` | Mosaicos del mapa: URL sin subdominio, configurable y con plan B | Task | 0 | **Should** | 3h | — | Mariano |
 | `PROD-06` | Versionar: etiqueta `v1.0.0`, notas de versión y vuelta atrás | Task | 0 | **Must** | 2h | `PROD-04` | Mariano |
@@ -119,7 +119,7 @@ cambia, cambian las tareas que la citan.
 |---|---|---|
 | R1. TI no entrega la máquina virtual a tiempo | Se corre toda la fase 1 | Pedirla ya, para el 20/11 y no el 23/11 (`PROD-01`, D24): hay tres días hábiles de margen; mientras, todo lo que se puede probar se prueba en el ensayo local (`PROD-03`) |
 | R2. TI solo tiene servidores Windows | Cambia D2 | La guía ya cubre la variante sin Docker (§10); suma unas 6 h a `PROD-15` |
-| R3. Las imágenes nunca se construyeron | El primer `docker compose build` falla en el servidor | `PROD-03`: construirlas y levantarlas aquí antes, ahora que este equipo sí tiene Docker |
+| R3. Las imágenes nunca se construyeron | El primer `docker compose build` falla en el servidor | **Cerrado el 06/11** por `PROD-03`: se construyen y el stack funciona; quedó un solo defecto (el chequeo de salud del panel), para `PROD-04` |
 | R4. El Z-tracking llega con pocas referencias | Desde el 04/11 la línea sin referencia no entra: el panel arranca con pocos pedidos | Pedir a Compras, antes de `PROD-22`, que complete BL o guía madre en SAP |
 | R5. Un equipo de desarrollo gasta créditos reales | El saldo no coincide y se pierden créditos | `PROD-12` ([ADR 0003](../adr/0003-solo-produccion-da-de-alta-en-shipsgo.md)) |
 | R6. La red de planta bloquea los mosaicos o `embed.shipsgo.com` | Mapas sin fondo o sin mapa en vivo | `PROD-17` lo verifica desde un equipo de planta; `PROD-05` evalúa alternativas |
@@ -196,6 +196,31 @@ Como responsable de TrackIn, quiero construir y levantar las imágenes de produc
 | Estimación | 6 h |
 | Origen | Riesgo R3: «No se construyeron imágenes» (`docs/deployment.md`, estado al 03/11). Este equipo sí corre Docker |
 | Etiquetas | `contenedores,ensayo,ruta-critica` |
+
+> **✅ Hecha el 06/11/2026**, en este equipo (Docker 28.0.4, compose 2.34), con `.env.ensayo`
+> (ignorado por git, secretos nuevos, **sin token de ShipsGo**: [ADR 0003](../adr/0003-solo-produccion-da-de-alta-en-shipsgo.md)).
+> Se siguió `docs/deployment.md` §7 tal cual. Riesgo R3 cerrado: las imágenes se construyen.
+>
+> | Criterio | Resultado |
+> |---|---|
+> | `build` y `up -d` | ✅ Las dos imágenes se construyen sin errores: `trackin-backend` 729 MB, `trackin-frontend` 75 MB. Los cuatro servicios arrancan; `postgres` y `backend`, `healthy` |
+> | `frontend` `healthy` | ❌ **Queda `unhealthy`** aunque sirve bien. Su `HEALTHCHECK` consulta `http://localhost/`, que dentro del contenedor resuelve a IPv6 (`::1`), y nginx escucha solo en IPv4: «Connection refused». Con `127.0.0.1` responde. Va a `PROD-04` |
+> | Guía §7 | ✅ Migraciones hasta `0034`, primer Administrador, `/health` con la base `"up"`, PostGIS 3.6 y `"SIN_PAQUETE"`. El worker arranca, avisa que no tiene token y corre su ciclo con TICA |
+> | Panel por el mismo origen | ✅ Inicio de sesión, panel, mosaicos del mapa, detalle de un pedido y entrada directa a `/pedidos/1` (nginx devuelve `index.html`), sin errores en la consola |
+> | Carga del Z-tracking | ✅ La plantilla descargada por nginx, con una línea con contenedor y otra sin referencia: entra una y se rechaza la otra. El WK38 de septiembre se rechaza entero, como corresponde: es anterior a las columnas de documento de embarque |
+> | Archivo de 15 MB | ✅ Pasa nginx (la API lo rechaza por no ser un Excel, que era lo esperado con un archivo aleatorio). Uno de 22 MB lo corta nginx con 413: el límite de 21 MB funciona |
+> | Acciones | ✅ Registrar ETA desde la API: guarda y recalcula |
+> | Clave de desarrollo | ✅ Con `ENVIRONMENT=production` y la `SECRET_KEY` de desarrollo, la API no arranca y dice por qué |
+> | Persistencia | ✅ `docker compose down` y `up -d`: el pedido y la cuenta siguen. Un `pg_dump` de esta base pesa 88 KB |
+>
+> **Hallazgos para las tareas siguientes:**
+>
+> - `PROD-04`: el `HEALTHCHECK` del `frontend` (una línea en `frontend/Dockerfile`: `127.0.0.1` en vez de `localhost`).
+> - `PROD-06`: `/health` y el arranque dicen **versión `0.1.0`**; la versión no se actualizó nunca.
+> - `PROD-11`: nginx anuncia su versión (`Server: nginx/1.27.5`) y no manda cabeceras de seguridad. La documentación de la API (`/docs`, `/openapi.json`) **no** queda expuesta: nginx solo reenvía `/api/` y `/health`. Las sesiones no van en cookies sino en un token que el panel guarda en `sessionStorage` (o `localStorage` con «Recordar sesión»): el criterio de las cookies se reemplaza por uno sobre el token.
+> - La imagen del backend pesa 729 MB (pandas, GeoAlchemy2 y compañía). No bloquea; se puede achicar después.
+>
+> El stack de ensayo sigue en este equipo: `docker compose --env-file .env.ensayo down -v` lo borra con su base.
 
 #### `PROD-04` — Corregir lo que encuentre el ensayo local
 
@@ -339,7 +364,8 @@ Como responsable de TrackIn, quiero revisada la configuración que cambia entre 
 **Criterios de aceptación**
 
 - Dado `/docs` y `/openapi.json` de la API, cuando se consultan en producción, entonces se decide y aplica si quedan accesibles (recomendado: solo para el Administrador, o apagados)
-- Dadas las cookies de sesión, cuando el sitio va por HTTPS, entonces llevan `Secure`, `HttpOnly` y `SameSite`
+- Dado el token de sesión (va en `sessionStorage` o `localStorage`, no en cookies: `PROD-03`), cuando se revisa, entonces el panel no carga scripts de terceros que puedan leerlo, y nginx manda una `Content-Security-Policy` que lo limite, compatible con los mosaicos y el mapa embebido
+- Dado `server_tokens`, cuando nginx responde, entonces no anuncia su versión
 - Dado nginx, cuando responde, entonces agrega las cabeceras de seguridad básicas (`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` o `frame-ancestors`) sin romper el mapa embebido de ShipsGo
 - Dados los logs, cuando corren semanas, entonces Docker los rota (`max-size` y `max-file` en `docker-compose.yml`) y no llenan el disco
 - Dado `restart: unless-stopped` en los cuatro servicios, cuando el servidor se reinicia, entonces TrackIn vuelve solo
