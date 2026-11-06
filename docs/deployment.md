@@ -192,6 +192,7 @@ Desde la raíz del repositorio, en el servidor:
 
 ```bash
 git clone https://github.com/mdjmayorga/TrackIn.git && cd TrackIn
+git checkout v1.0.0                              # la versión a desplegar (§9)
 cp .env.produccion.example .env.produccion       # y completarlo (§5)
 
 docker compose --env-file .env.produccion build
@@ -274,18 +275,89 @@ conserva; **`docker compose down -v` lo borra**.
   (401) no reintenta: corregir el token y reiniciar el `worker`.
 - `creditos_shipsgo.nivel`: avisa cuando quedan pocos créditos de ShipsGo.
 
+### Versiones
+
+El servidor corre siempre **una etiqueta de git** `vX.Y.Z`, nunca la rama `main`:
+así se sabe qué corre y se puede volver atrás. Qué trae cada versión, y qué
+migración, está en [CHANGELOG.md](../CHANGELOG.md).
+
+| Para | Cómo |
+|---|---|
+| Ver qué versión corre | `curl http://localhost:8080/health` (campo `version`), o el pie del menú **Configuración** del panel |
+| Ver qué etiqueta está en la carpeta | `git describe --tags` |
+| Ver qué migración tiene la base | `docker compose --env-file .env.produccion run --rm backend alembic current` |
+
 ### Actualizar a una versión nueva
 
 ```bash
-git pull
+# 1. Respaldar (§8) y anotar el archivo: es lo que permite volver atrás.
+docker compose --env-file .env.produccion exec -T postgres \
+    pg_dump -U trackin -d trackin -Fc > trackin-antes-de-vX.Y.Z.dump
+
+# 2. Traer la versión y construirla.
+git fetch --tags
+git checkout vX.Y.Z
 docker compose --env-file .env.produccion build
+
+# 3. Migrar y recrear los servicios.
 docker compose --env-file .env.produccion run --rm backend alembic upgrade head
 docker compose --env-file .env.produccion up -d
+
+# 4. Verificar.
+curl http://localhost:8080/health                # "version" tiene que decir X.Y.Z
 ```
 
-Respaldar antes (§8). `up -d` recrea la API, el **worker** y el panel con la
-imagen nueva: el worker tiene que reiniciarse en cada actualización, o sigue
-aplicando las reglas anteriores.
+`up -d` recrea la API, el **worker** y el panel con la imagen nueva: el worker
+tiene que reiniciarse en cada actualización, o sigue aplicando las reglas
+anteriores.
+
+### Volver a la versión anterior
+
+Si la versión nueva falla, se vuelve a la etiqueta anterior. Lo que decide cómo
+es **si la versión nueva traía una migración** (lo dice su entrada en el
+[CHANGELOG](../CHANGELOG.md), o comparar `alembic current` antes y después):
+
+- **Sin migración nueva:** basta con el código.
+
+  ```bash
+  git checkout vX.Y.(Z-1)
+  docker compose --env-file .env.produccion build
+  docker compose --env-file .env.produccion up -d
+  ```
+
+- **Con migración nueva:** el código viejo no entiende la base nueva. Hay que
+  volver el código **y** restaurar el respaldo del paso 1 (§8). Se pierde lo que se
+  haya registrado entre la actualización y la vuelta atrás: por eso conviene
+  actualizar fuera del horario de uso y decidir rápido.
+
+  ```bash
+  git checkout vX.Y.(Z-1)
+  docker compose --env-file .env.produccion build
+  docker compose --env-file .env.produccion stop backend worker
+  docker compose --env-file .env.produccion exec -T postgres \
+      pg_restore -U trackin -d trackin --clean --if-exists < trackin-antes-de-vX.Y.Z.dump
+  docker compose --env-file .env.produccion up -d
+  ```
+
+  No se usa `alembic downgrade`: las 34 migraciones lo tienen escrito, pero
+  ninguna prueba lo ejercita, y diez de ellas siembran o transforman datos. El
+  respaldo, en cambio, se restaura probado (§8).
+
+### Publicar una versión nueva
+
+Lo hace quien desarrolla, desde su equipo, con el CI en verde:
+
+1. Subir la versión en `backend/app/__init__.py`, `backend/pyproject.toml` y
+   `frontend/package.json` (y `package-lock.json`, con `npm install`). La prueba
+   `tests/test_version.py` falla si quedan distintas.
+2. Agregar la entrada en [CHANGELOG.md](../CHANGELOG.md), con la migración más
+   reciente.
+3. Hacer el commit, crear la etiqueta y subirla:
+
+   ```bash
+   git tag -a vX.Y.Z -m "TrackIn vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
 
 ---
 

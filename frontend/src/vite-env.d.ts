@@ -10,3 +10,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+/** La versión de TrackIn (la del package.json), fijada por Vite al construir. */
+declare const __APP_VERSION__: string

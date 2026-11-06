@@ -1,12 +1,23 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
+// La versión del panel es la del package.json, la misma que la del backend
+// (`PROD-06`; una prueba del backend verifica que coincidan).
+const paquete = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'),
+) as { version: string }
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+
+  define: {
+    __APP_VERSION__: JSON.stringify(paquete.version),
+  },
 
   resolve: {
     alias: {

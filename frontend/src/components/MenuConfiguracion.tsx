@@ -86,6 +86,10 @@ export function MenuConfiguracion({ sesion }: { sesion: SesionGuardada }) {
               </button>
             </li>
           </ul>
+          {/* Qué versión corre: lo primero que pregunta quien da soporte (`PROD-06`). */}
+          <p className="border-t border-panel-borde px-4 py-1.5 text-xs text-slate-500">
+            TrackIn v{__APP_VERSION__}
+          </p>
         </div>
       )}
     </div>

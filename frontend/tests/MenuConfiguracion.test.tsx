@@ -52,6 +52,16 @@ describe('menú Configuración', () => {
     expect(opciones()).toEqual(['Integración con SAP', 'Cambiar contraseña', 'Cerrar sesión'])
   })
 
+  it('dice qué versión de TrackIn corre (PROD-06)', async () => {
+    montar()
+
+    await userEvent.click(boton())
+
+    // La del package.json, que Vite fija al construir: la misma que da /health.
+    expect(screen.getByText(`TrackIn v${__APP_VERSION__}`)).toBeInTheDocument()
+    expect(__APP_VERSION__).toMatch(/^\d+\.\d+\.\d+$/)
+  })
+
   it('Planta tiene lo mismo: cambiar su contraseña y cerrar sesión', async () => {
     montar('PLANTA')
 

@@ -70,7 +70,7 @@ cambia, cambian las tareas que la citan.
 | `PROD-03` | Ensayo local del stack de contenedores, de punta a punta ✅ | Task | 0 | **Must** | 6h | — | Mariano |
 | `PROD-04` | Corregir lo que encuentre el ensayo local ✅ | Task | 0 | **Must** | 4h | `PROD-03` | Mariano |
 | `PROD-05` | Mosaicos del mapa: URL sin subdominio, configurable y con plan B | Task | 0 | **Should** | 3h | — | Mariano |
-| `PROD-06` | Versionar: etiqueta `v1.0.0`, notas de versión y vuelta atrás | Task | 0 | **Must** | 2h | `PROD-04` | Mariano |
+| `PROD-06` | Versionar: etiqueta `v1.0.0`, notas de versión y vuelta atrás 🔶 | Task | 0 | **Must** | 2h | `PROD-04` | Mariano |
 | `PROD-07` | Scripts de respaldo con retención y de restauración | Story | 0 | **Must** | 4h | `PROD-03` | Mariano |
 | `PROD-08` | Chequeo de `/health` con aviso | Story | 0 | **Should** | 4h | `PROD-03` | Mariano |
 | `PROD-09` | Asistente de instalación del servidor | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
@@ -294,6 +294,28 @@ Como técnico del Centro de Competencias, quiero saber qué versión corre en el
 | Estimación | 2 h |
 | Origen | D19 |
 | Etiquetas | `versionado,documentacion` |
+
+> **06/11/2026: hecha salvo la etiqueta**, que se crea con el commit.
+>
+> - **Una sola versión, `1.0.0`.** Estaba en `0.1.0` en cuatro lugares desde el Sprint 0.
+>   Ahora la fuente es `backend/app/__init__.py`; la configuración la toma de ahí (y una
+>   variable de entorno `VERSION` ya no la puede pisar). `pyproject.toml`, `package.json` y
+>   `package-lock.json` la repiten, y `tests/test_version.py` falla si alguno queda atrás.
+> - **Visible:** `/health`, el log de arranque de la API y el pie del menú
+>   **Configuración** del panel («TrackIn v1.0.0»; Vite la toma del `package.json` al
+>   construir). Prueba nueva en `MenuConfiguracion.test.tsx`.
+> - **Notas de versión** en [`CHANGELOG.md`](../../CHANGELOG.md): qué hace la `v1.0.0`, la
+>   migración más reciente (`0034`), los cambios desde el Informe 2 y lo pendiente conocido.
+> - **Guía de despliegue §9:** el servidor corre una etiqueta, nunca `main`; actualizar con
+>   respaldo previo y `git checkout vX.Y.Z`; volver atrás según haya o no migración nueva
+>   (con migración: código anterior más restauración del respaldo, sin `alembic downgrade`,
+>   que nunca se probó); y cómo publicar una versión. El §7 instala desde `v1.0.0`.
+> - **Verificado:** backend 1614 pruebas, ruff y mypy; panel 374 pruebas (cobertura 92 %),
+>   eslint, tsc y build. En el ensayo de contenedores, `/health` y el menú dicen `1.0.0`.
+>
+> **Falta:** después del commit, crear y subir la etiqueta (`git tag -a v1.0.0 -m "TrackIn
+> v1.0.0"` y `git push origin v1.0.0`). Opcional: una *release* en GitHub con el texto del
+> CHANGELOG.
 
 #### `PROD-07` — Scripts de respaldo con retención y de restauración
 

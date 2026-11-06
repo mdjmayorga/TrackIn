@@ -5,10 +5,12 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Final, Literal
+from typing import ClassVar, Final, Literal
 
 from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app import __version__
 
 # app/core/config.py -> app/core -> app -> backend/
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -46,7 +48,9 @@ class Settings(BaseSettings):
 
     # --- Metadatos de la app ------------------------------------------------
     PROJECT_NAME: str = "TrackIn API"
-    VERSION: str = "0.1.0"
+    # La versión no se configura: es la del código (`app/__init__.py`, `PROD-06`).
+    # ClassVar para que una variable de entorno VERSION no la pise.
+    VERSION: ClassVar[str] = __version__
     DESCRIPTION: str = (
         "API de tracking logístico para compras internacionales de Laboratorios Gutis."
     )

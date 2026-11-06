@@ -1,6 +1,6 @@
 [project]
 name = "trackin-backend"
-version = "0.1.0"
+version = "1.0.0"
 description = "API de TrackIn — tracking logístico de compras internacionales, Laboratorios Gutis"
 authors = [{ name = "Mariano Mayorga Halabi" }]
 requires-python = ">=3.12"

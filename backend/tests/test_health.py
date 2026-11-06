@@ -10,6 +10,8 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
+from app import __version__
+
 
 async def test_root_devuelve_metadatos(client: AsyncClient) -> None:
     response = await client.get("/")
@@ -26,7 +28,7 @@ async def test_health_responde_aunque_la_base_este_caida(client: AsyncClient) ->
     assert response.status_code == 200
     body = response.json()
     assert body["status"] in {"ok", "degraded"}
-    assert body["version"] == "0.1.0"
+    assert body["version"] == __version__
 
 
 async def test_openapi_se_genera(client: AsyncClient) -> None:
