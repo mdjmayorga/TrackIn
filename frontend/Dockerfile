@@ -51,6 +51,9 @@ FROM nginx:1.27-alpine AS runtime
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
+# 127.0.0.1 y no localhost: en la imagen alpine, localhost resuelve primero a
+# ::1 (IPv6) y nginx escucha solo en IPv4, así que el chequeo fallaba con el
+# panel funcionando (`PROD-03`, 06/11/2026).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -q --spider http://localhost/ || exit 1
+    CMD wget -q --spider http://127.0.0.1/ || exit 1
 CMD ["nginx", "-g", "daemon off;"]

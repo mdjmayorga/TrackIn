@@ -7,11 +7,12 @@ decidir y hacer en el servidor, y qué queda fuera del alcance de la práctica.
 Para levantar TrackIn en un equipo de trabajo, sin servidor, ver el
 [manual de instalación local](manual-instalacion.md).
 
-> **Estado (03/11/2026).** Los artefactos de contenedor están al día con el
-> sistema y su configuración se validó con `docker compose config`. **No se
-> construyeron ni se levantaron imágenes:** en el equipo de la práctica Docker
-> no corre (SRS §9.3). La primera construcción real va a ser en el servidor:
-> conviene hacerla con tiempo, no el día de la salida.
+> **Estado (06/11/2026).** Las imágenes se construyeron y el stack se levantó
+> completo en un equipo con Docker, siguiendo el §7 al pie de la letra
+> (`PROD-03` y `PROD-04` de [backlog_produccion.md](backlog/backlog_produccion.md)):
+> los cuatro servicios arrancan y los tres con chequeo de salud quedan
+> `healthy`. Lo que sigue sin probarse es el servidor real, con su red, su
+> nombre y su HTTPS.
 
 ---
 
@@ -105,7 +106,7 @@ tiene que dejarlos pasar.
 | `docker-compose.dev.yml` | Override de desarrollo con contenedores: puertos al host, código montado, pgAdmin. **No se usa en el servidor** |
 | `backend/Dockerfile` | Imagen de la API y del worker. Etapas `deps` (compila), `builder` (desarrollo) y `runtime` (servidor: sin herramientas de desarrollo, usuario no-root, `HEALTHCHECK` sobre `/health`) |
 | `backend/.dockerignore` | Deja fuera el `.venv`, las pruebas, las grabaciones de los spikes y cualquier `.env` |
-| `frontend/Dockerfile` | Imagen del panel. Construye el bundle con Node 22 y lo sirve con nginx 1.27 |
+| `frontend/Dockerfile` | Imagen del panel. Construye el bundle con Node 22 y lo sirve con nginx 1.27, con `HEALTHCHECK` sobre `127.0.0.1` (no `localhost`, que en alpine resuelve a IPv6 y nginx escucha en IPv4) |
 | `frontend/nginx.conf` | Sirve el panel, reenvía la API, acepta archivos de hasta 20 MB (la carga del Z-tracking) y cachea los assets |
 | `scripts/init-db/01-extensions.sql` | Activa PostGIS al crear la base por primera vez |
 | `.env.produccion.example` | La plantilla de variables del servidor (§5) |

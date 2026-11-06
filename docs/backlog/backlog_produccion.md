@@ -68,7 +68,7 @@ cambia, cambian las tareas que la citan.
 | `PROD-01` | Pedir a TI el servidor, el DNS, el certificado y la salida a internet | Task | 0 | **Must** | 3h | — | Mariano + TI |
 | `PROD-02` | Confirmar las decisiones de partida con el supervisor y Compras | Task | 0 | **Must** | 2h | — | Mariano |
 | `PROD-03` | Ensayo local del stack de contenedores, de punta a punta ✅ | Task | 0 | **Must** | 6h | — | Mariano |
-| `PROD-04` | Corregir lo que encuentre el ensayo local | Task | 0 | **Must** | 4h | `PROD-03` | Mariano |
+| `PROD-04` | Corregir lo que encuentre el ensayo local ✅ | Task | 0 | **Must** | 4h | `PROD-03` | Mariano |
 | `PROD-05` | Mosaicos del mapa: URL sin subdominio, configurable y con plan B | Task | 0 | **Should** | 3h | — | Mariano |
 | `PROD-06` | Versionar: etiqueta `v1.0.0`, notas de versión y vuelta atrás | Task | 0 | **Must** | 2h | `PROD-04` | Mariano |
 | `PROD-07` | Scripts de respaldo con retención y de restauración | Story | 0 | **Must** | 4h | `PROD-03` | Mariano |
@@ -238,6 +238,19 @@ Como responsable de TrackIn, quiero corregidos los problemas del ensayo local, p
 | Estimación | 4 h (reserva) |
 | Origen | `PROD-03` |
 | Etiquetas | `contenedores` |
+
+> **✅ Hecha el 06/11/2026, en 1 h de las 4 de reserva.** El ensayo dejó un solo defecto:
+> el `HEALTHCHECK` de `frontend/Dockerfile` pasa a consultar `127.0.0.1` en vez de
+> `localhost`. Ensayo repetido desde cero (`down -v`, `build`, migraciones, Administrador,
+> `up -d`, carga de la plantilla): `postgres`, `backend` y `frontend` quedan `healthy`, la
+> carga entra igual y no hay errores en los logs. La guía de despliegue actualizó su estado
+> (ya no dice que las imágenes no se construyeron) y la descripción del `Dockerfile` del
+> panel.
+>
+> **CI:** el CI no construye imágenes (corre pruebas, lint y tipos del backend y del panel),
+> así que el cambio no lo afecta; la verificación de este cambio es el ensayo. Que el CI
+> construya las imágenes en cada cambio sería una mejora aparte: evitaría que un
+> `Dockerfile` se rompa sin que nadie lo note hasta el servidor.
 
 #### `PROD-05` — Mosaicos del mapa: URL sin subdominio, configurable y con plan B
 
