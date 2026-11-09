@@ -1,20 +1,33 @@
 # Arquitectura
 
-Arquitectura definitiva de TrackIn. Sustituye a la vista tentativa del
-anteproyecto, que enrutaba la ingesta desde un Excel de compras —vía que el SRS
-v0.2 eliminó— y dejaba sin decidir dónde corren los procesos de rastreo.
+Arquitectura de TrackIn al cierre del Sprint 7 (13/11/2026). Sustituye a la versión
+del 25/08/2026 (`TASK-20`, `TASK-21`, `TASK-22`), que se escribió cuando las fuentes
+previstas eran AISStream y OpenSky, la ingesta venía de datos semilla y no había
+autenticación. Las tres vistas se conservan; lo que cambió es lo que hay dentro.
 
-**Fuente normativa:** SRS v0.3 §5.8 (stack), §7 (reglas), los requerimientos no
-funcionales RNF-03, RNF-12, RNF-14, RNF-19 a RNF-21, y las mediciones de los
-spikes TG-10 y TG-11.
+**Fuentes normativas:** SRS v0.6 (§5.8 stack, §7 reglas), los requerimientos no
+funcionales RNF-03, RNF-05, RNF-12, RNF-14 y RNF-19 a RNF-21, el spike `TASK-28`
+(ShipsGo) y las decisiones registradas en `docs/adr/` y en el backlog.
 
 ## Estado
 
-| Vista | Tarea | Estado |
+| Vista | Tarea | Primera versión | Actualizada |
+|---|---|---|---|
+| Componentes | `TASK-20` | 25/08/2026 | 09/11/2026 |
+| Despliegue (desarrollo, instalación nativa) | `TASK-21` | 25/08/2026 | 09/11/2026 |
+| Secuencia (flujo de rastreo) | `TASK-22` | 25/08/2026 | 09/11/2026 |
+
+## Qué cambió desde la primera versión
+
+| Antes (25/08) | Ahora (13/11) | Por qué |
 |---|---|---|
-| Componentes | `TASK-20` | ✅ 25/08/2026 |
-| Despliegue (instalación nativa) | `TASK-21` | ✅ 25/08/2026 |
-| Secuencia (flujo de tracking) | `TASK-22` | ✅ 25/08/2026 |
+| AISStream (marítimo) y OpenSky (aéreo) como fuentes | **ShipsGo** para las dos vías y **TICA** para las guías hijas (HAWB) | La cuenta de AISStream dejó de entregar datos y la zona no tiene cobertura (riesgo R1); OpenSky salió por su licencia (06/10). ShipsGo se aprobó el 16/09 |
+| AISStream activo | AISStream construido como respaldo del mapa, fuera del ciclo | `US-02`, reducida por el Plan A del 04/09 |
+| Ingesta por datos semilla, SAP pendiente | Carga del Excel Z-tracking desde la interfaz, como vía definitiva | 07/10: la API de SAP no va a existir para leer el Z-tracking |
+| Sin receptor de SAP | Receptor `POST /integraciones/sap/pedidos`, apagado por defecto | Reunión de entrega del Informe 2 (27/10): `US-64` a `US-66` |
+| Sin autenticación | Login con sesión, argon2id y cinco roles | Reunión con Logística del 03/09 (`US-42`), rol `PLANTA` el 20/10 |
+| 10 tablas | 17 tablas, 34 migraciones de Alembic | Ver `data-model.md` |
+| El navegador solo habla con la API | Excepción: el mapa en vivo de ShipsGo Embed en el detalle | 21/10, ver §1.6 |
 
 ---
 
@@ -25,263 +38,199 @@ spikes TG-10 y TG-11.
 ```mermaid
 flowchart TB
     subgraph cliente["Navegador"]
-        SPA["SPA React 19<br/>Vite · TypeScript · Tailwind · Leaflet<br/><i>grilla, mapas, KPIs</i>"]
+        SPA["SPA React 19<br/>Vite, TypeScript, Tailwind, Leaflet<br/><i>grilla, mapas, KPIs, detalle, cargas</i>"]
     end
 
-    subgraph api["Proceso 1 — API · uvicorn app.main:app"]
-        REST["Routers REST<br/><i>pedidos, detalle, maestros</i>"]
-        SVC["Servicios de lectura<br/><i>solo consulta estado ya calculado</i>"]
+    subgraph api["Proceso 1: API (uvicorn app.main:app)"]
+        AUTH["Autenticación y roles<br/><i>sesión, argon2id</i>"]
+        REST["Routers REST<br/><i>pedidos, cargas, destinos, usuarios,<br/>shipsgo, integración SAP, health</i>"]
+        SVC["Servicios<br/><i>consulta, acciones manuales,<br/>auditoría, carga del Z-tracking</i>"]
     end
 
-    subgraph worker["Proceso 2 — Worker · python -m app.workers"]
-        SCHED["Planificador<br/><i>frecuencia parametrizable</i>"]
-        AISC["Adaptador AISStream<br/><i>WebSocket persistente</i>"]
-        OSKC["Adaptador OpenSky<br/><i>REST + OAuth2</i>"]
-        NORM["Puerto FuenteRastreo<br/><b>normaliza a LecturaPosicion</b>"]
-        PERS["Persistidor de lecturas<br/><i>idempotente</i>"]
-        CALC["Motor de cálculo<br/><i>ETA, fecha proyectada, estado</i>"]
-        INGE["Adaptador de ingesta de pedidos<br/><i>semilla · SAP pendiente</i>"]
+    subgraph worker["Proceso 2: Worker (python -m app.workers)"]
+        PLAN["Planificador<br/><i>qué elementos toca consultar</i>"]
+        SGC["Colector ShipsGo<br/><i>contenedor, BL, booking, MAWB</i>"]
+        TIC["Colector TICA<br/><i>guías hijas (HAWB)</i>"]
+        RES["Política de resiliencia<br/><i>salud por fuente</i>"]
+        ARR["Arribo y recálculo<br/><i>etapa, cumplimiento, fecha proyectada</i>"]
     end
 
-    subgraph datos["PostgreSQL 16 + PostGIS 3.4"]
-        DB[("10 tablas<br/><i>elementos_rastreados · historial_tracking<br/>pedidos_transito · parametros_sistema</i>")]
+    subgraph datos["PostgreSQL 16.14 + PostGIS 3.6.2"]
+        DB[("17 tablas<br/><i>pedidos_transito, elementos_rastreados,<br/>historial_tracking, cargas_ztracking ...</i>")]
     end
 
-    subgraph externo["Fuentes externas"]
-        AIS["AISStream<br/><i>push · buques</i>"]
-        OSN["OpenSky Network<br/><i>pull · aeronaves</i>"]
-        SAP["Servicio API de SAP<br/><i>sin fecha</i>"]
+    subgraph externo["Servicios externos"]
+        SG["ShipsGo API<br/><i>REST, pago por alta</i>"]
+        TICA["TICA (Hacienda)<br/><i>sitio público, sin API</i>"]
+        EMB["ShipsGo Embed<br/><i>mapa en vivo</i>"]
+        SAP["SAP<br/><i>empujará pedidos, sin fecha</i>"]
     end
 
-    SPA -->|"HTTP / JSON"| REST
+    SPA -->|"HTTP / JSON"| AUTH
+    AUTH --> REST
     REST --> SVC
-    SVC -->|"solo lectura"| DB
+    SVC --> DB
+    SVC -.->|"altas y saldo, con confirmación"| SG
+    SPA -.->|"iframe del detalle"| EMB
+    SAP -.->|"POST con X-API-Key"| REST
 
-    AIS -.->|"mensajes AIS"| AISC
-    OSN -.->|"consulta cada 31 s"| OSKC
-    SAP -.->|"bloqueado"| INGE
-
-    SCHED --> OSKC
-    AISC --> NORM
-    OSKC --> NORM
-    NORM --> PERS
-    PERS --> DB
-    PERS --> CALC
-    CALC --> DB
-    INGE --> DB
-    DB -->|"parámetros y umbrales"| CALC
+    PLAN --> SGC
+    PLAN --> TIC
+    SGC -.->|"consulta"| SG
+    TIC -.->|"consulta del manifiesto"| TICA
+    SGC --> ARR
+    TIC --> ARR
+    RES --- SGC
+    RES --- TIC
+    ARR --> DB
+    DB -->|"parámetros y umbrales"| PLAN
 ```
 
 ### 1.2 Responsabilidad de cada componente
 
 | Componente | Responsabilidad | Lo que **no** hace |
 |---|---|---|
-| **SPA React** | Presenta grilla, mapas y KPIs; aplica filtros de forma transversal | No calcula estados ni consulta fuentes externas |
-| **Routers REST** | Exponen pedidos, detalle y maestros; publican OpenAPI (`TASK-04`) | **Nunca llaman a una API externa** |
-| **Servicios de lectura** | Consultan el estado ya calculado y lo componen para la vista | No escriben en `historial_tracking` |
-| **Planificador** | Dispara la consulta ADS-B con la frecuencia de `parametros_sistema` | No decide qué hacer con la lectura |
-| **Adaptador AISStream** | Mantiene la suscripción WebSocket, reconecta con backoff, vigila el canal con ping/pong | No interpreta el estado logístico |
-| **Adaptador OpenSky** | Consulta por REST, renueva el token OAuth2 antes de que expire | No interpreta el estado logístico |
-| **Puerto `FuenteRastreo`** | Normaliza ambos orígenes a un tipo único de lectura | No persiste |
-| **Persistidor** | Escribe la lectura en `historial_tracking` y refresca `posicion_actual` | No calcula |
-| **Motor de cálculo** | Aplica RN-01 y RN-05 a RN-16: ETA, fecha proyectada, geocerca, estado | No habla con fuentes externas |
-| **Adaptador de ingesta** | Da de alta pedidos desde datos semilla; mañana desde SAP | No rastrea |
-| **PostgreSQL + PostGIS** | Persiste y resuelve las distancias con `ST_Distance` sobre geografía | — |
+| **SPA React** | Presenta grilla, mapas, KPIs, próximos arribos, detalle, cargas y administración; aplica los filtros de forma transversal | No calcula estados ni consulta fuentes de rastreo |
+| **Autenticación y roles** | Inicia y cierra sesión, verifica la contraseña con argon2id y antepone el rol a cada router (`COMPRAS`, `LOGISTICA`, `PLANIFICACION`, `ADMINISTRADOR`, `PLANTA`) | No guarda contraseñas en claro |
+| **Routers REST** | Exponen 41 operaciones bajo `/api/v1` y publican OpenAPI (`TASK-04`) | No consultan el rastreo en el ciclo de la petición |
+| **Servicios** | Componen la vista, registran las acciones manuales con su auditoría (RF-14), validan y cargan el Z-tracking | No escriben en `historial_tracking` |
+| **Planificador** | Decide qué elementos consultar en cada ciclo según `parametros_sistema` | No interpreta la lectura |
+| **Colector ShipsGo** | Lee hitos, ETA, posición, transbordos y trayecto de los embarques ya dados de alta | **No da de alta**: dar de alta cuesta y lo decide una persona |
+| **Colector TICA** | Resuelve la llegada real y la guía madre de una guía hija (`US-49`) | No inventa datos que el manifiesto no trae |
+| **Política de resiliencia** | Clasifica cada fallo en transitorio o permanente, calcula la espera y publica la salud en `salud_fuentes` (`US-03`, `US-51`) | No toca red ni base por sí misma |
+| **Arribo y recálculo** | Aplica RN-01 y RN-05 a RN-16: arribo por hito con la geocerca como verificación, fecha proyectada, etapa y cumplimiento | No habla con fuentes externas |
+| **PostgreSQL + PostGIS** | Persiste todo y resuelve distancias con `ST_Distance` sobre geografía | |
 
-### 1.3 El puerto común de fuentes — RNF-21
+### 1.3 El puerto común de fuentes (RNF-21)
 
-RNF-21 exige *«incorporar nuevas fuentes de rastreo sin alterar la lógica de
-cálculo de estados, aislando cada integración tras una interfaz común»*. El
-problema es que las dos fuentes tienen modelos opuestos:
+RNF-21 pide incorporar fuentes nuevas sin alterar la lógica de cálculo. El diseño lo
+cumplió en la práctica: el sistema pasó de AISStream y OpenSky a ShipsGo y TICA sin
+tocar el motor de cálculo. Cada fuente tiene su cliente y su colector; aguas abajo
+del colector, nada sabe de dónde vino el dato.
 
-| | AISStream | OpenSky |
+| Tipo de referencia | Fuente | Qué trae |
 |---|---|---|
-| Modelo | **Push**: suscripción persistente, el servidor empuja | **Pull**: se consulta cada 31 s |
-| Cadencia | Cuando el buque transmite; mediana 62 s | La que fije el planificador |
-| Autenticación | API key en el mensaje de suscripción | OAuth2, token de 30 min |
-| Fallo típico | La conexión se cae sin cierre limpio | La aeronave desaparece del listado sin motivo |
+| `CONTENEDOR`, `BL`, `BOOKING`, `MAWB` | ShipsGo | Hitos, ETA, posición, transbordos, trayecto, arribo |
+| `HAWB` | TICA | Llegada real y guía madre |
+| `MMSI` | AISStream (respaldo) | Posición del buque; el adaptador existe, pero no corre en el ciclo |
+| Sin referencia | Ninguna | El pedido se sigue a mano; Compras puede registrar la ETA (`US-67`) |
 
-**No se pueden unificar por la entrada, así que se unifican por la salida.**
-Ambos adaptadores producen el mismo tipo —`LecturaPosicion`: elemento,
-instante, posición, velocidad, rumbo, estado crudo y payload íntegro— y lo
-entregan al persistidor. Aguas abajo del puerto, nada sabe si el dato vino de un
-socket o de una consulta.
+ShipsGo no da la posición de un avión. El mapa aéreo dibuja una posición **estimada**
+con el horario de cada tramo (`app/services/posicion_aerea.py`), rotulada como tal, y
+no la escribe en `posicion_actual` para que la geocerca no la tome por real.
 
-Añadir una tercera fuente —un proveedor AIS de pago con cobertura de Moín, que
-es la decisión abierta #3 del backlog— significa escribir un adaptador nuevo y
-no tocar el motor de cálculo.
+### 1.4 Decisión: el rastreo corre en un proceso aparte
 
-### 1.4 Decisión: el rastreo corre en un proceso aparte, no dentro de la API
+Se mantiene la decisión del 25/08, y los motivos siguen en pie:
 
-Es la pregunta que el anteproyecto dejó abierta: *«¿worker aparte o tareas en
-background dentro del proceso de la API?»*. **Worker aparte**, por cuatro
-razones, la primera de ellas específica de este proyecto:
+1. **Aislamiento de fallos (RNF-14).** Un error del ciclo de rastreo no tumba la API.
+   El panel sigue sirviendo el último dato conocido aunque el worker esté caído.
+2. **Ciclos de vida distintos.** La API es de petición y respuesta; el worker es un
+   proceso de larga duración que consulta cada 60 segundos (configurable).
+3. **RNF-03.** Las consultas externas no caben en el ciclo de una petición con un
+   techo de 3 segundos para toda la vista (RNF-01).
+4. **`--reload` en desarrollo.** Reiniciar la API en cada guardado no debe
+   interrumpir el rastreo.
 
-1. **`--reload` mataría la suscripción AIS en cada guardado.** El entorno de
-   desarrollo arranca con `uvicorn app.main:app --reload`, tal como documenta
-   `backend/app/main.py`. Cada vez que se guarda un archivo, uvicorn reinicia el
-   proceso. Con el colector dentro, cada pulsación de guardar cerraría y
-   reabriría el WebSocket. Y eso no es solo molesto: el riesgo R1 sospecha que
-   la cuenta de AISStream topó un límite del plan gratuito, así que reconectar
-   decenas de veces por día es exactamente lo que no conviene hacer.
-2. **Aislamiento de fallos (RNF-14).** Un error en el bucle de reconexión no
-   debe tumbar la API. Con procesos separados, el dashboard sigue sirviendo el
-   último dato conocido aunque el colector esté caído — que es literalmente lo
-   que pide RNF-12.
-3. **Ciclos de vida distintos.** La API es *request/response* y puede reiniciarse
-   sin consecuencias; el colector AIS es un proceso de larga duración cuyo valor
-   está en no interrumpirse.
-4. **RNF-03 lo empuja igual.** Los spikes midieron 780–915 ms por consulta ADS-B
-   y ~1000 ms para obtener el token, contra un techo de 3 s para toda la vista
-   (RNF-01). Las consultas externas no caben en el ciclo de petición.
+**Sin broker de mensajes.** El worker es un proceso con su propio bucle asíncrono y
+la base es el único estado compartido. Un broker obligaría a instalar y documentar
+otro servicio sin una necesidad real.
 
-**Sin broker de mensajes.** No hay Celery, ni Redis, ni RabbitMQ: el worker es un
-proceso con su propio bucle asíncrono y la base de datos es el único estado
-compartido. Meter un broker obligaría a instalar y documentar un servicio más en
-una máquina que ni siquiera puede correr Docker (RNF-19), a cambio de una
-capacidad —distribuir tareas entre nodos— que este sistema no necesita.
+### 1.5 Cómo se sostiene la degradación (RNF-12 y RNF-14)
 
-**El costo:** en desarrollo hay que levantar dos procesos. Se documenta en
-`TASK-21` y en el manual de instalación de `TASK-07`.
+La regla que lo hace posible es que **la API nunca depende de una fuente externa para
+responder**. Lo que el panel muestra ya está en la base.
 
-### 1.5 Cómo se sostiene la degradación — RNF-12 y RNF-14
+- Si ShipsGo o TICA fallan, el panel responde con el último dato y su antigüedad.
+- El encabezado muestra la frescura de los datos (`US-23`); `/health` reporta cada
+  fuente por separado con su motivo y la antigüedad del último dato bueno.
+- Una fuente que falla deja de consultarse en ese ciclo y espera lo que indique la
+  política. Un fallo permanente (credencial inválida, acceso bloqueado por TICA) la
+  apaga hasta reiniciar el worker. Las demás siguen.
+- El ciclo confirma elemento por elemento: un fallo en uno no deshace a los demás.
 
-La regla que hace posible degradar es que **la API nunca depende de una fuente
-externa para responder**. Todo lo que el dashboard muestra ya está en la base:
-`elementos_rastreados.posicion_actual`, `ultima_actualizacion_api` y
-`pedidos_transito.estado_calculado`.
+Tres reglas de la política que conviene no perder:
 
-En consecuencia:
-
-- Si AISStream se cae, el dashboard sigue respondiendo con la última posición
-  conocida y su antigüedad, que es lo que exige RNF-12.
-- El indicador de frescura del encabezado muestra **cada fuente por separado**,
-  porque se caen por separado.
-- El spike TG-11 midió que cerca del **8 % de las aeronaves desaparece del
-  listado entre dos muestras** separadas 60 segundos, sin que la fuente indique
-  el motivo. El sistema conserva la última posición con su marca temporal en vez
-  de afirmar un estado que no consta.
-- El motor procesa pedido por pedido y aísla el fallo de uno (RNF-14): una
-  lectura corrupta de un buque no interrumpe el recálculo de los demás.
-
-#### 1.5.1 Dónde vive la política, y por qué no en el adaptador
-
-`US-03` se reespecificó el 08/09/2026 para que la resiliencia **no dependa del
-transporte**. La redacción anterior estaba escrita contra WebSocket —un watchdog
-apoyado en el ping/pong del protocolo, un cierre inmediato leído como fallo de
-credencial—, y eso solo aplica a AISStream. Vizion y Portcast, aprobados el
-04/09, son REST de consulta: no hay ping/pong ni cierre que interpretar.
-
-La separación quedó así:
-
-| Capa | Módulo | Qué sabe |
-|---|---|---|
-| Política | `app/services/resiliencia.py` | Clasificar un fallo en transitorio o permanente, y calcular la espera. **No toca red ni base** |
-| Estado y umbrales | `app/services/salud_fuentes.py` | Un `EstadoFuente` por fuente, y la política armada desde `parametros_sistema` |
-| Mecanismo | El adaptador de cada proveedor (`TASK-28`) | Qué código HTTP o qué motivo de cierre corresponde a qué clase |
-
-Es el mismo patrón de puerto y adaptadores que `TASK-03` usa con
-`FuentePedidos`, y tiene la misma consecuencia práctica: la historia se pudo
-construir y probar **antes** de saber qué proveedor queda, que es lo que la
-bloqueaba.
-
-Tres reglas que la implementación fija y conviene no perder:
-
-- **El silencio no es una caída.** Una fuente que responde `200` sin datos
-  nuevos tuvo un contacto exitoso y reinicia el conteo de fallos. Confundir las
-  dos cosas fue lo que hizo parecer roto al spike TG-10, cuando lo que pasaba es
-  que en el Caribe no había tráfico que reportar.
-- **Un fallo permanente no se reintenta**, por muchos intentos que queden. Lo
-  desconocido, en cambio, se trata como transitorio: equivocarse hacia el
-  reintento cuesta cuota, y hacia lo permanente cuesta datos y apaga una fuente
-  que servía.
-- **Una fuente caída no degrada el servicio.** `/health` la reporta en `fuentes`
-  —con el motivo y la antigüedad del último dato bueno—, pero `status` sigue
-  mirando solo a la base. Es el mismo principio de esta sección: la API no
-  depende de una fuente externa para responder.
+- **El silencio no es una caída.** Una respuesta exitosa sin datos nuevos reinicia el
+  conteo de fallos.
+- **Un fallo permanente no se reintenta.** Lo desconocido se trata como transitorio.
+- **Una fuente caída no degrada el servicio.** `status` de `/health` mira solo la base.
 
 ### 1.6 Decisiones clave que la arquitectura registra
 
 | Decisión | Qué implica en los componentes |
 |---|---|
-| **Arribo por geocerca más confirmación manual** (RN-05, RN-14) | El motor de cálculo infiere el arribo con `ST_Distance` y el umbral de velocidad; el arribo así obtenido se marca **inferido**. La confirmación manual de Logística entra por la API y **prevalece** sobre lo inferido |
-| **Arribo aéreo por `on_ground`, no por geocerca** (decisión del 25/08) | El motor aplica criterios distintos por vía: geometría para lo marítimo, indicador de la fuente para lo aéreo |
-| **Carga de pedidos por datos semilla** (`TASK-03`) | El adaptador de ingesta existe desde el Sprint 3 con semilla. **No es una función de usuario**: es un habilitador. El adaptador de SAP se enchufa después en el mismo puerto |
-| **Sin autenticación en la práctica** (decisión del 25/08) | No hay componente de identidad en el alcance. La entidad `usuarios` existe igual, porque RF-14 la necesita para la auditoría. La costura queda: el control de acceso se antepone a los routers cuando el Centro de Competencias lo implemente |
-| **Parámetros fuera del código** (RNF-07, RNF-15) | El motor lee umbrales y frecuencias de `parametros_sistema` en cada ciclo, no de constantes |
-| **Mapa en vivo de ShipsGo en el detalle** (21/10/2026) | **Única excepción** a «el navegador solo habla con la API de TrackIn»: el detalle del pedido embebe `embed.shipsgo.com` en un iframe, con un token propio del Embed —no el de la API— restringido por los orígenes autorizados en la cuenta. No pasa por el backend ni toca la base: es presentación. Los mapas del panel siguen siendo propios. Ver [`api-references.md`](api-references.md) §ShipsGo Embed |
+| **ShipsGo para las dos vías** (16/09, spike `TASK-28`) | Un solo proveedor de pago para marítimo y aéreo; 1.100 créditos a US$1,70 más US$250 de la API. Las altas las autoriza Compras desde la interfaz, con el costo a la vista (`US-55`) y el saldo vigilado (`US-57`) |
+| **Arribo por hito, con la geocerca como verificación** (`US-11`, 22/09) | Sin cobertura AIS en los puertos de destino, manda el hito que reporta la fuente. La confirmación manual de Planificación prevalece (RN-14) |
+| **El Excel Z-tracking es la vía definitiva** (07/10) | La carga se hace desde la interfaz con plantilla, validación por campo e informe de la carga (`US-58`, `US-59`). No hay lectura desde SAP |
+| **Receptor de SAP apagado por defecto** (27/10) | Si algún día SAP empuja pedidos, el contrato y la colección de Postman ya existen (`US-64`). La escucha solo la enciende el Administrador (`US-66`) y las guardas se evalúan en orden: clave, escucha, tamaño y formato |
+| **Autenticación con roles** (03/09 y 20/10) | Cada router declara qué roles lo usan. Compras usa una sola cuenta con sesiones simultáneas. `PLANTA` solo ve la pantalla permanente |
+| **Parámetros fuera del código** (RNF-07, RNF-15) | Umbrales, frecuencias y lead times se leen de `parametros_sistema` y del maestro de destinos en cada ciclo |
+| **Mapa en vivo de ShipsGo en el detalle** (21/10) | Única excepción a que el navegador solo hable con la API de TrackIn: el detalle embebe `embed.shipsgo.com` con un token propio del Embed, restringido por los orígenes autorizados. No pasa por el backend ni toca la base. Los mapas del panel son propios |
+| **Sin retención del historial** (`TASK-10`, 28/10) | Con ShipsGo el volumen de lecturas es bajo y no justifica purgar ni submuestrear |
 
-### 1.7 Puntos abiertos que deja `TASK-20`
+### 1.7 Puntos abiertos
 
-| # | Punto | Quién decide | Cuándo |
-|---|---|---|---|
-| 1 | ¿El worker es un proceso único con dos bucles, o un proceso por fuente? | Implementación | **Resuelto el 28/09/2026 (`US-50`)**: proceso único. `app.workers.rastreo` corre el ciclo de sondeo (ShipsGo y TICA); la suscripción AIS entrará como otro bucle del mismo proceso |
-| 2 | Cómo se supervisa el worker en producción (reinicio ante caída) | Centro de Competencias | `TASK-09`, cierre |
-| 3 | Si se compra una fuente AIS con cobertura de Moín, ¿reemplaza o convive con AISStream? | Greivin / Compras | Sin fecha |
+| # | Punto | Estado |
+|---|---|---|
+| 1 | ¿Un proceso por fuente o uno solo? | **Resuelto el 28/09 (`US-50`)**: un solo worker con ShipsGo y TICA |
+| 2 | Cómo se supervisa el worker en producción | Fuera del alcance de la práctica; lo cubre la guía de despliegue (`TASK-09`) |
+| 3 | Si se compra una fuente AIS con cobertura de los puertos de destino | Sin fecha; el puerto de fuentes lo admite sin tocar el motor |
 
 ---
 
-## 2. Vista de despliegue — desarrollo, instalación nativa
+## 2. Vista de despliegue: desarrollo, instalación nativa
 
-**Alcance:** solo el entorno de desarrollo. **La producción queda fuera del
-alcance de la práctica** (SRS §9.1): el despliegue en servidor lo ejecuta el
-Centro de Competencias, y los artefactos que necesita —`docker-compose.yml`, los
-`Dockerfile` y la guía de `TASK-09`— se conservan sin usarse aquí.
+**Alcance:** el entorno de desarrollo. El despliegue en servidor lo describe
+[`deployment.md`](deployment.md) (`TASK-09`), con los `Dockerfile` y el
+`docker-compose.yml` que se conservan para ese fin.
 
 ### 2.1 Diagrama
 
 ```mermaid
 flowchart TB
-    subgraph equipo["Equipo de desarrollo · Windows 11 Pro · sin permisos de administrador"]
+    subgraph equipo["Equipo de desarrollo: Windows 11, sin permisos de administrador"]
         NAV["Navegador<br/><i>localhost:5173</i>"]
         VITE["Vite dev server<br/><b>:5173</b><br/><i>npm run dev</i>"]
-        UVI["uvicorn · API<br/><b>:8000</b><br/><i>app.main:app --reload</i>"]
-        WRK["Worker de rastreo<br/><i>sin puerto · proceso de larga duración</i>"]
+        UVI["uvicorn, API<br/><b>:8000</b><br/><i>app.main:app --reload</i>"]
+        WRK["Worker de rastreo<br/><i>sin puerto, proceso de larga duración</i>"]
         PG[("PostgreSQL 16.14<br/>+ PostGIS 3.6.2<br/><b>:5432</b><br/><i>binarios portables</i>")]
-        ADM["pgAdmin o cliente SQL<br/><b>:5050</b><br/><i>opcional</i>"]
     end
 
-    subgraph red["Red corporativa de Gutis · salida a Internet"]
-        AISX["AISStream<br/><i>wss</i>"]
-        OSNX["OpenSky Network<br/><i>https</i>"]
+    subgraph red["Salida a Internet"]
+        SGX["ShipsGo API<br/><i>https</i>"]
+        TICX["TICA<br/><i>https</i>"]
+        EMBX["ShipsGo Embed<br/><i>https, desde el navegador</i>"]
     end
 
     NAV --> VITE
     NAV -->|"HTTP / JSON"| UVI
+    NAV -.-> EMBX
     UVI --> PG
     WRK --> PG
-    ADM --> PG
-    WRK -.->|"WebSocket saliente"| AISX
-    WRK -.->|"REST saliente"| OSNX
+    UVI -.->|"altas y saldo"| SGX
+    WRK -.->|"consultas"| SGX
+    WRK -.->|"consultas"| TICX
 ```
 
 ### 2.2 Procesos y puertos
 
-| Proceso | Puerto | Cómo se levanta | Arranca solo |
-|---|---|---|---|
-| PostgreSQL + PostGIS | `5432` | `pg_ctl -D ~/pgsql/data start` | **No** |
-| API | `8000` | `uvicorn app.main:app --reload` desde el `.venv` de `backend/` | No |
-| **Worker de rastreo** | — | `python -m app.workers` desde el mismo `.venv` | No |
-| Frontend | `5173` | `npm run dev` | No |
-| pgAdmin | `5050` | Opcional; sirve cualquier cliente SQL | No |
+| Proceso | Puerto | Cómo se levanta |
+|---|---|---|
+| PostgreSQL + PostGIS | `5432` | `pg_ctl -D ~/pgsql/data start` |
+| API | `8000` | `uvicorn app.main:app --reload` desde el `.venv` de `backend/` |
+| Worker de rastreo | | `python -m app.workers` desde el mismo `.venv` |
+| Frontend | `5173` | `npm run dev` |
 
-**Ninguno arranca solo, y no es un descuido.** Sin permisos de administrador no
-se puede registrar PostgreSQL como servicio de Windows, así que hay que
-levantarlo a mano en cada sesión de trabajo. Lo mismo aplica al resto.
+Ninguno arranca solo: sin permisos de administrador no se puede registrar
+PostgreSQL como servicio de Windows.
 
-### 2.3 Por qué nativo y no contenedores
+### 2.3 Por qué nativo y no contenedores en desarrollo
 
-Docker Desktop 4.85 **está instalado** pero no puede correr: en Windows todo
-runtime de contenedores Linux depende de WSL2 o Hyper-V, ambas características
-que solo se habilitan con permisos de administrador. TI no pudo habilitarlas y
-no hay alternativa en espacio de usuario. El SRS §9.3 recoge que el supervisor
-aceptó prescindir de contenedores.
-
-El detalle de instalación —origen de los binarios portables, `initdb -E UTF8
---locale=C` para que el ordenamiento de índices coincida con el del contenedor,
-y el bundle de PostGIS que se descomprime encima de PostgreSQL— está en
-el [manual de instalación local](manual-instalacion.md) (`TASK-07`, antes en
-`deployment.md`) y no se repite aquí.
+Docker Desktop está instalado pero no puede correr: necesita WSL2 o Hyper-V, que solo
+se habilitan con permisos de administrador. El supervisor aceptó prescindir de
+contenedores en desarrollo (SRS §9.3). El procedimiento completo está en el
+[manual de instalación local](manual-instalacion.md) (`TASK-07`).
 
 ### 2.4 Dependencias del equipo
 
@@ -291,125 +240,88 @@ el [manual de instalación local](manual-instalacion.md) (`TASK-07`, antes en
 | Node.js + npm | 24 LTS | `%LOCALAPPDATA%\Programs\nodejs` |
 | PostgreSQL + PostGIS | 16.14 / 3.6.2 | `~\pgsql`, binarios portables |
 
-Los tres se instalaron **en el ámbito del usuario**, sin elevación. RNF-19 exige
-justamente que el entorno se levante en Windows con un procedimiento
-documentado y reproducible.
-
-> **Consecuencia de `TASK-20` sobre la documentación existente.** La tabla de
-> `deployment.md` describe tres piezas —base, backend y frontend—. Con la
-> decisión del worker aparte son **cuatro procesos**. Se corrige allí para que
-> los dos documentos no se contradigan.
-
 ---
 
-## 3. Vista de secuencia — flujo principal de tracking
+## 3. Vista de secuencia: flujo principal de rastreo
 
 ### 3.1 Diagrama
 
 ```mermaid
 sequenceDiagram
     autonumber
+    participant PLA as Planificador
+    participant COL as Colector (ShipsGo o TICA)
     participant FTE as Fuente externa
-    participant ADP as Adaptador
-    participant PER as Persistidor
     participant DB as PostgreSQL + PostGIS
-    participant CAL as Motor de cálculo
+    participant CAL as Arribo y recálculo
     participant API as API REST
-    participant SPA as Dashboard
+    participant SPA as Panel
 
-    Note over FTE,CAL: Proceso 2 · worker. Corre continuo, sin usuario presente.
+    Note over PLA,CAL: Proceso 2, worker. Corre cada 60 s, sin usuario presente.
 
-    alt Vía marítima · AISStream empuja
-        FTE->>ADP: PositionReport con MMSI, posición, velocidad y rumbo
-    else Vía aérea · el planificador consulta cada 31 s
-        ADP->>FTE: GET /states con el token OAuth2 vigente
-        FTE-->>ADP: estados de aeronaves, incluido on_ground
+    PLA->>DB: lee parámetros y elementos activos
+    PLA->>COL: tareas del ciclo, según el tipo de referencia
+    alt Contenedor, BL, booking o MAWB
+        COL->>FTE: consulta el embarque en ShipsGo
+        FTE-->>COL: hitos, ETA, posición, transbordos, trayecto
+    else Guía hija (HAWB)
+        COL->>FTE: consulta el manifiesto en TICA
+        FTE-->>COL: llegada real y guía madre
     end
+    COL->>DB: guarda la lectura con su payload original
+    COL->>DB: actualiza el elemento rastreado
+    COL->>CAL: elemento actualizado
 
-    ADP->>ADP: normaliza a LecturaPosicion
-    ADP->>PER: LecturaPosicion
-    PER->>DB: INSERT historial_tracking · ON CONFLICT DO NOTHING
-    PER->>DB: UPDATE elementos_rastreados con posición y velocidad actuales
-    PER->>CAL: aviso de elemento actualizado
-
-    CAL->>DB: lee umbrales de parametros_sistema
-    CAL->>DB: lee los pedidos del elemento y su destino
-
-    loop por cada pedido del elemento
-        alt Vía marítima
-            CAL->>DB: ST_Distance hasta el destino sobre geografía
-            DB-->>CAL: distancia en metros
-            CAL->>CAL: arribo si está en el radio y bajo el umbral de velocidad
-        else Vía aérea
-            CAL->>CAL: arribo si la fuente reporta on_ground
-        end
-        CAL->>CAL: ETA por RN-16, fecha proyectada por RN-01
-        CAL->>CAL: etapa de viaje y cumplimiento
-        CAL->>DB: UPDATE pedidos_transito con el estado recalculado
+    loop por cada pedido activo del elemento
+        CAL->>CAL: arribo por hito, con la geocerca como verificación
+        CAL->>CAL: fecha proyectada (RN-01), etapa y cumplimiento
+        CAL->>DB: actualiza el pedido
     end
+    COL->>DB: publica la salud de cada fuente
 
-    Note over API,SPA: Proceso 1 · API. Independiente del anterior: no espera a nadie.
+    Note over API,SPA: Proceso 1, API. Independiente del anterior.
 
     SPA->>API: GET /pedidos con los filtros activos
     API->>DB: consulta el estado ya calculado
-    DB-->>API: filas con estado, ETA y última posición
+    DB-->>API: filas con etapa, cumplimiento, ETA y posición
     API-->>SPA: JSON
     SPA->>SPA: pinta grilla, mapas, KPIs y próximos arribos
 ```
 
-### 3.2 Lo que el diagrama afirma y conviene no perder de vista
+### 3.2 Lo que el diagrama afirma
 
-**Las dos mitades no se tocan.** El bloque de arriba corre en el worker sin que
-haya nadie mirando; el de abajo ocurre cuando un usuario abre el dashboard. La
-única cosa que comparten es la base. Eso es lo que hace cumplible RNF-03 —las
-consultas externas fuera del ciclo de petición— y RNF-12 —el dashboard responde
-aunque la fuente esté caída, con el último dato y su antigüedad—.
+**Las dos mitades no se tocan.** El worker corre sin nadie mirando; la API responde
+cuando alguien abre el panel. Lo único que comparten es la base. Eso hace cumplible
+RNF-03 y RNF-12.
 
-**La escritura es idempotente.** El `ON CONFLICT DO NOTHING` del paso de
-persistencia es lo que permite que una reconexión de AISStream reenvíe mensajes
-ya procesados sin ensuciar el historial ni el trayecto.
+**El recálculo es por elemento.** Una lectura de un contenedor actualiza de una vez
+todos los pedidos que viajan en él, procesados uno por uno para aislar fallos.
 
-**El recálculo es por elemento, no por pedido.** Una sola lectura de un buque
-actualiza de golpe todos los pedidos que viajan en él —el caso de las cinco
-líneas de una misma OC—. El bucle procesa pedido por pedido para aislar el fallo
-de uno, conforme a RNF-14.
+**El historial guarda el payload original** (`US-04`, RF-21), lo que permite auditar
+qué dijo la fuente en cada momento.
 
-**El criterio de arribo se bifurca por vía.** Geometría para lo marítimo,
-`on_ground` para lo aéreo. Es la decisión del 25/08, y es el punto donde la
-secuencia deja de ser simétrica entre las dos fuentes.
-
-**La distancia la calcula la base, no Python.** `ST_Distance` sobre `GEOGRAPHY`
-devuelve metros sobre el elipsoide, que es lo que RN-05 necesita para comparar
-contra un radio en kilómetros.
-
-### 3.3 Consistencia con la vista de componentes
-
-Cada participante del diagrama corresponde a un componente de §1.2, con las
-mismas responsabilidades y las mismas prohibiciones: el adaptador no interpreta
-estados, el motor no habla con fuentes externas, y la API no llama a nadie de
-afuera.
+**Las acciones manuales entran por la API.** Confirmar el desembarco, pasar a proceso
+aduanal, recibir en planta, liberar por Calidad, ajustar días o registrar la ETA
+quedan en `auditoria_intervenciones` con el usuario autenticado (RF-14).
 
 ---
 
 ## Notas de contexto
 
-- **Por qué PostGIS.** Las consultas del dashboard son espaciales —proximidad al
-  puerto, distancia al destino— y RN-05 las compara contra un radio en
-  kilómetros. Resolverlo en la base con `ST_Distance` sobre `GEOGRAPHY` evita
-  traer posiciones a memoria y devuelve metros, no grados. RNF-20 acota la
-  persistencia a PostgreSQL con PostGIS, sin recursos propietarios de nube.
-- **Por qué asíncrono.** El tracking marítimo llega por WebSocket y el aéreo por
-  *polling* HTTP: ambos son I/O-bound, no CPU-bound.
-- **Por qué el dashboard no lee `historial_tracking`.** Esa tabla crece unos 25
-  millones de filas al año (ver `data-model.md` §3.6). La última posición vive
-  desnormalizada en `elementos_rastreados`, y es lo que hace compatibles RNF-01
-  y RNF-22.
+- **Por qué PostGIS.** La verificación de arribo compara contra un radio en
+  kilómetros; `ST_Distance` sobre `GEOGRAPHY` devuelve metros sin traer posiciones a
+  memoria. RNF-20 acota la persistencia a PostgreSQL con PostGIS.
+- **Por qué asíncrono.** El rastreo es de entrada y salida, no de cómputo.
+- **Por qué el panel no lee `historial_tracking`.** La última posición vive
+  desnormalizada en `elementos_rastreados`, que es lo que mantiene la vista por debajo
+  de RNF-01.
 
 ## Referencias
 
-- [`data-model.md`](data-model.md) — modelo de datos y ER consolidado
-- [`data-dictionary.md`](data-dictionary.md) — diccionario de datos
-- [`api-references.md`](api-references.md) — contratos y hallazgos de las APIs externas
-- [`manual-instalacion.md`](manual-instalacion.md) — instalación local, sin Docker
-- [`deployment.md`](deployment.md) — guía de despliegue en servidor
-- [`manual-usuario.md`](manual-usuario.md) — manual de usuario del panel
+- [`data-model.md`](data-model.md): modelo de datos y ER consolidado
+- [`data-dictionary.md`](data-dictionary.md): diccionario de datos
+- [`api-references.md`](api-references.md): contratos y hallazgos de las APIs externas
+- [`manual-instalacion.md`](manual-instalacion.md): instalación local, sin Docker
+- [`deployment.md`](deployment.md): guía de despliegue en servidor
+- [`manual-usuario.md`](manual-usuario.md): manual de usuario del panel
+- [`adr/`](adr/): decisiones de arquitectura

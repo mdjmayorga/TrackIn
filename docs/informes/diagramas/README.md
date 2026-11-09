@@ -1,12 +1,19 @@
 # Diagramas de los informes
 
-Fuentes de los diagramas del segundo informe de avance. Las imágenes se generan con
+Fuentes de los diagramas del segundo informe de avance y del informe final. Las imágenes se generan con
 matplotlib; para corregir un texto se edita el script y se vuelve a correr.
 
 | Script | Genera | Figuras del Informe 2 |
 |---|---|---|
 | `diagramas.py` | `img/arquitectura.png`, `img/subsistemas.png`, `img/estados.png`, `img/secuencia.png`, `img/er.png`, `img/despliegue.png` | 2.1, 2.2, 2.3, 2.11, 2.12 y 2.13 |
 | `cronograma.py` | `Cronograma_TrackIn.xml` (Microsoft Project) e `img/g1.png` a `img/g4.png` | 4.1 a 4.4 |
+
+Para el informe final hay una versión de cada script, que no toca la del Informe 2:
+
+| Script | Genera | Figuras del informe final |
+|---|---|---|
+| `diagramas_final.py` | `img/final_arquitectura.png`, `img/final_subsistemas.png`, `img/final_estados.png`, `img/final_secuencia.png`, `img/final_er.png` (17 tablas), `img/final_despliegue.png` | 3.1 a 3.3, 3.14 a 3.16 |
+| `cronograma_final.py` | `Cronograma_TrackIn_final.xml` e `img/final_g0.png` a `img/final_g4.png` | 3.17 a 3.21 |
 
 ## Cómo regenerarlos
 
