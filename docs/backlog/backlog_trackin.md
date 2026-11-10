@@ -103,7 +103,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-53` | Medir el cumplimiento contra la fecha de llegada a Gutis (columna R) | Story | OE2 | **Must** | Sprint 5 | 3h | Reunión con Compras 29/09 · revierte la decisión 2 del 04/09 · ✅ terminada 29/09 |
 | `US-54` | Tomar el puerto de llegada del API aunque el incoterm diga otro | Story | OE2 | **Should** | Sprint 5 | 3h | Reunión con Compras 29/09 · amplía `US-52` · ✅ terminada 29/09 |
 | `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras ✅ | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · una o en bloque, con confirmación del costo · ✅ construida 26/10, falta la prueba real con un BL del Excel final |
-| `US-57` | Saldo de créditos de ShipsGo y aviso antes de que se agoten | Story | OE2 | **Should** | Sprint 6 | 4h | Acuerdo del 06/10: compra anual de créditos |
+| `US-57` | Saldo de créditos de ShipsGo y aviso antes de que se agoten ✅ | Story | OE2 | **Should** | Sprint 6 | 4h | Acuerdo del 06/10: compra anual de créditos · ✅ terminada 26/10: los 49 créditos de prueba registrados como paquete vigente |
 | `US-56` | ~~Leer los pedidos del Z-tracking desde la API de SAP~~ ❌ | Story | OE2 | — | — | — | **Cancelada el 07/10:** la API de SAP no va a existir. La reemplaza `US-58` |
 | `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga ✅ | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada · ✅ terminada 08/10 |
 | `US-59` | Plantilla vacía del Z-tracking para descargar y validación de formato de cada campo al cargar ✅ | Story | OE2 | **Must** | Sprint 7 | 8h | 08/10: pedido sobre la pantalla de carga de `US-58` · ✅ terminada 02/11: plantilla con el diseño de WK43, formato por campo y referencias que llegan en cargas posteriores |
@@ -126,7 +126,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-67` | Registrar a mano la ETA a Costa Rica cuando la fuente no la da ✅ | Story | OE2 | **Should** | Sprint 7 | 3h | 02/11: la guía de 4500018865 termina en París y no había fecha que ajustar · solo Compras y el Administrador · ✅ terminada 02/11 |
 | `TASK-06` | Pruebas de integracion extremo a extremo ✅ | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 · ✅ adelantada y terminada 03/11: flujo completo del Excel al cierre; reglas de la §7 al 98,5 %, verificado en CI |
 | `TASK-07` | Manual de instalacion local ✅ | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 · ✅ adelantada y terminada 03/11: `docs/manual-instalacion.md`, probado en una instalación limpia |
-| `TASK-08` | Manual de usuario del dashboard 🔶 | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 · 🔶 redactado 04/11; faltan las capturas |
+| `TASK-08` | Manual de usuario del dashboard ✅ | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 · redactado 04/11 · ✅ terminado 10/11: `docs/manual-usuario.docx` con las 12 capturas |
 | `TASK-09` | Guia de despliegue para produccion ✅ | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 · ✅ adelantada y terminada 03/11: `docs/deployment.md` y los artefactos de contenedor al día |
 | `TASK-10` | Politica de retencion y submuestreo del historial de posiciones ✅ | Task | OE4 | **Could** | Sprint 7 | 8h | RNF-22 / spike TG-10 · ✅ cerrada 28/10 sin retención: el volumen con ShipsGo no la justifica |
 | `TASK-11` | Actualizar el SRS con los hallazgos de los spikes tecnicos ✅ | Task | OE1 | **Must** | Sprint 3 | ~~6h~~ 0h | Fase 6 de TG-18 (cumplida por el SRS v0.3) |
@@ -3366,6 +3366,10 @@ Como técnico del Centro de Competencias, quiero un manual de instalación repro
 
 #### TASK-08 — Manual de usuario del dashboard
 
+> **✅ Terminado el 10/11/2026.** La versión entregable es
+> [`docs/manual-usuario.docx`](../manual-usuario.docx), con las 12 capturas en su lugar y sin
+> marcadores pendientes. El Markdown conserva el texto con los marcadores `[Captura: …]`.
+>
 > **🔶 Redactado el 04/11/2026** en [`docs/manual-usuario.md`](../manual-usuario.md). Decisiones:
 > Markdown en el repositorio, como los manuales de instalación y despliegue; organizado
 > **por tarea**, con los roles de cada una; redacción impersonal; todo lo de la interfaz,
