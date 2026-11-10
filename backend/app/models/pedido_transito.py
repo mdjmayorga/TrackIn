@@ -109,6 +109,12 @@ class PedidoTransito(Base, TimestampMixin):
         Index("ix_pedidos_transito_oc_numero", "oc_numero"),
         Index("ix_pedidos_transito_estado_calculado", "estado_calculado"),
         Index("ix_pedidos_transito_fecha_proyectada", "fecha_proyectada_disponible"),
+        # Parcial: solo las líneas ausentes, que son pocas (0005).
+        Index(
+            "ix_pedidos_transito_ausentes",
+            "ausente_desde",
+            postgresql_where=text("ausente_desde IS NOT NULL"),
+        ),
         {"comment": "Línea de orden de compra en tránsito. Granularidad: la línea."},
     )
 
@@ -172,7 +178,15 @@ class PedidoTransito(Base, TimestampMixin):
     )
     #: La ETA tal como la declara el archivo (`US-09`). Es la última de la
     #: precedencia de RN-14: la escribe una persona y no se actualiza sola.
-    eta_declarada: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    eta_declarada: Mapped[dt.date | None] = mapped_column(
+        Date,
+        nullable=True,
+        comment=(
+            "ETA tal como la declara el archivo de Logística (columna 'ETA CR'). "
+            "Última en la precedencia de RN-14: la mantiene una persona a mano y es "
+            "justo lo que TrackIn viene a reemplazar."
+        ),
+    )
     #: La ETA a Costa Rica que Compras registra a mano cuando la fuente no la da:
     #: la carga quedó en un transbordo y la guía termina ahí (`US-67`). Va debajo
     #: de la ETA de la fuente y encima de la estimada (RN-14).
@@ -223,16 +237,23 @@ class PedidoTransito(Base, TimestampMixin):
     #: `ausente_desde IS NULL` significa presente; el segundo criterio de
     #: `US-31` exige señalar la ausencia, nunca borrar la línea.
     fecha_ultima_carga: Mapped[dt.datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Última vez que la línea vino en un archivo de carga (US-31).",
     )
     ausente_desde: Mapped[dt.datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Desde cuándo dejó de figurar en el archivo. NULL = presente (US-31).",
     )
     #: `US-54`: el destino es el puerto que declaró la naviera, no el del
     #: incoterm. Mientras sea `true`, una carga que no puede preguntarle a la
     #: fuente no lo reemplaza por lo que diga el archivo.
     destino_segun_fuente: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("false")
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        comment="true si el destino es el puerto que declaró la fuente de rastreo (US-54).",
     )
 
     # --- Relaciones ---------------------------------------------------------

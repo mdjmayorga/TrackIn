@@ -71,8 +71,16 @@ class ElementoRastreado(Base, TimestampMixin):
     #: Identidad de la nave según la fuente (`US-45`; cierra la deuda que
     #: `US-02` dejó escrita el 08/09). Los consumen el mapa (`US-27`) y el
     #: detalle del pedido (`US-44`).
-    nombre: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    imo: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    nombre: Mapped[str | None] = mapped_column(
+        String(120),
+        nullable=True,
+        comment="Nombre de la nave o vuelo, tal como lo reporta la fuente.",
+    )
+    imo: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Identificador OMI de la nave (siete dígitos). Solo vía marítima.",
+    )
 
     #: ETA y ATA tal como las reporta la fuente externa. Se distinguen de la
     #: inferida por el sistema y de la confirmada a mano (RN-05).

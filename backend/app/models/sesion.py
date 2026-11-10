@@ -9,7 +9,7 @@ from __future__ import annotations
 import datetime as dt
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, String, text
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Identity, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -27,7 +27,7 @@ class Sesion(Base):
         {"comment": "Sesiones abiertas por el login (US-42). Se guarda el hash del token."},
     )
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     id_usuario: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False
     )

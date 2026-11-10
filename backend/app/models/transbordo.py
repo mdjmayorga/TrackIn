@@ -44,7 +44,10 @@ class Transbordo(Base):
     __table_args__ = (
         # Una vez por embarque: la misma pareja de naves no se registra dos veces.
         UniqueConstraint(
-            "id_elemento_rastreado", "vehiculo_anterior", "vehiculo_nuevo", name="cambio"
+            "id_elemento_rastreado",
+            "vehiculo_anterior",
+            "vehiculo_nuevo",
+            name="uq_transbordos_cambio",
         ),
         {"comment": "Cambios de nave o vuelo informados por ShipsGo (US-30)."},
     )

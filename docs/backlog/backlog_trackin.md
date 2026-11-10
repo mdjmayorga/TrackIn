@@ -4486,7 +4486,7 @@ Hecha antes de la reunión con Ventas, para confirmar que todo corre como debe.
 | API real con uvicorn, por HTTP | ✅ `/health` OK con PostGIS; 20 rutas en `/docs`; rechaza sin token; error de login genérico |
 | Ciclo real del worker | ✅ ShipsGo consultado gratis, sin altas; 107 pedidos recalculados; salud de las fuentes publicada |
 | Tipos (mypy) | ⚠️ 15 errores, informativos en CI · ✅ corregidos el 15/10 |
-| Modelo contra base (`alembic check`) | ⚠️ Diferencias no funcionales |
+| Modelo contra base (`alembic check`) | ⚠️ Diferencias no funcionales · ✅ alineados el 10/11 |
 
 **Arreglos de entorno hechos ese día:** se creó la base `trackin_test`, que no existía en esta
 máquina —sin ella las pruebas de integración no podían correr—, y la de desarrollo se llevó
@@ -4505,7 +4505,7 @@ real que recorre solo el rastreo automático.
 | Deuda | Riesgo | Cuándo |
 |---|---|---|
 | ~~15 errores de mypy, sobre todo anotaciones en `api/`~~ | ✅ **Resuelta el 15/10/2026.** Los 15 se corrigieron sin cambiar el comportamiento —6 referencias entre modelos, 5 resultados de consulta sin tipo declarado, 4 tipos que mypy no deducía— y el paso de mypy es ahora **bloqueante** en CI | — |
-| `alembic check` ve comentarios de columna que el modelo no declara, el índice `ix_pedidos_transito_ausentes` ausente del modelo y el tipo de `sesiones.id` | Que una migración autogenerada borre ese índice | Antes de autogenerar otra migración |
+| ~~`alembic check` ve comentarios de columna que el modelo no declara, el índice `ix_pedidos_transito_ausentes` ausente del modelo y el tipo de `sesiones.id`~~ | ✅ **Resuelta el 10/11/2026.** El modelo declara los ocho comentarios, el índice parcial, la identidad de `sesiones.id` y el nombre real de `uq_transbordos_cambio`; la base no cambió. `alembic check` es ahora un paso **bloqueante** del CI | — |
 | El modelo documenta `uq_maestro_destinos_id_via` y el FK compuesto de §2.7, que **no existen** en la base; en cambio hay un índice GIST que el documento desaconseja | Documentación que no describe la base real | Revisión de `TASK-01` |
 | El diccionario y el modelo divergen en `usuarios`, `elementos_rastreados` y `salud_fuentes` (`scripts/check_docs_model.py`) | Documentación desfasada | Junto con la anterior |
 | `altas_maximas_dia` sigue en 5 | Avisaría en días normales con 70–110 embarques al mes | Al registrar el paquete de 1 100 (~06/11): el formulario de `US-57` sube el tope en el mismo paso |

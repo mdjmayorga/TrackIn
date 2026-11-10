@@ -51,10 +51,15 @@ class Usuario(Base, TimestampMixin):
     #: `US-42`: intentos fallidos seguidos. Al llegar al máximo se bloquea un
     #: rato; entrar bien lo devuelve a cero.
     intentos_fallidos: Mapped[int] = mapped_column(
-        Integer, nullable=False, server_default=text("0")
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+        comment="Intentos fallidos seguidos; vuelve a 0 al entrar bien (US-42).",
     )
     bloqueado_hasta: Mapped[dt.datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Hasta cuándo no se admite el ingreso tras superar los intentos.",
     )
 
     def __repr__(self) -> str:  # pragma: no cover - ayuda de depuración

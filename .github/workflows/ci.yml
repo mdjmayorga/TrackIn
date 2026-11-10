@@ -82,6 +82,11 @@ jobs:
       - name: Migraciones (alembic)
         run: alembic upgrade head
 
+      # Modelos y migraciones deben describir el mismo esquema: si no, la próxima
+      # migración autogenerada borra lo que el modelo no declara (10/11/2026).
+      - name: Modelos alineados con las migraciones (alembic check)
+        run: alembic check
+
       - name: Tests
         run: pytest
 
