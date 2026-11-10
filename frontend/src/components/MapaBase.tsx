@@ -17,9 +17,9 @@ import type { ReactNode } from 'react'
 import { CircleMarker, MapContainer, TileLayer, Tooltip, ZoomControl } from 'react-leaflet'
 
 import { BLANCO } from '@/components/paleta'
+import { mosaicos } from '@/utils/mosaicos'
 
-const MOSAICOS = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-const ATRIBUCION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+const FONDO = mosaicos()
 
 export interface MapaBaseProps {
   titulo: string
@@ -68,7 +68,7 @@ export function MapaBase({
           worldCopyJump
           className="h-full w-full bg-panel-mapa"
         >
-          <TileLayer url={MOSAICOS} attribution={ATRIBUCION} />
+          <TileLayer url={FONDO.url} attribution={FONDO.atribucion} />
           <ZoomControl position="bottomleft" />
           {marcador && (
             <CircleMarker

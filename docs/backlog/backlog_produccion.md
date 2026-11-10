@@ -69,7 +69,7 @@ cambia, cambian las tareas que la citan.
 | `PROD-02` | Confirmar las decisiones de partida con el supervisor y Compras | Task | 0 | **Must** | 2h | — | Mariano |
 | `PROD-03` | Ensayo local del stack de contenedores, de punta a punta ✅ | Task | 0 | **Must** | 6h | — | Mariano |
 | `PROD-04` | Corregir lo que encuentre el ensayo local ✅ | Task | 0 | **Must** | 4h | `PROD-03` | Mariano |
-| `PROD-05` | Mosaicos del mapa: URL sin subdominio, configurable y con plan B | Task | 0 | **Should** | 3h | — | Mariano |
+| `PROD-05` | Mosaicos del mapa: URL sin subdominio, configurable y con plan B ✅ | Task | 0 | **Should** | 3h | — | Mariano |
 | `PROD-06` | Versionar: etiqueta `v1.0.0`, notas de versión y vuelta atrás 🔶 | Task | 0 | **Must** | 2h | `PROD-04` | Mariano |
 | `PROD-07` | Scripts de respaldo con retención y de restauración ✅ | Story | 0 | **Must** | 4h | `PROD-03` | Mariano |
 | `PROD-08` | Chequeo de `/health` con aviso | Story | 0 | **Should** | 4h | `PROD-03` | Mariano |
@@ -269,10 +269,33 @@ Como usuario del panel, quiero que el fondo de los mapas cargue siempre, para qu
 > bajo), pero el servicio no tiene SLA, puede bloquear sin aviso y advierte que a los
 > servicios comerciales se les puede retirar el acceso: por eso el plan B queda listo.
 >
-> **10/11/2026, por `PROD-11`:** la `Content-Security-Policy` de
-> `frontend/nginx-seguridad.conf` lista los dominios de los mosaicos en `img-src`.
-> Cambiar la URL (o pasar al plan B) exige agregar el dominio nuevo ahí; si no, el mapa
-> queda gris.
+> **✅ Hecha el 10/11/2026.**
+>
+> - **URL sin `{s}`:** `https://tile.openstreetmap.org/{z}/{x}/{y}.png`, en
+>   [`frontend/src/utils/mosaicos.ts`](../../frontend/src/utils/mosaicos.ts), que lee
+>   `VITE_MOSAICOS_URL` y `VITE_MOSAICOS_ATRIBUCION` (vacías: OpenStreetMap; una vacía
+>   como la pasa compose no deja el mapa sin fondo). Pasan por `docker-compose.yml`, el
+>   `Dockerfile` y las dos plantillas `.env`.
+> - **La CSP sigue sola a la URL.** `PROD-11` había puesto los dominios de OSM fijos en
+>   `img-src`: cambiar de proveedor habría exigido editar también la política, y
+>   olvidarlo deja el mapa gris. Ahora el `Dockerfile` deriva el dominio de
+>   `VITE_MOSAICOS_URL` al construir, y **falla con un mensaje claro** si la URL no es
+>   `https://` o trae `{s}`. Probado fuera de Docker con cinco casos (vacía, OSM,
+>   Stadia con clave —que no se cuela en la política—, `{s}` y `http://`).
+> - **Plan B** en la [guía de despliegue](../deployment.md) §5: Stadia Starter, que el
+>   gratuito prohíbe el uso comercial, que hace falta API key, la URL con `osm_bright`
+>   (el más parecido a OSM bajo el filtro gris), la atribución obligatoria y cómo
+>   volver atrás.
+> - **Lista blanca:** el §3 de la guía, que es de donde la toma `PROD-01`, dice
+>   `tile.openstreetmap.org` sin comodín.
+> - **Refresco de la pantalla de planta:** por código, el refresco automático
+>   (`refetchInterval` de React Query, cada 2 minutos) solo pide datos a la API; la
+>   capa de mosaicos no se vuelve a montar. La **medición de un día** necesita la
+>   pantalla real: pasó como criterio a `PROD-24`.
+>
+> **Verificado:** 378 pruebas del panel (4 nuevas en `tests/mosaicos.test.ts`), eslint,
+> tsc, prettier y build; el bundle no contiene `{s}`. Falta verlo construido con
+> Docker, junto con el recordatorio de `PROD-11`.
 
 | | |
 |---|---|
@@ -468,6 +491,60 @@ Como responsable de TrackIn, quiero revisada la configuración que cambia entre 
 > documentado en la guía §4.1.
 > **Falta:** en el equipo con Docker, `nginx -t` y `curl -I` sobre `/`, `/index.html` y
 > un asset, para ver las cabeceras en los tres (aquí no se pudo correr nginx).
+>
+> **⏰ Recordatorio: verificación pendiente en el equipo con Docker (anotada el 10/11/2026).**
+> En PowerShell, desde la raíz del repositorio. Antes, subir los cambios de `PROD-11`
+> desde el equipo de desarrollo (`git push`).
+>
+> 1. Traer el código y confirmar que Docker corre (tienen que salir **Client** y
+>    **Server**; si Server falla, abrir Docker Desktop):
+>    ```powershell
+>    git pull
+>    docker version
+>    ```
+> 2. Si no quedó el `.env.produccion` del ensayo de `PROD-03`, crearlo y completar
+>    `POSTGRES_PASSWORD` y `SECRET_KEY` con cualquier texto largo:
+>    ```powershell
+>    Copy-Item .env.produccion.example .env.produccion
+>    notepad .env.produccion
+>    ```
+> 3. Construir y levantar. `up -d frontend` levanta también la base y la API, pero no el
+>    worker: no consulta ShipsGo. Esperar `healthy` en `postgres` y `frontend`; que
+>    `backend` diga `unhealthy` no importa aquí:
+>    ```powershell
+>    docker compose --env-file .env.produccion build backend frontend
+>    docker compose --env-file .env.produccion up -d frontend
+>    docker compose --env-file .env.produccion ps
+>    ```
+> 4. Configuración de nginx. ✅ si dice `syntax is ok` y `test is successful`:
+>    ```powershell
+>    docker compose --env-file .env.produccion exec frontend nginx -t
+>    ```
+> 5. Cabeceras en las tres rutas. ✅ si **cada una** muestra
+>    `Content-Security-Policy: default-src 'self'; ...`, `X-Frame-Options: SAMEORIGIN` y
+>    `Server: nginx` sin número de versión. Dentro de la política tiene que decir
+>    `img-src 'self' data: blob: https://tile.openstreetmap.org` (`PROD-05`); si dice
+>    `__MOSAICOS_ORIGEN__`, el `Dockerfile` no hizo el reemplazo:
+>    ```powershell
+>    $asset = (curl.exe -s http://localhost:8080/ | Select-String -Pattern '/assets/[^"]+\.js').Matches[0].Value
+>    curl.exe -sI http://localhost:8080/ | Select-String "Content-Security|X-Frame|Server:"
+>    curl.exe -sI http://localhost:8080/index.html | Select-String "Content-Security|X-Frame|Server:"
+>    curl.exe -sI "http://localhost:8080$asset" | Select-String "Content-Security|X-Frame|Server:"
+>    ```
+> 6. Documentación de la API apagada. ✅ si **falla** con `HTTP Error 404: Not Found`:
+>    ```powershell
+>    docker compose --env-file .env.produccion exec backend python -c "import urllib.request as u; u.urlopen('http://localhost:8000/docs')"
+>    ```
+> 7. Rotación de logs. ✅ si muestra `"max-file":"5","max-size":"10m"`:
+>    ```powershell
+>    docker inspect trackin-frontend --format "{{json .HostConfig.LogConfig}}"
+>    ```
+> 8. Apagar. **Solo `down`, nunca `down -v`** (borra la base):
+>    ```powershell
+>    docker compose --env-file .env.produccion down
+>    ```
+>
+> Con los pasos 4 a 7 en ✅, `PROD-11` pasa a ✅ y este recordatorio se borra.
 
 #### `PROD-12` — Sacar el token de ShipsGo de los equipos de desarrollo
 
@@ -700,6 +777,7 @@ Como persona de planta, quiero el monitor mostrando TrackIn todo el día, sin qu
 - Dado el equipo del monitor, cuando entra con la cuenta de planta, **Recordar sesión** y **Pantalla completa**, entonces el carrusel corre y el monitor no se apaga
 - Dado un corte de luz o de red, cuando el equipo vuelve, entonces queda documentado qué hace falta para recuperar la pantalla (idealmente: el navegador abre TrackIn al iniciar)
 - Dado un día completo, cuando se revisa al final, entonces la pantalla sigue mostrando datos frescos
+- Dado ese mismo día, cuando se miran las peticiones del navegador (F12 → Red, filtro `tile`), entonces los mosaicos se pidieron al abrir y no en cada refresco, y salen de la caché del navegador cuando el carrusel vuelve a un mapa (traído de `PROD-05` el 10/11/2026)
 
 | | |
 |---|---|

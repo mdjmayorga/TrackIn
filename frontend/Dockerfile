@@ -40,8 +40,13 @@ FROM builder AS build
 ARG VITE_API_URL=
 # Opcional: el mapa en vivo de ShipsGo en el detalle. Vacío, usa el mapa propio.
 ARG VITE_SHIPSGO_EMBED_TOKEN=
+# Opcionales: el fondo de los mapas (`PROD-05`). Vacías, OpenStreetMap.
+ARG VITE_MOSAICOS_URL=
+ARG VITE_MOSAICOS_ATRIBUCION=
 ENV VITE_API_URL=$VITE_API_URL \
-    VITE_SHIPSGO_EMBED_TOKEN=$VITE_SHIPSGO_EMBED_TOKEN
+    VITE_SHIPSGO_EMBED_TOKEN=$VITE_SHIPSGO_EMBED_TOKEN \
+    VITE_MOSAICOS_URL=$VITE_MOSAICOS_URL \
+    VITE_MOSAICOS_ATRIBUCION=$VITE_MOSAICOS_ATRIBUCION
 RUN npm run build
 
 # --------------------------------------------------------------------------
@@ -52,6 +57,21 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Fuera de conf.d/: ahí nginx lo incluiría solo, a nivel `http` (`PROD-11`).
 COPY nginx-seguridad.conf /etc/nginx/snippets/seguridad.conf
+# La CSP deja pasar las imágenes del dominio de los mosaicos, y ese dominio sale
+# de la misma variable que el panel: cambiar de proveedor no deja el mapa gris
+# por olvidar la política (`PROD-05`). Solo HTTPS y sin `{s}`: la CSP necesita
+# un dominio fijo.
+ARG VITE_MOSAICOS_URL=
+RUN set -eu; \
+    url="$VITE_MOSAICOS_URL"; \
+    [ -n "$url" ] || url="https://tile.openstreetmap.org/"; \
+    origen="$(printf '%s' "$url" | sed -nE 's#^(https://[^/?{}]+)/.*#\1#p')"; \
+    if [ -z "$origen" ]; then \
+        echo "VITE_MOSAICOS_URL debe empezar con https:// y un dominio fijo, sin {s}: $url" >&2; \
+        exit 1; \
+    fi; \
+    sed -i "s#__MOSAICOS_ORIGEN__#$origen#" /etc/nginx/snippets/seguridad.conf; \
+    grep -q "img-src 'self' data: blob: $origen;" /etc/nginx/snippets/seguridad.conf
 EXPOSE 80
 # 127.0.0.1 y no localhost: en la imagen alpine, localhost resuelve primero a
 # ::1 (IPv6) y nginx escucha solo en IPv4, así que el chequeo fallaba con el

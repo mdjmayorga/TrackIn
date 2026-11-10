@@ -91,7 +91,7 @@ proteger. El `worker` va aparte de la API por diseño (`TASK-20`,
 | `api.shipsgo.com` | `worker` y `backend` | No hay rastreo de BL, contenedores ni MAWB |
 | `ticaconsultas.hacienda.go.cr` | `worker` | No se siguen las guías hijas (HAWB) |
 | `embed.shipsgo.com` | El **navegador** de cada usuario | El detalle usa el mapa propio |
-| `*.tile.openstreetmap.org` | El **navegador** de cada usuario | Los mapas salen sin fondo |
+| `tile.openstreetmap.org` (sin subdominio; con el plan B, `tiles.stadiamaps.com`, §5) | El **navegador** de cada usuario | Los mapas salen sin fondo |
 
 Los dos últimos los pide el navegador, no el servidor: la red de los usuarios
 tiene que dejarlos pasar.
@@ -122,16 +122,18 @@ cuando Vite la fija al construir.
 | Qué | En producción | Por qué |
 |---|---|---|
 | `/docs`, `/redoc`, `/openapi.json` | **Apagados** con `ENVIRONMENT=production` (siguen en desarrollo) | Describirían cada ruta de la API. nginx ya no los reenvía, pero apagarlos no depende de cómo se publique el contenedor |
-| `Content-Security-Policy` | Solo corren los scripts del propio panel; de afuera, solo los mosaicos de OpenStreetMap (imágenes) y el mapa de ShipsGo (iframe) | El token de sesión vive en el navegador: un script ajeno podría leerlo |
+| `Content-Security-Policy` | Solo corren los scripts del propio panel; de afuera, solo los mosaicos del mapa (imágenes, del dominio de `VITE_MOSAICOS_URL`) y el mapa de ShipsGo (iframe) | El token de sesión vive en el navegador: un script ajeno podría leerlo |
 | `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` y `frame-ancestors`, `Permissions-Policy` | Puestas en todas las respuestas | Cabeceras básicas. `Referrer-Policy` manda el origen a otros sitios porque el mapa de ShipsGo lo usa para validar «Allowed HTTP Origins» |
 | Versión de nginx | No se anuncia | — |
 | Logs de los contenedores | Se rotan: cinco archivos de 10 MB por servicio (`x-logs` en `docker-compose.yml`) | Sin tope, el driver `json-file` crece hasta llenar el disco |
 | Reinicio del servidor | Los cuatro servicios tienen `restart: unless-stopped` | TrackIn vuelve solo, **si Docker arranca con el sistema**: `sudo systemctl enable docker` |
 
-**Si cambia un origen externo, hay que tocar la política.** El fondo del mapa (plan B
-de `PROD-05`) va en `img-src`, y una API en otro dominio (`VITE_API_URL`) va en
-`connect-src`, los dos en `frontend/nginx-seguridad.conf`, y después se reconstruye
-el panel (`docker compose build frontend`). El síntoma de olvidarlo es un mapa gris
+**El fondo del mapa se ajusta solo; una API en otro dominio, no.** Al construir la
+imagen, el `Dockerfile` pone en `img-src` el dominio de `VITE_MOSAICOS_URL`, así que
+pasar al plan B (§5) no exige tocar la política. Una API en otro dominio
+(`VITE_API_URL`) sí: hay que agregarla a `connect-src` en
+`frontend/nginx-seguridad.conf` y reconstruir el panel (`docker compose build
+frontend`). El síntoma de olvidarlo es un mapa gris
 o un panel que no carga datos, con un error «Content Security Policy» en la consola
 del navegador (F12). El 10/11/2026 pasó en una prueba: un bundle compilado con el
 `.env` de desarrollo (`VITE_API_URL=http://localhost:8000`) decía que el backend no
@@ -181,11 +183,51 @@ juntos.
 |---|---|
 | `VITE_API_URL` | **Vacía** (recomendado): el panel llama a la API en su mismo origen. Solo se completa si la API vive en otro dominio |
 | `VITE_SHIPSGO_EMBED_TOKEN` | Opcional: el mapa en vivo de ShipsGo en el detalle. Es otro token, no el de la API, y va en el navegador: el dominio público tiene que estar en «Allowed HTTP Origins» de la cuenta de ShipsGo |
+| `VITE_MOSAICOS_URL` | **Vacía** (recomendado): el fondo de los mapas sale de OpenStreetMap, `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. Solo se cambia para el plan B (abajo). Tiene que ser `https://` con un dominio fijo, sin `{s}`: si no, la imagen no se construye y dice por qué |
+| `VITE_MOSAICOS_ATRIBUCION` | **Vacía**: la de OpenStreetMap. Con el plan B, la del proveedor (abajo) |
 | `TRACKIN_PUERTO` | El puerto del servidor donde escucha el panel (8080). El proxy con TLS apunta acá |
 
 > Las `VITE_*` quedan **dentro del bundle**: cambiarlas exige
 > `docker compose build frontend`, no basta reiniciar. Y cualquiera que abra el
-> panel puede leerlas: nunca poner ahí un secreto.
+> panel puede leerlas: nunca poner ahí un secreto. La clave de Stadia del plan B es
+> la excepción aceptada: el proveedor la diseñó para ir en el navegador, y lo que se
+> arriesga es la cuota del plan.
+
+### Plan B del fondo de los mapas: Stadia Maps (`PROD-05`)
+
+OpenStreetMap no tiene SLA y puede bloquear sin aviso, sobre todo a usos
+comerciales (investigación del 06/11/2026 en
+[produccion-mosaicos-y-https.md](analisis/produccion-mosaicos-y-https.md)). Si el
+fondo de los mapas deja de cargar y la consola del navegador (F12) muestra errores
+de `tile.openstreetmap.org` (403, 418 o 429), se pasa al plan B:
+
+1. Crear una cuenta en Stadia Maps con el plan **Starter** (USD 20 al mes). **El plan
+   gratuito no sirve: prohíbe el uso comercial.**
+2. Crear una **API key** en el panel de Stadia. Para una intranet hace falta la
+   clave: la autenticación por dominio usa `Origin`/`Referer`, y Stadia no dice que
+   sirva con nombres internos.
+3. En `.env.produccion`:
+
+   ```bash
+   VITE_MOSAICOS_URL=https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png?api_key=LA_CLAVE
+   VITE_MOSAICOS_ATRIBUCION=&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
+   ```
+
+   `osm_bright` es el estilo más parecido al de OpenStreetMap, y el panel le aplica
+   el mismo filtro gris oscuro. La atribución es obligatoria y va visible en el
+   mapa.
+4. Reconstruir y levantar el panel. La política de seguridad toma el dominio nuevo
+   sola:
+
+   ```bash
+   docker compose --env-file .env.produccion build frontend
+   docker compose --env-file .env.produccion up -d frontend
+   ```
+
+5. Pedir a TI que deje pasar `tiles.stadiamaps.com` desde la red de los usuarios
+   (§3).
+
+Para volver a OpenStreetMap: dejar las dos variables vacías y repetir el paso 4.
 
 ---
 

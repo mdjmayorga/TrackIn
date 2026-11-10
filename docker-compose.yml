@@ -126,6 +126,10 @@ services:
         # Vacía: el panel llama a la API en su mismo origen y nginx la reenvía.
         VITE_API_URL: ${VITE_API_URL:-}
         VITE_SHIPSGO_EMBED_TOKEN: ${VITE_SHIPSGO_EMBED_TOKEN:-}
+        # Vacías: OpenStreetMap. El plan B (`PROD-05`) es cambiarlas y reconstruir;
+        # la CSP de nginx toma el dominio de la URL sola.
+        VITE_MOSAICOS_URL: ${VITE_MOSAICOS_URL:-}
+        VITE_MOSAICOS_ATRIBUCION: ${VITE_MOSAICOS_ATRIBUCION:-}
     container_name: trackin-frontend
     restart: unless-stopped
     logging: *logs

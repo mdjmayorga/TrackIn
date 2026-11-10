@@ -5,6 +5,10 @@ interface ImportMetaEnv {
   readonly VITE_API_URL?: string
   /** Token del ShipsGo Embed (no el de la API): el mapa en vivo del detalle. */
   readonly VITE_SHIPSGO_EMBED_TOKEN?: string
+  /** Mosaicos del fondo de los mapas. Vacía: OpenStreetMap (`utils/mosaicos.ts`). */
+  readonly VITE_MOSAICOS_URL?: string
+  /** Atribución de esos mosaicos, en HTML. Vacía: la de OpenStreetMap. */
+  readonly VITE_MOSAICOS_ATRIBUCION?: string
 }
 
 interface ImportMeta {
