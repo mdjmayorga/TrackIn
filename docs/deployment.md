@@ -177,6 +177,16 @@ panel). Si falta una obligatoria, `docker compose` no arranca y la nombra; si
 falta o está mal otra cosa, la API no arranca y lista **todos** los problemas
 juntos.
 
+### Avisos por correo (solo los lee `scripts/vigilar_salud.sh`, §9)
+
+| Variable | Qué es |
+|---|---|
+| `AVISO_SMTP_URL` | El servidor de correo que indique TI: `smtp://host:25` (relé interno), `smtp://host:587` o `smtps://host:465`. **Vacía:** el aviso queda solo en el log |
+| `AVISO_SMTP_USUARIO`, `AVISO_SMTP_CLAVE` | Si el servidor de correo pide usuario. La clave no aparece en `ps` mientras se envía |
+| `AVISO_DE` | El remitente, por ejemplo `trackin@gutis.com` |
+| `AVISO_PARA` | Los destinatarios, separados por coma |
+| `AVISO_FUENTE_HORAS` | Cuántas horas puede estar degradada una fuente antes de avisar (1) |
+
 ### Panel (se fijan al construir la imagen)
 
 | Variable | Qué es |
@@ -379,6 +389,55 @@ conserva; **`docker compose down -v` lo borra**.
   errores de red, el worker reintenta solo cada 5 minutos; con un token inválido
   (401) no reintenta: corregir el token y reiniciar el `worker`.
 - `creditos_shipsgo.nivel`: avisa cuando quedan pocos créditos de ShipsGo.
+- Si el contenedor `worker` no corre, `/health` **no lo nota**: las fuentes solo
+  dejan de actualizarse. Se ve en `docker compose ps`.
+
+### Vigilancia con aviso (`PROD-08`)
+
+Para enterarse de un problema antes de que lo note Compras. Hay dos caminos, según
+lo que tenga TI.
+
+**Si TI tiene una herramienta de monitoreo** (Zabbix, Uptime Kuma, PRTG u otra), se
+le entrega esto y la configura TI:
+
+| Qué | Valor |
+|---|---|
+| URL | `http://<servidor>:8080/health` (o el nombre público, por el proxy), cada 5 minutos, con 15 s de espera |
+| Alarma: no responde | Error de conexión, tiempo agotado o código distinto de 200 |
+| Alarma: base | `database` distinto de `"up"` |
+| Alarma: fuente | Algún elemento de `fuentes` con `degradada: true` y `antiguedad_s` mayor que 3600 (o nulo) |
+| Alarma: créditos | `creditos_shipsgo.nivel` distinto de `"OK"` (`SIN_PAQUETE`, `POR_VENCER`, `BAJO`, `AGOTADO`, `VENCIDO`) |
+| Alarma: worker | El contenedor `trackin-worker` no está en estado `running` (desde Docker, no desde `/health`) |
+
+**Si no la tiene**, `scripts/vigilar_salud.sh` hace lo mismo desde el servidor y
+avisa por correo:
+
+1. TI indica el servidor de correo (un relé interno o una cuenta SMTP) y se
+   completan las variables `AVISO_*` de `.env.produccion` (§5): `AVISO_SMTP_URL`,
+   `AVISO_SMTP_USUARIO` y `AVISO_SMTP_CLAVE` si pide usuario, `AVISO_DE` y
+   `AVISO_PARA` (uno o varios, separados por coma).
+2. Probarlo a mano: `bash scripts/vigilar_salud.sh`. Con todo bien no imprime
+   nada. Para ver llegar un correo, detener el worker
+   (`docker compose --env-file .env.produccion stop worker`), correrlo, y volver a
+   levantarlo (`up -d worker`) y correrlo otra vez: llegan el aviso y el «resuelto».
+3. Programarlo cada 5 minutos con `crontab -e`, igual que el respaldo (§8):
+
+   ```cron
+   */5 * * * * cd /opt/trackin && bash scripts/vigilar_salud.sh >> vigilancia/vigilar.log 2>&1
+   ```
+
+Cómo se comporta:
+
+- **Avisa una vez** cuando aparece un problema y **otra vez cuando se resuelve**.
+  Mientras sigue igual, no repite. Si cambia (los créditos pasan de `BAJO` a
+  `AGOTADO`), vuelve a avisar.
+- Si `/health` no responde, lo que ya estaba mal sigue contando como pendiente: no
+  se da por resuelto lo que no se pudo revisar.
+- Si el correo no sale, termina con error y **reintenta en la próxima corrida**: no
+  da por avisado lo que no llegó.
+- Sin `AVISO_SMTP_URL`, el aviso queda solo en `vigilancia/vigilar.log`.
+- El estado (qué ya se avisó) vive en `vigilancia/problemas`. Borrarlo hace que en la
+  próxima corrida se vuelva a avisar todo lo que siga mal.
 
 ### Versiones
 
@@ -506,6 +565,8 @@ diferencias:
 - [ ] Paquete de créditos de ShipsGo registrado
 - [ ] Salida a internet a `api.shipsgo.com` y a TICA verificada desde el servidor
 - [ ] Respaldo programado **y restaurado una vez**
+- [ ] `/health` vigilado: por la herramienta de TI o por `vigilar_salud.sh` en
+      cron, con un aviso de prueba recibido (§9)
 - [ ] Si se usa el mapa embebido: el dominio público en «Allowed HTTP Origins» de
       ShipsGo, y `embed.shipsgo.com` permitido en la red de los usuarios
 - [ ] Si SAP va a enviar: `SAP_INTEGRACION_CLAVE` entregada por canal seguro y

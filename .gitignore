@@ -161,6 +161,7 @@ postgres-data/
 data/
 # Respaldos de la base (scripts/asistente_produccion.sh): son datos de Gutis
 respaldos/
+vigilancia/
 *.dump
 *.xlsx
 *.xls

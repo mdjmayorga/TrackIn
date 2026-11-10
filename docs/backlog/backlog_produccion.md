@@ -72,7 +72,7 @@ cambia, cambian las tareas que la citan.
 | `PROD-05` | Mosaicos del mapa: URL sin subdominio, configurable y con plan B ✅ | Task | 0 | **Should** | 3h | — | Mariano |
 | `PROD-06` | Versionar: etiqueta `v1.0.0`, notas de versión y vuelta atrás 🔶 | Task | 0 | **Must** | 2h | `PROD-04` | Mariano |
 | `PROD-07` | Scripts de respaldo con retención y de restauración ✅ | Story | 0 | **Must** | 4h | `PROD-03` | Mariano |
-| `PROD-08` | Chequeo de `/health` con aviso | Story | 0 | **Should** | 4h | `PROD-03` | Mariano |
+| `PROD-08` | Chequeo de `/health` con aviso ✅ | Story | 0 | **Should** | 4h | `PROD-03` | Mariano |
 | `PROD-09` | Asistente de instalación del servidor | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
 | `PROD-10` | HTTPS en el nginx de TrackIn (solo si no hay proxy corporativo) | Story | 0 | **Could** | 4h | `PROD-01` | Mariano |
 | `PROD-11` | Endurecer la configuración de producción 🔶 | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
@@ -137,7 +137,7 @@ Como responsable de TrackIn, quiero una solicitud formal a TI con todo lo que ha
 
 **Criterios de aceptación**
 
-- Dada la solicitud, cuando TI la recibe, entonces pide en un solo documento: la máquina virtual (D2), el nombre interno (D7), el certificado y quién termina el HTTPS (D8, D9), la lista blanca de salida (D10, con los cuatro destinos de `docs/deployment.md` §3), dónde se guardan los respaldos y los secretos (D17), el monitoreo disponible (D18) y quién administra el servidor
+- Dada la solicitud, cuando TI la recibe, entonces pide en un solo documento: la máquina virtual (D2), el nombre interno (D7), el certificado y quién termina el HTTPS (D8, D9), la lista blanca de salida (D10, con los cuatro destinos de `docs/deployment.md` §3), dónde se guardan los respaldos y los secretos (D17), el monitoreo disponible (D18) —y si no hay, un servidor de correo SMTP o relé interno para los avisos de `vigilar_salud.sh` (`PROD-08`)— y quién administra el servidor
 - Dada la respuesta de TI, cuando llega, entonces queda anotada aquí con la fecha comprometida de entrega de la máquina virtual
 - Dado que TI no tiene Linux, cuando lo responde, entonces se reabre D2 y el [ADR 0002](../adr/0002-produccion-en-maquina-virtual-linux-de-la-red-interna.md)
 
@@ -405,6 +405,31 @@ Como responsable de TrackIn, quiero enterarme si el sistema cae o ShipsGo deja d
 | Estimación | 4 h |
 | Origen | D18, `docs/deployment.md` §9 «Qué mirar en `/health`» |
 | Etiquetas | `monitoreo,operacion` |
+
+> **✅ Hecha el 10/11/2026.** Los dos caminos quedaron en la
+> [guía de despliegue](../deployment.md) §9 «Vigilancia con aviso»:
+>
+> - **Para la herramienta de TI:** la especificación (URL, frecuencia, y la condición
+>   exacta de cada alarma sobre los campos de `/health`).
+> - **Sin herramienta:** [`scripts/vigilar_salud.sh`](../../scripts/vigilar_salud.sh),
+>   cada 5 minutos por cron. Avisa por SMTP con `curl` (sin instalar nada en el
+>   servidor; las variables `AVISO_*` de `.env.produccion`, §5 de la guía) y lee el
+>   JSON con el Python del contenedor del backend (sin `jq`).
+>
+> Además de lo pedido: avisa si el **contenedor del worker no corre**, que `/health` no
+> ve; un cambio de nivel de los créditos (`BAJO` → `AGOTADO`) vuelve a avisar; si
+> `/health` no responde, lo ya avisado sigue pendiente en vez de darse por resuelto; y
+> si el correo falla, no se da por avisado y se reintenta en la próxima corrida.
+>
+> **Verificado sin Docker:** once escenarios con un `docker` simulado, un `/health`
+> falso y un receptor SMTP de prueba: sin problemas no avisa; aviso con fuente
+> degradada 2 h y créditos `BAJO`; no repite; cambio a `AGOTADO`; API y worker caídos;
+> todo resuelto; fuente degradada 30 min (bajo el umbral) no avisa; base caída; SMTP
+> caído (código 1, reintento exitoso después); sin SMTP solo log. El correo llegó a
+> los dos destinatarios, con el asunto con tildes bien codificado.
+>
+> **Pendiente de TI** (`PROD-01`): qué herramienta o qué servidor de correo. La prueba
+> en el servidor real va en `PROD-19`.
 
 #### `PROD-09` — Asistente de instalación del servidor
 
