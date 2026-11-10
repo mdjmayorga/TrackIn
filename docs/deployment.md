@@ -107,7 +107,8 @@ tiene que dejarlos pasar.
 | `backend/Dockerfile` | Imagen de la API y del worker. Etapas `deps` (compila), `builder` (desarrollo) y `runtime` (servidor: sin herramientas de desarrollo, usuario no-root, `HEALTHCHECK` sobre `/health`) |
 | `backend/.dockerignore` | Deja fuera el `.venv`, las pruebas, las grabaciones de los spikes y cualquier `.env` |
 | `frontend/Dockerfile` | Imagen del panel. Construye el bundle con Node 22 y lo sirve con nginx 1.27, con `HEALTHCHECK` sobre `127.0.0.1` (no `localhost`, que en alpine resuelve a IPv6 y nginx escucha en IPv4) |
-| `frontend/nginx.conf` | Sirve el panel, reenvía la API, acepta archivos de hasta 20 MB (la carga del Z-tracking) y cachea los assets |
+| `frontend/nginx.conf` | Sirve el panel, reenvía la API, acepta archivos de hasta 20 MB (la carga del Z-tracking) y cachea los assets. No anuncia su versión (`server_tokens off`) |
+| `frontend/nginx-seguridad.conf` | Las cabeceras de seguridad del panel (§4.1). Se copia a `/etc/nginx/snippets/` y se incluye en cada bloque de `nginx.conf` |
 | `scripts/init-db/01-extensions.sql` | Activa PostGIS al crear la base por primera vez |
 | `.env.produccion.example` | La plantilla de variables del servidor (§5) |
 
@@ -115,6 +116,30 @@ tiene que dejarlos pasar.
 recibía las claves de AISStream y OpenSky (reemplazadas por ShipsGo) en vez de
 la de ShipsGo, y la URL de la API del panel iba como variable de ejecución,
 cuando Vite la fija al construir.
+
+### 4.1 Lo que cambia en producción (`PROD-11`)
+
+| Qué | En producción | Por qué |
+|---|---|---|
+| `/docs`, `/redoc`, `/openapi.json` | **Apagados** con `ENVIRONMENT=production` (siguen en desarrollo) | Describirían cada ruta de la API. nginx ya no los reenvía, pero apagarlos no depende de cómo se publique el contenedor |
+| `Content-Security-Policy` | Solo corren los scripts del propio panel; de afuera, solo los mosaicos de OpenStreetMap (imágenes) y el mapa de ShipsGo (iframe) | El token de sesión vive en el navegador: un script ajeno podría leerlo |
+| `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` y `frame-ancestors`, `Permissions-Policy` | Puestas en todas las respuestas | Cabeceras básicas. `Referrer-Policy` manda el origen a otros sitios porque el mapa de ShipsGo lo usa para validar «Allowed HTTP Origins» |
+| Versión de nginx | No se anuncia | — |
+| Logs de los contenedores | Se rotan: cinco archivos de 10 MB por servicio (`x-logs` en `docker-compose.yml`) | Sin tope, el driver `json-file` crece hasta llenar el disco |
+| Reinicio del servidor | Los cuatro servicios tienen `restart: unless-stopped` | TrackIn vuelve solo, **si Docker arranca con el sistema**: `sudo systemctl enable docker` |
+
+**Si cambia un origen externo, hay que tocar la política.** El fondo del mapa (plan B
+de `PROD-05`) va en `img-src`, y una API en otro dominio (`VITE_API_URL`) va en
+`connect-src`, los dos en `frontend/nginx-seguridad.conf`, y después se reconstruye
+el panel (`docker compose build frontend`). El síntoma de olvidarlo es un mapa gris
+o un panel que no carga datos, con un error «Content Security Policy» en la consola
+del navegador (F12). El 10/11/2026 pasó en una prueba: un bundle compilado con el
+`.env` de desarrollo (`VITE_API_URL=http://localhost:8000`) decía que el backend no
+estaba corriendo, con el backend sano. En el servidor no ocurre mientras
+`VITE_API_URL` quede vacía, que es lo recomendado (§5).
+
+**HSTS** (`Strict-Transport-Security`) no lo pone TrackIn: va en el proxy que
+termina el TLS.
 
 ---
 
@@ -428,7 +453,12 @@ diferencias:
 - [ ] `.env.produccion` guardado donde TI guarda los secretos
 - [ ] La base y la API sin puertos publicados; solo `TRACKIN_PUERTO`, y solo
       hacia el proxy
-- [ ] HTTPS en el proxy corporativo
+- [ ] HTTPS en el proxy corporativo, con HSTS
+- [ ] Docker arranca con el sistema (`systemctl enable docker`) y TrackIn vuelve
+      solo tras reiniciar el servidor
+- [ ] Desde un equipo de la red: `/docs` no muestra la API, y la consola del
+      navegador (F12) no tiene errores «Content Security Policy» con el mapa y el
+      detalle abiertos (§4.1)
 - [ ] Migraciones aplicadas y primer Administrador creado
 - [ ] `/health` con la base `"up"` y ShipsGo sin degradar
 - [ ] Paquete de créditos de ShipsGo registrado

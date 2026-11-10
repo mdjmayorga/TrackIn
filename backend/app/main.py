@@ -48,9 +48,9 @@ app = FastAPI(
     version=settings.VERSION,
     description=settings.DESCRIPTION,
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url="/docs" if settings.documentacion_api else None,
+    redoc_url="/redoc" if settings.documentacion_api else None,
+    openapi_url="/openapi.json" if settings.documentacion_api else None,
 )
 
 # CORS: el frontend de Vite corre en otro origen (5173) durante el desarrollo.
@@ -69,13 +69,14 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/", tags=["meta"], summary="Información del servicio")
 async def root() -> dict[str, str]:
-    """Datos básicos y punteros a la documentación."""
-    return {
+    """Datos básicos y punteros a la documentación, si está encendida."""
+    datos = {
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
-        "docs": "/docs",
-        "redoc": "/redoc",
         "health": "/health",
         "api": settings.API_V1_PREFIX,
     }
+    if settings.documentacion_api:
+        datos |= {"docs": "/docs", "redoc": "/redoc"}
+    return datos

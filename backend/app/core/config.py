@@ -147,6 +147,16 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"
 
+    @property
+    def documentacion_api(self) -> bool:
+        """`/docs`, `/redoc` y `/openapi.json`: solo fuera de producción (`PROD-11`).
+
+        En el servidor describirían cada ruta a quien llegue a la API. nginx ya
+        no las reenvía (solo `/api/` y `/health`), pero apagarlas no depende de
+        cómo se publique el contenedor.
+        """
+        return not self.is_production
+
     # --- Validación cruzada (`US-17`, tercer criterio) -----------------------
     def problemas(self) -> list[str]:
         """Todo lo que impide arrancar, con el nombre de la variable y qué hacer.

@@ -42,12 +42,21 @@ x-entorno-backend: &entorno-backend
   # Los pedidos entran por la carga del Excel desde el panel (`US-58`).
   INGESTA_ADAPTADOR: ninguno
 
+# Logs de cada contenedor (`PROD-11`): sin tope, el driver json-file de Docker
+# crece hasta llenar el disco. Cinco archivos de 10 MB por servicio.
+x-logs: &logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   postgres:
     # 3.6: la misma versión de PostGIS que el entorno nativo de desarrollo.
     image: postgis/postgis:16-3.6
     container_name: trackin-postgres
     restart: unless-stopped
+    logging: *logs
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-trackin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatorio}
@@ -77,6 +86,7 @@ services:
     image: trackin-backend
     container_name: trackin-backend
     restart: unless-stopped
+    logging: *logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,6 +100,7 @@ services:
     image: trackin-backend
     container_name: trackin-worker
     restart: unless-stopped
+    logging: *logs
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,6 +128,7 @@ services:
         VITE_SHIPSGO_EMBED_TOKEN: ${VITE_SHIPSGO_EMBED_TOKEN:-}
     container_name: trackin-frontend
     restart: unless-stopped
+    logging: *logs
     depends_on:
       - backend
     ports:

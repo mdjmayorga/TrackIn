@@ -75,7 +75,7 @@ cambia, cambian las tareas que la citan.
 | `PROD-08` | Chequeo de `/health` con aviso | Story | 0 | **Should** | 4h | `PROD-03` | Mariano |
 | `PROD-09` | Asistente de instalación del servidor | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
 | `PROD-10` | HTTPS en el nginx de TrackIn (solo si no hay proxy corporativo) | Story | 0 | **Could** | 4h | `PROD-01` | Mariano |
-| `PROD-11` | Endurecer la configuración de producción | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
+| `PROD-11` | Endurecer la configuración de producción 🔶 | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
 | `PROD-12` | Sacar el token de ShipsGo de los equipos de desarrollo | Task | 0 | **Must** | 1h | — | Mariano |
 | `PROD-13` | Preparar la máquina virtual | Task | 1 | **Must** | 3h | `PROD-01` | TI + Mariano |
 | `PROD-14` | Generar y custodiar los secretos de producción | Task | 1 | **Must** | 1h | `PROD-13` | Mariano + TI |
@@ -268,6 +268,11 @@ Como usuario del panel, quiero que el fondo de los mapas cargue siempre, para qu
 > El uso de TrackIn cumple la política (atribución visible, navegador, caché, volumen
 > bajo), pero el servicio no tiene SLA, puede bloquear sin aviso y advierte que a los
 > servicios comerciales se les puede retirar el acceso: por eso el plan B queda listo.
+>
+> **10/11/2026, por `PROD-11`:** la `Content-Security-Policy` de
+> `frontend/nginx-seguridad.conf` lista los dominios de los mosaicos en `img-src`.
+> Cambiar la URL (o pasar al plan B) exige agregar el dominio nuevo ahí; si no, el mapa
+> queda gris.
 
 | | |
 |---|---|
@@ -436,6 +441,33 @@ Como responsable de TrackIn, quiero revisada la configuración que cambia entre 
 | Estimación | 3 h |
 | Origen | Checklist de `docs/deployment.md` §11 y revisión del 06/11 |
 | Etiquetas | `seguridad,contenedores` |
+
+> **🔶 Hecha el 10/11/2026; faltan dos verificaciones.** Resumen en la
+> [guía de despliegue](../deployment.md) §4.1.
+>
+> - **`/docs`, `/redoc` y `/openapi.json` apagados en producción** (`Settings.documentacion_api`;
+>   la raíz `/` deja de nombrarlos). Se eligió apagarlos y no limitarlos al
+>   Administrador: nadie los usa en el servidor, y nginx ya no los reenviaba.
+> - **Cabeceras** en [`frontend/nginx-seguridad.conf`](../../frontend/nginx-seguridad.conf):
+>   CSP (`script-src 'self'`; mosaicos de OpenStreetMap en `img-src`; ShipsGo en
+>   `frame-src`; `style-src 'unsafe-inline'` porque Leaflet usa atributos `style`),
+>   `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` (el mapa de ShipsGo
+>   valida el origen), `X-Frame-Options` y `frame-ancestors`, `Permissions-Policy`. Se
+>   incluyen en el `server` **y** en `/assets/` y `/index.html`, que tienen su propio
+>   `add_header` y, en nginx, perderían las heredadas. `server_tokens off`.
+> - **Logs rotados** en los cuatro servicios (`x-logs`: 5 × 10 MB). `restart:
+>   unless-stopped` ya estaba en los cuatro; el checklist suma `systemctl enable docker`.
+>
+> **Verificado:** prueba nueva de configuración, ruff, black y mypy; el bundle no tiene
+> scripts inline. **En el navegador**, con el bundle de producción servido con estas
+> mismas cabeceras (vista previa de Vite que las lee de `nginx-seguridad.conf`): mapas
+> marítimo y aéreo con fondo, detalle y descarga de la plantilla, correctos. El mapa de
+> ShipsGo carga su recuadro y responde «origin is not permitted»: la CSP lo deja pasar y
+> el origen llega; falta autorizar el dominio (`PROD-23`). De paso, la CSP bloqueó un
+> bundle compilado con el `.env` de desarrollo (API en otro origen): el síntoma quedó
+> documentado en la guía §4.1.
+> **Falta:** en el equipo con Docker, `nginx -t` y `curl -I` sobre `/`, `/index.html` y
+> un asset, para ver las cabeceras en los tres (aquí no se pudo correr nginx).
 
 #### `PROD-12` — Sacar el token de ShipsGo de los equipos de desarrollo
 

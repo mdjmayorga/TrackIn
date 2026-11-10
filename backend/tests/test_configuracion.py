@@ -91,6 +91,15 @@ def test_produccion_completa_arranca() -> None:
     assert config.problemas() == []
 
 
+def test_la_documentacion_de_la_api_se_apaga_en_produccion() -> None:
+    """`PROD-11`: `/docs` y `/openapi.json` solo fuera del servidor."""
+    produccion = _config(ENVIRONMENT="production", SECRET_KEY="k" * 64, POSTGRES_PASSWORD="p" * 32)
+
+    assert produccion.documentacion_api is False
+    assert _config().documentacion_api is True
+    assert _config(ENVIRONMENT="staging").documentacion_api is True
+
+
 def test_varios_problemas_salen_en_un_solo_mensaje() -> None:
     mensaje = _mensaje(
         ENVIRONMENT="production",

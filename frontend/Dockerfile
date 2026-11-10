@@ -50,6 +50,8 @@ RUN npm run build
 FROM nginx:1.27-alpine AS runtime
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Fuera de conf.d/: ahí nginx lo incluiría solo, a nivel `http` (`PROD-11`).
+COPY nginx-seguridad.conf /etc/nginx/snippets/seguridad.conf
 EXPOSE 80
 # 127.0.0.1 y no localhost: en la imagen alpine, localhost resuelve primero a
 # ::1 (IPv6) y nginx escucha solo en IPv4, así que el chequeo fallaba con el
