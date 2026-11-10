@@ -196,7 +196,8 @@ BACKEND_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 SECRET_KEY=«una clave aleatoria, ver abajo»
 
 # Rastreo. Sin token, el sistema funciona pero no rastrea: el worker arranca y lo dice.
-SHIPSGO_API_TOKEN=«el token de la API de ShipsGo»
+# Desde la salida a producción, queda vacío en los equipos de desarrollo (ver abajo).
+SHIPSGO_API_TOKEN=
 ```
 
 - **`SECRET_KEY`**: firma las sesiones. Generarla con
@@ -205,6 +206,19 @@ SHIPSGO_API_TOKEN=«el token de la API de ShipsGo»
 - **`SHIPSGO_API_TOKEN`**: en la cuenta de ShipsGo de Gutis, *Settings → API*.
   Es el token de la **API**, no el del mapa embebido. TICA (las guías hijas)
   no necesita credenciales.
+
+> **La cuenta de ShipsGo es una sola**, con un solo paquete de créditos, y la
+> comparten desarrollo y producción. Desde la salida a producción **el token
+> vive solo en el servidor**: en un equipo de desarrollo
+> `SHIPSGO_API_TOKEN` queda vacío
+> ([ADR 0003](adr/0003-solo-produccion-da-de-alta-en-shipsgo.md)). Con el token
+> puesto, un «Dar de alta» o una carga de prueba gasta créditos reales y da de
+> alta referencias que producción después toma como propias, y el saldo que
+> lleva TrackIn deja de coincidir con el de la cuenta.
+>
+> Sin token, todo funciona salvo el rastreo comercial: las pruebas
+> ([paso 10](#10-pruebas-opcional)) usan respuestas grabadas de ShipsGo y no lo
+> necesitan, y el worker sigue consultando TICA.
 
 > **Ningún valor puede quedar como en la plantilla** (`<placeholder>`,
 > `<generar-...>`): el backend no arranca y lista cuáles faltan. Por eso se

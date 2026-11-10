@@ -563,6 +563,10 @@ diferencias:
 - [ ] Migraciones aplicadas y primer Administrador creado
 - [ ] `/health` con la base `"up"` y ShipsGo sin degradar
 - [ ] Paquete de créditos de ShipsGo registrado
+- [ ] El token de ShipsGo borrado de los `backend\.env` de los equipos de
+      desarrollo ([ADR 0003](adr/0003-solo-produccion-da-de-alta-en-shipsgo.md),
+      `PROD-12`). En cada equipo, desde `backend\`, esto no tiene que mostrar
+      nada: `Select-String -Path .env -Pattern '^SHIPSGO_\w+=.+'`
 - [ ] Salida a internet a `api.shipsgo.com` y a TICA verificada desde el servidor
 - [ ] Respaldo programado **y restaurado una vez**
 - [ ] `/health` vigilado: por la herramienta de TI o por `vigilar_salud.sh` en

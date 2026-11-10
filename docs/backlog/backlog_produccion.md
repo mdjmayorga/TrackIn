@@ -76,7 +76,7 @@ cambia, cambian las tareas que la citan.
 | `PROD-09` | Asistente de instalación del servidor | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
 | `PROD-10` | HTTPS en el nginx de TrackIn (solo si no hay proxy corporativo) | Story | 0 | **Could** | 4h | `PROD-01` | Mariano |
 | `PROD-11` | Endurecer la configuración de producción 🔶 | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
-| `PROD-12` | Sacar el token de ShipsGo de los equipos de desarrollo | Task | 0 | **Must** | 1h | — | Mariano |
+| `PROD-12` | Sacar el token de ShipsGo de los equipos de desarrollo 🔶 | Task | 0 | **Must** | 1h | — | Mariano |
 | `PROD-13` | Preparar la máquina virtual | Task | 1 | **Must** | 3h | `PROD-01` | TI + Mariano |
 | `PROD-14` | Generar y custodiar los secretos de producción | Task | 1 | **Must** | 1h | `PROD-13` | Mariano + TI |
 | `PROD-15` | Primer despliegue en el servidor | Task | 1 | **Must** | 4h | `PROD-06`, `PROD-14` | Mariano |
@@ -588,6 +588,20 @@ Como responsable de los créditos de ShipsGo, quiero que solo producción pueda 
 | Estimación | 1 h |
 | Origen | D12 |
 | Etiquetas | `shipsgo,creditos` |
+
+> 🔶 **10/11/2026: hecho lo que no depende de la salida.** Las 1617 pruebas del
+> backend pasan con `SHIPSGO_API_TOKEN` y `SHIPSGO_SECRET` vacíos. El manual de
+> instalación (§5) deja el token vacío en la plantilla y advierte que la cuenta
+> es una sola, con el ADR 0003. La checklist de salida (`docs/deployment.md`
+> §11) tiene el borrado, con un comando para comprobarlo en cada equipo.
+>
+> **Pendiente para el día de la salida:** en los dos equipos, borrar de
+> `backend\.env` **toda** línea `SHIPSGO_…` con valor, no solo
+> `SHIPSGO_API_TOKEN`. Los scripts de `scripts\spikes\` también aceptan el
+> token como `SHIPSGO_SECRET`, y en el equipo de Mariano hay además un
+> `SHIPSGO_ID` que el código no usa. El `VITE_SHIPSGO_EMBED_TOKEN` de
+> `frontend\.env` puede quedar: el mapa embebido no da de alta ni gasta
+> créditos. Después, `PROD-12` pasa a ✅.
 
 ### Fase 1: servidor (23/11 al 26/11)
 
