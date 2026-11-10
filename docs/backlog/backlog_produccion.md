@@ -71,7 +71,7 @@ cambia, cambian las tareas que la citan.
 | `PROD-04` | Corregir lo que encuentre el ensayo local ✅ | Task | 0 | **Must** | 4h | `PROD-03` | Mariano |
 | `PROD-05` | Mosaicos del mapa: URL sin subdominio, configurable y con plan B | Task | 0 | **Should** | 3h | — | Mariano |
 | `PROD-06` | Versionar: etiqueta `v1.0.0`, notas de versión y vuelta atrás 🔶 | Task | 0 | **Must** | 2h | `PROD-04` | Mariano |
-| `PROD-07` | Scripts de respaldo con retención y de restauración | Story | 0 | **Must** | 4h | `PROD-03` | Mariano |
+| `PROD-07` | Scripts de respaldo con retención y de restauración ✅ | Story | 0 | **Must** | 4h | `PROD-03` | Mariano |
 | `PROD-08` | Chequeo de `/health` con aviso | Story | 0 | **Should** | 4h | `PROD-03` | Mariano |
 | `PROD-09` | Asistente de instalación del servidor | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
 | `PROD-10` | HTTPS en el nginx de TrackIn (solo si no hay proxy corporativo) | Story | 0 | **Could** | 4h | `PROD-01` | Mariano |
@@ -335,6 +335,30 @@ Como técnico del Centro de Competencias, quiero respaldar y restaurar la base c
 | Estimación | 4 h |
 | Origen | D17, `docs/deployment.md` §8 |
 | Etiquetas | `respaldos,operacion` |
+
+> **✅ Hecha el 10/11/2026.** [`scripts/respaldar.sh`](../../scripts/respaldar.sh) y
+> [`scripts/restaurar.sh`](../../scripts/restaurar.sh), documentados en la
+> [guía de despliegue](../deployment.md) §8 con la línea de cron. Además de lo pedido:
+>
+> - El respaldo se comprueba con `pg_restore --list` antes de darlo por bueno, y se
+>   escribe como `.parcial` hasta entonces: un respaldo cortado nunca parece bueno.
+> - Los respaldos **con nombre** (`respaldar.sh antes-de-v1.1.0`) no entran en la
+>   retención: son los que permiten volver atrás una actualización (§9 de la guía, que
+>   ahora los usa). El asistente (`PROD-09`) también respalda con este script.
+> - La restauración pide escribir `restaurar`, **respalda primero la base actual**, y
+>   restaura sobre una base recreada en una sola transacción (`--exit-on-error
+>   --single-transaction`), en vez del `--clean --if-exists` que tenía la guía.
+> - La copia fuera del servidor es `RESPALDOS_COPIA` (una carpeta montada); si TI la
+>   toma con su herramienta, queda vacía y TI respalda `respaldos/`.
+>
+> **Verificado sin contenedores:** esta máquina no tiene Docker, así que se probó con
+> un `docker` simulado que pasa los comandos al Postgres nativo, sobre una copia de la
+> base de desarrollo. Respaldar, borrar la base y restaurar devolvió 115 pedidos, 3
+> cuentas y 17 entradas de bitácora, con la migración `0034` y PostGIS. La retención
+> borró solo el programado de 20 días y conservó el de 13 y los que llevan nombre. Un
+> archivo cortado, un `pg_dump` fallido o una confirmación distinta cortan sin tocar la
+> base, con código 1. **Falta** repetir el ciclo con los contenedores, en el equipo del
+> ensayo de `PROD-03` o directamente en el servidor (`PROD-18`).
 
 #### `PROD-08` — Chequeo de `/health` con aviso
 

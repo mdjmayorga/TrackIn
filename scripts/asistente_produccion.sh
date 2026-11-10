@@ -417,13 +417,10 @@ pause
 
 # ── 12 ────────────────────────────────────────────────────────────────────
 stage "Respaldo de prueba y HTTPS"
-mkdir -p respaldos
-archivo="respaldos/trackin-$(date +%Y%m%d-%H%M).dump"
-pg_user=$(_existing POSTGRES_USER || echo trackin)
-pg_db=$(_existing POSTGRES_DB || echo trackin)
-if "${DC[@]}" exec -T postgres pg_dump -U "$pg_user" -d "$pg_db" -Fc > "$archivo" && [[ -s "$archivo" ]]; then
-  say "✓ Respaldo de prueba: $archivo ($(du -h "$archivo" | cut -f1))"
+if ENV_FILE="$ENV_FILE" bash scripts/respaldar.sh primer-despliegue; then
+  say "✓ Respaldo de prueba en respaldos/ (scripts/respaldar.sh, PROD-07)"
   note "La restauración se prueba en el ensayo general (PROD-18, PROD-20)."
+  note "Falta programarlo todos los días: docs/deployment.md §8."
 else
   warn "El respaldo falló o quedó vacío."
   SKIPPED+=("Respaldo de prueba")

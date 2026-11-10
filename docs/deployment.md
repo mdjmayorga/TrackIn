@@ -34,7 +34,7 @@ tareas **no las resuelve TrackIn**:
 
 Tampoco son de TrackIn, aunque el SRS no las nombre:
 
-- Los **respaldos programados** y su retención: §8 da los comandos; la tarea
+- Los **respaldos programados**: §8 da los scripts y la retención; la tarea
   programada y dónde se guardan, TI.
 - La **custodia de los secretos** (§5): TrackIn los lee del entorno; dónde se
   guardan, TI.
@@ -233,25 +233,63 @@ docker compose --env-file .env.produccion up -d
 
 ## 8. Respaldos y restauración
 
-Un respaldo es un `pg_dump` de la base. **La tarea programada y dónde se guarda
-la decide TI**; esto es lo que hay que programar:
+Dos scripts, que se corren desde la raíz del repositorio (`PROD-07`). La hora de la
+tarea programada y el destino de la copia fuera del servidor los decide TI.
+
+### Respaldar: `scripts/respaldar.sh`
 
 ```bash
-docker compose --env-file .env.produccion exec -T postgres \
-    pg_dump -U trackin -d trackin -Fc > trackin-$(date +%Y%m%d-%H%M).dump
+bash scripts/respaldar.sh                    # respaldo programado
+bash scripts/respaldar.sh antes-de-v1.1.0    # con nombre: antes de actualizar (§9)
 ```
 
-Restaurar, sobre una base vacía (por ejemplo, en un servidor de prueba):
+Deja un `pg_dump -Fc` en `respaldos/trackin-AAAAMMDD-HHMMSS.dump`, comprueba que
+`pg_restore` lo pueda leer y **borra los programados de más de 14 días**. Los que
+llevan nombre (`trackin-antes-de-...`) no se borran solos: se borran a mano cuando ya
+no hacen falta. Si algo falla, termina con código distinto de 0 y no borra nada.
+
+| Variable | Omisión | Para qué |
+|---|---|---|
+| `RESPALDOS_DIR` | `respaldos` | Dónde quedan los respaldos (ya está en `.gitignore`) |
+| `RESPALDOS_DIAS` | `14` | Retención de los programados (D17) |
+| `RESPALDOS_COPIA` | vacía | Carpeta fuera del servidor (un recurso de red montado) donde además se copia cada respaldo |
+| `ENV_FILE` | `.env.produccion` | De ahí toma el usuario y la base |
+
+Para programarlo todos los días a las 02:00, con `crontab -e` del usuario que
+administra Docker (ajustar la ruta del repositorio y la copia):
+
+```cron
+0 2 * * * cd /opt/trackin && RESPALDOS_COPIA=/mnt/respaldos/trackin bash scripts/respaldar.sh >> respaldos/respaldar.log 2>&1
+```
+
+Si TI prefiere tomar la copia con su propia herramienta, `RESPALDOS_COPIA` queda
+vacía y TI respalda la carpeta `respaldos/`.
+
+### Restaurar: `scripts/restaurar.sh`
 
 ```bash
-docker compose --env-file .env.produccion up -d postgres
-docker compose --env-file .env.produccion exec -T postgres \
-    pg_restore -U trackin -d trackin --clean --if-exists < trackin-AAAAMMDD-HHMM.dump
-docker compose --env-file .env.produccion up -d
+bash scripts/restaurar.sh respaldos/trackin-20261124-020000.dump
 ```
+
+**Reemplaza la base entera** por la del respaldo, y pide escribir `restaurar` para
+seguir (`--si` lo salta, para usarlo en un script). En orden:
+
+1. Comprueba que el archivo se pueda leer. Si no, no toca nada.
+2. Respalda la base actual como `trackin-antes-de-restaurar-...dump`, por si el
+   archivo elegido no era el correcto.
+3. Detiene la API y el worker, borra y recrea la base, y restaura en una sola
+   transacción: o entra todo, o la base queda vacía y el script lo dice.
+4. Muestra cuántos pedidos, cuentas y entradas de bitácora volvieron, levanta la
+   API y el worker y espera a que `/health` diga `"ok"`.
+
+Lo registrado después del respaldo restaurado se pierde.
 
 **Un respaldo no está verificado hasta que se restaura una vez.** Hacerlo antes
-de la salida, y anotar cuánto tardó.
+de la salida (`PROD-18`), y anotar cuánto tardó. El 10/11/2026 se probó en
+desarrollo, contra el Postgres nativo, con una copia de la base (115 pedidos, 3
+cuentas, 17 entradas de bitácora): respaldar, borrar la base, restaurar y volvieron
+completos, con la migración `0034` y PostGIS; la base de 115 pedidos ocupa 120 KB
+y tarda unos 15 segundos en restaurarse.
 
 El volumen `trackin_postgres_data` es la base: `docker compose down` lo
 conserva; **`docker compose down -v` lo borra**.
@@ -291,8 +329,7 @@ migración, está en [CHANGELOG.md](../CHANGELOG.md).
 
 ```bash
 # 1. Respaldar (§8) y anotar el archivo: es lo que permite volver atrás.
-docker compose --env-file .env.produccion exec -T postgres \
-    pg_dump -U trackin -d trackin -Fc > trackin-antes-de-vX.Y.Z.dump
+bash scripts/respaldar.sh antes-de-vX.Y.Z
 
 # 2. Traer la versión y construirla.
 git fetch --tags
