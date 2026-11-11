@@ -115,7 +115,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-66` | Interruptor on/off de la escucha de la API de SAP en la interfaz ✅ | Story | OE2 | **Must** | ~~Sprint 7~~ Sprint 6 | 3h | Reunión de entrega del Informe 2, 27/10 · arranca en off · solo el Administrador lo cambia (27/10) · ✅ adelantada y terminada 27/10 |
 | `US-62` | Administrar usuarios desde la interfaz ✅ | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no · ✅ terminada 21/10 |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
-| `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales 🔶 | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 · 🔶 construida 27/10 (adelantada); falta verla con posiciones reales |
+| `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales 🔶 | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 · 🔶 construida 27/10 (adelantada); falta verla con posiciones reales · 11/11: se cierra antes del 13/11 con un par de OC en tránsito, cargadas con `cargar_semilla.py --sin-ausentes` |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo ✅ | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 · construida 27/10 (adelantada) · ✅ cerrada 03/11, vista con vuelos reales |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa ✅ | Story | OE3 | **Could** | Sprint 7 | ~~6h~~ 3h | RF-18 (Media en SRS) · el rótulo al pasar el cursor ya estaba desde `US-25` · ✅ terminada 03/11: recuadro al clic con cada pedido y enlace a su detalle |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
@@ -2708,6 +2708,11 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > **20/10:** Compras confirmó que tramita la compra a inicios de noviembre y que en la carga
 > inicial se dan de alta **todos** los pedidos del Z-tracking vigente. Ver «Fecha de compra»
 > en los acuerdos del 06/10.
+>
+> **11/11: el hito pasa al lunes 16/11**, con la carga final del Z-tracking el mismo día.
+> Queda después de la corrida en vivo del 13/11 y antes del informe final del 20/11. `US-25`
+> y `US-55` no esperan al 16: se cierran antes del 13/11 con un par de OC marítimas en
+> tránsito y los 49 créditos de prueba.
 
 #### US-25 — Presentar el mapa interactivo marítimo con posiciones actuales
 
@@ -4512,7 +4517,7 @@ real que recorre solo el rastreo automático.
 | `alembic check` ve comentarios de columna que el modelo no declara, el índice `ix_pedidos_transito_ausentes` ausente del modelo y el tipo de `sesiones.id` | Que una migración autogenerada borre ese índice | Antes de autogenerar otra migración |
 | El modelo documenta `uq_maestro_destinos_id_via` y el FK compuesto de §2.7, que **no existen** en la base; en cambio hay un índice GIST que el documento desaconseja | Documentación que no describe la base real | Revisión de `TASK-01` |
 | El diccionario y el modelo divergen en `usuarios`, `elementos_rastreados` y `salud_fuentes` (`scripts/check_docs_model.py`) | Documentación desfasada | Junto con la anterior |
-| `altas_maximas_dia` sigue en 5 | Avisaría en días normales con 70–110 embarques al mes | Al registrar el paquete de 1 100 (~06/11): el formulario de `US-57` sube el tope en el mismo paso |
+| `altas_maximas_dia` sigue en 5 | Avisaría en días normales con 70–110 embarques al mes | Al registrar el paquete de 1 100 (16/11): el formulario de `US-57` sube el tope en el mismo paso |
 
 ---
 
@@ -4548,7 +4553,8 @@ El cargo de la API es único: los años siguientes solo se pagan créditos.
 habilitan las altas desde el sistema (`US-55`) y se registra el paquete en `US-57`.
 
 **Fecha de compra, acordada con Compras y ShipsGo el 07/10:** una semana antes de entregar el
-sistema, previsiblemente al final del Sprint 7 (entrega ~13/11, **compra ~06/11**). Así los 12
+sistema, previsiblemente al final del Sprint 7 (entrega ~13/11, **compra ~~~06/11~~ el lunes
+16/11**, fecha cerrada el 11/11, con la carga final ese mismo día). Así los 12
 meses del paquete corren desde que el sistema se usa, no durante el desarrollo.
 
 Consecuencias para el plan:
@@ -4567,12 +4573,13 @@ Consecuencias para el plan:
   consumo. En `US-57`, el saldo al comprar es 1.100 más lo que quede de los 49.
 - **La carga inicial.** Al comprar, los pedidos en tránsito que aún no estén en ShipsGo se
   darán de alta de una vez, y `altas_maximas_dia` (hoy 5) tiene que permitirlo ese día.
-  Hay que estimar cuántos serán antes del 06/11 para no gastar más de lo previsto.
+  Hay que estimar cuántos serán antes del 16/11 para no gastar más de lo previsto.
 
 > **Confirmado con Compras el 20/10/2026:**
 >
 > - **La orden de compra la tramita Compras**, durante el Sprint 7, a **inicios de noviembre**.
->   Se mantiene ~06/11 como referencia, sin fecha cerrada.
+>   Se mantiene ~06/11 como referencia, sin fecha cerrada. **11/11: fecha cerrada, lunes
+>   16/11**, junto con la carga final del Z-tracking.
 > - **Se dan de alta todos los pedidos del Z-tracking que estén en la carga** vigente ese día.
 >
 > Lo que eso implica:
@@ -4674,7 +4681,7 @@ cuando se estén agotando, para comprar a tiempo y no dejar embarques sin rastre
 >   avisar; con los 49 aparecerá cerca de los 40 usados (80 %). `/health` lo informa en
 >   `creditos_shipsgo`.
 > - **Los créditos nuevos se registran** en la misma pantalla, con «Registrar paquete
->   comprado». Para la compra de ~06/11: 1 100 créditos, la fecha de compra, vencimiento a 12
+>   comprado». Para la compra del 16/11: 1 100 créditos, la fecha de compra, vencimiento a 12
 >   meses y el nuevo tope diario de altas (p. ej. 30). Lo que quede de los 49 se suma solo
 >   (1 100 ≥ 50 % de 49); el formulario lo anticipa antes de guardar.
 > - **Lo pueden registrar** Compras y el Administrador. Un registro equivocado no se edita: se
