@@ -58,6 +58,7 @@ cambia, cambian las tareas que la citan.
 | D23 | Reunión con TI | **Solo por correo**, sin ofrecer reunión | `PROD-01` |
 | D24 | Plazos pedidos a TI | Respuesta el **13/11** y máquina virtual lista el **20/11**, una semana antes de lo recomendado, para tener margen | `PROD-01`, `PROD-13` |
 | D25 | Supervisor | Greivin ya sabe que la puesta en producción va en la extensión; el correo a TI va con copia a él | `PROD-01`, `PROD-02` |
+| D26 | Ramas y presentación (11/11) | `Cierre_Prod` **no se une a `main` hasta la presentación del sistema a la universidad, el viernes 27/11**. Hasta entonces el servidor corre `v1.0.0-rc.1`, etiquetada en `Cierre_Prod`; el 27/11, después de presentar, se unen las ramas, se etiqueta `v1.0.0` y el servidor se actualiza a ella | `PROD-06`, `PROD-13`, `PROD-15`, `PROD-26` |
 
 ---
 
@@ -106,12 +107,14 @@ cambia, cambian las tareas que la citan.
 |---|---|---|---|---|
 | **0. Preparación sin servidor** | 06/11 al 20/11 | 39 h (22 h de `Must`) | Lo que deje libre el cierre | El cierre ya adelantó `TASK-06`, `TASK-07` y `TASK-09`; quedan las capturas del manual y el informe final, que **tienen prioridad** |
 | **1. Servidor** | 23/11 al 26/11 | 22 h | 26 h | Arranca solo si TI entregó la máquina virtual |
-| **2. Salida** | 27/11 al 30/11 | 11 h | 13 h | La primera carga real se coordina con Compras |
-| **3. Piloto y traspaso** | 30/11 al 04/12 | 24 h | 26 h | El piloto corre en paralelo con el manual de operación |
+| **2. Salida** | 27/11 al 30/11 | 11 h | ~~13 h~~ 9 h | **El viernes 27/11 es la presentación a la universidad (D26).** Esa tarde: unir las ramas, etiquetar `v1.0.0` y actualizar el servidor. Cuentas, primera carga real y altas, el lunes 30/11, coordinadas con Compras |
+| **3. Piloto y traspaso** | ~~30/11~~ 01/12 al 04/12 | 24 h | ~~26 h~~ 22 h | El piloto corre en paralelo con el manual de operación. **Quedan cuatro días hábiles, no una semana:** ver `PROD-26` |
 
 **Nota sobre la fase 0.** Las `Must` de la fase 0 suman 22 h (`PROD-01`, `02`, `03`, `04`, `06`, `07`, `12`). Si el cierre no deja más tiempo, las `Should` y la `Could` pasan a la fase 1 y la fase 1 se sobrecarga: en ese caso se recorta `PROD-25` (la inducción se hace con el manual) y `PROD-19` queda a cargo de TI.
 
 **Ruta crítica.** `PROD-01` → `PROD-13` → `PROD-15` → `PROD-16` → `PROD-20` → `PROD-22` → `PROD-26` → `PROD-30`. El primer eslabón depende de TI, no de TrackIn: **`PROD-01` tiene que salir esta semana.** Si la máquina virtual no está el 23/11, la salida se corre lo mismo que se demore, y el piloto ya no entra antes del 04/12.
+
+**La presentación del 27/11 (D26, decidido el 11/11).** Hasta presentar, el trabajo académico sigue en `main` y el de producción en `Cierre_Prod`, sin unirse. Por eso la fase 1 instala `v1.0.0-rc.1`, etiquetada en `Cierre_Prod`, que **no trae** los arreglos del cierre hechos en `main` (la búsqueda de material sin tildes y la posición estimada del mapa marítimo, 11/11). El 27/11 por la tarde, la `v1.0.0` sale de la unión y el servidor se actualiza con el procedimiento de la guía §9: es la primera vez que se usa de verdad, y antes de que haya datos reales, que es cuando menos riesgo tiene. La salida corre un día hábil: cuentas y carga real pasan al lunes 30/11, y el piloto empieza el 01/12.
 
 ### Riesgos
 
@@ -163,6 +166,7 @@ Como responsable de TrackIn, quiero las decisiones D1 a D21 confirmadas por quie
 
 - Dadas D1, D3, D6 y D21, cuando se revisan con el supervisor, entonces quedan confirmadas o cambiadas, con la fecha
 - Dadas D4, D16 y D20, cuando se revisan con Compras, entonces quedan confirmadas, y los criterios de salida del piloto quedan acordados (`PROD-26`)
+- Dada la presentación del 27/11 (D26), cuando se revisa D20 con Compras, entonces queda decidido si el piloto dura cuatro días hábiles (01/12 al 04/12) o una semana hasta el 07/12
 - Dada una decisión que cambia, cuando se registra, entonces se actualizan las tareas que la citan
 
 | | |
@@ -344,6 +348,21 @@ Como técnico del Centro de Competencias, quiero saber qué versión corre en el
 > **Falta:** después del commit, crear y subir la etiqueta (`git tag -a v1.0.0 -m "TrackIn
 > v1.0.0"` y `git push origin v1.0.0`). Opcional: una *release* en GitHub con el texto del
 > CHANGELOG.
+>
+> **11/11/2026: la etiqueta va en dos pasos (D26).** `Cierre_Prod` no se une a `main` hasta
+> la presentación del 27/11, y el servidor se instala antes:
+>
+> 1. **Antes del 23/11**, con `PROD-11` verificado en Docker: `git tag -a v1.0.0-rc.1 -m
+>    "TrackIn v1.0.0-rc.1"` en `Cierre_Prod` y `git push origin v1.0.0-rc.1`. Con esa
+>    etiqueta se hacen la instalación, el ensayo general y la restauración de prueba
+>    (`PROD-13`, `PROD-15`, `PROD-20`). `/health` dirá `1.0.0`: la candidata no cambia el
+>    número.
+> 2. **El 27/11, después de la presentación:** unir `Cierre_Prod` a `main` —el único
+>    conflicto conocido es `docs/InformeFinal_TrackIn_MarianoMayorga.docx`: queda el de
+>    `main`—, correr las pruebas, actualizar el CHANGELOG con los arreglos del cierre,
+>    etiquetar `v1.0.0` sobre `main` y actualizar el servidor con la guía §9.
+>
+> `PROD-06` pasa a ✅ con la `v1.0.0` publicada y corriendo en el servidor.
 
 #### `PROD-07` — Scripts de respaldo con retención y de restauración
 
@@ -613,7 +632,7 @@ Como técnico que instala TrackIn, quiero la máquina virtual lista para Docker,
 
 - Dada la máquina virtual de TI, cuando se prepara, entonces tiene Docker Engine 24 o superior, el plugin `compose` 2.24 o superior y Git (`docs/deployment.md` §6)
 - Dado el firewall, cuando se revisa, entonces solo acepta el puerto del panel (y SSH para quien administra) desde la red interna
-- Dado el repositorio, cuando se clona, entonces queda en la etiqueta `v1.0.0` (`PROD-06`) en una ruta que TI conoce
+- Dado el repositorio, cuando se clona, entonces queda en la etiqueta ~~`v1.0.0`~~ `v1.0.0-rc.1` (`PROD-06`, D26: la `v1.0.0` llega el 27/11) en una ruta que TI conoce
 - Dado el reloj, cuando se revisa, entonces está sincronizado (NTP) y en la zona horaria correcta: las fechas del panel dependen de él
 
 | | |
@@ -753,6 +772,11 @@ Como responsable de TrackIn, quiero recorrer el sistema completo en el servidor 
 
 ### Fase 2: salida (27/11 al 30/11)
 
+> **11/11/2026 (D26).** El viernes 27/11 es la presentación a la universidad. Esa tarde, y no
+> antes: unir las ramas, etiquetar `v1.0.0` y actualizar el servidor desde la `v1.0.0-rc.1`
+> (`PROD-06`). Las tareas de esta fase, desde `PROD-21`, van el **lunes 30/11**, ya sobre la
+> `v1.0.0`.
+
 #### `PROD-21` — Crear las cuentas reales
 
 Como Administrador, quiero las cuentas de cada rol creadas, para que cada persona entre con la suya.
@@ -843,7 +867,7 @@ Como usuario de TrackIn, quiero una inducción corta con el manual, para empezar
 | Origen | `TASK-08` |
 | Etiquetas | `usuarios,documentacion` |
 
-### Fase 3: piloto y traspaso (30/11 al 04/12)
+### Fase 3: piloto y traspaso (~~30/11~~ 01/12 al 04/12)
 
 #### `PROD-26` — Piloto de una semana con criterios de salida
 
@@ -862,6 +886,12 @@ Como usuario de Compras, quiero usar TrackIn junto al Excel durante una semana, 
 | Estimación | 6 h (seguimiento durante la semana) |
 | Origen | D20 |
 | Etiquetas | `piloto,usuarios` |
+
+> **11/11/2026: con la presentación del 27/11 (D26), el piloto empieza el 01/12 y quedan
+> cuatro días hábiles hasta el 04/12, no la semana de D20.** Hay que decidirlo con Compras en
+> `PROD-02`: un piloto de cuatro días con los mismos criterios —incluida una carga semanal,
+> que cae dentro si Compras carga el lunes o el martes—, o una semana completa hasta el 07/12,
+> después del final de la extensión, con `PROD-30` el 07/12.
 
 #### `PROD-27` — Correcciones del piloto
 
