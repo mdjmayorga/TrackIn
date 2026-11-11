@@ -628,6 +628,20 @@ async def test_busca_el_material_por_codigo_o_por_nombre(api, sesion) -> None:
 
 
 @pytest.mark.integration
+async def test_busca_el_material_sin_que_importen_mayusculas_ni_tildes(api, sesion) -> None:
+    """11/11/2026: «colageno» y «COLÁGENO» no encontraban «Colágeno»."""
+    colageno = await _maestro(
+        sesion, Material, "11000371", descripcion="Colágeno hidrolizado bovino", unidad_medida="G"
+    )
+    await _pedido(sesion, oc="4588800001", material=colageno)
+    await _pedido(sesion, oc="4588800002")  # «Material uno»
+
+    for texto in ("colágeno", "colageno", "COLÁGENO", "COLAGENO", "Hidrolizado BOVINO"):
+        assert await _ocs(api, buscar_material=texto) == [("4588800001", 10)], texto
+    assert await _ocs(api, buscar_material="colágenos") == []
+
+
+@pytest.mark.integration
 async def test_el_guion_de_cumplimiento_es_un_filtro(api, sesion) -> None:
     await _pedido(sesion, oc="4588800001")  # sin proyección
     await _pedido(

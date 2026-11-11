@@ -435,6 +435,34 @@ describe('mapa aéreo (US-26)', () => {
   })
 })
 
+describe('un barco sin posición leída, con su itinerario (11/11/2026)', () => {
+  const barco = (cambios: Partial<MarcadorMapa>) =>
+    marcador({ posicion_estimada: true, vuelo: 'MAERSK MONTE ALTO · viaje 643S', ...cambios })
+
+  it('en un transbordo, en el puerto donde espera', () => {
+    expect(rotulo(barco({ situacion: 'EN_PUERTO', lugar: 'PAMIT' }))).toContain(
+      'En el puerto PAMIT, según su itinerario.',
+    )
+  })
+
+  it('navegando, con el buque y la aclaración de que es estimada', () => {
+    expect(rotulo(barco({ situacion: 'NAVEGANDO', lugar: null }))).toContain(
+      'Navegando en MAERSK MONTE ALTO · viaje 643S, posición estimada según su itinerario.',
+    )
+  })
+
+  it('el pie del mapa avisa que la posición del barco es estimada', async () => {
+    vi.mocked(obtenerMapa).mockResolvedValue(
+      mapa({ marcadores: [barco({ situacion: 'EN_PUERTO', lugar: 'PAMIT' })] }),
+    )
+    montar()
+
+    expect(
+      await screen.findByText(/posición del barco estimada según su itinerario/),
+    ).toBeInTheDocument()
+  })
+})
+
 describe('el rótulo en líneas (28/10)', () => {
   it('parte el rótulo en qué es, estado, pedidos y lectura', () => {
     expect(

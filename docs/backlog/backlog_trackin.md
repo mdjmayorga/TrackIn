@@ -102,7 +102,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-52` | Tomar de ShipsGo el puerto que el archivo no dice, y la referencia del comentario | Story | OE2 | **Should** | Sprint 4 | 5h | RF-01 / RN-17 · ✅ terminada 28/09 |
 | `US-53` | Medir el cumplimiento contra la fecha de llegada a Gutis (columna R) | Story | OE2 | **Must** | Sprint 5 | 3h | Reunión con Compras 29/09 · revierte la decisión 2 del 04/09 · ✅ terminada 29/09 |
 | `US-54` | Tomar el puerto de llegada del API aunque el incoterm diga otro | Story | OE2 | **Should** | Sprint 5 | 3h | Reunión con Compras 29/09 · amplía `US-52` · ✅ terminada 29/09 |
-| `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras ✅ | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · una o en bloque, con confirmación del costo · ✅ construida 26/10, falta la prueba real con un BL del Excel final |
+| `US-55` | Dar de alta un embarque en ShipsGo desde el sistema, con el rol Compras ✅ | Story | OE2 | **Should** | Sprint 6 | 6h | Reunión con Compras 29/09 · una o en bloque, con confirmación del costo · construida 26/10 · ✅ verificada 11/11 con dos BL reales en tránsito (OC 4500016174) |
 | `US-57` | Saldo de créditos de ShipsGo y aviso antes de que se agoten ✅ | Story | OE2 | **Should** | Sprint 6 | 4h | Acuerdo del 06/10: compra anual de créditos · ✅ terminada 26/10: los 49 créditos de prueba registrados como paquete vigente |
 | `US-56` | ~~Leer los pedidos del Z-tracking desde la API de SAP~~ ❌ | Story | OE2 | — | — | — | **Cancelada el 07/10:** la API de SAP no va a existir. La reemplaza `US-58` |
 | `US-58` | Cargar el Z-tracking desde la interfaz, con el informe de la carga ✅ | Story | OE2 | **Must** | Sprint 6 | 10h | 07/10: el Excel queda como vía definitiva de entrada · ✅ terminada 08/10 |
@@ -115,7 +115,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-66` | Interruptor on/off de la escucha de la API de SAP en la interfaz ✅ | Story | OE2 | **Must** | ~~Sprint 7~~ Sprint 6 | 3h | Reunión de entrega del Informe 2, 27/10 · arranca en off · solo el Administrador lo cambia (27/10) · ✅ adelantada y terminada 27/10 |
 | `US-62` | Administrar usuarios desde la interfaz ✅ | Story | OE3 | **Should** | Sprint 6 | 5h | 20/10: creación de la cuenta de Compras · el backend existe desde `US-42`; la pantalla, no · ✅ terminada 21/10 |
 | `TASK-32` | Spike: Parcels API como alternativa con licencia a ShipsGo ✅ | Task | OE2 | **Must** | Sprint 5 | 3h | Reunión con usuarios clave 29/09 · **sirve para aéreo, no para marítimo** (sin ETA ni puerto de descarga) · ✅ terminada 29/09 |
-| `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales 🔶 | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 · 🔶 construida 27/10 (adelantada); falta verla con posiciones reales · 11/11: se cierra antes del 13/11 con un par de OC en tránsito, cargadas con `cargar_semilla.py --sin-ausentes` |
+| `US-25` | Presentar el mapa interactivo marítimo con posiciones actuales ✅ | Story | OE3 | **Must** | Sprint 7 | 12h | RF-16 / CU-07 · construida 27/10 (adelantada) · ✅ cerrada 11/11, vista con dos BL reales en tránsito; sin lectura del barco, la posición se estima con el itinerario |
 | `US-26` | Presentar el mapa interactivo aéreo separado del marítimo ✅ | Story | OE3 | **Must** | Sprint 7 | 8h | RF-17 / CU-08 · construida 27/10 (adelantada) · ✅ cerrada 03/11, vista con vuelos reales |
 | `US-27` | Mostrar informacion emergente en los marcadores del mapa ✅ | Story | OE3 | **Could** | Sprint 7 | ~~6h~~ 3h | RF-18 (Media en SRS) · el rótulo al pasar el cursor ya estaba desde `US-25` · ✅ terminada 03/11: recuadro al clic con cada pedido y enlace a su detalle |
 | `US-28` | Presentar los proximos arribos dentro del dashboard ✅ | Story | OE3 | **Should** | Sprint 6 | 8h | RF-27 / RNF-01 · ✅ terminada 13/10, adelantada |
@@ -2369,6 +2369,14 @@ Como usuario de Compras, quiero filtrar por OC, proveedor, material, vía, estad
 | Origen en el SRS | RF-19 / CU-04 / RNF-02 |
 | Etiquetas | `frontend,filtros` |
 
+> **11/11/2026: la búsqueda de material no distingue mayúsculas ni tildes.** «colageno» y
+> «COLÁGENO» no encontraban «Colágeno». La búsqueda usaba `ilike`, que no quita tildes, y con
+> `LC_CTYPE=C` (la base de desarrollo) tampoco pasa a minúscula las letras acentuadas. Ahora
+> el texto y la columna se comparan sin tildes (las del español y las del portugués de los
+> proveedores) y en minúscula, con `translate` y `lower`: no depende de la configuración
+> regional de la base ni de instalar `unaccent`. 1 prueba (`test_pedidos_api.py`) con cinco
+> variantes; en `trackin_dev` las cinco traen los mismos 19 pedidos.
+>
 > **Filtros del Figma corregido el 30/09/2026:** Orden de compra · **Posición** · Material
 > (**búsqueda por texto**) · Vía · **Etapa** · **Cumplimiento**. La API de `US-16` los admite
 > desde el mismo día (`posicion`, `buscar_material`, `etapa`, `cumplimiento`).
@@ -2768,6 +2776,33 @@ Como usuario de Logística, quiero ver mis buques en un mapa, para ubicar geogra
 | Origen en el SRS | RF-16 / CU-07 |
 | Etiquetas | `frontend,mapas,leaflet` |
 
+> **✅ Cerrada el 11/11/2026, vista con datos reales.** Compras pasó dos BL de Maersk en
+> tránsito de la OC 4500016174: `MAEU275293933` (posición 20) y `MAEU275293678` (posición
+> 30), 15 t de colágeno cada una, a Limón. Se cargaron solas con
+> `cargar_semilla.py --sin-ausentes` —la carga del panel habría marcado ausente todo lo
+> demás— y se dieron de alta desde el panel con 2 de los 49 créditos de prueba (`US-55`).
+>
+> **Aparecieron «En tránsito» pero no en el mapa.** ShipsGo no dio nunca la posición de un BL
+> de Maersk: `current` viene `null` en todos los tramos, y ningún marítimo de `trackin_dev`
+> la tuvo; los que se veían eran los ya llegados, dibujados en su puerto. Estos dos estaban en
+> Manzanillo (Panamá) esperando transbordo: Santos → Cartagena (MAERSK CHACHAI), Cartagena →
+> Manzanillo (VARAMO, llegó el 10/11) y Manzanillo → Moín (MAERSK MONTE ALTO, del 15 al
+> 20/11).
+>
+> **Corrección: un barco sin posición leída se ubica con su itinerario**, como el aéreo desde
+> la decisión del 06/10 (OpenSky salió por su licencia). El itinerario de ShipsGo tiene la
+> misma forma que el de un vuelo y se estima con `posicion_aerea.estimar`: en el puerto donde
+> espera entre dos tramos (`EN_PUERTO`) o sobre la ruta según la hora (`NAVEGANDO`). Se
+> rotula como estimada en el marcador y en el pie del mapa; si la fuente da la posición, manda
+> esa. No va a `posicion_actual`, para que la geocerca no la tome por real. 2 pruebas de
+> backend (`test_mapa_pedidos.py`) y 3 de frontend (`MapaEmbarques.test.tsx`).
+>
+> Con eso se cumplen los cinco criterios con embarques en tránsito: los dos BL, en el mismo
+> buque, salen agrupados en un «2» en Manzanillo; el clic abre los dos pedidos y «Ver ruta»
+> dibuja el recorrido desde Santos. Visto en el panel el 11/11. **Para el informe:** la
+> posición marítima es estimada cuando la fuente no la da, una limitación de ShipsGo con los BL
+> de Maersk y no del sistema.
+>
 > **🔶 Construida el 27/10/2026, adelantada del Sprint 7** mientras se espera el Excel final
 > (la reunión pasó al jueves 29/10). Falta verla con posiciones reales.
 >
@@ -5230,6 +5265,12 @@ empezar a rastrearlo sin pedírselo a Planificación.
 | Depende de | `US-42` (roles) |
 | Verificación real | En el Sprint 6, con uno o dos de los 49 créditos que quedan, sobre pedidos reales en tránsito. Las pruebas automáticas, con ShipsGo simulado |
 
+> **✅ Verificada con datos reales el 11/11/2026.** Los BL `MAEU275293933` y
+> `MAEU275293678` de la OC 4500016174 (posiciones 20 y 30), en tránsito, se dieron de alta
+> desde «Altas en ShipsGo» con 2 de los 49 créditos de prueba. En el siguiente ciclo el worker
+> los leyó: salieron de *Sin Tracking* a *En tránsito*, con buque, ETA a Moín del 20/11 e
+> itinerario, y aparecen en el mapa marítimo (`US-25`).
+>
 > **✅ Construida el 26/10/2026.** «Altas en ShipsGo» (`/shipsgo/altas`), para Compras y el
 > Administrador. Se llega desde «Ajustes Z-tracking», desde «Cargar Z-tracking» y desde el
 > detalle de un pedido cuya referencia nunca respondió («Dar de alta en ShipsGo», que la trae

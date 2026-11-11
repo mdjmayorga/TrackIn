@@ -200,6 +200,9 @@ export interface TramoMapa {
 
 export type SituacionVuelo = 'EN_VUELO' | 'EN_TIERRA' | 'FINALIZADO'
 
+/** Un barco sin posición leída, ubicado con su itinerario (11/11/2026). */
+export type SituacionBarco = 'NAVEGANDO' | 'EN_PUERTO'
+
 export interface PosicionAerea {
   latitud: number
   longitud: number
@@ -390,7 +393,7 @@ export interface MarcadorMapa {
   // --- Solo la vía aérea (`US-26`) ---
   /** La posición sale del horario del vuelo, no de una lectura. */
   posicion_estimada: boolean
-  situacion: SituacionVuelo | null
+  situacion: SituacionVuelo | SituacionBarco | null
   /** El vuelo en curso o el último. */
   vuelo: string | null
   /** Aeropuerto (IATA), si está en tierra. */

@@ -1,7 +1,7 @@
 /** El texto de un marcador de los mapas del panel (`US-25`). */
 
 import { CUMPLIMIENTOS, ETAPAS } from '@/components/estados'
-import type { MarcadorMapa, SituacionVuelo } from '@/types/api'
+import type { MarcadorMapa, SituacionBarco, SituacionVuelo } from '@/types/api'
 import { haceCuanto } from '@/utils/fechas'
 
 /** Las partes del rótulo, para mostrarlas en líneas en el mapa (28/10/2026). */
@@ -40,17 +40,21 @@ export function rotulo(m: MarcadorMapa): string {
 }
 
 /**
- * Lo que agrega la vía aérea (`US-26`): la posición es **estimada** con el
- * horario del vuelo —ShipsGo no da la del avión— y hay que decirlo.
+ * Lo que agrega una posición **estimada**: la del avión, con el horario del vuelo
+ * (`US-26`), o la de un barco sin lectura, con su itinerario (11/11/2026). ShipsGo
+ * no da ninguna de las dos, y hay que decirlo.
  */
 function dondeEsta(m: MarcadorMapa): string | null {
   if (!m.posicion_estimada) return null
   return textoSituacion(m.situacion, m.vuelo, m.lugar)
 }
 
-/** «En vuelo LH518…», «En tierra en FRA, esperando vuelo», «Vuelo LH518 concluido en SJO». */
+/**
+ * «En vuelo LH518…», «En tierra en FRA, esperando vuelo», «Vuelo LH518 concluido en SJO»;
+ * de un barco, «Navegando en MAERSK MONTE ALTO…» o «En el puerto PAMIT…».
+ */
 export function textoSituacion(
-  situacion: SituacionVuelo | null,
+  situacion: SituacionVuelo | SituacionBarco | null,
   vueloEnCurso: string | null,
   lugar: string | null,
 ): string | null {
@@ -63,6 +67,10 @@ export function textoSituacion(
       return `En tierra${en}, esperando vuelo`
     case 'FINALIZADO':
       return `Vuelo${vuelo} concluido${en}`
+    case 'NAVEGANDO':
+      return `Navegando${vueloEnCurso ? ` en ${vueloEnCurso}` : ''}, posición estimada según su itinerario`
+    case 'EN_PUERTO':
+      return `En el puerto${lugar ? ` ${lugar}` : ''}, según su itinerario`
     default:
       return null
   }

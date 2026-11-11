@@ -512,3 +512,69 @@ async def test_un_barco_sin_posicion_ni_llegada_no_se_dibuja(api, sesion) -> Non
 
     assert cuerpo["marcadores"] == []
     assert cuerpo["sin_posicion"] == 1
+
+
+# --- Un barco sin posición leída, ubicado con su itinerario (11/11/2026) ----------
+
+
+def _itinerario(ahora: dt.datetime, *, zarpa_en: dt.timedelta) -> list[dict]:
+    """Como `MAEU275293678`: Cartagena → Manzanillo (Panamá), y de ahí a Moín."""
+    return [
+        {
+            "vuelo": "VARAMO · viaje 645W",
+            "origen": "COCTG",
+            "destino": "PAMIT",
+            "salida": (ahora - dt.timedelta(days=4)).isoformat(),
+            "llegada": (ahora - dt.timedelta(days=1)).isoformat(),
+            "ruta": [[-75.5, 10.4], [-79.9, 9.4]],
+        },
+        {
+            "vuelo": "MAERSK MONTE ALTO · viaje 643S",
+            "origen": "PAMIT",
+            "destino": "CRPMN",
+            "salida": (ahora + zarpa_en).isoformat(),
+            "llegada": (ahora + zarpa_en + dt.timedelta(days=4)).isoformat(),
+            "ruta": [[-79.9, 9.4], [-83.1, 10.0]],
+        },
+    ]
+
+
+async def test_un_barco_sin_posicion_espera_en_el_puerto_del_transbordo(api, sesion) -> None:
+    """La carga de la OC 4500016174: en Manzanillo hasta que zarpe el siguiente buque."""
+    ahora = dt.datetime.now(dt.UTC)
+    buque = await _buque(
+        sesion,
+        "BLMAPA0034",
+        posicion_actual=None,
+        trayecto_maritimo=_itinerario(ahora, zarpa_en=dt.timedelta(days=4)),
+    )
+    await _pedido(sesion, "4588903400", 10, id_elemento_rastreado=buque.id)
+
+    cuerpo = (await api.get(f"{URL}/MARITIMO")).json()
+
+    (marcador,) = cuerpo["marcadores"]
+    assert marcador["posicion_estimada"] is True
+    assert (marcador["situacion"], marcador["lugar"]) == ("EN_PUERTO", "PAMIT")
+    assert (marcador["latitud"], marcador["longitud"]) == (9.4, -79.9)
+    assert cuerpo["sin_posicion"] == 0
+
+
+async def test_un_barco_sin_posicion_navega_sobre_su_ruta(api, sesion) -> None:
+    ahora = dt.datetime.now(dt.UTC)
+    buque = await _buque(
+        sesion,
+        "BLMAPA0035",
+        posicion_actual=None,
+        trayecto_maritimo=_itinerario(ahora, zarpa_en=-dt.timedelta(days=2)),
+    )
+    await _pedido(sesion, "4588903500", 10, id_elemento_rastreado=buque.id)
+
+    (marcador,) = (await api.get(f"{URL}/MARITIMO")).json()["marcadores"]
+
+    assert (marcador["situacion"], marcador["vuelo"]) == (
+        "NAVEGANDO",
+        "MAERSK MONTE ALTO · viaje 643S",
+    )
+    # A la mitad del tramo de cuatro días.
+    assert marcador["longitud"] == pytest.approx(-81.5, abs=0.1)
+    assert marcador["ruta"] == [[9.4, -79.9], [10.0, -83.1]]

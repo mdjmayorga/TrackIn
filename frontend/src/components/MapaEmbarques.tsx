@@ -76,6 +76,8 @@ export function MapaEmbarques({
           {data.sin_posicion > 0 && ` · ${data.sin_posicion} sin posición`}
           {marcadores.some((m) => m.situacion === 'EN_VUELO') &&
             ' · ✈ posición estimada según el horario del vuelo'}
+          {marcadores.some((m) => m.situacion === 'NAVEGANDO' || m.situacion === 'EN_PUERTO') &&
+            ' · posición del barco estimada según su itinerario'}
           {marcadores.some((m) => m.trayecto?.length) && ' · clic en un embarque para ver su ruta'}
         </p>
       )}

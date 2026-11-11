@@ -30,7 +30,7 @@ from typing import Any, Final
 from geoalchemy2 import Geometry
 from sqlalchemy import ColumnElement, Select, and_, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import contains_eager, selectinload
+from sqlalchemy.orm import InstrumentedAttribute, contains_eager, selectinload
 
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.enums import ESTADOS_TERMINALES, ETAPAS_VIAJE
@@ -127,6 +127,30 @@ def _escapar_like(texto: str) -> str:
     return texto.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
 
 
+#: Las letras con tilde del español y del portugués de los proveedores, y su
+#: equivalente sin ella, en mayúscula y en minúscula (11/11/2026).
+_CON_TILDE: Final = "áéíóúüñàèìòùâêîôûãõçÁÉÍÓÚÜÑÀÈÌÒÙÂÊÎÔÛÃÕÇ"
+_SIN_TILDE: Final = "aeiouunaeiouaeiouaocAEIOUUNAEIOUAEIOUAOC"
+_PLEGADO: Final = str.maketrans(_CON_TILDE, _SIN_TILDE)
+
+
+def _plegar(texto: str) -> str:
+    """«COLÁGENO» → «colageno»: lo que se busca, como `_plegar_columna` deja la columna."""
+    return texto.translate(_PLEGADO).lower()
+
+
+def _plegar_columna(columna: InstrumentedAttribute[str]) -> ColumnElement[str]:
+    """La columna sin tildes y en minúscula, para buscar sin que importen.
+
+    No alcanza con `ilike`: la base de desarrollo tiene `LC_CTYPE=C`, y con eso
+    PostgreSQL solo pasa a minúscula las letras sin tilde («COLÁGENO» no
+    encontraba «Colágeno»). Las tildes se quitan antes de `lower`, así el
+    resultado no depende de la configuración regional de ninguna base. Con
+    `translate` y no con la extensión `unaccent`, que habría que instalar.
+    """
+    return func.lower(func.translate(columna, _CON_TILDE, _SIN_TILDE))
+
+
 def _condiciones(filtros: Filtros) -> list[ColumnElement[bool]]:
     condiciones: list[ColumnElement[bool]] = []
     if filtros.oc:
@@ -151,11 +175,12 @@ def _condiciones(filtros: Filtros) -> list[ColumnElement[bool]]:
     if filtros.posiciones:
         condiciones.append(PedidoTransito.posicion_oc.in_(filtros.posiciones))
     if filtros.material_texto and filtros.material_texto.strip():
-        patron = f"%{_escapar_like(filtros.material_texto.strip())}%"
+        # Sin que importen mayúsculas ni tildes (11/11/2026).
+        patron = f"%{_escapar_like(_plegar(filtros.material_texto.strip()))}%"
         condiciones.append(
             or_(
-                Material.codigo.ilike(patron, escape="\\"),
-                Material.descripcion.ilike(patron, escape="\\"),
+                _plegar_columna(Material.codigo).like(patron, escape="\\"),
+                _plegar_columna(Material.descripcion).like(patron, escape="\\"),
             )
         )
     if filtros.cumplimientos:
@@ -602,6 +627,40 @@ def _ubicacion(
     return {"latitud": latitud, "longitud": longitud}
 
 
+#: La situación del estimador, dicha de un barco (11/11/2026).
+_SITUACION_MARITIMA: Final[dict[str, str]] = {
+    posicion_aerea.EN_VUELO: "NAVEGANDO",
+    posicion_aerea.EN_TIERRA: "EN_PUERTO",
+    posicion_aerea.FINALIZADO: "EN_PUERTO",
+}
+
+
+def _ubicacion_maritima(
+    trayecto: list[dict[str, Any]] | None, ahora: dt.datetime
+) -> dict[str, Any] | None:
+    """Un barco sin posición leída, ubicado con su itinerario (11/11/2026).
+
+    ShipsGo no dio nunca la posición de un BL de Maersk: `current` viene `null` en
+    todos los tramos. Los BL de la OC 4500016174 estaban en Manzanillo (Panamá)
+    esperando el transbordo, y el mapa no los mostraba. El itinerario tiene la
+    misma forma que el de un vuelo, y se estima igual (`posicion_aerea.estimar`):
+    en el puerto donde espera, o sobre la ruta según la hora. Como en el aéreo, se
+    rotula como estimada y no va a `posicion_actual`.
+    """
+    estimacion = posicion_aerea.estimar(trayecto, ahora)
+    if estimacion is None:
+        return None
+    return {
+        "latitud": estimacion.latitud,
+        "longitud": estimacion.longitud,
+        "posicion_estimada": True,
+        "situacion": _SITUACION_MARITIMA[estimacion.situacion],
+        "vuelo": estimacion.vuelo,
+        "lugar": estimacion.lugar,
+        "ruta": [(lat, lon) for lon, lat in estimacion.ruta] if estimacion.ruta else None,
+    }
+
+
 #: El código del maestro al que usa ShipsGo en el trazado: `MROC` → `SJO`.
 _CODIGO_SHIPSGO: Final[dict[str, str]] = {
     maestro: shipsgo for shipsgo, maestro in EQUIVALENCIAS.items()
@@ -686,7 +745,8 @@ async def mapa(
             *en_el_mapa,
             # Un vuelo no tiene posición leída: se estima con su trayecto (`US-26`).
             # Un barco que ya llegó tampoco: ShipsGo deja de darla al terminar el
-            # embarque, y se dibuja en el puerto de destino (03/11/2026).
+            # embarque, y se dibuja en el puerto de destino (03/11/2026). Uno sin
+            # posición se estima con su itinerario (11/11/2026).
             (
                 or_(
                     ElementoRastreado.posicion_actual.is_not(None),
@@ -696,6 +756,7 @@ async def mapa(
                 else or_(
                     ElementoRastreado.posicion_actual.is_not(None),
                     ElementoRastreado.ata_api.is_not(None),
+                    ElementoRastreado.trayecto_maritimo.is_not(None),
                 )
             ),
         )
@@ -723,7 +784,12 @@ async def mapa(
                 # que pase a aduana. La última posición leída sería la de la bahía o
                 # ninguna (03/11/2026).
                 latitud, longitud = destino_lat, destino_lon
-            ubicacion = _ubicacion(
+            # La posición leída manda; sin ella, el itinerario (11/11/2026).
+            ubicacion = (
+                _ubicacion_maritima(trayecto_maritimo, ahora)
+                if via == "MARITIMO" and latitud is None
+                else None
+            ) or _ubicacion(
                 latitud, longitud, trayecto, ahora, destinos_finales=finales, llegada=llegada
             )
             if ubicacion is None:
