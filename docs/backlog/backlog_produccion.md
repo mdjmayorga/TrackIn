@@ -76,7 +76,7 @@ cambia, cambian las tareas que la citan.
 | `PROD-08` | Chequeo de `/health` con aviso ✅ | Story | 0 | **Should** | 4h | `PROD-03` | Mariano |
 | `PROD-09` | Asistente de instalación del servidor | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
 | `PROD-10` | HTTPS en el nginx de TrackIn (solo si no hay proxy corporativo) | Story | 0 | **Could** | 4h | `PROD-01` | Mariano |
-| `PROD-11` | Endurecer la configuración de producción 🔶 | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
+| `PROD-11` | Endurecer la configuración de producción ✅ | Task | 0 | **Should** | 3h | `PROD-03` | Mariano |
 | `PROD-12` | Sacar el token de ShipsGo de los equipos de desarrollo 🔶 | Task | 0 | **Must** | 1h | — | Mariano |
 | `PROD-13` | Preparar la máquina virtual | Task | 1 | **Must** | 3h | `PROD-01` | TI + Mariano |
 | `PROD-14` | Generar y custodiar los secretos de producción | Task | 1 | **Must** | 1h | `PROD-13` | Mariano + TI |
@@ -298,8 +298,13 @@ Como usuario del panel, quiero que el fondo de los mapas cargue siempre, para qu
 >   pantalla real: pasó como criterio a `PROD-24`.
 >
 > **Verificado:** 378 pruebas del panel (4 nuevas en `tests/mosaicos.test.ts`), eslint,
-> tsc, prettier y build; el bundle no contiene `{s}`. Falta verlo construido con
-> Docker, junto con el recordatorio de `PROD-11`.
+> tsc, prettier y build; el bundle no contiene `{s}`.
+>
+> **12/11/2026: verificado con Docker**, junto con `PROD-11`. La imagen del panel se
+> construye con `VITE_MOSAICOS_URL` vacía y la CSP servida dice `img-src 'self' data: blob:
+> https://tile.openstreetmap.org` (el `Dockerfile` hizo el reemplazo). En el navegador, por
+> `http://localhost:8080`, los mapas marítimo y aéreo cargan con fondo y la consola no
+> muestra ningún «Refused».
 
 | | |
 |---|---|
@@ -404,8 +409,20 @@ Como técnico del Centro de Competencias, quiero respaldar y restaurar la base c
 > cuentas y 17 entradas de bitácora, con la migración `0034` y PostGIS. La retención
 > borró solo el programado de 20 días y conservó el de 13 y los que llevan nombre. Un
 > archivo cortado, un `pg_dump` fallido o una confirmación distinta cortan sin tocar la
-> base, con código 1. **Falta** repetir el ciclo con los contenedores, en el equipo del
-> ensayo de `PROD-03` o directamente en el servidor (`PROD-18`).
+> base, con código 1.
+>
+> **12/11/2026: verificado con contenedores**, en el equipo del ensayo de `PROD-03`
+> (`.env.ensayo`, scripts corridos desde Git Bash):
+>
+> | Paso | Resultado |
+> |---|---|
+> | `respaldar.sh` | ✅ `trackin-20261112-170057.dump`, 88 KB, 1 pedido; retención sin nada que borrar |
+> | Cambio posterior | Usuario `prueba` creado con `crear_usuario.py`: 1 pedido, 2 cuentas, 0 en bitácora |
+> | `restaurar.sh` | ✅ Respaldó antes la base actual (`antes-de-restaurar-…`), detuvo API y worker, recreó y restauró, los levantó y `/health` dijo ok, en 25 s |
+> | Después | ✅ 1 pedido, 1 cuenta (`admin`), 0 en bitácora: el usuario `prueba` ya no está |
+>
+> La base del ensayo no tenía bitácora: ese conteo ya se había probado con la base de
+> desarrollo (17 entradas). Falta solo repetirlo en el servidor (`PROD-18`, `PROD-20`).
 
 #### `PROD-08` — Chequeo de `/health` con aviso
 
@@ -509,7 +526,7 @@ Como responsable de TrackIn, quiero revisada la configuración que cambia entre 
 | Origen | Checklist de `docs/deployment.md` §11 y revisión del 06/11 |
 | Etiquetas | `seguridad,contenedores` |
 
-> **🔶 Hecha el 10/11/2026; faltan dos verificaciones.** Resumen en la
+> **✅ Hecha el 10/11/2026 y verificada con Docker el 12/11/2026.** Resumen en la
 > [guía de despliegue](../deployment.md) §4.1.
 >
 > - **`/docs`, `/redoc` y `/openapi.json` apagados en producción** (`Settings.documentacion_api`;
@@ -533,62 +550,16 @@ Como responsable de TrackIn, quiero revisada la configuración que cambia entre 
 > el origen llega; falta autorizar el dominio (`PROD-23`). De paso, la CSP bloqueó un
 > bundle compilado con el `.env` de desarrollo (API en otro origen): el síntoma quedó
 > documentado en la guía §4.1.
-> **Falta:** en el equipo con Docker, `nginx -t` y `curl -I` sobre `/`, `/index.html` y
-> un asset, para ver las cabeceras en los tres (aquí no se pudo correr nginx).
+> **12/11/2026: verificado con Docker** en el equipo del ensayo (`.env.ensayo`, imágenes
+> reconstruidas desde `Cierre_Prod`):
 >
-> **⏰ Recordatorio: verificación pendiente en el equipo con Docker (anotada el 10/11/2026).**
-> En PowerShell, desde la raíz del repositorio. Antes, subir los cambios de `PROD-11`
-> desde el equipo de desarrollo (`git push`).
->
-> 1. Traer el código y confirmar que Docker corre (tienen que salir **Client** y
->    **Server**; si Server falla, abrir Docker Desktop):
->    ```powershell
->    git pull
->    docker version
->    ```
-> 2. Si no quedó el `.env.produccion` del ensayo de `PROD-03`, crearlo y completar
->    `POSTGRES_PASSWORD` y `SECRET_KEY` con cualquier texto largo:
->    ```powershell
->    Copy-Item .env.produccion.example .env.produccion
->    notepad .env.produccion
->    ```
-> 3. Construir y levantar. `up -d frontend` levanta también la base y la API, pero no el
->    worker: no consulta ShipsGo. Esperar `healthy` en `postgres` y `frontend`; que
->    `backend` diga `unhealthy` no importa aquí:
->    ```powershell
->    docker compose --env-file .env.produccion build backend frontend
->    docker compose --env-file .env.produccion up -d frontend
->    docker compose --env-file .env.produccion ps
->    ```
-> 4. Configuración de nginx. ✅ si dice `syntax is ok` y `test is successful`:
->    ```powershell
->    docker compose --env-file .env.produccion exec frontend nginx -t
->    ```
-> 5. Cabeceras en las tres rutas. ✅ si **cada una** muestra
->    `Content-Security-Policy: default-src 'self'; ...`, `X-Frame-Options: SAMEORIGIN` y
->    `Server: nginx` sin número de versión. Dentro de la política tiene que decir
->    `img-src 'self' data: blob: https://tile.openstreetmap.org` (`PROD-05`); si dice
->    `__MOSAICOS_ORIGEN__`, el `Dockerfile` no hizo el reemplazo:
->    ```powershell
->    $asset = (curl.exe -s http://localhost:8080/ | Select-String -Pattern '/assets/[^"]+\.js').Matches[0].Value
->    curl.exe -sI http://localhost:8080/ | Select-String "Content-Security|X-Frame|Server:"
->    curl.exe -sI http://localhost:8080/index.html | Select-String "Content-Security|X-Frame|Server:"
->    curl.exe -sI "http://localhost:8080$asset" | Select-String "Content-Security|X-Frame|Server:"
->    ```
-> 6. Documentación de la API apagada. ✅ si **falla** con `HTTP Error 404: Not Found`:
->    ```powershell
->    docker compose --env-file .env.produccion exec backend python -c "import urllib.request as u; u.urlopen('http://localhost:8000/docs')"
->    ```
-> 7. Rotación de logs. ✅ si muestra `"max-file":"5","max-size":"10m"`:
->    ```powershell
->    docker inspect trackin-frontend --format "{{json .HostConfig.LogConfig}}"
->    ```
-> 8. Apagar. **Solo `down`, nunca `down -v`** (borra la base):
->    ```powershell
->    docker compose --env-file .env.produccion down
->    ```
->
-> Con los pasos 4 a 7 en ✅, `PROD-11` pasa a ✅ y este recordatorio se borra.
+> | Verificación | Resultado |
+> |---|---|
+> | `nginx -t` | ✅ `syntax is ok` y `test is successful` |
+> | Cabeceras en `/`, `/index.html` y un asset | ✅ Las tres con la CSP completa (con `img-src ... https://tile.openstreetmap.org`, `PROD-05`), `X-Frame-Options: SAMEORIGIN` y `Server: nginx` sin versión |
+> | Documentación de la API | ✅ `/docs`, `/redoc` y `/openapi.json` responden 404; `/health`, 200 |
+> | Rotación de logs | ✅ `max-file 5` y `max-size 10m` en los cuatro contenedores |
+> | Navegador | ✅ Mapas con fondo, sin «Refused» en la consola, «TrackIn v1.0.0» en el pie de Configuración |
 
 #### `PROD-12` — Sacar el token de ShipsGo de los equipos de desarrollo
 

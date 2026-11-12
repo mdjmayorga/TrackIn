@@ -11,8 +11,10 @@ Para levantar TrackIn en un equipo de trabajo, sin servidor, ver el
 > completo en un equipo con Docker, siguiendo el §7 al pie de la letra
 > (`PROD-03` y `PROD-04` de [backlog_produccion.md](backlog/backlog_produccion.md)):
 > los cuatro servicios arrancan y los tres con chequeo de salud quedan
-> `healthy`. Lo que sigue sin probarse es el servidor real, con su red, su
-> nombre y su HTTPS.
+> `healthy`. El 12/11/2026 se verificaron también con contenedores las
+> cabeceras de seguridad (§4.1, `PROD-11`), los mosaicos (`PROD-05`) y el ciclo
+> de respaldo y restauración de §8 (`PROD-07`). Lo que sigue sin probarse es el
+> servidor real, con su red, su nombre y su HTTPS.
 
 ---
 
