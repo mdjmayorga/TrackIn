@@ -14,7 +14,13 @@ import { puedeCargar } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { InformeCarga } from '@/components/InformeCarga'
 import { mensajeDeError } from '@/services/api'
-import { descargarPlantilla, listarCargas, obtenerCarga, subirZtracking } from '@/services/cargas'
+import {
+  descargarPedidos,
+  descargarPlantilla,
+  listarCargas,
+  obtenerCarga,
+  subirZtracking,
+} from '@/services/cargas'
 import { formatearFechaHora } from '@/utils/fechas'
 import { autorDeCarga } from '@/utils/formatos'
 
@@ -42,7 +48,10 @@ export default function Cargas() {
 
       <main className="mx-auto max-w-5xl space-y-10 px-6 pb-12">
         {habilitado ? (
-          <FormularioCarga onCargada={setSeleccionada} />
+          <>
+            <FormularioCarga onCargada={setSeleccionada} />
+            <DescargaPedidos />
+          </>
         ) : (
           <p className="text-sm text-slate-400">
             Las cargas las hacen Compras y el Administrador. Aquí puede ver el historial.
@@ -143,6 +152,42 @@ function FormularioCarga({ onCargada }: { onCargada: (id: number) => void }) {
       {carga.isError && (
         <p role="alert" className="rounded bg-red-900/60 px-4 py-3 text-sm text-red-100">
           {mensajeDeError(carga.error)}
+        </p>
+      )}
+    </section>
+  )
+}
+
+/**
+ * `US-68`: los pedidos de la grilla en un Excel. La hoja «PRODUCCION» tiene la
+ * estructura de la plantilla, así que el archivo se vuelve a cargar aquí mismo
+ * en otro equipo.
+ */
+function DescargaPedidos() {
+  const descarga = useMutation({ mutationFn: () => descargarPedidos() })
+
+  return (
+    <section aria-labelledby="titulo-descargar" className="space-y-3">
+      <h2 id="titulo-descargar" className="text-lg font-semibold">
+        Descargar los pedidos
+      </h2>
+      <p className="max-w-3xl text-sm text-slate-300">
+        Un Excel con todos los pedidos activos de la grilla. La hoja <strong>Grilla</strong> los
+        muestra como el panel; la hoja <strong>PRODUCCION</strong> tiene la estructura de la
+        plantilla y se puede cargar en otro equipo. Los pedidos sin documento de embarque solo van
+        en la grilla, porque la carga no los acepta.
+      </p>
+      <button
+        type="button"
+        onClick={() => descarga.mutate()}
+        disabled={descarga.isPending}
+        className="rounded bg-panel-cabecera px-4 py-1.5 text-sm font-semibold text-slate-100 hover:bg-slate-600 disabled:opacity-50"
+      >
+        {descarga.isPending ? 'Descargando…' : 'Descargar pedidos en Excel'}
+      </button>
+      {descarga.isError && (
+        <p role="alert" className="rounded bg-red-900/60 px-4 py-3 text-sm text-red-100">
+          {mensajeDeError(descarga.error)}
         </p>
       )}
     </section>

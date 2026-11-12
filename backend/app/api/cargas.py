@@ -7,6 +7,7 @@ ve cualquier usuario, porque explica por qué un pedido está o no está.
 
 from __future__ import annotations
 
+import datetime as dt
 from collections.abc import AsyncIterator
 from typing import Annotated
 
@@ -20,7 +21,8 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models.carga_ztracking import CargaZTracking
 from app.schemas.cargas import CargaDetalle, CargaResumen, EstadoCargas
-from app.services.ingesta import carga_archivo, frescura, plantilla
+from app.services import consulta_pedidos
+from app.services.ingesta import carga_archivo, exportacion, frescura, plantilla
 from app.services.ingesta.carga import ResolutorDestino
 from app.services.rastreo import transporte_http
 from app.services.rastreo.destino_shipsgo import ResolutorDestinoShipsGo
@@ -148,6 +150,37 @@ async def descargar_plantilla(_: Annotated[Autenticado, Depends(compras)]) -> Re
         plantilla.generar_plantilla(),
         media_type=plantilla.TIPO_XLSX,
         headers={"Content-Disposition": f'attachment; filename="{plantilla.NOMBRE_ARCHIVO}"'},
+    )
+
+
+# También antes de `/{id_carga}`.
+@router.get(
+    "/exportacion",
+    response_class=Response,
+    summary="Descargar los pedidos activos en Excel (US-68)",
+    description=(
+        "Todos los pedidos activos, los de la grilla sin filtros, en un Excel de dos hojas: "
+        "«Grilla», con las columnas del panel, y «PRODUCCION», con las de la plantilla del "
+        "Z-tracking, que se puede volver a cargar en otro equipo. En «PRODUCCION» van solo "
+        "las líneas con referencia de embarque, porque sin ella la carga las rechaza. Solo "
+        "Compras y el Administrador."
+    ),
+    responses={200: {"content": {plantilla.TIPO_XLSX: {}}}},
+)
+async def descargar_pedidos(
+    _: Annotated[Autenticado, Depends(compras)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    ahora = dt.datetime.now(frescura.ZONA_CR)
+    pedidos = await consulta_pedidos.activos(db)
+    return Response(
+        exportacion.generar(pedidos, ahora),
+        media_type=plantilla.TIPO_XLSX,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{exportacion.nombre_archivo(ahora.date())}"'
+            )
+        },
     )
 
 

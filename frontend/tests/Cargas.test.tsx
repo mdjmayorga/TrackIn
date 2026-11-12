@@ -10,7 +10,13 @@ import type { SesionGuardada } from '@/auth/sesion'
 import { InformeCarga } from '@/components/InformeCarga'
 import Cargas from '@/pages/Cargas'
 import { api } from '@/services/api'
-import { descargarPlantilla, listarCargas, obtenerCarga, subirZtracking } from '@/services/cargas'
+import {
+  descargarPedidos,
+  descargarPlantilla,
+  listarCargas,
+  obtenerCarga,
+  subirZtracking,
+} from '@/services/cargas'
 import type { CargaDetalle, Rol } from '@/types/api'
 import { formatearFechaHora } from '@/utils/fechas'
 import { nombreMotivo } from '@/utils/motivosCarga'
@@ -23,6 +29,7 @@ vi.mock('@/services/cargas', async (original) => ({
   obtenerCarga: vi.fn(),
   subirZtracking: vi.fn(),
   descargarPlantilla: vi.fn(),
+  descargarPedidos: vi.fn(),
 }))
 
 function carga(cambios: Partial<CargaDetalle> = {}): CargaDetalle {
@@ -166,6 +173,47 @@ describe('la plantilla (US-59)', () => {
     expect(enlace.download).toBe('Plantilla Z-tracking.xlsx')
     expect(enlace.href).toBe('blob:plantilla')
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:plantilla')
+  })
+})
+
+describe('descargar los pedidos (US-68)', () => {
+  it('Compras los descarga desde la pantalla de carga', async () => {
+    vi.mocked(descargarPedidos).mockResolvedValue()
+    montar()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Descargar pedidos en Excel' }))
+
+    expect(descargarPedidos).toHaveBeenCalledOnce()
+  })
+
+  it('si la descarga falla, lo dice', async () => {
+    vi.mocked(descargarPedidos).mockRejectedValue(new Error('sin conexión'))
+    montar()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Descargar pedidos en Excel' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('sin conexión')
+  })
+
+  it('Planificación no ve el botón', () => {
+    montar('PLANIFICACION')
+
+    expect(screen.queryByRole('button', { name: 'Descargar pedidos en Excel' })).toBeNull()
+  })
+
+  it('el servicio pide el archivo y lo guarda con la fecha de hoy', async () => {
+    const real = await vi.importActual<typeof import('@/services/cargas')>('@/services/cargas')
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: new Blob(['xlsx']) })
+    URL.createObjectURL = vi.fn(() => 'blob:pedidos')
+    URL.revokeObjectURL = vi.fn()
+    const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+
+    await real.descargarPedidos(new Date(2026, 10, 12, 9, 30))
+
+    expect(get).toHaveBeenCalledWith('/api/v1/cargas/exportacion', { responseType: 'blob' })
+    const enlace = clic.mock.contexts[0] as HTMLAnchorElement
+    expect(enlace.download).toBe('TrackIn pedidos 2026-11-12.xlsx')
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pedidos')
   })
 })
 

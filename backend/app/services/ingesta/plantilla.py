@@ -164,16 +164,21 @@ def _hoja_de_instrucciones(libro: Workbook) -> None:
         hoja.column_dimensions[letra].width = ancho
 
 
-def generar_plantilla() -> bytes:
-    """El libro de la plantilla, listo para devolver como descarga."""
+def libro_plantilla() -> Workbook:
+    """El libro de la plantilla, vacío. La exportación de pedidos (`US-68`) lo llena."""
     libro = Workbook()
     libro.remove(libro.active)
     for nombre in HOJAS_EN_ALCANCE:
         _hoja_de_datos(libro, nombre)
     _hoja_de_instrucciones(libro)
+    return libro
+
+
+def generar_plantilla() -> bytes:
+    """El libro de la plantilla, listo para devolver como descarga."""
     salida = io.BytesIO()
-    libro.save(salida)
+    libro_plantilla().save(salida)
     return salida.getvalue()
 
 
-__all__ = ["NOMBRE_ARCHIVO", "TIPO_XLSX", "generar_plantilla"]
+__all__ = ["NOMBRE_ARCHIVO", "TIPO_XLSX", "generar_plantilla", "libro_plantilla"]

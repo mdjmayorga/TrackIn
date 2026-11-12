@@ -25,11 +25,29 @@ export async function subirZtracking(archivo: File): Promise<CargaDetalle> {
  * un enlace porque la sesión viaja en la cabecera, que un enlace no manda.
  */
 export async function descargarPlantilla(): Promise<void> {
-  const { data } = await api.get<Blob>(`${API_V1}/cargas/plantilla`, { responseType: 'blob' })
+  await descargar(`${API_V1}/cargas/plantilla`, 'Plantilla Z-tracking.xlsx')
+}
+
+/**
+ * Descarga los pedidos activos en Excel (`US-68`): la hoja «Grilla», como el
+ * panel, y «PRODUCCION», que se vuelve a cargar en otro equipo. El nombre lleva
+ * la fecha de hoy, como el que pone el backend.
+ */
+export async function descargarPedidos(hoy: Date = new Date()): Promise<void> {
+  const fecha = [
+    hoy.getFullYear(),
+    String(hoy.getMonth() + 1).padStart(2, '0'),
+    String(hoy.getDate()).padStart(2, '0'),
+  ].join('-')
+  await descargar(`${API_V1}/cargas/exportacion`, `TrackIn pedidos ${fecha}.xlsx`)
+}
+
+async function descargar(ruta: string, nombre: string): Promise<void> {
+  const { data } = await api.get<Blob>(ruta, { responseType: 'blob' })
   const url = URL.createObjectURL(data)
   const enlace = document.createElement('a')
   enlace.href = url
-  enlace.download = 'Plantilla Z-tracking.xlsx'
+  enlace.download = nombre
   enlace.click()
   URL.revokeObjectURL(url)
 }

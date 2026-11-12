@@ -124,6 +124,7 @@ Derivado del SRS v0.3 y de los spikes tecnicos TG-10 (AISStream) y TG-11 (OpenSk
 | `US-44` | Mostrar en el detalle el país de origen y el mapa de seguimiento del pedido ✅ | Story | OE3 | **Should** | Sprint 7 | ~~8h~~ 4h | Reunión Logística 03/09 / RF-05 (ampliado) · **mapa en vivo de ShipsGo en el detalle, funcionando desde el 21/10** (ShipsGo Embed) · ✅ terminada 02/11: país de origen en el encabezado; mapa propio con la ruta completa para los aéreos |
 | `US-33` | Habilitar el modo de visualizacion permanente en pantalla grande ✅ | Story | OE3 | **Could** | Sprint 7 | 6h | RNF-11 / vista simple de `US-43` · ✅ adelantada y terminada 28/10 |
 | `US-67` | Registrar a mano la ETA a Costa Rica cuando la fuente no la da ✅ | Story | OE2 | **Should** | Sprint 7 | 3h | 02/11: la guía de 4500018865 termina en París y no había fecha que ajustar · solo Compras y el Administrador · ✅ terminada 02/11 |
+| `US-68` | Descargar en Excel los pedidos de la grilla, en un archivo que se vuelve a cargar ✅ | Story | OE3 | **Should** | Sprint 7 | 3h | 12/11: pedido de Mariano · desde la pantalla de carga, solo Compras y el Administrador · ✅ terminada 12/11 |
 | `TASK-06` | Pruebas de integracion extremo a extremo ✅ | Task | OE4 | **Must** | Cierre | 12h | RNF-18 / Criterios seccion 10 · ✅ adelantada y terminada 03/11: flujo completo del Excel al cierre; reglas de la §7 al 98,5 %, verificado en CI |
 | `TASK-07` | Manual de instalacion local ✅ | Task | OE4 | **Must** | Cierre | 6h | Criterios seccion 10 · ✅ adelantada y terminada 03/11: `docs/manual-instalacion.md`, probado en una instalación limpia |
 | `TASK-08` | Manual de usuario del dashboard ✅ | Task | OE4 | **Must** | Cierre | 6h | RNF-10 / Criterios seccion 10 · redactado 04/11 · ✅ terminado 10/11: `docs/manual-usuario.docx` con las 12 capturas |
@@ -2682,6 +2683,9 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 > y se descarta el «detalle técnico con el payload» de `US-29`. Arranca `TASK-06`, adelantada
 > del cierre.
 >
+> **12/11: entra y se termina `US-68` (3 h).** Descargar los pedidos de la grilla en Excel,
+> desde la pantalla de carga, en un archivo que se vuelve a cargar en otro equipo.
+>
 > **03/11, más tarde: 65 de 65 h.** Leyenda de los mapas (+2 h), criterio nuevo de `US-25` y
 > `US-26`: el diseño la pedía y se había pasado. Solo falta ver `US-25` y `US-26` con datos reales.
 >
@@ -3620,6 +3624,58 @@ proyectada «Ajustar días» queda deshabilitado.
 >   proyectada ahora dice que hay que registrar antes la ETA.
 > - **Pruebas:** 14 de backend (`test_eta_manual.py`) y 3 de frontend
 >   (`AccionesPedido.test.tsx`).
+
+#### `US-68` — Descargar en Excel los pedidos de la grilla · Sprint 7
+
+Como usuario de Compras, quiero descargar en un Excel los pedidos que tiene la grilla, para
+llevar una copia local y poder cargarla en otro equipo.
+
+**Origen (12/11/2026).** Pedido de Mariano, con estas decisiones: todos los pedidos activos
+—la grilla sin filtros—, desde la pantalla de carga del Z-tracking, solo Compras y el
+Administrador; las columnas de la grilla, y que el mismo archivo se pueda cargar en otro
+equipo cumpliendo las restricciones de la carga. Como la grilla sola no alcanza para cargar
+(le faltan proveedor, cantidad, incoterm y documento) y lo que calcula TrackIn no se carga,
+el archivo lleva **dos hojas**.
+
+**Criterios de aceptación**
+
+- Dado un usuario de Compras o el Administrador, cuando pulsa «Descargar pedidos en Excel» en la pantalla de carga, entonces descarga `TrackIn pedidos AAAA-MM-DD.xlsx`
+- Dado el archivo, cuando se abre, entonces la primera hoja, «Grilla», trae todos los pedidos activos con las nueve columnas del panel, sus textos y en su orden
+- Dado el archivo, cuando se carga en otro equipo sin pedidos ni ShipsGo, entonces la hoja «PRODUCCION» entra completa, sin incidencias ni avisos de estructura, y cada pedido queda con los mismos datos
+- Dado un pedido sin documento de embarque, cuando se exporta, entonces está en «Grilla» pero no en «PRODUCCION», porque la carga lo rechazaría (04/11/2026)
+- Dado un usuario de Logística, Planificación o Planta, cuando intenta descargar, entonces no tiene el botón y la API responde 403
+
+| | |
+|---|---|
+| Tipo | Story |
+| Objetivo específico | OE3 |
+| MoSCoW | **Should** |
+| Estimacion | 3 h |
+| Origen en el SRS | RF-19 (consulta de pedidos) · `US-59` (plantilla) |
+| Etiquetas | `backend,frontend,cargas` |
+
+> **✅ Terminada el 12/11/2026.**
+>
+> - `GET /api/v1/cargas/exportacion` con `requiere_rol(COMPRAS)`. El libro **es** el de la
+>   plantilla (`plantilla.libro_plantilla`) con la hoja «Grilla» delante: «PRODUCCION», «IDA»
+>   e «INSTRUCCIONES» quedan con los mismos rótulos, formatos y listas. La carga solo lee
+>   `PRODUCCION` e `IDA`, así que «Grilla» no le estorba.
+> - Los pedidos, con las mismas condiciones y el mismo orden que la grilla sin filtros
+>   (`consulta_pedidos.activos`).
+> - **Lo que se escribe distinto de como se guarda, para que la carga lo acepte en otra base:**
+>   el incoterm lleva el puerto (`CIF` y «Puerto Limón» → `CIF LIMON`,
+>   `normalizacion.incoterm_con_lugar`), porque la base guarda solo el código y sin el puerto
+>   un marítimo no tiene destino; y las guías aéreas van como `AWB`, como en la plantilla,
+>   cuando la carga deduce la misma guía por la forma del número. El comentario del comprador
+>   no se guarda: esa columna va vacía.
+> - Botón «Descargar pedidos en Excel» en una sección propia de «Cargar Z-tracking».
+> - **Pruebas:** 6 de backend (`test_exportacion.py`), entre ellas la vuelta completa:
+>   cargar, exportar, vaciar pedidos y referencias, cargar lo exportado sin ShipsGo y comparar
+>   pedido por pedido. 4 de frontend (`Cargas.test.tsx`).
+> - **Con los datos de `trackin_dev`:** «Grilla» con los 116 activos y «PRODUCCION» con los
+>   20 que tienen referencia. 18 resuelven destino y referencia sin ShipsGo; los otros 2 son
+>   pedidos de demostración de la semilla (OC 4500123456 y 4500123789) con códigos de
+>   material inventados (`MP-001234`), que la carga rechaza y no existen en datos reales.
 
 ---
 

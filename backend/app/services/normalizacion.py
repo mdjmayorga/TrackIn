@@ -139,6 +139,18 @@ def destino_nombrado_en_incoterm(
     return encontrados.pop() if len(encontrados) == 1 else None
 
 
+def incoterm_con_lugar(incoterm: str | None, nombre_destino: str) -> str:
+    """El incoterm con el lugar que `destino_nombrado_en_incoterm` reconoce (`US-68`).
+
+    La base guarda solo el código (`CIF`); el lugar se resolvió al cargar y quedó
+    en el destino. Para que el Excel exportado se vuelva a cargar en otra base,
+    sin ShipsGo y sin el destino ya guardado, el incoterm tiene que nombrarlo de
+    nuevo: `CIF` y «Puerto Limón» → `CIF LIMON`. Sin incoterm, el lugar solo.
+    """
+    lugar = _lugar_nombrado(nombre_destino) or ""
+    return " ".join(parte for parte in (incoterm, lugar) if parte)
+
+
 def normalizar_temperatura(valor: str | None) -> str | None:
     """Unifica la condición de almacenamiento.
 
@@ -182,6 +194,7 @@ async def resolver_pais(sesion: AsyncSession, valor: str | None) -> MaestroPais 
 __all__ = [
     "INCOTERMS",
     "VALORES_NO_DATO",
+    "incoterm_con_lugar",
     "normalizar_incoterm",
     "normalizar_temperatura",
     "normalizar_texto",

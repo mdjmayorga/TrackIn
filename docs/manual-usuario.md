@@ -538,6 +538,22 @@ son obligatorias: sirve la primera vez o cuando cambia el formato del archivo.
 «TIPO DE DOCUMENTO AWB / BL» y «# DE DOCUMENTO»: BL, contenedor o booking si es
 marítima, MAWB o HAWB si es aérea. Sin eso el pedido no se puede seguir.
 
+### Descargar los pedidos
+
+*Compras y Administrador.* En **Cargar Z-tracking**, **Descargar pedidos en
+Excel** baja `TrackIn pedidos AAAA-MM-DD.xlsx` con todos los pedidos activos
+(la grilla sin filtros):
+
+- La hoja **Grilla**, la que se ve al abrir, los muestra con las mismas
+  columnas y textos que el panel.
+- La hoja **PRODUCCION** tiene la estructura de la plantilla: el archivo se
+  puede cargar tal cual en otro equipo, y los pedidos quedan con los mismos
+  datos. Los pedidos sin documento de embarque solo van en la grilla, porque la
+  carga no los acepta.
+
+Cargarlo en el **mismo** equipo marca como «ya no vienen» los pedidos que se
+agregaron después de descargarlo: es una foto de ese momento.
+
 ### Qué hace la carga
 
 - Los pedidos **nuevos** se agregan.

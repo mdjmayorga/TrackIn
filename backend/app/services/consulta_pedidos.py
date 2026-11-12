@@ -295,6 +295,27 @@ async def listar(
     return total or 0, [PedidoResumen.model_validate(_resumen(p)) for p in pedidos]
 
 
+async def activos(sesion: AsyncSession) -> list[PedidoTransito]:
+    """Todos los pedidos de la grilla sin filtros, en su orden, para exportarlos (`US-68`).
+
+    Las mismas condiciones y el mismo orden que `listar` sin filtros ni página: lo
+    que se ve al abrir el panel. Con el país de origen, que la grilla no muestra
+    pero la plantilla del Z-tracking sí lleva.
+    """
+    pedidos = await sesion.scalars(
+        _consulta_base(Filtros())
+        .options(
+            contains_eager(PedidoTransito.proveedor),
+            contains_eager(PedidoTransito.material),
+            contains_eager(PedidoTransito.destino),
+            contains_eager(PedidoTransito.elemento_rastreado),
+            selectinload(PedidoTransito.pais_origen),
+        )
+        .order_by(*_orden(ORDEN_POR_OMISION))
+    )
+    return list(pedidos)
+
+
 async def _posicion(sesion: AsyncSession, elemento: ElementoRastreado) -> Posicion | None:
     """Latitud y longitud de la última posición. `GEOGRAPHY` no tiene `ST_X`."""
     if elemento.posicion_actual is None:
@@ -946,6 +967,7 @@ __all__ = [
     "TARJETAS_ARRIBOS",
     "Filtros",
     "Indicadores",
+    "activos",
     "detalle",
     "indicadores",
     "listar",
