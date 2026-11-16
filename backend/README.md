@@ -239,6 +239,9 @@ El rastreo corre en un proceso aparte de la API (`docs/architecture.md` §1.4):
 ```bash
 python -m app.workers              # ciclos cada 60 s, hasta Ctrl+C
 python -m app.workers --una-vez    # un solo ciclo, para verificar
+.venv\Scripts\python -m app.workers
+
+.\.venv\Scripts\python -m uvicorn app.main:app --reload --port 8000  # backend completo
 ```
 
 Cada ciclo planifica, consulta ShipsGo o TICA según la referencia, aplica la
