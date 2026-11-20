@@ -38,6 +38,14 @@ vi.mock('@/services/cargas', async (original) => ({
   obtenerEstadoCargas: vi.fn(() => new Promise(() => undefined)),
 }))
 
+// El panel muestra a quien carga el saldo de créditos de ShipsGo (`AvisoCreditos`).
+// Sin esto la consulta sale a la red, falla después de la prueba y su
+// `console.error` llega cuando el worker ya cerró: el CI lo marca como error.
+vi.mock('@/services/shipsgo', async (original) => ({
+  ...(await original<typeof import('@/services/shipsgo')>()),
+  obtenerCreditos: vi.fn(() => new Promise(() => undefined)),
+}))
+
 vi.mock('@/services/health', () => ({ obtenerHealth: vi.fn() }))
 
 /** Lo que pide la bandeja: los llegados, lo más antiguo primero. */

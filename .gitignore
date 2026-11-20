@@ -176,3 +176,6 @@ backend/scripts/spikes/**/output/raw/
 # Archivos temporales de Word (se crean al abrir un .docx)
 ~$*
 ~WRL*.tmp
+
+# Respaldos locales de la base de datos (pg_dump)
+respaldos/
