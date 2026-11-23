@@ -33,6 +33,13 @@ vi.mock('@/services/cargas', async (original) => ({
   obtenerEstadoCargas: vi.fn(() => new Promise(() => undefined)),
 }))
 
+// El saldo de créditos del panel (`AvisoCreditos`): sin esto sale a la red y su
+// `console.error` puede llegar con el worker ya cerrado, y el CI lo da por error.
+vi.mock('@/services/shipsgo', async (original) => ({
+  ...(await original<typeof import('@/services/shipsgo')>()),
+  obtenerCreditos: vi.fn(() => new Promise(() => undefined)),
+}))
+
 vi.mock('@/services/health', () => ({
   obtenerHealth: vi.fn().mockResolvedValue({
     status: 'ok',

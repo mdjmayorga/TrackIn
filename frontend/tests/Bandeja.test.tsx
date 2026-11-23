@@ -24,6 +24,9 @@ vi.mock('@/services/pedidos', async (original) => ({
   listarPedidos: vi.fn(),
   obtenerIndicadores: vi.fn(() => new Promise(() => undefined)),
   obtenerProximosArribos: vi.fn(() => new Promise(() => undefined)),
+  // El mapa del panel. Sin esto sale a la red y su error llega tarde (ver abajo):
+  // el CI del 23/11/2026 falló por eso con todas las pruebas en verde.
+  obtenerMapa: vi.fn(() => new Promise(() => undefined)),
 }))
 
 vi.mock('@/services/acciones', async (original) => ({
