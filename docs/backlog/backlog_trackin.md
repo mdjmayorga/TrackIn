@@ -2657,6 +2657,16 @@ Como usuario de Planificacion, quiero ver los cinco arribos mas cercanos **en el
 >    (estado `CERRADO`, migración `0034`), su asiento en la bitácora a nombre de quien cargó y
 >    la lista en el informe de la carga. Vale también para los lotes de SAP, que rechazan pero
 >    no cierran (no son el universo). La plantilla y el contrato de SAP ya lo dicen.
+>
+>    **⚠️ Revertido en parte el 23/11/2026** (Mariano, con el Z-tracking WK47). El BL existe
+>    recién al zarpar, y la carga de ese día cerró 91 pedidos que solo esperaban su documento.
+>    Desde entonces la línea **sin** referencia entra «Sin tracking» y la carga **ya no cierra**
+>    por falta de referencia; los 91 se reabrieron con asiento en la bitácora. La referencia
+>    **inválida** se sigue rechazando. Ese mismo día: `0`, `N/A`, `#N/A` y `PENDIENTE` en
+>    `# DE DOCUMENTO` cuentan como celda vacía; `AWB / BL / CP` y `Conocimiento de embarque`
+>    se aceptan como nombres de las columnas de documento; y las compras locales (`LOCAL` en
+>    la vía o en el tipo de proveedor) quedan fuera como `via_fuera_de_alcance`, igual que la
+>    terrestre.
 > 4. **Sin SOLPED en la pantalla de planta**, ni la columna ni su filtro.
 >
 > **04/11, después: la grilla se ve al entrar, sin deslizar.** Encabezado en una sola franja

@@ -317,7 +317,7 @@ describe('informe de la carga', () => {
     expect(screen.getByText(/conviene revisar en SAP \(1\)/)).toBeInTheDocument()
   })
 
-  it('sin referencia: la línea no entra, dice qué hacer, y lista los cerrados (04/11/2026)', () => {
+  it('una carga anterior al 23/11 sigue mostrando sus rechazos y cerrados sin referencia', () => {
     render(
       <InformeCarga
         carga={carga({
@@ -336,7 +336,7 @@ describe('informe de la carga', () => {
     )
 
     expect(screen.getAllByText(/Sin referencia de embarque/).length).toBeGreaterThan(0)
-    expect(screen.getByText(/Sin referencia el pedido no se puede seguir/)).toBeInTheDocument()
+    expect(screen.getByText(/Motivo de cargas anteriores al 23\/11\/2026/)).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: /Cerrados por no tener referencia de embarque \(2\)/ }),
     ).toBeInTheDocument()

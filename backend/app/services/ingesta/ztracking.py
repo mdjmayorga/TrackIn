@@ -182,10 +182,13 @@ COLUMNAS: Final[tuple[Columna, ...]] = (
     #
     # WK47 (23/11/2026) las volvió a renombrar en `PRODUCCION`: `AWB / BL / CP`
     # y `Conocimiento de embarque`. Mismo dato, se aceptan como alias.
+    #
+    # 23/11/2026: la plantilla la llama solo `TIPO DE DOCUMENTO`, porque Compras
+    # también anota ahí el documento de los pedidos locales.
     Columna(
         "tipo_referencia",
         "Tipo de referencia",
-        alias=("Tipo de documento AWB / BL", "AWB / BL / CP"),
+        alias=("Tipo de documento", "Tipo de documento AWB / BL", "AWB / BL / CP"),
         requerido=True,
     ),
     Columna(
@@ -236,7 +239,7 @@ PLANTILLA: Final[tuple[tuple[str, str], ...]] = (
     ("pais_origen", f"Pais de Origen{SUFIJO_OPCIONAL}"),
     ("eta_declarada", f"ETA CR (fecha){SUFIJO_OPCIONAL}"),
     ("solicitud_pedido", "Solicitud de pedido"),
-    ("tipo_referencia", "TIPO DE DOCUMENTO AWB / BL"),
+    ("tipo_referencia", "TIPO DE DOCUMENTO"),
     ("numero_referencia", "# DE DOCUMENTO"),
     ("comentario", f"Comentarios{SUFIJO_OPCIONAL}"),
 )

@@ -29,8 +29,10 @@ export const QUE_HACER: Record<string, string> = {
     'Corrija la celda que dice el detalle, con el formato que pide, y vuelva a cargar.',
   dato_descartado:
     'La línea entró sin ese dato. Corríjalo en SAP para que la próxima carga lo tome.',
+  // Desde el 23/11/2026 ya no se produce: la línea sin referencia entra «Sin
+  // tracking». Queda para leer los informes de cargas anteriores.
   sin_referencia:
-    'Complete «TIPO DE DOCUMENTO AWB / BL» y «# DE DOCUMENTO» (BL, contenedor o booking si es marítimo; MAWB o HAWB si es aéreo). Sin referencia el pedido no se puede seguir y no entra.',
+    'Motivo de cargas anteriores al 23/11/2026. Hoy la línea sin documento entra «Sin tracking» y se rastrea cuando llega el BL o la guía.',
   referencia_invalida:
     'Revise el número: un dígito de más o de menos, letras de otra referencia, o una guía aérea en un pedido marítimo. Corregido, la línea entra en la próxima carga.',
 }

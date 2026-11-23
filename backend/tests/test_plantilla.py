@@ -83,9 +83,13 @@ def test_solo_trae_lo_que_el_sistema_usa() -> None:
 def test_la_via_y_el_tipo_de_documento_tienen_lista_desplegable() -> None:
     hoja = _abrir()["PRODUCCION"]
 
-    listas = {v.formula1 for v in hoja.data_validations.dataValidation}
+    listas = {v.formula1: v for v in hoja.data_validations.dataValidation}
 
-    assert listas == {'"AEREO,MARITIMO"', '"BL,AWB,CONTENEDOR,BOOKING"'}
+    assert set(listas) == {'"AEREO,MARITIMO"', '"BL,AWB,CONTENEDOR,BOOKING"'}
+    # La vía es cerrada; el tipo de documento solo sugiere, porque los pedidos
+    # locales llevan el suyo (23/11/2026).
+    assert listas['"AEREO,MARITIMO"'].showErrorMessage is True
+    assert listas['"BL,AWB,CONTENEDOR,BOOKING"'].showErrorMessage is False
 
 
 def test_las_instrucciones_explican_cada_columna() -> None:
@@ -97,9 +101,9 @@ def test_las_instrucciones_explican_cada_columna() -> None:
     assert filas["Comentarios (opcional)"][1] == "No"
     # 02/11/2026: columna obligatoria, celda que puede ir en blanco.
     assert filas["Solicitud de pedido"][1] == "Sí, puede ir vacía"
-    # 04/11/2026: sin referencia la línea no entra; la celda ya no puede ir vacía.
-    for rotulo in ("# DE DOCUMENTO", "TIPO DE DOCUMENTO AWB / BL"):
-        assert filas[rotulo][1] == "Sí"
+    # 23/11/2026: sin referencia la línea entra «Sin tracking»; la celda puede ir vacía.
+    for rotulo in ("# DE DOCUMENTO", "TIPO DE DOCUMENTO"):
+        assert filas[rotulo][1] == "Sí, puede ir vacía"
     assert filas["Incoterm (obligatorio si es marítimo)"][1] == "Si es marítimo"
 
 

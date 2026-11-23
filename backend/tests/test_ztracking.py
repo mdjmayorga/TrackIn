@@ -836,7 +836,7 @@ async def test_contra_las_muestras_reales(nombre: str, leidas: int, ilegibles: i
     if not ruta.exists():
         pytest.skip(f"{nombre} no está versionado")
 
-    with pytest.raises(HojaInesperada, match="TIPO DE DOCUMENTO AWB / BL, # DE DOCUMENTO"):
+    with pytest.raises(HojaInesperada, match="TIPO DE DOCUMENTO, # DE DOCUMENTO"):
         await FuenteZTracking(ruta=ruta).obtener_pedidos()
 
 
@@ -959,6 +959,34 @@ async def test_wk47_lee_la_referencia_de_sus_columnas_renombradas(tmp_path: Path
 
     assert (pedido.tipo_referencia, pedido.numero_referencia) == ("MAWB", "72489720610")
     assert pedido.referencia_desde_comentario is False
+
+
+@pytest.mark.parametrize(
+    "rotulo",
+    [
+        "TIPO DE DOCUMENTO",
+        "tipo de documento",
+        "Tipo De Documento",
+        "  Tipo  de documento ",
+        "TIPO DE DOCUMENTO AWB / BL",
+    ],
+)
+async def test_el_tipo_de_documento_se_reconoce_sin_importar_mayusculas(
+    tmp_path: Path, rotulo: str
+) -> None:
+    """23/11/2026: la plantilla lo llama solo `TIPO DE DOCUMENTO`; el nombre
+    anterior se sigue aceptando."""
+    diseno = _al_dia(
+        Diseno(
+            ancho=_WK43_ARCHIVO.ancho,
+            columnas=_WK43_ARCHIVO.columnas,
+            rotulos={**_WK43_ARCHIVO.rotulos, "tipo_referencia": rotulo},
+        )
+    )
+    hojas = {"PRODUCCION": diseno.hoja(diseno.linea(tipo_referencia="BL", numero_referencia="X1"))}
+    (pedido,) = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert (pedido.tipo_referencia, pedido.numero_referencia) == ("BL", "X1")
 
 
 @pytest.mark.parametrize(
@@ -1096,7 +1124,7 @@ async def test_sin_las_columnas_de_documento_la_hoja_se_rechaza_y_dice_cuales(
     with pytest.raises(HojaInesperada, match="no trae las columnas obligatorias") as error:
         await _fuente(tmp_path, hojas).obtener_pedidos()
 
-    assert "TIPO DE DOCUMENTO AWB / BL, # DE DOCUMENTO" in str(error.value)
+    assert "TIPO DE DOCUMENTO, # DE DOCUMENTO" in str(error.value)
 
 
 async def test_con_las_columnas_de_documento_vacias_la_linea_entra(tmp_path: Path) -> None:

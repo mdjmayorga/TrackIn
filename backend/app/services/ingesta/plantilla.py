@@ -40,6 +40,11 @@ _LISTAS: Final[dict[str, tuple[str, ...]]] = {
     "tipo_referencia": ("BL", "AWB", "CONTENEDOR", "BOOKING"),
 }
 
+#: Listas que solo sugieren: aceptan otro valor escrito a mano. En el tipo de
+#: documento Compras anota también el de los pedidos locales (23/11/2026), que
+#: TrackIn no rastrea pero el archivo sí lleva.
+_LISTAS_ABIERTAS: Final = frozenset({"tipo_referencia"})
+
 #: Las fechas que TrackIn lee, con el formato con que se escriben en Costa Rica.
 _FECHAS: Final = ("fecha_entrega_pedido", "eta_declarada")
 
@@ -71,9 +76,9 @@ _AYUDA: Final[dict[str, tuple[str, str]]] = {
     ),
     "solicitud_pedido": ("Número de la SOLPED", "Se muestra en la pantalla de planta"),
     "tipo_referencia": (
-        "BL, AWB, CONTENEDOR o BOOKING",
-        "Con el número, permite rastrear el envío. Sin referencia la línea no entra "
-        "(puede ir en Comentarios)",
+        "BL, AWB, CONTENEDOR o BOOKING. En pedidos locales, el documento que usen",
+        "Con el número, permite rastrear el envío. Si todavía no hay documento, déjela "
+        "en blanco: la línea entra «Sin tracking» hasta que llegue",
     ),
     "numero_referencia": (
         "El número tal cual el documento, como MAEU274029064",
@@ -86,9 +91,11 @@ _AYUDA: Final[dict[str, tuple[str, str]]] = {
 }
 
 #: Columnas obligatorias cuya celda puede venir en blanco (02/11/2026). Las del
-#: documento salieron de aquí el 04/11/2026: sin referencia de embarque la línea
-#: ya no entra (`ingesta.carga`), salvo que la traiga en Comentarios.
-_PUEDEN_IR_VACIAS: Final = frozenset({"material_descripcion", "solicitud_pedido"})
+#: documento salieron de aquí el 04/11/2026 y volvieron el 23/11/2026: sin
+#: referencia la línea entra «Sin tracking» (`ingesta.carga`).
+_PUEDEN_IR_VACIAS: Final = frozenset(
+    {"material_descripcion", "solicitud_pedido", "tipo_referencia", "numero_referencia"}
+)
 
 #: La fila de títulos de la tabla de instrucciones, debajo de las dos notas.
 _FILA_TITULOS: Final = 4
@@ -120,7 +127,7 @@ def _hoja_de_datos(libro: Workbook, nombre: str) -> None:
                 type="list",
                 formula1=f'"{",".join(_LISTAS[campo])}"',
                 allow_blank=True,
-                showErrorMessage=True,
+                showErrorMessage=campo not in _LISTAS_ABIERTAS,
                 errorTitle=rotulo,
                 error=f"Elija uno de: {', '.join(_LISTAS[campo])}.",
             )

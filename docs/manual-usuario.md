@@ -534,9 +534,11 @@ enlaces **Cargar Z-tracking** (o **Historial de cargas**) y **Altas en ShipsGo**
 **Descargar plantilla** baja un Excel con las columnas que usa TrackIn y cuáles
 son obligatorias: sirve la primera vez o cuando cambia el formato del archivo.
 
-**Las líneas sin referencia de embarque no entran.** Cada línea necesita
-«TIPO DE DOCUMENTO AWB / BL» y «# DE DOCUMENTO»: BL, contenedor o booking si es
-marítima, MAWB o HAWB si es aérea. Sin eso el pedido no se puede seguir.
+**La referencia de embarque va en «TIPO DE DOCUMENTO» y «# DE DOCUMENTO»**: BL,
+contenedor o booking si es marítima, MAWB o HAWB si es aérea. Si todavía no hay
+documento, deje las dos celdas en blanco: el pedido entra «Sin tracking» y se
+empieza a seguir cuando el documento llegue en otra carga. Los pedidos locales
+pueden llevar ahí su propio documento; TrackIn no los rastrea.
 
 ### Descargar los pedidos
 
