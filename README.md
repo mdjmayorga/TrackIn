@@ -77,10 +77,10 @@ Detalle en [docs/api-references.md](docs/api-references.md) y en el SRS
 
 ## Setup
 
-> **¿Equipo nuevo?** Este resumen supone Python, Node y PostgreSQL ya
-> instalados. Para instalar todo desde cero y sin permisos de administrador,
-> seguir el [manual de instalación local](docs/manual-instalacion.md) (`TASK-07`),
-> probado en una instalación limpia.
+> **¿Equipo nuevo?** Con Git instalado: `git clone`, luego `instalar.cmd` en la
+> raíz (instala Python, Node, PostgreSQL + PostGIS y todas las dependencias, sin
+> administrador) y `iniciar.cmd` para arrancar. Detalle en el
+> [manual de instalación local](docs/manual-instalacion.md) (`TASK-07`).
 
 ### 1. Clonar y configurar variables de entorno
 

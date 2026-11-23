@@ -14,6 +14,57 @@ Para un servidor, con o sin Docker, ver [deployment.md](deployment.md).
 > inicio de sesión, `/health`, un ciclo del worker y el build del panel, todo
 > siguiendo este manual paso a paso.
 
+## Instalación rápida (recomendada)
+
+Tres pasos. El script `instalar.cmd` hace por su cuenta los pasos 1 a 7 de
+abajo: instala Python 3.12 y Node.js si faltan, descarga PostgreSQL + PostGIS,
+crea la base con una contraseña aleatoria, escribe `backend\.env` e instala las
+dependencias de Python y del panel. No pide administrador.
+
+**1. Instalar Git** (es lo único que va a mano; hace falta para clonar):
+
+```powershell
+winget install --id Git.Git -e --scope user
+```
+
+Sin `winget`: el instalador de <https://git-scm.com/download/win>, eligiendo
+«Only for me» si pide administrador. Después, **abrir una consola nueva**.
+
+**2. Clonar el repositorio** en una ruta corta:
+
+```powershell
+mkdir $HOME\Documents\GitHub -Force
+cd $HOME\Documents\GitHub
+git clone https://github.com/mdjmayorga/TrackIn.git
+cd TrackIn
+```
+
+> Si el repositorio es privado, la persona tiene que estar invitada como
+> colaboradora en GitHub. Git abre el navegador para iniciar sesión la primera vez.
+
+**3. Instalar y arrancar:**
+
+```powershell
+.\instalar.cmd
+```
+
+Pregunta el token de la API de ShipsGo (Enter para dejarlo para después) y el
+usuario del primer Administrador con su contraseña. Tarda de 10 a 20 minutos,
+casi todo en descargas. Si algo falla, se corrige lo que dice el mensaje y se
+vuelve a correr: lo que ya quedó hecho se salta.
+
+Para arrancar el sistema, **cada vez**: `iniciar.cmd` (doble clic). Levanta la
+base, la API, el worker y el panel, y abre <http://localhost:5173>.
+
+Parámetros opcionales: `-ShipsGoToken <token>`, `-RutaPostgres D:\pgsql`,
+`-PuertoBD 5433` (si ya hay otro PostgreSQL en el 5432). Si se cambia
+`-RutaPostgres`, hay que pasarlo también a `iniciar.cmd`.
+
+Lo que sigue es el mismo proceso **paso a paso**, para entender qué hace el
+script o para resolver un fallo a mano.
+
+---
+
 **Convenciones**
 
 - Los comandos son para **PowerShell**, salvo que se indique otra cosa.
@@ -103,7 +154,8 @@ Binarios portables, sin instalador y sin servicio de Windows.
    - PostgreSQL:
      <https://get.enterprisedb.com/postgresql/postgresql-16.14-1-windows-x64-binaries.zip>
    - PostGIS:
-     <https://download.osgeo.org/postgis/windows/pg16/postgis-bundle-pg16-3.6.2x64.zip>
+     <https://download.osgeo.org/postgis/windows/pg16/archive/postgis-bundle-pg16-3.6.2x64.zip>
+     (en `archive/`: la carpeta principal solo guarda la última versión)
 2. Extraer el de PostgreSQL. Trae una carpeta `pgsql`: moverla a `$HOME`, de
    modo que exista `$HOME\pgsql\bin\pg_ctl.exe`.
 3. Extraer el de PostGIS y copiar **su contenido encima** de `$HOME\pgsql`
