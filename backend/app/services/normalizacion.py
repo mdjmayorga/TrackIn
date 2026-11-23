@@ -29,7 +29,20 @@ from app.models.maestro_pais import AliasPais, MaestroPais
 #: Marcadores de «todavía no se sabe». No son datos y no deben normalizarse a
 #: un valor de dominio: la columna queda nula y la línea sigue su curso.
 VALORES_NO_DATO: frozenset[str] = frozenset(
-    {"", "PENDIENTE", "PEDIENTE", "PENDENTE", "N/A", "NA", "NONE", "-", "SIN DATO"}
+    # `PENDIENE` y `#N/A` desde WK47 (23/11/2026).
+    {
+        "",
+        "PENDIENTE",
+        "PEDIENTE",
+        "PENDENTE",
+        "PENDIENE",
+        "N/A",
+        "#N/A",
+        "NA",
+        "NONE",
+        "-",
+        "SIN DATO",
+    }
 )
 
 #: Incoterms de Incoterms 2020 que aparecen en el archivo, más el valor `LOCAL`

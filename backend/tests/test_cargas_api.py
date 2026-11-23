@@ -24,7 +24,6 @@ from app.api.cargas import resolutor_de_destinos
 from app.api.dependencias import Autenticado, usuario_actual
 from app.db.session import get_db
 from app.main import app
-from app.models.auditoria_intervencion import AuditoriaIntervencion
 from app.models.carga_ztracking import CargaZTracking
 from app.models.pedido_transito import PedidoTransito
 from app.models.sesion import Sesion
@@ -454,18 +453,18 @@ async def test_el_informe_avisa_en_que_se_aparta_el_archivo_de_la_plantilla(api)
     assert "Fecha Entrega Solped" not in estructura[0]["detalle"]
 
 
-# --- Sin referencia (04/11/2026) ----------------------------------------------
+# --- Sin referencia (23/11/2026) ----------------------------------------------
 
 
-async def test_sin_referencia_no_entra_y_el_activo_que_sigue_sin_una_se_cierra(api, sesion) -> None:
-    """La regla del supervisor, por la puerta real: la línea sin BL ni guía no entra,
-    y el pedido que ya estaba sin referencia se cierra a nombre de quien cargó."""
-    cliente, usuario = api
+async def test_sin_referencia_entra_y_el_activo_sin_una_no_se_cierra(api, sesion) -> None:
+    """Por la puerta real: la línea sin BL ni guía entra `SIN_TRACKING`, y el
+    pedido que ya estaba sin referencia sigue activo. Del 04/11 al 23/11/2026
+    la línea no entraba y el pedido se cerraba."""
+    cliente, _ = api
     await _subir(cliente, _ztracking(_linea(oc_numero="4500090011")))
     viejo = await sesion.scalar(
         select(PedidoTransito).where(PedidoTransito.oc_numero == "4500090011")
     )
-    # Uno de los que entraron antes de la regla: activo y sin referencia.
     viejo.id_elemento_rastreado = None
     viejo.etapa_viaje = viejo.estado_calculado = "SIN_TRACKING"
     await sesion.flush()
@@ -473,20 +472,14 @@ async def test_sin_referencia_no_entra_y_el_activo_que_sigue_sin_una_se_cierra(a
     respuesta = await _subir(
         cliente,
         _ztracking(
-            _linea(oc_numero="4500090012"),
+            _linea(oc_numero="4500090011", tipo_referencia=None, numero_referencia=None),
             _linea(oc_numero="4500090013", tipo_referencia=None, numero_referencia=None),
         ),
         "WK45.xlsx",
     )
 
     carga = respuesta.json()
-    assert (carga["insertadas"], carga["no_entraron"]) == (1, 1)
-    assert carga["incidencias"][0]["motivo"] == "sin_referencia"
-    assert carga["cerrados_sin_referencia"] == ["4500090011-90"]
+    assert (carga["insertadas"], carga["no_entraron"]) == (1, 0)
+    assert carga["cerrados_sin_referencia"] == []
     await sesion.refresh(viejo)
-    assert (viejo.motivo_cierre, viejo.estado_calculado) == ("SIN_REFERENCIA", "CERRADO")
-    asiento = await sesion.scalar(
-        select(AuditoriaIntervencion).where(AuditoriaIntervencion.id_pedido == viejo.id)
-    )
-    assert asiento is not None and asiento.id_usuario == usuario.id
-    assert "sin referencia" in asiento.motivo
+    assert viejo.motivo_cierre is None

@@ -97,6 +97,14 @@ puede seguir, y varios que ya habían llegado a planta seguían en el panel como
 - **Una carga completa cierra los activos que siguen sin referencia**, con el
   motivo `SIN_REFERENCIA` y su asiento en la bitácora a nombre de quien cargó.
   Una carga parcial —un lote de SAP— no cierra nada: no es el universo.
+
+Revertido en parte el 23/11/2026 (Mariano), con el WK47: el BL existe recién
+al zarpar, y la carga de ese día cerró 91 pedidos que solo esperaban su
+documento. Desde entonces:
+
+- La línea **sin** referencia entra `SIN_TRACKING` y la toma en la carga en
+  que llegue. La que trae una referencia **inválida** se sigue rechazando.
+- La carga ya no cierra a nadie por falta de referencia.
 """
 
 from __future__ import annotations
@@ -114,7 +122,7 @@ from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
-from app.services import auditoria, estado, normalizacion, recalculo
+from app.services import normalizacion, recalculo
 from app.services.asociacion import asociar_referencia
 from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.dto import PedidoCrudo
@@ -136,6 +144,16 @@ RECHAZO_SIN_DESTINO = "sin_destino_resoluble"
 #: parecía algo que corregir en SAP.
 RECHAZO_VIA_FUERA_DE_ALCANCE = "via_fuera_de_alcance"
 VIAS_RASTREADAS = ("AEREO", "MARITIMO")
+
+
+def _es_local(crudo: PedidoCrudo) -> bool:
+    """Compra nacional: `LOCAL` en la vía o en el tipo de proveedor."""
+    return "LOCAL" in (
+        normalizacion.normalizar_texto(crudo.via_transporte),
+        normalizacion.normalizar_texto(crudo.tipo_proveedor),
+    )
+
+
 #: Las vías como se leen en el informe de la carga.
 _NOMBRE_VIA = {"AEREO": "aéreo", "MARITIMO": "marítimo", "TERRESTRE": "terrestre"}
 #: Cómo empieza el detalle de una línea cuyo destino dio la fuente (`US-52`):
@@ -198,7 +216,8 @@ class ResultadoCarga:
     #: Estaban en la base y no vinieron: marcados `ausente_desde`, nunca
     #: borrados (segundo criterio de `US-31`).
     ausentes: list[tuple[str, int]] = field(default_factory=list)
-    #: Activos sin referencia que la carga cerró (04/11/2026).
+    #: Activos sin referencia que la carga cerró (04/11/2026). Desde el 23/11/2026
+    #: queda vacío: la carga ya no cierra. Se conserva para el informe.
     cerrados_sin_referencia: list[tuple[str, int]] = field(default_factory=list)
     rechazadas: list[LineaRechazada] = field(default_factory=list)
     #: Líneas que **sí** entraron pero cuya referencia no sirve. Van aparte de
@@ -424,6 +443,15 @@ async def _resolver(
     # RN-17: se normaliza antes de decidir nada. `Terrestre` es TERRESTRE y
     # `PENDIENTE` no es una vía, es la ausencia de una.
     via = normalizacion.normalizar_via(crudo.via_transporte)
+    if via is None and _es_local(crudo):
+        # 23/11/2026: el z-tracking trae también las compras nacionales, con
+        # `LOCAL` en la vía o en el tipo de proveedor. No son un error que
+        # corregir: no se rastrean, como la terrestre.
+        return (
+            None,
+            RECHAZO_VIA_FUERA_DE_ALCANCE,
+            "compra local: fuera del alcance de TrackIn, que sigue envíos aéreos y marítimos",
+        )
     if via is None:
         # El texto lo lee quien corrige SAP: sin `None` ni comillas de Python.
         escrita = (crudo.via_transporte or "").strip()
@@ -635,11 +663,10 @@ def _sin_referencia_valida(
     if ya_esta is not None and ya_esta.id_elemento_rastreado is not None:
         return None
     if not (crudo.tipo_referencia and crudo.numero_referencia):
-        tipos = "guía aérea (MAWB o HAWB)" if via == "AEREO" else "BL, contenedor ni booking"
-        return (
-            RECHAZO_SIN_REFERENCIA,
-            f"no trae {tipos}: sin referencia de embarque no se puede seguir",
-        )
+        # 23/11/2026: sin referencia la línea vuelve a entrar, `SIN_TRACKING`,
+        # hasta que el archivo traiga el BL o la guía. El documento existe
+        # recién al zarpar. Una referencia que sí viene pero no sirve se rechaza.
+        return None
     veredicto = validar_referencia(crudo.tipo_referencia, crudo.numero_referencia, via)
     if not veredicto.valida:
         return (
@@ -726,64 +753,11 @@ async def marcar_ausentes(
     return marcados
 
 
-async def cerrar_sin_referencia(
-    sesion: AsyncSession, ahora: dt.datetime, id_usuario: int | None = None
-) -> list[tuple[str, int]]:
-    """Cierra los activos que siguen sin referencia tras una carga completa (04/11/2026).
-
-    Solo los que vinieron de una carga (`fecha_ultima_carga`), como
-    `marcar_ausentes`. Con quien cargó el archivo, el cierre queda en la bitácora;
-    sin él —una carga desde la consola— queda en el log.
-    """
-    # La sesión no vacía sola antes de consultar: la referencia que la carga
-    # acaba de asociar a la última línea todavía no estaría en la base, y ese
-    # pedido se cerraría con su referencia recién puesta.
-    await sesion.flush()
-    pedidos = list(
-        await sesion.scalars(
-            select(PedidoTransito)
-            .where(
-                PedidoTransito.motivo_cierre.is_(None),
-                PedidoTransito.id_elemento_rastreado.is_(None),
-                PedidoTransito.fecha_ultima_carga.is_not(None),
-            )
-            .order_by(PedidoTransito.oc_numero, PedidoTransito.posicion_oc)
-        )
-    )
-    for pedido in pedidos:
-        pedido.motivo_cierre = MOTIVO_CIERRE_SIN_REFERENCIA
-        pedido.estado_calculado = estado.derivar_estado_calculado(
-            pedido.etapa_viaje, pedido.estado_cumplimiento, pedido.motivo_cierre
-        )
-        if id_usuario is not None:
-            auditoria.registrar(
-                sesion,
-                id_pedido=pedido.id,
-                id_usuario=id_usuario,
-                tipo="CIERRE_FORZADO",
-                campo="motivo_cierre",
-                anterior=None,
-                nuevo=MOTIVO_CIERRE_SIN_REFERENCIA,
-                motivo=(
-                    "Cerrado por la carga del Z-tracking: sigue sin BL, contenedor, booking "
-                    "ni guía aérea, y sin referencia no se puede seguir."
-                ),
-                instante=ahora,
-            )
-    if pedidos:
-        await sesion.flush()
-        logger.warning(
-            "Carga: %d pedidos sin referencia de embarque quedan cerrados.", len(pedidos)
-        )
-    return [(p.oc_numero, p.posicion_oc) for p in pedidos]
-
-
 async def cargar(
     sesion: AsyncSession,
     fuente: FuentePedidos,
     señalar_ausentes: bool = True,
     resolutor_destino: ResolutorDestino | None = None,
-    id_usuario: int | None = None,
 ) -> ResultadoCarga:
     """Carga todo lo que entregue la fuente. **No hace commit**: es de quien llama.
 
@@ -793,10 +767,6 @@ async def cargar(
     `señalar_ausentes` permite desactivar el segundo criterio de `US-31` cuando
     la fuente **no** es el universo completo —una carga parcial o de prueba—,
     porque marcar media base como ausente sería peor que no marcar nada.
-
-    Con `señalar_ausentes`, la carga es el universo completo: además cierra los
-    activos que siguen sin referencia (`cerrar_sin_referencia`). `id_usuario` es
-    quien la subió, para la bitácora de esos cierres.
 
     Todas las líneas del lote comparten el mismo instante: una carga es un acto,
     y que dos líneas del mismo archivo difieran en milisegundos solo complica
@@ -903,8 +873,6 @@ async def cargar(
             resultado.sin_rastreo_hoy += 1
 
     if señalar_ausentes:
-        # Antes de marcar ausentes: un cerrado ya no se espera en el archivo.
-        resultado.cerrados_sin_referencia = await cerrar_sin_referencia(sesion, ahora, id_usuario)
         resultado.ausentes = await marcar_ausentes(sesion, presentes, instante=ahora)
 
     # `US-12`: el archivo es un insumo. Una ETA declarada, una fecha
@@ -936,7 +904,6 @@ __all__ = [
     "ResultadoCarga",
     "cargar",
     "cargar_pedido",
-    "cerrar_sin_referencia",
     "generar_tracking_interno",
     "marcar_ausentes",
     "resolver_destino",

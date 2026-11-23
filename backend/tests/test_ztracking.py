@@ -936,6 +936,42 @@ async def test_wk43_lee_la_referencia_de_sus_columnas(
     assert pedido.referencia_desde_comentario is False
 
 
+#: La entrega del 23/11/2026: las dos columnas de referencia renombradas otra
+#: vez por Compras.
+_WK47 = _al_dia(
+    Diseno(
+        ancho=_WK43_ARCHIVO.ancho,
+        columnas=_WK43_ARCHIVO.columnas,
+        rotulos={
+            **_WK43_ARCHIVO.rotulos,
+            "tipo_referencia": "AWB / BL / CP",
+            "numero_referencia": "Conocimiento de embarque",
+        },
+    )
+)
+
+
+async def test_wk47_lee_la_referencia_de_sus_columnas_renombradas(tmp_path: Path) -> None:
+    hojas = {
+        "PRODUCCION": _WK47.hoja(_WK47.linea(tipo_referencia="AWB", numero_referencia=72489720610))
+    }
+    (pedido,) = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert (pedido.tipo_referencia, pedido.numero_referencia) == ("MAWB", "72489720610")
+    assert pedido.referencia_desde_comentario is False
+
+
+@pytest.mark.parametrize(
+    "numero", [0, "0", "00", "N/A", "#N/A", "NA", "PENDIENTE", "Pendiente", "PENDIENE"]
+)
+async def test_un_cero_en_el_documento_es_celda_vacia(tmp_path: Path, numero: Any) -> None:
+    """WK47: Compras escribe `0` cuando todavía no hay documento."""
+    hojas = {"PRODUCCION": _WK47.hoja(_WK47.linea(tipo_referencia="BL", numero_referencia=numero))}
+    (pedido,) = await _fuente(tmp_path, hojas).obtener_pedidos()
+
+    assert pedido.numero_referencia is None
+
+
 async def test_wk43_lee_el_comentario_renombrado(tmp_path: Path) -> None:
     """`Comentarios` en vez de `Comentario comprador`: sin el alias se perdían
     las referencias escritas a mano de toda la entrega."""

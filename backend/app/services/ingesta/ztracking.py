@@ -86,6 +86,7 @@ from openpyxl.utils.datetime import from_excel
 
 from app.services.ingesta.comentario import referencia_en_comentario, tipo_de_guia
 from app.services.ingesta.dto import PedidoCrudo
+from app.services.normalizacion import normalizar_texto
 
 logger = logging.getLogger(__name__)
 
@@ -178,13 +179,21 @@ COLUMNAS: Final[tuple[Columna, ...]] = (
     # Columnas obligatorias desde el 02/11/2026 (Mariano), con la celda vacía
     # permitida: el documento existe recién al zarpar, y en WK43 80 de las 98
     # líneas con vía válida todavía no lo tenían. Esas entran `SIN_TRACKING`.
+    #
+    # WK47 (23/11/2026) las volvió a renombrar en `PRODUCCION`: `AWB / BL / CP`
+    # y `Conocimiento de embarque`. Mismo dato, se aceptan como alias.
     Columna(
         "tipo_referencia",
         "Tipo de referencia",
-        alias=("Tipo de documento AWB / BL",),
+        alias=("Tipo de documento AWB / BL", "AWB / BL / CP"),
         requerido=True,
     ),
-    Columna("numero_referencia", "Número de referencia", alias=("# de documento",), requerido=True),
+    Columna(
+        "numero_referencia",
+        "Número de referencia",
+        alias=("# de documento", "Conocimiento de embarque"),
+        requerido=True,
+    ),
     Columna("transportista", "Transportista"),
     # Mide la antelación con que se consigue la referencia respecto al zarpe.
     # Es lo que dirá si conviene dar de alta en ShipsGo apenas llega o esperar,
@@ -728,6 +737,12 @@ class FuenteZTracking:
 
         tipo_referencia = _a_texto(celda("tipo_referencia"))
         numero_referencia = _a_texto(celda("numero_referencia"))
+        if numero_referencia is not None and (
+            numero_referencia.strip("0 ") == "" or normalizar_texto(numero_referencia) is None
+        ):
+            # WK47 (23/11/2026): Compras escribe `0`, `N/A` o `PENDIENTE` cuando
+            # aún no hay documento. Es una celda vacía, no una referencia.
+            numero_referencia = None
         if tipo_referencia and numero_referencia and tipo_referencia.upper() == "AWB":
             # WK43 escribe «AWB» para las dos guías, como el comentario.
             tipo_referencia = tipo_de_guia(numero_referencia)

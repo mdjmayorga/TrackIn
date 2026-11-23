@@ -131,8 +131,6 @@ async def test_un_pedido_va_del_excel_al_cierre(compras, sesion, fabrica) -> Non
     contenido = await _plantilla_llena(
         cliente,
         _linea("10", tipo_referencia="CONTENEDOR", numero_referencia=CONTENEDOR),
-        # Sin referencia: no entra (04/11/2026). Antes quedaba «Sin tracking».
-        _linea("20"),
     )
     carga = await cliente.post(
         "/api/v1/cargas", files={"archivo": ("2026 - WK44.xlsx", contenido, XLSX)}
@@ -143,10 +141,8 @@ async def test_un_pedido_va_del_excel_al_cierre(compras, sesion, fabrica) -> Non
     assert (informe["estado"], informe["insertadas"], informe["no_entraron"]) == (
         "APLICADA",
         1,
-        1,
+        0,
     )
-    (rechazada,) = informe["incidencias"]
-    assert (rechazada["clave"], rechazada["motivo"]) == (f"{OC}-20", "sin_referencia")
     (rastreado,) = (
         await sesion.scalars(select(PedidoTransito).where(PedidoTransito.oc_numero == OC))
     ).all()

@@ -23,11 +23,9 @@ from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
 from app.services.ingesta.carga import (
     DATO_DESCARTADO,
-    MOTIVO_CIERRE_SIN_REFERENCIA,
     PREFIJO_DISCREPANCIA,
     RECHAZO_REFERENCIA_INVALIDA,
     RECHAZO_SIN_DESTINO,
-    RECHAZO_SIN_REFERENCIA,
     RECHAZO_SIN_VIA,
     RECHAZO_VIA_FUERA_DE_ALCANCE,
     LineaRechazada,
@@ -315,6 +313,30 @@ class TestCargarPedido:
         assert estado == RECHAZO_VIA_FUERA_DE_ALCANCE
         assert detalle.startswith("vía terrestre: fuera del alcance de TrackIn")
 
+    @pytest.mark.parametrize(
+        ("via", "tipo_proveedor"),
+        [("LOCAL", None), ("LOCAL", "LOCAL"), (None, "Local"), ("0", "LOCAL")],
+    )
+    async def test_la_compra_local_queda_fuera_del_alcance(
+        self, sesion, via: str | None, tipo_proveedor: str | None
+    ) -> None:
+        """23/11: el z-tracking trae también las compras nacionales (WK47)."""
+        pedido, estado, detalle = await cargar_pedido(
+            sesion, _crudo(via_transporte=via, tipo_proveedor=tipo_proveedor)
+        )
+
+        assert pedido is None
+        assert estado == RECHAZO_VIA_FUERA_DE_ALCANCE
+        assert detalle.startswith("compra local: fuera del alcance de TrackIn")
+
+    async def test_la_via_aerea_manda_sobre_un_proveedor_local(self, sesion) -> None:
+        """Solo se descarta como local lo que no trae una vía rastreable."""
+        _, estado, _ = await cargar_pedido(
+            sesion, _crudo(via_transporte="AEREO", tipo_proveedor="LOCAL")
+        )
+
+        assert estado != RECHAZO_VIA_FUERA_DE_ALCANCE
+
     async def test_sin_destino_resoluble_se_rechaza_con_motivo(self, sesion) -> None:
         """Marítimo sin nada que desambigüe el puerto: se rechaza, no se elige.
 
@@ -382,14 +404,13 @@ async def sin_pedidos(sesion):
 @pytest.mark.integration
 class TestCargarLote:
     async def test_la_semilla_entera_se_carga(self, sesion, sin_pedidos) -> None:
-        """8 líneas: 4 entran; 2 sucias y, desde el 04/11/2026, 2 sin referencia no."""
+        """8 líneas: 6 entran y 2 sucias no. Las 2 sin referencia entran `SIN_TRACKING`
+        (no entraban del 04/11 al 23/11/2026)."""
         resultado = await cargar(sesion, FuenteSemilla())
 
         assert resultado.leidas == len(PEDIDOS_SEMILLA) == 8
-        assert resultado.cargados == 4
-        assert len(resultado.rechazadas) == 4
-        motivos = [r.motivo for r in resultado.rechazadas]
-        assert motivos.count(RECHAZO_SIN_REFERENCIA) == 2
+        assert resultado.cargados == 6
+        assert len(resultado.rechazadas) == 2
 
     async def test_las_dos_rechazadas_son_las_sucias_y_dicen_por_que(
         self, sesion, sin_pedidos
@@ -431,8 +452,8 @@ class TestCargarLote:
 
         assert resultado.rastreables == 4
         assert resultado.sin_rastreo_hoy == 0
-        # Las dos sin referencia ya no entran (04/11/2026).
-        assert resultado.sin_tracking == 0
+        # Las dos sin referencia entran y esperan su documento (23/11/2026).
+        assert resultado.sin_tracking == 2
 
     async def test_las_lineas_con_referencia_salen_de_sin_tracking(
         self, sesion, sin_pedidos
@@ -689,27 +710,25 @@ class TestAusentes:
 
 
 @pytest.mark.integration
-class TestSinReferenciaNoEntra:
-    """04/11/2026, pedido del supervisor: sin BL, contenedor, booking ni guía aérea
-    el pedido no se puede seguir, así que la línea no entra. Hasta entonces entraba
-    «Sin tracking» y se quedaba en el panel aunque ya hubiera llegado a planta."""
+class TestSinReferencia:
+    """Del 04/11 al 23/11/2026 la línea sin BL, contenedor, booking ni guía aérea
+    no entraba. Con el WK47 se revirtió: el documento existe recién al zarpar, y
+    la línea entra `SIN_TRACKING` hasta que llegue. La referencia que sí viene
+    pero no sirve se sigue rechazando."""
 
-    async def test_una_linea_sin_referencia_se_rechaza_y_dice_por_que(
-        self, sesion, sin_pedidos
-    ) -> None:
+    async def test_una_linea_sin_referencia_entra_sin_tracking(self, sesion, sin_pedidos) -> None:
         resultado = await cargar(
             sesion,
             FuenteFalsa([_crudo(tipo_referencia=None, numero_referencia=None)]),
             señalar_ausentes=False,
         )
 
-        (rechazada,) = resultado.rechazadas
-        assert rechazada.motivo == RECHAZO_SIN_REFERENCIA
-        assert "BL, contenedor ni booking" in rechazada.detalle
-        assert resultado.cargados == 0
-        assert await sesion.scalar(select(PedidoTransito)) is None
+        assert resultado.rechazadas == []
+        assert resultado.cargados == 1
+        pedido = await sesion.scalar(select(PedidoTransito))
+        assert pedido is not None and pedido.etapa_viaje == "SIN_TRACKING"
 
-    async def test_en_un_aereo_pide_la_guia(self, sesion, sin_pedidos) -> None:
+    async def test_un_aereo_sin_guia_tambien_entra(self, sesion, sin_pedidos) -> None:
         resultado = await cargar(
             sesion,
             FuenteFalsa(
@@ -725,7 +744,7 @@ class TestSinReferenciaNoEntra:
             señalar_ausentes=False,
         )
 
-        assert "guía aérea (MAWB o HAWB)" in resultado.rechazadas[0].detalle
+        assert (resultado.cargados, resultado.rechazadas) == (1, [])
 
     async def test_una_referencia_mal_escrita_tambien_se_rechaza(self, sesion, sin_pedidos) -> None:
         """`MSCU1234567`: formato correcto, dígito verificador equivocado."""
@@ -772,8 +791,8 @@ class TestSinReferenciaNoEntra:
 
         informe = construir_informe("prueba", resultado)
 
-        assert informe.no_entraron == 2
-        assert informe.entraron_sin_rastreo == 0
+        # Solo la de referencia inválida; la que no trae ninguna entró.
+        assert informe.no_entraron == 1
 
     async def test_un_contenedor_bien_transcrito_si_entra_y_se_asocia(
         self, sesion, sin_pedidos
@@ -821,21 +840,20 @@ async def _activo_sin_referencia(sesion, posicion_oc: int = 10) -> PedidoTransit
 
 
 @pytest.mark.integration
-class TestCierreSinReferencia:
-    """Los activos que siguen sin referencia se cierran en la carga completa
-    (decisión del 04/11/2026): «Cerrarlos al cargar»."""
+class TestSinReferenciaNoSeCierra:
+    """Del 04/11 al 23/11/2026 la carga completa cerraba los activos sin
+    referencia. Ya no: siguen activos `SIN_TRACKING` hasta que llegue el documento."""
 
-    async def test_la_carga_completa_los_cierra_sin_referencia(self, sesion, sin_pedidos) -> None:
+    async def test_la_carga_completa_no_los_cierra(self, sesion, sin_pedidos) -> None:
         viejo = await _activo_sin_referencia(sesion, posicion_oc=20)
 
-        resultado = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+        resultado = await cargar(
+            sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)])
+        )
 
-        assert resultado.cerrados_sin_referencia == [("4599999999", 20)]
+        assert resultado.cerrados_sin_referencia == []
         await sesion.refresh(viejo)
-        assert viejo.motivo_cierre == MOTIVO_CIERRE_SIN_REFERENCIA
-        assert viejo.estado_calculado == "CERRADO"
-        # Cerrado, ya no se espera en el archivo: no es además un ausente.
-        assert resultado.ausentes == []
+        assert viejo.motivo_cierre is None
 
     async def test_si_vuelve_con_referencia_la_toma_y_no_se_cierra(
         self, sesion, sin_pedidos
@@ -853,19 +871,17 @@ class TestCierreSinReferencia:
         assert viejo.motivo_cierre is None
         assert viejo.id_elemento_rastreado is not None
 
-    async def test_si_vuelve_sin_referencia_la_linea_se_rechaza_y_el_pedido_se_cierra(
-        self, sesion, sin_pedidos
-    ) -> None:
+    async def test_si_vuelve_sin_referencia_sigue_activo(self, sesion, sin_pedidos) -> None:
         viejo = await _activo_sin_referencia(sesion)
 
         resultado = await cargar(
             sesion, FuenteFalsa([_crudo(tipo_referencia=None, numero_referencia=None)])
         )
 
-        assert [r.motivo for r in resultado.rechazadas] == [RECHAZO_SIN_REFERENCIA]
-        assert resultado.cerrados_sin_referencia == [("4599999999", 10)]
+        assert resultado.rechazadas == []
         await sesion.refresh(viejo)
-        assert viejo.motivo_cierre == MOTIVO_CIERRE_SIN_REFERENCIA
+        assert viejo.motivo_cierre is None
+        assert viejo.etapa_viaje == "SIN_TRACKING"
 
     async def test_una_carga_parcial_no_cierra_nada(self, sesion, sin_pedidos) -> None:
         """Un lote de SAP no es el universo: no puede cerrar lo que no trae."""
@@ -878,13 +894,6 @@ class TestCierreSinReferencia:
         assert resultado.cerrados_sin_referencia == []
         await sesion.refresh(viejo)
         assert viejo.motivo_cierre is None
-
-    async def test_el_informe_los_lista(self, sesion, sin_pedidos) -> None:
-        await _activo_sin_referencia(sesion, posicion_oc=20)
-
-        resultado = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
-
-        assert construir_informe("prueba", resultado).cerrados_sin_referencia == ["4599999999-20"]
 
 
 # --- El destino según la fuente de rastreo (`US-52`) -----------------------
