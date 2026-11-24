@@ -161,9 +161,9 @@ async def descargar_plantilla(_: Annotated[Autenticado, Depends(compras)]) -> Re
     description=(
         "Todos los pedidos activos, los de la grilla sin filtros, en un Excel de dos hojas: "
         "«Grilla», con las columnas del panel, y «PRODUCCION», con las de la plantilla del "
-        "Z-tracking, que se puede volver a cargar en otro equipo. En «PRODUCCION» van solo "
-        "las líneas con referencia de embarque, porque sin ella la carga las rechaza. Solo "
-        "Compras y el Administrador."
+        "Z-tracking, que se puede volver a cargar en otro equipo. Las líneas sin referencia "
+        "de embarque van con el documento en blanco: al cargarlas entran «Sin tracking» "
+        "(23/11/2026). Solo Compras y el Administrador."
     ),
     responses={200: {"content": {plantilla.TIPO_XLSX: {}}}},
 )
