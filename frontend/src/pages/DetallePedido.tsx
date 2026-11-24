@@ -32,6 +32,7 @@ import { mensajeDeError } from '@/services/api'
 import type { AsientoBitacora, PedidoDetalle, Rastreo, Transbordo } from '@/types/api'
 import {
   INTERVENCIONES,
+  MOTIVOS_CIERRE,
   ORIGENES,
   formatearCantidad,
   formatearDiasConSigno,
@@ -420,7 +421,11 @@ function Cierre({ pedido }: { pedido: PedidoDetalle }) {
             {formatearFechaHora(c.fecha_liberacion_calidad)}
           </Fila>
         )}
-        {c.motivo_cierre && <Fila etiqueta="Motivo de cierre">{c.motivo_cierre}</Fila>}
+        {c.motivo_cierre && (
+          <Fila etiqueta="Motivo de cierre">
+            {MOTIVOS_CIERRE[c.motivo_cierre] ?? c.motivo_cierre}
+          </Fila>
+        )}
       </dl>
     </Bloque>
   )

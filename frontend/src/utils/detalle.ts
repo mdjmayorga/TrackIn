@@ -21,6 +21,14 @@ export const ORIGENES: Record<string, string> = {
   ETA_DECLARADA: 'ETA CR del Z-tracking',
 }
 
+export const MOTIVOS_CIERRE: Record<string, string> = {
+  RECEPCION_CONFORME: 'Recepción conforme',
+  CIERRE_FORZADO: 'Cierre forzado',
+  CANCELACION: 'Cancelación',
+  SIN_REFERENCIA: 'Sin referencia de embarque',
+  AUSENTE_EN_CARGA: 'Ya no vino en el Z-tracking',
+}
+
 export const INTERVENCIONES: Record<string, string> = {
   CONFIRMACION_DESEMBARCO: 'Desembarco confirmado',
   PASO_A_ADUANAL: 'Paso a proceso aduanal',

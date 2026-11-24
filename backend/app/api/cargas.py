@@ -64,8 +64,8 @@ def _detalle(fila: CargaZTracking) -> CargaDetalle:
     summary="Subir el Excel del Z-tracking (US-58)",
     description=(
         "Carga los pedidos del Excel exportado de SAP: inserta los nuevos, actualiza los "
-        "existentes por OC y posición, marca como ausentes los que no vienen (sin borrarlos) "
-        "y recalcula. Devuelve el informe con cada línea que no entró y por qué. Un archivo "
+        "existentes por OC y posición, cierra los que no vienen —sin borrarlos; se reabren si "
+        "vuelven a venir (24/11/2026)— y recalcula. Devuelve el informe con cada línea que no entró y por qué. Un archivo "
         "que no es el Z-tracking —sin las hojas PRODUCCION e IDA, dañado o sin líneas— se "
         "rechaza entero con 422 y no toca ningún pedido."
     ),

@@ -16,13 +16,16 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import delete, select
 
+from app.models.auditoria_intervencion import AuditoriaIntervencion
 from app.models.elemento_rastreado import ElementoRastreado
 from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
+from app.models.usuario import Usuario
 from app.services.ingesta.carga import (
     DATO_DESCARTADO,
+    MOTIVO_CIERRE_AUSENTE,
     PREFIJO_DISCREPANCIA,
     RECHAZO_REFERENCIA_INVALIDA,
     RECHAZO_SIN_DESTINO,
@@ -401,6 +404,20 @@ async def sin_pedidos(sesion):
     return sesion
 
 
+@pytest.fixture
+async def usuario_de_carga(sesion) -> int:
+    """Quien sube el archivo: los cierres por ausencia van a su nombre."""
+    cuenta = Usuario(
+        usuario="compras.carga",
+        nombre_completo="Compras Prueba",
+        rol="COMPRAS",
+        hash_contrasena="x",
+    )
+    sesion.add(cuenta)
+    await sesion.flush()
+    return cuenta.id
+
+
 @pytest.mark.integration
 class TestCargarLote:
     async def test_la_semilla_entera_se_carga(self, sesion, sin_pedidos) -> None:
@@ -623,7 +640,8 @@ class TestAusentes:
     """*«Un pedido que ya no figura en el archivo se señala para revisión
     manual y NO se elimina»*."""
 
-    async def test_lo_que_no_viene_se_marca_y_no_se_borra(self, sesion, sin_pedidos) -> None:
+    async def test_lo_que_no_viene_se_cierra_y_no_se_borra(self, sesion, sin_pedidos) -> None:
+        """24/11/2026: el que no viene se da por cerrado en SAP."""
         await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)]))
 
         resultado = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
@@ -635,6 +653,21 @@ class TestAusentes:
         )
         assert sobreviviente is not None
         assert sobreviviente.ausente_desde is not None
+        assert sobreviviente.motivo_cierre == MOTIVO_CIERRE_AUSENTE
+        assert sobreviviente.estado_calculado == "CERRADO"
+
+    async def test_el_cierre_queda_en_la_bitacora_de_quien_cargo(
+        self, sesion, sin_pedidos, usuario_de_carga
+    ) -> None:
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)]))
+
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]), id_usuario=usuario_de_carga)
+
+        asiento = await sesion.scalar(select(AuditoriaIntervencion))
+        assert asiento is not None
+        assert asiento.id_usuario == usuario_de_carga
+        assert asiento.tipo_intervencion == "CIERRE_FORZADO"
+        assert asiento.valor_nuevo == MOTIVO_CIERRE_AUSENTE
 
     async def test_la_marca_no_se_reescribe_en_cada_carga(self, sesion, sin_pedidos) -> None:
         """Si se reescribiera, se perdería *desde cuándo* falta — que es la
@@ -650,18 +683,63 @@ class TestAusentes:
         await sesion.refresh(pedido)
         assert pedido.ausente_desde == primera_marca
 
-    async def test_si_vuelve_a_aparecer_se_limpia_la_marca(self, sesion, sin_pedidos) -> None:
+    async def test_un_ausente_de_antes_de_la_regla_se_cierra_sin_perder_su_fecha(
+        self, sesion, sin_pedidos
+    ) -> None:
+        """Los marcados antes del 24/11/2026 seguían activos: la carga los cierra
+        y conserva desde cuándo faltan."""
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)]))
+        pedido = await sesion.scalar(select(PedidoTransito).where(PedidoTransito.posicion_oc == 20))
+        marca = dt.datetime(2026, 11, 1, tzinfo=dt.UTC)
+        pedido.ausente_desde = marca
+        await sesion.flush()
+
+        resultado = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+
+        assert resultado.ausentes == [("4599999999", 20)]
+        await sesion.refresh(pedido)
+        assert pedido.motivo_cierre == MOTIVO_CIERRE_AUSENTE
+        assert pedido.ausente_desde == marca
+
+    async def test_si_vuelve_a_aparecer_se_reabre(
+        self, sesion, sin_pedidos, usuario_de_carga
+    ) -> None:
         """Una línea que va y viene es un síntoma del archivo, no del pedido."""
         await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)]))
         await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
 
         resultado = await cargar(
-            sesion, FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20)])
+            sesion,
+            FuenteFalsa([_crudo(posicion_oc=10), _crudo(posicion_oc=20, cantidad=999.0)]),
+            id_usuario=usuario_de_carga,
         )
 
         assert resultado.reaparecidos == 1
+        assert resultado.cerrados_omitidos == 0
         pedido = await sesion.scalar(select(PedidoTransito).where(PedidoTransito.posicion_oc == 20))
+        await sesion.refresh(pedido)
         assert pedido.ausente_desde is None
+        assert pedido.motivo_cierre is None
+        assert pedido.estado_calculado != "CERRADO"
+        # Y se actualiza como cualquier otro.
+        assert pedido.cantidad_pedida == Decimal("999.000")
+        asiento = await sesion.scalar(
+            select(AuditoriaIntervencion).where(AuditoriaIntervencion.id_pedido == pedido.id)
+        )
+        assert asiento is not None and asiento.valor_anterior == MOTIVO_CIERRE_AUSENTE
+
+    async def test_un_cerrado_por_otro_motivo_no_se_reabre(self, sesion, sin_pedidos) -> None:
+        await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+        pedido = await sesion.scalar(select(PedidoTransito))
+        pedido.motivo_cierre = "CIERRE_FORZADO"
+        pedido.estado_calculado = "CERRADO"
+        await sesion.flush()
+
+        resultado = await cargar(sesion, FuenteFalsa([_crudo(posicion_oc=10)]))
+
+        assert resultado.cerrados_omitidos == 1
+        await sesion.refresh(pedido)
+        assert pedido.motivo_cierre == "CIERRE_FORZADO"
 
     async def test_un_cerrado_que_falta_no_se_marca(self, sesion, sin_pedidos) -> None:
         """Ya no se le espera en el archivo: marcarlo sería ruido en la bandeja."""
@@ -703,7 +781,8 @@ class TestAusentes:
         )
 
         assert len(resultado.rechazadas) == 1
-        assert resultado.ausentes == [("4599999999", 10)]
+        # 24/11/2026: antes contaba como ausente; ahora eso lo cerraría.
+        assert resultado.ausentes == []
 
 
 # --- Referencias inválidas — US-32, quinto y sexto criterio ----------------

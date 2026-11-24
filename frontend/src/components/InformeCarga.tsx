@@ -49,7 +49,7 @@ export function InformeCarga({ carga }: { carga: CargaDetalle }) {
             <Total
               titulo="Ya no vienen"
               valor={carga.ausentes}
-              ayuda="Estaban en TrackIn y no vinieron en este archivo. No se borran: quedan para revisión."
+              ayuda="Estaban activos y no vinieron en este archivo: se dan por cerrados en SAP. No se borran, y se reabren si vuelven a venir."
             />
             <Total titulo="No entraron" valor={carga.no_entraron} alerta={carga.no_entraron > 0} />
           </dl>

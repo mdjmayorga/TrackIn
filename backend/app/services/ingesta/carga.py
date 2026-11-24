@@ -83,6 +83,13 @@ La marca es reversible: si la línea vuelve a aparecer, `ausente_desde` se limpi
 y se anota en el log, porque una línea que va y viene es un síntoma del archivo,
 no del pedido.
 
+Desde el 24/11/2026 (Mariano) lo que no viene **se cierra**: el Z-tracking trae
+los pedidos abiertos en SAP, y el que falta se da por cerrado allá. Queda con
+`ausente_desde`, el motivo `AUSENTE_EN_CARGA` (estado `CERRADO`) y su asiento en
+la bitácora a nombre de quien cargó, y sale del panel. Sigue sin borrarse, y si
+vuelve a venir la carga lo **reabre** y lo actualiza como a cualquier otro. Los
+cerrados por otro motivo siguen sin reabrirse solos.
+
 Sin referencia no entra — 04/11/2026
 -------------------------------------
 
@@ -122,7 +129,8 @@ from app.models.maestro_destino import MaestroDestino
 from app.models.material import Material
 from app.models.pedido_transito import PedidoTransito
 from app.models.proveedor import Proveedor
-from app.services import normalizacion, recalculo
+from app.services import auditoria, normalizacion, recalculo
+from app.services import estado as estados
 from app.services.asociacion import asociar_referencia
 from app.services.ingesta.base import FuentePedidos
 from app.services.ingesta.dto import PedidoCrudo
@@ -174,6 +182,8 @@ RECHAZO_REFERENCIA_INVALIDA = "referencia_invalida"
 RECHAZO_SIN_REFERENCIA = "sin_referencia"
 #: El motivo de cierre de un activo que sigue sin referencia tras una carga completa.
 MOTIVO_CIERRE_SIN_REFERENCIA = "SIN_REFERENCIA"
+#: El motivo de cierre de lo que dejó de venir en el archivo (24/11/2026).
+MOTIVO_CIERRE_AUSENTE = "AUSENTE_EN_CARGA"
 #: `US-59`: la línea entró, pero un dato con formato inválido se descartó.
 DATO_DESCARTADO = "dato_descartado"
 
@@ -208,13 +218,13 @@ class ResultadoCarga:
     #: idempotencia, y distinguirlo de `actualizados` es lo que permite ver de
     #: un vistazo si una carga movió algo o no.
     sin_cambios: int = 0
-    #: Volvieron a aparecer tras haber estado ausentes.
+    #: Volvieron a aparecer tras haber estado ausentes. Incluye los reabiertos.
     reaparecidos: int = 0
     #: Cerrados (RN-13) que volvieron a venir en el archivo. Se dejan intactos
     #: y se cuentan aparte: eso se revisa a mano, no lo resuelve el cargador.
     cerrados_omitidos: int = 0
-    #: Estaban en la base y no vinieron: marcados `ausente_desde`, nunca
-    #: borrados (segundo criterio de `US-31`).
+    #: Estaban en la base y no vinieron: marcados `ausente_desde` y cerrados
+    #: (24/11/2026), nunca borrados (segundo criterio de `US-31`).
     ausentes: list[tuple[str, int]] = field(default_factory=list)
     #: Activos sin referencia que la carga cerró (04/11/2026). Desde el 23/11/2026
     #: queda vacío: la carga ya no cierra. Se conserva para el informe.
@@ -580,8 +590,12 @@ async def cargar_pedido(
     crudo: PedidoCrudo,
     instante: dt.datetime | None = None,
     resolutor_destino: ResolutorDestino | None = None,
+    id_usuario: int | None = None,
 ) -> tuple[PedidoTransito | None, str, str]:
     """Persiste una línea. Devuelve el pedido, qué pasó y por qué.
+
+    Un pedido cerrado por no venir en una carga anterior (`AUSENTE_EN_CARGA`) se
+    reabre si la línea entra; `id_usuario` es quien cargó, para la bitácora.
 
     El segundo elemento es `"cargado"`, `"actualizado"`, `"sin_cambios"`,
     `"cerrado_omitido"` o un motivo de rechazo; el tercero lo explica en
@@ -597,7 +611,8 @@ async def cargar_pedido(
         )
     )
 
-    if ya_esta is not None and ya_esta.motivo_cierre is not None:
+    reabrir = ya_esta is not None and ya_esta.motivo_cierre == MOTIVO_CIERRE_AUSENTE
+    if ya_esta is not None and ya_esta.motivo_cierre is not None and not reabrir:
         # RN-13: está cerrado. Que reaparezca en el archivo es justo lo que hay
         # que mirar a mano; el cargador no reabre nada por su cuenta.
         return (
@@ -623,6 +638,10 @@ async def cargar_pedido(
         return None, *sin_referencia
     if resuelto.destino_de_la_fuente:
         detalle = resuelto.detalle
+
+    if reabrir:
+        # Solo ahora, con la línea ya aceptada: una rechazada no reabre nada.
+        _reabrir(sesion, ya_esta, ahora, id_usuario)
 
     if ya_esta is not None:
         pedido, estado, cambios = _actualizar(ya_esta, crudo, resuelto, ahora)
@@ -709,48 +728,104 @@ def _actualizar(
     return pedido, "actualizado", f"cambió {', '.join(cambios)}"
 
 
-async def marcar_ausentes(
-    sesion: AsyncSession, presentes: set[tuple[str, int]], instante: dt.datetime | None = None
-) -> list[tuple[str, int]]:
-    """Señala lo que estaba en la base y no vino en el archivo. **No borra.**
+def _reabrir(
+    sesion: AsyncSession, pedido: PedidoTransito, ahora: dt.datetime, id_usuario: int | None
+) -> None:
+    """Reabre un pedido que una carga cerró por no venir y ahora volvió (24/11/2026).
 
-    Segundo criterio de `US-31`. Solo mira pedidos que **alguna carga trajo**
-    (`fecha_ultima_carga IS NOT NULL`) y que siguen vivos (`motivo_cierre IS
-    NULL`): un pedido cerrado ya no se espera en el archivo, y uno que nunca
-    vino de una carga no es de la incumbencia de esta fuente.
+    `ausente_desde` no se toca acá: lo limpia `_actualizar`, que así lo cuenta
+    como reaparecido.
+    """
+    logger.info(
+        "Pedido %s-%s: vuelve a venir en el archivo; se reabre.",
+        pedido.oc_numero,
+        pedido.posicion_oc,
+    )
+    pedido.motivo_cierre = None
+    pedido.estado_calculado = estados.derivar_estado_calculado(
+        pedido.etapa_viaje, pedido.estado_cumplimiento
+    )
+    if id_usuario is not None:
+        auditoria.registrar(
+            sesion,
+            id_pedido=pedido.id,
+            id_usuario=id_usuario,
+            tipo="CIERRE_FORZADO",
+            campo="motivo_cierre",
+            anterior=MOTIVO_CIERRE_AUSENTE,
+            nuevo=None,
+            motivo="Reabierto por la carga del Z-tracking: volvió a venir en el archivo.",
+            instante=ahora,
+        )
+
+
+async def marcar_ausentes(
+    sesion: AsyncSession,
+    presentes: set[tuple[str, int]],
+    instante: dt.datetime | None = None,
+    id_usuario: int | None = None,
+) -> list[tuple[str, int]]:
+    """Cierra lo que estaba en la base y no vino en el archivo. **No borra.**
+
+    Segundo criterio de `US-31`, endurecido el 24/11/2026: el que no viene se da
+    por cerrado en SAP. Queda con `ausente_desde` —si ya lo tenía, no se
+    reescribe: es desde cuándo falta—, el motivo `AUSENTE_EN_CARGA` y, con quien
+    cargó, su asiento en la bitácora. Si vuelve a venir, `cargar_pedido` lo reabre.
+
+    Solo mira pedidos que **alguna carga trajo** (`fecha_ultima_carga IS NOT
+    NULL`) y que siguen vivos (`motivo_cierre IS NULL`): uno cerrado ya no se
+    espera en el archivo, y uno que nunca vino de una carga no es de la
+    incumbencia de esta fuente.
 
     Asume que el archivo es el **universo completo** de pedidos vivos, que es
     cierto mientras se cargue desde una sola fuente — y `INGESTA_ADAPTADOR`
     obliga a elegir exactamente una.
 
-    Devuelve las claves recién marcadas; las que ya estaban marcadas no se
-    tocan, para no reescribir la fecha desde la que faltan.
+    Devuelve las claves cerradas en esta carga.
     """
     ahora = instante or dt.datetime.now(dt.UTC)
 
     candidatos = await sesion.scalars(
-        select(PedidoTransito).where(
+        select(PedidoTransito)
+        .where(
             PedidoTransito.motivo_cierre.is_(None),
             PedidoTransito.fecha_ultima_carga.is_not(None),
-            PedidoTransito.ausente_desde.is_(None),
         )
+        .order_by(PedidoTransito.oc_numero, PedidoTransito.posicion_oc)
     )
 
-    marcados: list[tuple[str, int]] = []
+    cerrados: list[tuple[str, int]] = []
     for pedido in candidatos:
         clave = (pedido.oc_numero, pedido.posicion_oc)
         if clave in presentes:
             continue
-        pedido.ausente_desde = ahora
-        marcados.append(clave)
+        if pedido.ausente_desde is None:
+            pedido.ausente_desde = ahora
+        pedido.motivo_cierre = MOTIVO_CIERRE_AUSENTE
+        pedido.estado_calculado = estados.derivar_estado_calculado(
+            pedido.etapa_viaje, pedido.estado_cumplimiento, pedido.motivo_cierre
+        )
+        if id_usuario is not None:
+            auditoria.registrar(
+                sesion,
+                id_pedido=pedido.id,
+                id_usuario=id_usuario,
+                tipo="CIERRE_FORZADO",
+                campo="motivo_cierre",
+                anterior=None,
+                nuevo=MOTIVO_CIERRE_AUSENTE,
+                motivo="Cerrado por la carga del Z-tracking: ya no viene en el archivo.",
+                instante=ahora,
+            )
+        cerrados.append(clave)
 
-    if marcados:
+    if cerrados:
         await sesion.flush()
         logger.warning(
-            "Carga: %d pedidos dejaron de figurar en el archivo y quedan para revisión manual.",
-            len(marcados),
+            "Carga: %d pedidos dejaron de figurar en el archivo y quedan cerrados.",
+            len(cerrados),
         )
-    return marcados
+    return cerrados
 
 
 async def cargar(
@@ -758,6 +833,7 @@ async def cargar(
     fuente: FuentePedidos,
     señalar_ausentes: bool = True,
     resolutor_destino: ResolutorDestino | None = None,
+    id_usuario: int | None = None,
 ) -> ResultadoCarga:
     """Carga todo lo que entregue la fuente. **No hace commit**: es de quien llama.
 
@@ -767,6 +843,9 @@ async def cargar(
     `señalar_ausentes` permite desactivar el segundo criterio de `US-31` cuando
     la fuente **no** es el universo completo —una carga parcial o de prueba—,
     porque marcar media base como ausente sería peor que no marcar nada.
+
+    `id_usuario` es quien subió el archivo: los cierres de los que no vinieron y
+    las reaperturas de los que volvieron quedan en la bitácora a su nombre.
 
     Todas las líneas del lote comparten el mismo instante: una carga es un acto,
     y que dos líneas del mismo archivo difieran en milisegundos solo complica
@@ -780,8 +859,16 @@ async def cargar(
 
     for crudo in await fuente.obtener_pedidos():
         pedido, estado, detalle = await cargar_pedido(
-            sesion, crudo, instante=ahora, resolutor_destino=resolutor_destino
+            sesion,
+            crudo,
+            instante=ahora,
+            resolutor_destino=resolutor_destino,
+            id_usuario=id_usuario,
         )
+        # Vino en el archivo, entre o no: SAP la sigue teniendo abierta. Desde
+        # que la ausencia cierra (24/11/2026), contar una rechazada como ausente
+        # cerraría un pedido por un error de dato que Compras puede corregir.
+        presentes.add(crudo.clave)
 
         if pedido is None:
             resultado.rechazadas.append(
@@ -794,10 +881,6 @@ async def cargar(
             )
             logger.warning("Carga: línea %s rechazada — %s", crudo, detalle)
             continue
-
-        # Una línea cerrada sí estaba en el archivo: cuenta como presente, o la
-        # marcaríamos ausente en la misma corrida que la vio.
-        presentes.add(crudo.clave)
 
         if detalle.startswith(PREFIJO_DESTINO_DE_LA_FUENTE):
             resultado.destinos_de_la_fuente.append(
@@ -873,7 +956,9 @@ async def cargar(
             resultado.sin_rastreo_hoy += 1
 
     if señalar_ausentes:
-        resultado.ausentes = await marcar_ausentes(sesion, presentes, instante=ahora)
+        resultado.ausentes = await marcar_ausentes(
+            sesion, presentes, instante=ahora, id_usuario=id_usuario
+        )
 
     # `US-12`: el archivo es un insumo. Una ETA declarada, una fecha
     # comprometida o un destino nuevos cambian la fecha proyectada o el
@@ -893,6 +978,7 @@ async def cargar(
 __all__ = [
     "DATO_DESCARTADO",
     "ETAPA_INICIAL",
+    "MOTIVO_CIERRE_AUSENTE",
     "MOTIVO_CIERRE_SIN_REFERENCIA",
     "RECHAZO_REFERENCIA_INVALIDA",
     "RECHAZO_SIN_REFERENCIA",

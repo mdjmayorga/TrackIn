@@ -553,18 +553,25 @@ Excel** baja `TrackIn pedidos AAAA-MM-DD.xlsx` con todos los pedidos activos
   datos. Los pedidos sin documento de embarque también van, con esas columnas en
   blanco: al cargarlos entran «Sin tracking».
 
-Cargarlo en el **mismo** equipo marca como «ya no vienen» los pedidos que se
-agregaron después de descargarlo: es una foto de ese momento.
+Cargarlo en el **mismo** equipo **cierra** como «ya no vienen» los pedidos que
+se agregaron después de descargarlo: es una foto de ese momento. Se reabren
+solos en la siguiente carga que los traiga.
 
 ### Qué hace la carga
 
 - Los pedidos **nuevos** se agregan.
 - Los **existentes** se actualizan con lo que traiga el archivo.
-- Los que **ya no vienen** en el archivo **no se borran**: quedan marcados para
-  revisión.
-- Los pedidos activos que **seguían sin referencia** y tampoco la trae esta
-  carga se **cierran**: no hay forma de seguirlos. Quedan en el filtro de
-  cerrados, con el motivo en su línea de tiempo.
+- Los que **ya no vienen** en el archivo se dan por cerrados en SAP: se
+  **cierran** y salen del panel, pero **no se borran**. Quedan en el filtro de
+  cerrados, con el motivo «Ya no vino en el Z-tracking» y el cierre en su línea
+  de tiempo a nombre de quien cargó.
+- Si un pedido cerrado así **vuelve a venir** en una carga posterior, se
+  **reabre** y se actualiza como cualquier otro. Los cerrados por otro motivo
+  (recepción, cierre forzado, cancelación) no se reabren solos.
+- Una línea que viene pero **no entra** por un error de dato no cierra su
+  pedido: se corrige en SAP y entra en la carga siguiente.
+- Los pedidos sin documento de embarque entran «Sin tracking» y siguen
+  activos hasta que el archivo traiga el BL o la guía.
 
 ### Leer el informe
 
@@ -572,7 +579,7 @@ agregaron después de descargarlo: es una foto de ese momento.
 |---|---|
 | **Líneas en el archivo** | Todas las que se leyeron |
 | **Nuevos**, **Actualizados**, **Sin cambios** | Lo que pasó con las que entraron |
-| **Ya no vienen** | Pedidos que estaban en TrackIn y no vinieron en este archivo |
+| **Ya no vienen** | Pedidos que estaban activos y no vinieron en este archivo: quedaron cerrados |
 | **No entraron** | Líneas rechazadas, en rojo si hay alguna |
 
 Debajo:

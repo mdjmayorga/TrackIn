@@ -57,6 +57,9 @@ MOTIVOS_CIERRE: Final[tuple[str, ...]] = (
     # Activo sin referencia de embarque, y una carga completa no se la trajo: no
     # se puede seguir (pedido del supervisor, 04/11/2026). Ver `ingesta.carga`.
     "SIN_REFERENCIA",
+    # Dejó de venir en el Z-tracking: se da por cerrado en SAP (24/11/2026). Si
+    # vuelve a venir, la carga lo reabre. Ver `ingesta.carga`.
+    "AUSENTE_EN_CARGA",
 )
 
 # --- Referencia de rastreo externo ------------------------------------------
