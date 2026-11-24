@@ -17,6 +17,19 @@ $Raiz = Split-Path -Parent $PSScriptRoot
 $Backend = Join-Path $Raiz "backend"
 $Frontend = Join-Path $Raiz "frontend"
 
+# El PATH del registro, no el de esta consola: si se abrió antes de que
+# instalar.cmd agregara Node, las ventanas heredarían uno sin npm (24/11/2026).
+$env:Path = @(
+    [Environment]::GetEnvironmentVariable("Path", "Machine"),
+    [Environment]::GetEnvironmentVariable("Path", "User")
+) -join ";"
+$Npm = Join-Path $env:LOCALAPPDATA "Programs\nodejs\npm.cmd"
+if (-not (Test-Path $Npm)) {
+    $comando = Get-Command npm.cmd -ErrorAction SilentlyContinue
+    if (-not $comando) { throw "No encuentro npm.cmd: corra primero instalar.cmd." }
+    $Npm = $comando.Source
+}
+
 $puerto = 5432
 $envBackend = Join-Path $Backend ".env"
 if (-not (Test-Path $envBackend)) { throw "Falta backend\.env: corra primero instalar.cmd." }
@@ -55,7 +68,7 @@ function Ventana([string]$titulo, [string]$carpeta, [string]$comando) {
 }
 Ventana "TrackIn - API" $Backend ".venv\Scripts\python -m uvicorn app.main:app --port 8000"
 Ventana "TrackIn - Worker de rastreo" $Backend ".venv\Scripts\python -m app.workers"
-Ventana "TrackIn - Panel" $Frontend "npm.cmd run dev"
+Ventana "TrackIn - Panel" $Frontend "`"$Npm`" run dev"
 
 Write-Host "Esperando a la API..."
 # El primer arranque tarda más: el antivirus revisa las dependencias recién instaladas.

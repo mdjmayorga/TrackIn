@@ -324,7 +324,7 @@ Paso "6. Dependencias del backend y migraciones (unos minutos)"
 $VenvPy = Join-Path $Backend ".venv\Scripts\python.exe"
 if (-not (Test-Path $VenvPy)) { Ejecutar $Python @("-m", "venv", (Join-Path $Backend ".venv")) "Crear el entorno de Python" }
 Ejecutar $VenvPy @("-m", "pip", "install", "--disable-pip-version-check", "-q", "--upgrade", "pip") "Actualizar pip"
-Ejecutar $VenvPy @("-m", "pip", "install", "--disable-pip-version-check", "-q", "-r", (Join-Path $Backend "requirements-dev.txt")) "pip install"
+Ejecutar $VenvPy @("-m", "pip", "install", "--disable-pip-version-check", "--retries", "10", "--timeout", "60", "-q", "-r", (Join-Path $Backend "requirements-dev.txt")) "pip install"
 Ok "Dependencias de Python instaladas"
 Push-Location $Backend
 try {
