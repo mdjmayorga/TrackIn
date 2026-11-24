@@ -213,7 +213,23 @@ if (-not (Test-Path (Join-Path $RutaPostgres "share\extension\postgis.control"))
     Info "Extrayendo PostGIS..."
     Extraer $zipGis $tmp
     $origen = if (Test-Path (Join-Path $tmp "bin")) { $tmp } else { (Get-ChildItem $tmp -Directory | Select-Object -First 1).FullName }
-    Copy-Item -Recurse -Force (Join-Path $origen "*") $RutaPostgres
+    # Un postgres corriendo desde esta carpeta (de un intento anterior) retiene
+    # sus DLL y la copia falla («sección asignada a usuario abierta», 24/11/2026).
+    $corriendo = Get-Process postgres -ErrorAction SilentlyContinue |
+        Where-Object { $_.Path -like "$RutaPostgres\*" }
+    if ($corriendo) {
+        Info "Detengo el PostgreSQL de un intento anterior para poder copiar PostGIS..."
+        $corriendo | Stop-Process -Force
+        Start-Sleep -Seconds 2
+    }
+    & robocopy.exe $origen $RutaPostgres /E /R:3 /W:3 /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) {
+        # Si el antivirus sigue reteniendo alguna DLL que PostgreSQL ya trae
+        # (libcrypto, libssl...), se deja la suya: son la misma versión mayor.
+        Write-Host "    Algunos archivos están en uso; copio solo los que faltan." -ForegroundColor Yellow
+        & robocopy.exe $origen $RutaPostgres /E /XC /XN /XO /R:3 /W:3 /NFL /NDL /NJH /NJS /NP | Out-Null
+        if ($LASTEXITCODE -ge 8) { Falla "No pude copiar PostGIS en $RutaPostgres (robocopy $LASTEXITCODE)." }
+    }
 }
 Ok "Binarios en $RutaPostgres"
 
