@@ -639,7 +639,7 @@ async def cargar_pedido(
     if resuelto.destino_de_la_fuente:
         detalle = resuelto.detalle
 
-    if reabrir:
+    if reabrir and ya_esta is not None:
         # Solo ahora, con la línea ya aceptada: una rechazada no reabre nada.
         _reabrir(sesion, ya_esta, ahora, id_usuario)
 

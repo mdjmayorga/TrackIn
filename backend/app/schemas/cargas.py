@@ -36,7 +36,9 @@ class CargaResumen(BaseModel):
     insertadas: int
     actualizadas: int
     sin_cambios: int
-    ausentes: int = Field(description="Estaban activos y no vinieron: quedaron cerrados (24/11/2026).")
+    ausentes: int = Field(
+        description="Estaban activos y no vinieron: quedaron cerrados (24/11/2026)."
+    )
     no_entraron: int
     entraron_sin_rastreo: int
 
