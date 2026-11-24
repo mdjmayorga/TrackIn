@@ -190,9 +190,43 @@ async def test_la_grilla_va_primero_y_dice_lo_mismo_que_el_panel(api, sesion):
     assert por_oc["4500016176"][8] == "MROC"
     assert por_oc["4500099999"][1] == "Sin Tracking"
 
-    # Sin referencia, la carga lo rechazaría: no va en la hoja que se carga.
+    # 23/11/2026: sin referencia también va en la hoja que se carga, con el
+    # documento en blanco (entra «Sin tracking»).
     cargables = [fila[0] for fila in libro["PRODUCCION"].iter_rows(min_row=2, values_only=True)]
-    assert sorted(c for c in cargables if c) == ["4500016174", "4500016175", "4500016176"]
+    assert sorted(c for c in cargables if c) == [
+        "4500016174",
+        "4500016175",
+        "4500016176",
+        "4500099999",
+    ]
+
+
+async def test_el_pedido_sin_referencia_va_en_blanco_y_vuelve_a_entrar_igual(api, sesion):
+    """23/11/2026: antes se omitía, porque la carga lo rechazaba."""
+    cliente, _ = api
+    sin_documento = _linea(oc_numero="4500016177", tipo_referencia=None, numero_referencia="0")
+    assert (await _subir(cliente, _ztracking(*_LINEAS, sin_documento))).json()["insertadas"] == 4
+    antes = await _foto(sesion)
+    respuesta = await cliente.get(URL)
+
+    campos = [campo for campo, _ in PLANTILLA]
+    filas = {
+        fila[0]: dict(zip(campos, fila, strict=False))
+        for fila in load_workbook(io.BytesIO(respuesta.content))["PRODUCCION"].iter_rows(
+            min_row=2, values_only=True
+        )
+        if fila[0]
+    }
+    fila = filas["4500016177"]
+    assert (fila["tipo_referencia"], fila["numero_referencia"]) == (None, None)
+    assert fila["incoterm"] == "CIF LIMON"
+
+    await sesion.execute(delete(PedidoTransito))
+    await sesion.execute(delete(ElementoRastreado))
+    carga = (await _subir(cliente, respuesta.content, "exportado.xlsx")).json()
+
+    assert (carga["recibidas"], carga["insertadas"], carga["no_entraron"]) == (4, 4, 0)
+    assert await _foto(sesion) == antes
 
 
 async def test_el_aereo_va_como_awb_y_el_maritimo_con_su_puerto(api, sesion):

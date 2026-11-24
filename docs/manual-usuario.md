@@ -550,8 +550,8 @@ Excel** baja `TrackIn pedidos AAAA-MM-DD.xlsx` con todos los pedidos activos
   columnas y textos que el panel.
 - La hoja **PRODUCCION** tiene la estructura de la plantilla: el archivo se
   puede cargar tal cual en otro equipo, y los pedidos quedan con los mismos
-  datos. Los pedidos sin documento de embarque solo van en la grilla, porque la
-  carga no los acepta.
+  datos. Los pedidos sin documento de embarque también van, con esas columnas en
+  blanco: al cargarlos entran «Sin tracking».
 
 Cargarlo en el **mismo** equipo marca como «ya no vienen» los pedidos que se
 agregaron después de descargarlo: es una foto de ese momento.

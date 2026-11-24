@@ -21,9 +21,9 @@ guardado, dos datos se escriben como la carga los espera y no como se guardan:
 - **El incoterm lleva el puerto.** La base guarda solo el código (`CIF`); el
   puerto se resolvió al cargar y quedó en el destino. Se escribe `CIF LIMON`
   (`normalizacion.incoterm_con_lugar`).
-- **Solo van las líneas con referencia de embarque.** Desde el 04/11/2026 una
-  línea sin BL ni guía no entra; en `PRODUCCION` sería un rechazo seguro. En la
-  `Grilla` sí están, porque están en la pantalla.
+- **Las líneas sin referencia van con el documento en blanco.** Del 04/11 al
+  23/11/2026 la carga las rechazaba y aquí se omitían; desde el 23/11 entran
+  «Sin tracking» (`ingesta.carga`), así que van todas, igual que en la `Grilla`.
 
 El comentario del comprador no se guarda: esa columna va vacía.
 """
@@ -123,7 +123,6 @@ def _tipo_de_documento(tipo: str, numero: str) -> str:
 
 def _fila_carga(pedido: PedidoTransito) -> dict[str, Any]:
     elemento = pedido.elemento_rastreado
-    assert elemento is not None  # solo se llama con referencia
     incoterm = pedido.incoterm
     if pedido.via_transporte != "AEREO":
         # El aéreo tiene un solo destino y la carga lo infiere de la vía.
@@ -143,10 +142,13 @@ def _fila_carga(pedido: PedidoTransito) -> dict[str, Any]:
         "pais_origen": pedido.pais_origen.nombre if pedido.pais_origen else None,
         "eta_declarada": pedido.eta_declarada,
         "solicitud_pedido": pedido.solicitud_pedido,
-        "tipo_referencia": _tipo_de_documento(
-            elemento.tipo_tracking_externo, elemento.tracking_externo
+        # Sin referencia, en blanco: la carga lo deja entrar «Sin tracking».
+        "tipo_referencia": (
+            _tipo_de_documento(elemento.tipo_tracking_externo, elemento.tracking_externo)
+            if elemento
+            else None
         ),
-        "numero_referencia": elemento.tracking_externo,
+        "numero_referencia": elemento.tracking_externo if elemento else None,
         "comentario": None,
     }
 
@@ -175,8 +177,7 @@ def generar(pedidos: Sequence[PedidoTransito], ahora: dt.datetime) -> bytes:
     libro.active = 0
 
     carga = libro[HOJA_CARGA]
-    con_referencia = [p for p in pedidos if p.elemento_rastreado is not None]
-    for numero_fila, pedido in enumerate(con_referencia, start=2):
+    for numero_fila, pedido in enumerate(pedidos, start=2):
         fila = _fila_carga(pedido)
         _escribir(carga, numero_fila, [fila[campo] for campo, _ in PLANTILLA])
 
