@@ -139,6 +139,12 @@ ask_secret() {
 # a symlink and keeps an existing file's mode.
 write_env() {
   local key="$1" value="$2" tmp sq="'\\''"
+  # TrackIn (ensayo del 25/11): docker compose no entiende el escape '\'' de
+  # bash y rechaza el archivo entero en el paso de construir. Mejor parar acá.
+  if [[ "$value" == *\'* ]]; then
+    warn "$key trae una comilla simple ('), que docker compose no puede leer. Revisar el valor y volver a correr."
+    exit 1
+  fi
   [[ -e "$ENV_FILE" ]] || (umask 077 && : > "$ENV_FILE")
   tmp=$(mktemp)
   grep -vE "^${key}=" "$ENV_FILE" > "$tmp" || true
@@ -277,7 +283,9 @@ pause "Todo en orden. Enter para seguir."
 stage "Versión a desplegar"
 git fetch --tags --quiet || warn "No se pudieron traer las etiquetas de GitHub; se usan las locales."
 actual=$(git describe --tags --exact-match 2>/dev/null || echo "sin etiqueta ($(git rev-parse --short HEAD))")
-ultima=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+# `versionsort.suffix`: sin él git ordena v1.0.0-rc.1 *después* de v1.0.0 y el
+# asistente ofrecería la candidata en vez de la versión final (ensayo del 25/11).
+ultima=$(git -c versionsort.suffix=-rc tag --list 'v*' --sort=-v:refname | head -n1)
 say "Ahora: $actual"
 say "Última etiqueta: ${ultima:-ninguna}"
 if [[ -z "$ultima" ]]; then

@@ -14,6 +14,44 @@ Desde hoy hasta la **salida a producción**: TrackIn accesible por HTTPS en la r
 > Este backlog se escribió a mano, aparte del backlog principal (que se genera desde un
 > script), para no mezclar el alcance de la práctica con la extensión.
 
+## Pendiente en el equipo personal de Mariano (con Docker)
+
+> **Decidido el 25/11/2026.** El equipo de la práctica ya no tiene WSL y Docker Desktop no
+> arranca ahí (instalarlo pide administrador). **Todo lo que necesita Docker se hace en el
+> equipo personal de Mariano.** Si en ese equipo se pregunta «qué hay que hacer», es esto,
+> en este orden.
+
+**Antes de empezar**
+
+- Docker Desktop corriendo (con WSL 2), `docker compose version` 2.24 o superior, y Git Bash.
+- `git pull` con la rama `Cierre_Prod`: trae los dos arreglos del asistente del 25/11.
+- **Sin el token real de ShipsGo** ([ADR 0003](../adr/0003-solo-produccion-da-de-alta-en-shipsgo.md)):
+  en el ensayo, los dos tokens van vacíos.
+
+**1. Ensayo completo del asistente (`PROD-09`), antes de que TI entregue el servidor**
+
+1. Desde la raíz del repositorio, en Git Bash: `bash scripts/asistente_produccion.sh`.
+2. Respuestas: en el paso 2, quedarse en la versión actual; nombre `localhost`; puerto
+   `8080`; los dos tokens de ShipsGo, Enter (vacíos); construir, sí; un Administrador de
+   prueba; en el paso 12, la pregunta del HTTPS se contesta **no** (en local no hay).
+3. Comprobar: `http://localhost:8080` abre el inicio de sesión y se entra con el
+   Administrador de prueba; `http://localhost:8080/health` dice `"status":"ok"` con la base
+   `"up"`; el paso 12 dejó un respaldo en `respaldos/`.
+4. Subir la plantilla del Z-tracking con una línea con BL y otra sin referencia: entran las
+   dos, la segunda «Sin tracking».
+5. Probar la restauración: `bash scripts/restaurar.sh` con el respaldo del paso 12, y que
+   `/health` vuelva a decir ok.
+6. Anotar el resultado en `PROD-09` (abajo). Lo que falle se corrige antes del servidor.
+7. Limpiar: `docker compose --env-file .env.produccion down -v` y borrar `.env.produccion`
+   y `respaldos/` (ninguno de los dos se sube al repositorio).
+
+**2. Repetirlo con la `v1.0.0`, después de la unión del 27/11 (`PROD-06`)**
+
+1. Con las ramas unidas y la etiqueta `v1.0.0` publicada, repetir el ensayo del punto 1.
+2. En el paso 2 el asistente tiene que ofrecer **`v1.0.0`**, no `v1.0.0-rc.1`: es el
+   arreglo 1 del 25/11. Las migraciones tienen que llegar a `0035_cierre_ausentes`.
+3. Limpiar igual que en el punto 1.
+
 ## Definition of Done (aplica a todo este backlog)
 
 - Lo hecho está verificado **en el servidor**, no solo en un equipo de desarrollo
@@ -382,6 +420,22 @@ Como técnico del Centro de Competencias, quiero saber qué versión corre en el
 >    etiquetar `v1.0.0` sobre `main` y actualizar el servidor con la guía §9.
 >
 > `PROD-06` pasa a ✅ con la `v1.0.0` publicada y corriendo en el servidor.
+>
+> **25/11/2026: unión ensayada** en una copia aparte, sin tocar ninguna rama (`Cierre_Prod`
+> en `3742a14` más `main` en `5baf34b`):
+>
+> - **Un solo conflicto:** `docs/manual-usuario.docx`, binario. Queda el de `main` (12/11,
+>   con `US-68`); el de `Cierre_Prod` es del 10/11 y no trae nada propio.
+> - **Ojo con los informes:** `main` los sacó del repositorio el 20/11 («informes en local»),
+>   pero la unión **trae de vuelta** `docs/InformeFinal_TrackIn_MarianoMayorga.docx` desde
+>   `Cierre_Prod` sin avisar. Hay que quitarlo antes del commit de la unión
+>   (`git rm --cached docs/InformeFinal_TrackIn_MarianoMayorga.docx`). El conflicto que
+>   esperaba esta nota no aparece: git lo resuelve solo, y mal.
+> - **Verificado sobre el código unido:** backend ruff, black, mypy y 1648 pruebas; panel
+>   eslint, tsc, 385 pruebas y build. Las migraciones llegan a `0035` (cierre de ausentes).
+>
+> El 27/11 queda en: unir, quitar el informe, elegir el `.docx` de `main`, pruebas,
+> CHANGELOG, etiqueta `v1.0.0`.
 
 #### `PROD-07` — Scripts de respaldo con retención y de restauración
 
@@ -500,6 +554,23 @@ Como técnico que instala TrackIn, quiero un asistente que me lleve paso a paso 
 | Etiquetas | `operacion,automatizacion` |
 
 > **06/11/2026: primera versión hecha** en [`scripts/asistente_produccion.sh`](../../scripts/asistente_produccion.sh). Falta probarla en el ensayo local (`PROD-03`) y en el servidor.
+>
+> **25/11/2026: ensayo parcial, sin Docker.** Este equipo ya no tiene WSL (Windows lo pide
+> para Docker Desktop, e instalarlo exige administrador), así que no se pudo correr de punta
+> a punta. Se probó lo que no necesita el motor: la sintaxis de los cuatro scripts, los
+> secretos generados (40 y 64 caracteres), que una segunda corrida conserve las claves, la
+> comparación de versiones de Docker y compose, y que `docker compose config` lea el
+> `.env.produccion` que escribe el asistente. Dos defectos, **corregidos**:
+>
+> 1. **Elegía la candidata en vez de la final.** Con `v1.0.0-rc.1` y `v1.0.0`, git ordena la
+>    candidata como más nueva y el paso 2 ofrecía volver a ella: justo el caso del 27/11.
+>    Ahora ordena con `versionsort.suffix=-rc`.
+> 2. **Un valor con comilla simple rompía el archivo.** El escape de bash no lo entiende
+>    docker compose, que rechazaba el `.env.produccion` entero en el paso de construir.
+>    Ahora el asistente para y dice qué valor revisar.
+>
+> **Falta:** correrlo entero, con Docker, en el servidor (`PROD-15`), o antes en un equipo
+> con Docker Desktop funcionando.
 
 #### `PROD-10` — HTTPS en el nginx de TrackIn (solo si no hay proxy corporativo)
 
