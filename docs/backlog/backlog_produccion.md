@@ -36,7 +36,7 @@ cambia, cambian las tareas que la citan.
 | D1 | Alcance de la red | Solo la **red interna** de Gutis; desde afuera, por la VPN corporativa | `PROD-16`, `PROD-17` |
 | D2 | Servidor | **Máquina virtual Linux con Docker** de TI: 2 vCPU, 4 GB de RAM, 40 GB de disco ([ADR 0002](../adr/0002-produccion-en-maquina-virtual-linux-de-la-red-interna.md)) | `PROD-13`, `PROD-15` |
 | D3 | Quién y cuándo | Lo ejecuta Mariano en la extensión; TI pone la infraestructura; salida antes del 04/12 | Todo el backlog |
-| D4 | Datos iniciales | **Base vacía**: migraciones, cuentas nuevas, primera carga real del Z-tracking vigente y altas en ShipsGo | `PROD-20`, `PROD-22` |
+| D4 | Datos iniciales | **Base vacía**: migraciones, cuentas nuevas, primera carga real del Z-tracking vigente y altas en ShipsGo. **Confirmada con Compras el 25/11** | `PROD-20`, `PROD-22` |
 | D5 | Formato | Este archivo, IDs `PROD-xx`, sin issues en GitHub | — |
 | D6 | Nivel de producción | Con respaldos restaurados una vez, monitoreo de `/health` y procedimiento de actualización | `PROD-07`, `PROD-08`, `PROD-18`, `PROD-19` |
 | D7 | Nombre | `trackin.gutis.com` (provisorio) en el **DNS interno** | `PROD-16` |
@@ -48,17 +48,18 @@ cambia, cambian las tareas que la citan.
 | D13 | Mapa embebido de ShipsGo | Se mantiene, autorizando el dominio de producción | `PROD-23` |
 | D14 | API de SAP | Se despliega con la escucha **apagada** | `PROD-15` |
 | D15 | Ensayo | Un **ensayo general en el propio servidor** con datos de prueba; después se reinicia la base. Sin entorno de pruebas aparte | `PROD-20` |
-| D16 | Cuentas | La compartida de Compras, personales para Logística y Planificación, una de planta, el Administrador de Mariano y uno de respaldo para TI | `PROD-21` |
+| D16 | Cuentas | ~~La compartida de Compras, personales para Logística y Planificación~~. **Cambiada con Compras el 25/11: todas compartidas**, sin cuentas personales: `compras`, una de Logística, `planificacion`, una de planta, el Administrador de Mariano y uno de respaldo para TI | `PROD-21` |
 | D17 | Respaldos | `pg_dump` diario, **14 días** de retención, una copia fuera del servidor y una restauración probada antes de la salida | `PROD-07`, `PROD-18` |
 | D18 | Monitoreo | El de TI si existe; si no, un chequeo de `/health` cada 5 minutos con aviso por correo | `PROD-08`, `PROD-19` |
 | D19 | Actualizaciones | Imágenes construidas **en el servidor desde una etiqueta de git** `vX.Y.Z`; volver a la etiqueta anterior si algo falla | `PROD-06`, `PROD-28` |
-| D20 | Piloto | **Una semana** usando TrackIn junto al Excel, con criterios de salida acordados con Compras | `PROD-26` |
+| D20 | Piloto | ~~Una semana~~ **Cuatro días hábiles, del 01/12 al 04/12** (Compras, 25/11), usando TrackIn junto al Excel, con los cuatro criterios de salida de `PROD-26` | `PROD-26` |
 | D21 | Traspaso | Manual de operación y una sesión de traspaso con el Centro de Competencias | `PROD-28`, `PROD-29` |
 | D22 | Destinatario en TI | Por completar al enviar el correo | `PROD-01` |
 | D23 | Reunión con TI | **Solo por correo**, sin ofrecer reunión | `PROD-01` |
 | D24 | Plazos pedidos a TI | Respuesta el **13/11** y máquina virtual lista el **20/11**, una semana antes de lo recomendado, para tener margen | `PROD-01`, `PROD-13` |
 | D25 | Supervisor | Greivin ya sabe que la puesta en producción va en la extensión; el correo a TI va con copia a él | `PROD-01`, `PROD-02` |
 | D26 | Ramas y presentación (11/11) | `Cierre_Prod` **no se une a `main` hasta la presentación del sistema a la universidad, el viernes 27/11**. Hasta entonces el servidor corre `v1.0.0-rc.1`, etiquetada en `Cierre_Prod`; el 27/11, después de presentar, se unen las ramas, se etiqueta `v1.0.0` y el servidor se actualiza a ella | `PROD-06`, `PROD-13`, `PROD-15`, `PROD-26` |
+| D27 | Responsable del sistema (25/11) | **Itza Fallas** (Compras) es la encargada del piloto y quien se queda con el sistema al terminar el desarrollo: reporta los problemas del piloto, confirma los criterios de salida y es la dueña funcional después del 04/12. La operación técnica del servidor sigue siendo de TI | `PROD-25`, `PROD-26`, `PROD-28`, `PROD-29`, `PROD-30` |
 
 ---
 
@@ -67,7 +68,7 @@ cambia, cambian las tareas que la citan.
 | ID | Título | Tipo | Fase | MoSCoW | Horas | Depende de | Quién |
 |---|---|---|---|---|---|---|---|
 | `PROD-01` | Pedir a TI el servidor, el DNS, el certificado y la salida a internet | Task | 0 | **Must** | 3h | — | Mariano + TI |
-| `PROD-02` | Confirmar las decisiones de partida con el supervisor y Compras | Task | 0 | **Must** | 2h | — | Mariano |
+| `PROD-02` | Confirmar las decisiones de partida con el supervisor y Compras ✅ | Task | 0 | **Must** | 2h | — | Mariano |
 | `PROD-03` | Ensayo local del stack de contenedores, de punta a punta ✅ | Task | 0 | **Must** | 6h | — | Mariano |
 | `PROD-04` | Corregir lo que encuentre el ensayo local ✅ | Task | 0 | **Must** | 4h | `PROD-03` | Mariano |
 | `PROD-05` | Mosaicos del mapa: URL sin subdominio, configurable y con plan B ✅ | Task | 0 | **Should** | 3h | — | Mariano |
@@ -123,10 +124,10 @@ cambia, cambian las tareas que la citan.
 | R1. TI no entrega la máquina virtual a tiempo | Se corre toda la fase 1 | Pedirla ya, para el 20/11 y no el 23/11 (`PROD-01`, D24): hay tres días hábiles de margen; mientras, todo lo que se puede probar se prueba en el ensayo local (`PROD-03`) |
 | R2. TI solo tiene servidores Windows | Cambia D2 | La guía ya cubre la variante sin Docker (§10); suma unas 6 h a `PROD-15` |
 | R3. Las imágenes nunca se construyeron | El primer `docker compose build` falla en el servidor | **Cerrado el 06/11** por `PROD-03`: se construyen y el stack funciona; quedó un solo defecto (el chequeo de salud del panel), para `PROD-04` |
-| R4. El Z-tracking llega con pocas referencias | Desde el 04/11 la línea sin referencia no entra: el panel arranca con pocos pedidos | Pedir a Compras, antes de `PROD-22`, que complete BL o guía madre en SAP |
+| ~~R4. El Z-tracking llega con pocas referencias~~ | ~~Desde el 04/11 la línea sin referencia no entra~~ | **Cerrado el 23/11:** la línea sin referencia vuelve a entrar, «Sin tracking», y toma el BL o la guía en la carga en que llegue |
 | R5. Un equipo de desarrollo gasta créditos reales | El saldo no coincide y se pierden créditos | `PROD-12` ([ADR 0003](../adr/0003-solo-produccion-da-de-alta-en-shipsgo.md)) |
 | R6. La red de planta bloquea los mosaicos o `embed.shipsgo.com` | Mapas sin fondo o sin mapa en vivo | `PROD-17` lo verifica desde un equipo de planta; `PROD-05` evalúa alternativas |
-| R7. Nadie asume la operación después del 04/12 | El sistema queda sin dueño | `PROD-01` y `PROD-29` lo nombran por escrito; sin ese nombre no se declara la salida (`PROD-30`) |
+| R7. Nadie asume la operación después del 04/12 | El sistema queda sin dueño | `PROD-01` y `PROD-29` lo nombran por escrito; sin ese nombre no se declara la salida (`PROD-30`). **Mitigado en parte el 25/11:** la dueña funcional es Itza Fallas (D27); falta quién de TI administra el servidor |
 
 ---
 
@@ -180,6 +181,19 @@ Como responsable de TrackIn, quiero las decisiones D1 a D21 confirmadas por quie
 > **06/11/2026: confirmadas por Mariano** D1 a D25; la parte del supervisor no hace falta
 > (D25). **Falta:** validar con Compras D4, D16 (y los nombres de las cuentas) y D20, con
 > los criterios de salida del piloto.
+
+> **✅ Hecha el 25/11/2026, con Compras:**
+>
+> | Decisión | Resultado |
+> |---|---|
+> | D4 | Confirmada: base vacía y primera carga real el lunes 30/11 |
+> | D16 | Cambiada: todas las cuentas compartidas (detalle en `PROD-21`) |
+> | D20 | Cambiada: piloto de cuatro días hábiles, del 01/12 al 04/12, dentro de la extensión |
+> | Criterios del piloto | Aceptados los cuatro propuestos (detalle en `PROD-26`) |
+> | Nueva: D27 | Itza Fallas es la encargada del piloto y la dueña funcional del sistema al terminar |
+>
+> Quedan dos tareas para Compras: comprar el paquete de créditos de ShipsGo antes del
+> 30/11 (`PROD-22`) y definir el equipo y el lugar de la pantalla de planta (`PROD-24`).
 
 #### `PROD-03` — Ensayo local del stack de contenedores, de punta a punta
 
@@ -766,6 +780,22 @@ Como Administrador, quiero las cuentas de cada rol creadas, para que cada person
 | Origen | D16, `docs/manual-usuario.md` §11.1 |
 | Etiquetas | `cuentas` |
 
+> **25/11/2026: cuentas acordadas con Compras** (D16). Todas compartidas, sin cuentas
+> personales:
+>
+> | Usuario | Rol | Para |
+> |---|---|---|
+> | `compras` | `COMPRAS` | Compras: carga del Z-tracking, altas, ETA |
+> | `[usuario de Logística]` | `LOGISTICA` | Desembarco, paso a aduanas y recepción en planta |
+> | `planificacion` | `PLANIFICACION` | Consulta |
+> | `[usuario de planta]` | `PLANTA` | La pantalla permanente (`PROD-24`) |
+> | Administrador de Mariano | `ADMINISTRADOR` | Administración durante la extensión |
+> | `[Administrador de respaldo]` | `ADMINISTRADOR` | TI, por si hace falta entrar |
+>
+> **Falta:** los nombres de usuario de Logística, planta y el respaldo de TI. Que
+> Itza Fallas (D27) tenga también una cuenta de Administrador para después del 04/12 se
+> decide en el traspaso (`PROD-29`).
+
 #### `PROD-22` — Créditos, primera carga real y altas en ShipsGo
 
 Como usuario de Compras, quiero los pedidos vigentes en TrackIn y rastreándose, para empezar a usarlo.
@@ -784,6 +814,12 @@ Como usuario de Compras, quiero los pedidos vigentes en TrackIn y rastreándose,
 | Estimación | 3 h |
 | Origen | D4, `US-55`, `US-57` (la prueba real que quedó pendiente) |
 | Etiquetas | `datos,shipsgo,ruta-critica` |
+
+> **25/11/2026, con Compras:** el lunes 30/11 **Compras sube el Z-tracking con la cuenta
+> `compras`**, con Mariano al lado, y revisan juntos el informe de la carga.
+> **Tarea de Compras:** el paquete de créditos de ShipsGo **todavía no está comprado**; hay
+> que comprarlo antes del 30/11, o las referencias nuevas no se dan de alta y los pedidos se
+> quedan en «Sin tracking».
 
 #### `PROD-23` — Autorizar el dominio en el mapa embebido de ShipsGo
 
@@ -821,6 +857,10 @@ Como persona de planta, quiero el monitor mostrando TrackIn todo el día, sin qu
 | Origen | `US-33`, `docs/manual-usuario.md` §12 |
 | Etiquetas | `planta` |
 
+> **25/11/2026: bloqueada por Compras.** El equipo y el lugar de la pantalla no están
+> definidos y quedan fuera del alcance de esta extensión: los define Compras. Hasta entonces
+> esta tarea no se puede cerrar; no bloquea la salida (`PROD-30`), porque es **Should**.
+
 #### `PROD-25` — Inducción de los usuarios con el manual
 
 Como usuario de TrackIn, quiero una inducción corta con el manual, para empezar a usarlo sin depender de Mariano.
@@ -837,6 +877,10 @@ Como usuario de TrackIn, quiero una inducción corta con el manual, para empezar
 | Estimación | 3 h |
 | Origen | `TASK-08` |
 | Etiquetas | `usuarios,documentacion` |
+
+> **25/11/2026: fecha acordada con Compras.** Una sesión el **lunes 30/11, justo después de
+> la primera carga real** (`PROD-22`), con datos de verdad, para Compras y Logística. Itza
+> Fallas (D27) asiste: es quien se queda con el sistema.
 
 ### Fase 3: piloto y traspaso (~~30/11~~ 01/12 al 04/12)
 
@@ -863,6 +907,18 @@ Como usuario de Compras, quiero usar TrackIn junto al Excel durante una semana, 
 > `PROD-02`: un piloto de cuatro días con los mismos criterios —incluida una carga semanal,
 > que cae dentro si Compras carga el lunes o el martes—, o una semana completa hasta el 07/12,
 > después del final de la extensión, con `PROD-30` el 07/12.
+
+> **25/11/2026: decidido con Compras.** Piloto de **cuatro días hábiles, del 01/12 al
+> 04/12**. Los cuatro criterios propuestos quedan **aceptados** como criterios de salida:
+>
+> 1. TrackIn estuvo disponible en horario laboral todos los días del piloto.
+> 2. La carga semanal del Z-tracking se hizo desde TrackIn.
+> 3. Las fechas proyectadas de una muestra de pedidos coinciden con lo que sabe Compras, o
+>    la diferencia tiene explicación.
+> 4. Ningún error impidió hacer una tarea.
+>
+> **Encargada del piloto: Itza Fallas** (D27). Reporta los problemas durante el piloto y
+> confirma los criterios el 04/12.
 
 #### `PROD-27` — Correcciones del piloto
 
