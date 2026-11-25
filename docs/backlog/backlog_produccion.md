@@ -1026,6 +1026,15 @@ Como técnico del Centro de Competencias, quiero un manual de operación del Tra
 | Origen | D21 |
 | Etiquetas | `documentacion,traspaso` |
 
+> **25/11/2026: primera versión** en [manual-operacion.md](../manual-operacion.md), en dos
+> partes: **A, uso diario**, para Itza Fallas (D27), sin comandos (la carga semanal, los
+> créditos, las cuentas y qué hacer cuando algo se ve mal); y **B, el servidor**, para el
+> Centro de Competencias y TI (dónde está todo, tareas periódicas, `/health`, problemas,
+> y respaldo, restauración y actualización enlazando la guía en vez de repetirla).
+> **Falta:** completar lo marcado `[pendiente de TI]` con la respuesta de `PROD-01` y el día
+> de la instalación (servidor, carpeta, custodia de `.env.produccion`, copia de respaldos,
+> monitoreo, certificado, contactos), los usuarios de `PROD-21` y los pendientes del piloto.
+
 #### `PROD-29` — Sesión de traspaso y acta
 
 Como Centro de Competencias, quiero recibir TrackIn en una sesión con el autor, para asumirlo con todo claro.
