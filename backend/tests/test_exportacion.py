@@ -259,3 +259,22 @@ async def test_los_demas_roles_no_descargan_los_pedidos(api, sesion, rol):
     )
 
     assert (await cliente.get(URL)).status_code == 403
+
+
+async def test_el_maritimo_por_definir_se_descarga_y_vuelve_a_entrar_igual(api, sesion):
+    """26/11/2026: sin puerto entra «Por definir»; descargado, sigue igual."""
+    cliente, _ = api
+    sin_puerto = _linea(oc_numero="4500016178", incoterm="FOB")
+    assert (await _subir(cliente, _ztracking(sin_puerto))).json()["insertadas"] == 1
+
+    libro = load_workbook(io.BytesIO((await cliente.get(URL)).content))
+
+    (grilla,) = (f for f in libro["Grilla"].iter_rows(min_row=2, values_only=True) if f[3])
+    assert grilla[8] == "Por definir"
+    campos = [campo for campo, _ in PLANTILLA]
+    (fila,) = (
+        dict(zip(campos, f, strict=False))
+        for f in libro["PRODUCCION"].iter_rows(min_row=2, values_only=True)
+        if f[0]
+    )
+    assert fila["incoterm"] == "FOB"

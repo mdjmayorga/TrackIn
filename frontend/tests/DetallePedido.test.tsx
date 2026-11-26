@@ -10,8 +10,10 @@ import { GrillaPedidos } from '@/components/GrillaPedidos'
 import DetallePedido from '@/pages/DetallePedido'
 import { api } from '@/services/api'
 import {
+  asignarDestino,
   asociarReferencia,
   corregirReferencia,
+  listarDestinos,
   obtenerBitacora,
   obtenerPedido,
 } from '@/services/pedidos'
@@ -39,6 +41,8 @@ vi.mock('@/services/pedidos', async (original) => ({
   obtenerBitacora: vi.fn(),
   asociarReferencia: vi.fn(),
   corregirReferencia: vi.fn(),
+  asignarDestino: vi.fn(),
+  listarDestinos: vi.fn(),
 }))
 
 /** El pedido del Figma: 4500012847 · 10, marítimo, en tránsito, a tiempo. */
@@ -825,6 +829,80 @@ describe('formatos del detalle', () => {
     expect(haceCuanto('2026-10-10T11:00:00Z', ahora)).toBe('hace 5 días')
     expect(haceCuanto(null)).toBeNull()
     expect(haceCuanto('x')).toBeNull()
+  })
+})
+
+describe('destino por definir (26/11/2026)', () => {
+  const POR_DEFINIR: Partial<PedidoDetalle> = {
+    destino: null,
+    calculo: {
+      ...detalle().calculo,
+      lead_time_dias: null,
+      lead_time_maestro_dias: null,
+      fecha_proyectada: null,
+    },
+  }
+  const DESTINOS = [
+    { id: 1, codigo: 'MROC', nombre: 'Aeropuerto Juan Santamaría', via_transporte: 'AEREO' },
+    { id: 2, codigo: 'CRCAL', nombre: 'Puerto Caldera', via_transporte: 'MARITIMO' },
+    { id: 3, codigo: 'CRMOB', nombre: 'Moín', via_transporte: 'MARITIMO' },
+  ] as const
+
+  beforeEach(() => {
+    vi.mocked(listarDestinos).mockResolvedValue([...DESTINOS])
+  })
+
+  it('lo dice, sin lead time, y Compras elige el puerto entre los marítimos', async () => {
+    vi.mocked(obtenerPedido).mockResolvedValue(detalle(POR_DEFINIR))
+    vi.mocked(asignarDestino).mockResolvedValue(detalle())
+    montar('COMPRAS')
+
+    expect(await screen.findByText(/destino Por definir/)).toBeInTheDocument()
+    expect(screen.getByText('Sin destino: no hay lead time que sumar')).toBeInTheDocument()
+    const formulario = await screen.findByRole('form', { name: 'Asignar puerto de destino' })
+    const puertos = within(formulario)
+      .getAllByRole('option')
+      .map((o) => o.textContent)
+    expect(puertos).toEqual(['Elija un puerto', 'Moín', 'Puerto Caldera'])
+    await userEvent.selectOptions(within(formulario).getByLabelText('Puerto'), 'CRCAL')
+    await userEvent.click(within(formulario).getByRole('button', { name: 'Asignar' }))
+
+    expect(asignarDestino).toHaveBeenCalledWith(7, { codigo: 'CRCAL', motivo: null })
+  })
+
+  it('Planificación ve que falta, pero no el formulario', async () => {
+    vi.mocked(obtenerPedido).mockResolvedValue(detalle(POR_DEFINIR))
+    montar('PLANIFICACION')
+
+    expect(await screen.findByText('Lo asignan Logística y Compras.')).toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'Asignar puerto de destino' })).toBeNull()
+  })
+
+  it('un puerto ya asignado se puede cambiar', async () => {
+    vi.mocked(asignarDestino).mockResolvedValue(detalle())
+    montar('LOGISTICA')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Cambiar puerto' }))
+    const formulario = screen.getByRole('form', { name: 'Asignar puerto de destino' })
+    await userEvent.selectOptions(within(formulario).getByLabelText('Puerto'), 'CRCAL')
+    await userEvent.click(within(formulario).getByRole('button', { name: 'Asignar' }))
+
+    expect(asignarDestino).toHaveBeenCalledWith(7, { codigo: 'CRCAL', motivo: null })
+  })
+
+  it('el servicio asigna por POST y lista los destinos', async () => {
+    const real = await vi.importActual<typeof import('@/services/pedidos')>('@/services/pedidos')
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: [] })
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
+
+    await real.listarDestinos()
+    await real.asignarDestino(7, { codigo: 'CRCAL', motivo: null })
+
+    expect(get).toHaveBeenCalledWith('/api/v1/destinos')
+    expect(post).toHaveBeenCalledWith('/api/v1/pedidos/7/destino', {
+      codigo: 'CRCAL',
+      motivo: null,
+    })
   })
 })
 

@@ -34,6 +34,7 @@ from app.schemas.pedidos import (
     CorreccionReferencia,
     CumplimientoFiltro,
     DesembarcoEntrada,
+    DestinoEntrada,
     EstadoCalculado,
     EtaEntrada,
     EtapaFiltro,
@@ -669,6 +670,45 @@ async def registrar_eta(
 
 # Logística registra la referencia (TASK-30) y Compras carga el archivo que la trae.
 asociadores = requiere_rol(LOGISTICA, COMPRAS)
+
+
+@router.post(
+    "/{id_pedido}/destino",
+    response_model=PedidoDetalle,
+    summary="Asignar el puerto de destino",
+    description=(
+        "Para el marítimo que entró con el destino «Por definir» (26/11/2026), o para "
+        "corregir uno ya asignado. Solo destinos activos de la misma vía. Queda elegido a "
+        "mano: el archivo ya no lo cambia, y ShipsGo sí, con aviso. Se recalcula y se audita."
+    ),
+    responses={
+        404: {"description": "No existe el pedido."},
+        409: {"description": "Cerrado, o ya tiene ese destino."},
+        422: {"description": "El código no existe, está inactivo o es de otra vía."},
+    },
+)
+async def asignar_destino(
+    id_pedido: int,
+    datos: DestinoEntrada,
+    quien: Annotated[Autenticado, Depends(asociadores)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PedidoDetalle:
+    try:
+        await intervenciones.asignar_destino(
+            db,
+            id_pedido,
+            codigo=datos.codigo,
+            motivo=datos.motivo,
+            id_usuario=quien.usuario.id,
+        )
+    except (
+        LookupError,
+        intervenciones.IntervencionRechazada,
+        intervenciones.DestinoInvalido,
+        auditoria.IntervencionInvalida,
+    ) as exc:
+        raise _error_de_intervencion(exc) from exc
+    return await _detalle_tras_intervenir(db, id_pedido)
 
 
 @router.post(

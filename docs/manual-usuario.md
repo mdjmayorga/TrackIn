@@ -249,7 +249,7 @@ de fecha pasa a ser **F. Recepción**.
 | **F. Proyectada** | Cuándo se espera el material en planta (con cerrados: **F. Recepción**) |
 | **F. Comprometida** | La fecha de entrega del pedido en SAP |
 | **Vía** | Marítimo o Aéreo |
-| **Destino** | Puerto o aeropuerto de llegada; el nombre completo, al pasar el cursor |
+| **Destino** | Puerto o aeropuerto de llegada; el nombre completo, al pasar el cursor. **Por definir** (resaltado) si el pedido entró sin puerto: se asigna en el detalle ([7.8](#78-asignar-el-puerto-de-destino)) |
 
 **Ordenar:** clic en el encabezado de una columna con flechas (↕). Un segundo
 clic invierte el orden. Por omisión la grilla va ordenada por fecha proyectada:
@@ -475,6 +475,26 @@ Una referencia nueva se rastrea recién cuando se da de alta en ShipsGo
 ([sección 10](#10-altas-y-créditos-de-shipsgo)). Si falta, el detalle muestra el
 enlace **Dar de alta en ShipsGo** (Compras y Administrador).
 
+### 7.8 Asignar el puerto de destino
+
+*Logística, Compras y Administrador.* En el bloque **Elemento rastreado y
+arribo** del detalle.
+
+Un pedido marítimo entra con destino **Por definir** cuando ni el Z-tracking ni
+ShipsGo dicen dónde descarga: no trae incoterm, o trae uno que nombra el origen
+(EXW, FCA, FOB) y todavía no tiene BL. Mientras tanto no tiene fecha proyectada.
+
+- **Asignar:** el detalle avisa que falta el puerto. Se elige en la lista
+  (Caldera, Limón o Moín), se escribe un motivo si se quiere y se pulsa
+  **Asignar**. El pedido se recalcula y queda en la línea de tiempo.
+- **Cambiar puerto:** en un marítimo que ya tiene destino, el enlace abre el
+  mismo formulario.
+
+Lo asignado a mano **no lo cambia el Z-tracking**. Sí lo cambia ShipsGo si la
+naviera declara otro puerto, porque la naviera manda; en ese caso el informe de
+la carga lo avisa. Un aéreo no tiene nada que elegir: llega siempre a Juan
+Santamaría.
+
 ---
 
 ## 8. La bandeja de arribos pendientes
@@ -572,6 +592,11 @@ solos en la siguiente carga que los traiga.
   pedido: se corrige en SAP y entra en la carga siguiente.
 - Los pedidos sin documento de embarque entran «Sin tracking» y siguen
   activos hasta que el archivo traiga el BL o la guía.
+- El **incoterm no deja ninguna línea fuera**. Un aéreo llega siempre a Juan
+  Santamaría. Un marítimo sin puerto entra con destino **Por definir** y se
+  asigna en el detalle ([7.8](#78-asignar-el-puerto-de-destino)).
+- Las **compras locales** no entran, porque TrackIn sigue envíos aéreos y
+  marítimos, pero tampoco son un error: no aparecen entre los problemas.
 
 ### Leer el informe
 
@@ -591,7 +616,9 @@ Debajo:
 - **Cerrados por no tener referencia de embarque:** los pedidos que esta carga
   cerró ([arriba](#qué-hace-la-carga)).
 - **Entraron, pero conviene revisar en SAP:** avisos sobre líneas que sí
-  entraron.
+  entraron; entre ellos, los marítimos que entraron sin puerto.
+- **Compras locales omitidas:** cuántas trajo el archivo, en gris. No hay nada
+  que corregir.
 
 Los motivos más frecuentes:
 
@@ -600,8 +627,7 @@ Los motivos más frecuentes:
 | **Sin referencia de embarque** | Completar el tipo y el número de documento en SAP |
 | **Referencia de embarque inválida** | Revisar el número: un dígito de más o de menos, letras de otra referencia, o una guía aérea en un pedido marítimo |
 | **Sin vía de transporte** | Completar la vía (Aéreo o Marítimo) |
-| **Sin destino reconocible** | Agregar el BL o la guía madre, o indicar el puerto de llegada en el incoterm (CIF LIMON). Con EXW, FCA o FOB el incoterm nombra el origen, no el destino |
-| **Vía fuera del alcance** | Nada: TrackIn sigue solo envíos aéreos y marítimos |
+| **Vía fuera del alcance** | Nada: TrackIn sigue solo envíos aéreos y marítimos (la vía terrestre) |
 | **Formato inválido** | Corregir la celda que dice el detalle, con el formato que pide |
 | **Dato descartado** | La línea entró sin ese dato; corregirlo en SAP para la próxima carga |
 
@@ -755,6 +781,7 @@ El carrusel de la grilla y el refresco automático hacen el resto.
 | Registrar ETA | ✓ | — | — | ✓ | — |
 | Ajustar días | ✓ | ✓ | — | ✓ | — |
 | Asociar o corregir la referencia | ✓ | ✓ | — | ✓ | — |
+| Asignar el puerto de destino | ✓ | ✓ | — | ✓ | — |
 | Cargar el Z-tracking | ✓ | — | — | ✓ | — |
 | Ver el historial de cargas | ✓ | ✓ | ✓ | ✓ | — |
 | Altas y créditos de ShipsGo | ✓ | — | — | ✓ | — |

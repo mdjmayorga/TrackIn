@@ -317,6 +317,24 @@ describe('informe de la carga', () => {
     expect(screen.getByText(/conviene revisar en SAP \(1\)/)).toBeInTheDocument()
   })
 
+  it('las compras locales no son errores: solo se cuentan, en gris (26/11/2026)', () => {
+    render(
+      <InformeCarga
+        carga={carga({ incidencias: [], por_motivo: {}, no_entraron: 0, compras_locales: 7 })}
+      />,
+    )
+
+    expect(screen.getByText('Todas las líneas entraron sin problemas.')).toBeInTheDocument()
+    expect(screen.getByText(/7 compras locales omitidas/)).toHaveClass('text-slate-400')
+    expect(screen.queryByText(/Qué corregir en SAP/)).not.toBeInTheDocument()
+  })
+
+  it('sin compras locales no dice nada de ellas', () => {
+    render(<InformeCarga carga={carga({ compras_locales: 0 })} />)
+
+    expect(screen.queryByText(/compras locales/)).not.toBeInTheDocument()
+  })
+
   it('una carga anterior al 23/11 sigue mostrando sus rechazos y cerrados sin referencia', () => {
     render(
       <InformeCarga

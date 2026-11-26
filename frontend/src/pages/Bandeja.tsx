@@ -126,7 +126,7 @@ function Arribo({ pedido, abierto, onAbrir, onListo }: ArriboProps) {
           </p>
           <p className="flex items-center gap-2 text-sm text-slate-300">
             <IconoVia via={pedido.via_transporte} className="h-3.5 w-5" />
-            <span title={pedido.destino.nombre}>{destinoCorto(pedido)}</span>
+            <span title={pedido.destino?.nombre}>{destinoCorto(pedido)}</span>
           </p>
         </div>
 

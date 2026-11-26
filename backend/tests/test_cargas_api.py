@@ -483,3 +483,53 @@ async def test_sin_referencia_entra_y_el_activo_sin_una_no_se_cierra(api, sesion
     assert carga["cerrados_sin_referencia"] == []
     await sesion.refresh(viejo)
     assert viejo.motivo_cierre is None
+
+
+# --- Corrida en vivo con Compras (26/11/2026) ----------------------------------
+
+
+async def test_la_compra_local_no_aparece_en_la_auditoria_de_errores(api) -> None:
+    """Las locales abrumaban la pantalla: no entran, pero el informe solo las cuenta."""
+    cliente, _ = api
+
+    respuesta = await _subir(
+        cliente,
+        _ztracking(
+            _linea(oc_numero="4500090021"),
+            _linea(oc_numero="4500090022", via_transporte="LOCAL"),
+        ),
+    )
+
+    carga = respuesta.json()
+    assert (carga["recibidas"], carga["insertadas"], carga["no_entraron"]) == (2, 1, 0)
+    assert carga["incidencias"] == []
+    assert carga["por_motivo"] == {}
+    assert carga["compras_locales"] == 1
+    detalle = (await cliente.get(f"{URL}/{carga['id']}")).json()
+    assert detalle["compras_locales"] == 1
+
+
+async def test_el_aereo_sin_incoterm_entra_a_juan_santamaria(api, sesion) -> None:
+    """El destino de un aéreo es siempre Juan Santamaría: el incoterm no hace falta."""
+    cliente, _ = api
+
+    respuesta = await _subir(
+        cliente,
+        _ztracking(
+            _linea(
+                oc_numero="4500090031",
+                via_transporte="AEREO",
+                incoterm=None,
+                tipo_referencia="MAWB",
+                numero_referencia="020-50685434",
+            )
+        ),
+    )
+
+    carga = respuesta.json()
+    assert (carga["insertadas"], carga["no_entraron"]) == (1, 0)
+    pedido = await sesion.scalar(
+        select(PedidoTransito).where(PedidoTransito.oc_numero == "4500090031")
+    )
+    await sesion.refresh(pedido, ["destino"])
+    assert pedido.destino.nombre == "Aeropuerto Juan Santamaría"

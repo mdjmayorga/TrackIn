@@ -27,8 +27,15 @@ export function formatearDias(valor: string | null): string | null {
  * por su nombre («Puerto Limón»).
  */
 export function destinoCorto(pedido: Pick<PedidoResumen, 'destino' | 'via_transporte'>): string {
+  // 26/11/2026: el marítimo sin puerto entra sin destino hasta que alguien lo asigna.
+  if (pedido.destino === null) return POR_DEFINIR
   return pedido.via_transporte === 'AEREO' ? pedido.destino.codigo : pedido.destino.nombre
 }
+
+/** Cómo se lee un destino vacío (26/11/2026). */
+export const POR_DEFINIR = 'Por definir'
+/** Lo que hay que hacer con él. */
+export const AYUDA_POR_DEFINIR = 'Asigne el puerto en el detalle del pedido'
 
 /** Quién hizo la carga: la persona que subió el Excel o «API de SAP» (`US-65`). */
 export function autorDeCarga(carga: Pick<CargaResumen, 'origen' | 'usuario'>): string {

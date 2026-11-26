@@ -52,6 +52,7 @@ def _detalle(fila: CargaZTracking) -> CargaDetalle:
             "por_motivo": informe.get("por_motivo", {}),
             "incidencias": informe.get("incidencias", []),
             "avisos": informe.get("avisos", []),
+            "compras_locales": informe.get("compras_locales", 0),
             "cerrados_sin_referencia": informe.get("cerrados_sin_referencia", []),
         }
     )

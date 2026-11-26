@@ -100,13 +100,13 @@ erDiagram
         varchar     tracking_interno            UK "clave alterna"
         bigint      id_proveedor                FK "NOT NULL"
         bigint      id_material                 FK "NOT NULL"
-        bigint      id_destino                  FK "NOT NULL, compuesto con via"
+        bigint      id_destino                  FK "NULL = por definir, compuesto con via"
         bigint      id_elemento_rastreado       FK "NULL = RN-02 Sin tracking"
         varchar     via_transporte                 "CHECK AEREO o MARITIMO"
         numeric     cantidad_pedida                "RN-10"
         varchar     unidad_medida                  "RN-10"
         date        fecha_entrega_pedido           "compromiso comercial"
-        integer     lead_time_destino_dias         "snapshot, RN-01"
+        integer     lead_time_destino_dias         "snapshot, RN-01; NULL sin destino"
         integer     ajuste_manual_dias             "RN-01"
         date        eta_declarada                  "del archivo, US-09"
         timestamptz eta_utilizada                  "snapshot, RN-16"
@@ -127,6 +127,7 @@ erDiagram
         timestamptz fecha_ultima_carga             "US-31"
         timestamptz ausente_desde                  "NULL = presente, US-31"
         boolean     destino_segun_fuente           "US-54"
+        boolean     destino_manual                 "elegido a mano, 26/11/2026"
         timestamptz creado_en
         timestamptz actualizado_en
     }
@@ -340,7 +341,7 @@ la justificación de §1.6.
 |---|---|---|---|
 | `id_proveedor` | `BIGINT` → `proveedores` | no | §8.2, normalizado |
 | `id_material` | `BIGINT` → `materiales` | no | §8.2, normalizado |
-| `id_destino` | `BIGINT` → `maestro_destinos` | no | §8.2, normalizado |
+| `id_destino` | `BIGINT` → `maestro_destinos` | sí | §8.2, normalizado. Nulo desde el 26/11/2026: destino por definir |
 | `via_transporte` | `VARCHAR(10)` | no | §8.2 |
 | `cantidad_pedida` | `NUMERIC(14,3)` | no | `TASK-12` |
 | `unidad_medida` | `VARCHAR(10)` | no | `TASK-12` |
@@ -360,7 +361,7 @@ rastreable automáticamente. Se refuerza con un `CHECK` (§1.5).
 
 | Campo | Tipo | Nulo | Origen |
 |---|---|---|---|
-| `lead_time_destino_dias` | `INTEGER` | no | §8.2 |
+| `lead_time_destino_dias` | `INTEGER` | sí | §8.2. Nulo mientras el destino esté por definir |
 | `ajuste_manual_dias` | `INTEGER` | no, *default* 0 | `TASK-12` |
 | `eta_declarada` | `DATE` | sí | `US-09` |
 | `eta_utilizada` | `TIMESTAMPTZ` | sí | `TASK-12` |
@@ -429,6 +430,7 @@ motivo `RECEPCION_CONFORME`, cuyo `CHECK` ya exige los datos de la recepción.
 | `fecha_ultima_carga` | `TIMESTAMPTZ` | sí | `US-31` |
 | `ausente_desde` | `TIMESTAMPTZ` | sí | `US-31` |
 | `destino_segun_fuente` | `BOOLEAN` | no | `US-54` |
+| `destino_manual` | `BOOLEAN` | no | 26/11/2026 |
 
 El segundo criterio de `US-31` pide **señalar para revisión manual** la línea que
 deja de figurar en el archivo, y **no eliminarla**. Hacen falta dos columnas y no
@@ -587,7 +589,10 @@ que es la baja lógica que el SRS §8.3 ya prevé.
 > `id`, como recomendaba `TASK-12`. Además el FK **pasa a ser compuesto**:
 > `(id_destino, via_transporte)` → `maestro_destinos (id, via_transporte)`, para
 > que la base impida que un pedido marítimo apunte a un aeropuerto. El motivo
-> completo está en §2.7. `id_destino` sigue siendo `NOT NULL`.
+> completo está en §2.7. ~~`id_destino` sigue siendo `NOT NULL`.~~ **Anulable desde
+> el 26/11/2026** (migración `0036`): el marítimo sin puerto entra con el destino
+> por definir. Con `id_destino` nulo la foránea compuesta no se evalúa
+> (`MATCH SIMPLE`), y la vía del pedido sigue siendo obligatoria.
 
 **`elementos_rastreados` 0..1 : N `pedidos_transito`** — es la relación que
 justifica la existencia de la entidad (SRS §8.6). `SET NULL` y no `CASCADE`:

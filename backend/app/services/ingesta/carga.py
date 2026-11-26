@@ -143,8 +143,9 @@ logger = logging.getLogger(__name__)
 #: que es exactamente lo que describe RN-02.
 ETAPA_INICIAL = "SIN_TRACKING"
 
-#: Motivos de rechazo. Son los dos campos `NOT NULL` que no siempre se pueden
-#: resolver desde un archivo sucio.
+#: Motivos de rechazo. La vía es `NOT NULL`. El destino lo fue hasta el
+#: 26/11/2026: desde la corrida en vivo con Compras el marítimo sin puerto entra
+#: «Por definir», y `sin_destino_resoluble` queda solo en informes anteriores.
 RECHAZO_SIN_VIA = "sin_via_transporte"
 RECHAZO_SIN_DESTINO = "sin_destino_resoluble"
 #: La vía terrestre no se rastrea (14/10/2026): compras regionales de Guatemala y
@@ -152,6 +153,10 @@ RECHAZO_SIN_DESTINO = "sin_destino_resoluble"
 #: parecía algo que corregir en SAP.
 RECHAZO_VIA_FUERA_DE_ALCANCE = "via_fuera_de_alcance"
 VIAS_RASTREADAS = ("AEREO", "MARITIMO")
+#: La compra nacional (23/11/2026). No entra, pero desde la corrida en vivo con
+#: Compras del 26/11/2026 tampoco es un rechazo: no hay nada que corregir en SAP
+#: y abrumaba la auditoría de errores. Se cuenta aparte (`compras_locales`).
+OMITIDA_COMPRA_LOCAL = "compra_local"
 
 
 def _es_local(crudo: PedidoCrudo) -> bool:
@@ -170,6 +175,9 @@ PREFIJO_DESTINO_DE_LA_FUENTE = "según ShipsGo"
 #: Y el de una cuyo destino corrigió la fuente (`US-54`): el archivo decía otro.
 #: Se reporta para que Compras corrija SAP, si quiere.
 PREFIJO_DISCREPANCIA = "ShipsGo corrige el destino"
+#: Y el de una que entró sin puerto (26/11/2026): un marítimo cuyo destino no
+#: dicen ni el archivo ni ShipsGo. Se reporta para que alguien lo asigne.
+PREFIJO_DESTINO_POR_DEFINIR = "destino por definir"
 
 #: `(tipo, número) → código de destino` según una fuente de rastreo (`US-52`).
 #: Devuelve `None` cuando no lo sabe; nunca da de alta nada.
@@ -230,6 +238,9 @@ class ResultadoCarga:
     #: queda vacío: la carga ya no cierra. Se conserva para el informe.
     cerrados_sin_referencia: list[tuple[str, int]] = field(default_factory=list)
     rechazadas: list[LineaRechazada] = field(default_factory=list)
+    #: Compras locales que vinieron en el archivo y no entran (26/11/2026). No son
+    #: rechazos: no hay nada que corregir, y el informe solo las cuenta.
+    compras_locales: int = 0
     #: Líneas que **sí** entraron pero cuya referencia no sirve. Van aparte de
     #: `rechazadas` porque el pedido está en la base: lo que falta es su rastreo.
     referencias_invalidas: list[LineaRechazada] = field(default_factory=list)
@@ -243,6 +254,8 @@ class ResultadoCarga:
     #: Líneas cuyo incoterm nombra un puerto y ShipsGo declara otro (`US-54`).
     #: Entra el de ShipsGo; se reportan para que Compras corrija SAP.
     destinos_discrepantes: list[LineaRechazada] = field(default_factory=list)
+    #: Líneas que entraron sin puerto (26/11/2026): hay que asignarlo en el detalle.
+    destinos_por_definir: list[LineaRechazada] = field(default_factory=list)
     #: De los cargados, cuántos trajeron la referencia escrita en el comentario.
     referencias_de_comentario: int = 0
     #: Pedidos que ya estaban sin referencia y la recibieron en esta carga
@@ -262,6 +275,7 @@ class ResultadoCarga:
             + self.sin_cambios
             + self.cerrados_omitidos
             + len(self.rechazadas)
+            + self.compras_locales
         )
 
     @property
@@ -397,13 +411,16 @@ class _Resuelto:
     """Lo que hay que resolver contra la base antes de insertar o actualizar."""
 
     via: str
-    destino: MaestroDestino
+    #: `None`: por definir (26/11/2026). Ni el archivo ni la fuente lo dicen.
+    destino: MaestroDestino | None
     id_pais: int | None
     id_proveedor: int
     id_material: int
     detalle: str
     #: `True` si el destino no salió del archivo sino de la fuente de rastreo.
     destino_de_la_fuente: bool = False
+    #: `True` si se conserva el destino que eligió una persona (26/11/2026).
+    destino_manual: bool = False
 
 
 async def _destino_por_referencia(
@@ -435,6 +452,7 @@ async def _resolver(
     resolutor: ResolutorDestino | None = None,
     destino_actual: MaestroDestino | None = None,
     actual_segun_fuente: bool = False,
+    actual_manual: bool = False,
 ) -> tuple[_Resuelto | None, str, str]:
     """Normaliza y resuelve los maestros. Devuelve el porqué si no se puede.
 
@@ -446,9 +464,13 @@ async def _resolver(
     2. **El destino ya guardado, si vino de ShipsGo** y ahora ShipsGo no
        respondió —carga sin token, caída, embarque madurando—. Sin esto, una
        recarga sin ShipsGo devolvería el pedido al puerto del incoterm.
-    3. **Lo que dice el archivo**: el incoterm o la vía (`resolver_destino`).
-    4. **El destino ya guardado**, sea cual sea su origen, para no rechazar y
+    3. **El destino que eligió una persona** en el detalle (26/11/2026). El
+       archivo no lo pisa; ShipsGo sí, y lo reporta como discrepancia.
+    4. **Lo que dice el archivo**: el incoterm o la vía (`resolver_destino`).
+    5. **El destino ya guardado**, sea cual sea su origen, para no rechazar y
        marcar ausente una línea que sí vino en el archivo.
+    6. **Por definir** (26/11/2026): la línea entra sin destino y se reporta para
+       que Compras o Logística lo asignen. Antes se rechazaba.
     """
     # RN-17: se normaliza antes de decidir nada. `Terrestre` es TERRESTRE y
     # `PENDIENTE` no es una vía, es la ausencia de una.
@@ -459,7 +481,7 @@ async def _resolver(
         # corregir: no se rastrean, como la terrestre.
         return (
             None,
-            RECHAZO_VIA_FUERA_DE_ALCANCE,
+            OMITIDA_COMPRA_LOCAL,
             "compra local: fuera del alcance de TrackIn, que sigue envíos aéreos y marítimos",
         )
     if via is None:
@@ -490,11 +512,18 @@ async def _resolver(
     if resolutor is not None:
         de_la_fuente, nota_fuente = await _destino_por_referencia(sesion, crudo, resolutor)
 
-    destino: MaestroDestino
+    destino: MaestroDestino | None
     segun_fuente = False
+    manual = False
     if de_la_fuente is not None:
         destino, segun_fuente = de_la_fuente, True
-        if del_archivo is None:
+        if actual_manual and destino_actual is not None and destino_actual.id != de_la_fuente.id:
+            declarado = nota_fuente.removeprefix(f"{PREFIJO_DESTINO_DE_LA_FUENTE}: ")
+            detalle = (
+                f"{PREFIJO_DISCREPANCIA}: {declarado}; "
+                f"se había asignado a mano {destino_actual.codigo}"
+            )
+        elif del_archivo is None:
             detalle = nota_fuente
         elif del_archivo.id == de_la_fuente.id:
             detalle = f"ShipsGo confirma el destino del archivo ({de_la_fuente.codigo})"
@@ -511,6 +540,13 @@ async def _resolver(
             f"se conserva el destino que declaró ShipsGo ({destino_actual.codigo}); "
             f"el archivo dice {dice}"
         )
+    elif destino_actual is not None and actual_manual:
+        destino, manual = destino_actual, True
+        dice = del_archivo.codigo if del_archivo is not None else "ninguno"
+        detalle = (
+            f"se conserva el destino asignado a mano ({destino_actual.codigo}); "
+            f"el archivo dice {dice}"
+        )
     elif del_archivo is not None:
         destino, detalle = del_archivo, detalle_archivo + nota_fuente
     elif destino_actual is not None:
@@ -521,11 +557,17 @@ async def _resolver(
             f"{detalle_archivo}{nota_fuente}"
         )
     else:
-        return None, RECHAZO_SIN_DESTINO, detalle_archivo + nota_fuente
+        # 26/11/2026: entra sin destino. Elegir entre Caldera, Limón y Moín
+        # sigue prohibido; lo elige una persona en el detalle.
+        destino = None
+        detalle = (
+            f"{PREFIJO_DESTINO_POR_DEFINIR}: {detalle_archivo}{nota_fuente}. "
+            "Entró sin puerto: asígnelo en el detalle del pedido"
+        )
 
     # La vía del destino manda sobre la de la línea cuando difieren: el maestro
     # es dato verificado y la columna del archivo es texto libre.
-    if destino.via_transporte != via:
+    if destino is not None and destino.via_transporte != via:
         logger.info(
             "Pedido %s: la vía %s no coincide con la del destino %s (%s); manda el maestro.",
             crudo,
@@ -551,6 +593,7 @@ async def _resolver(
             id_material=material.id,
             detalle=detalle,
             destino_de_la_fuente=segun_fuente,
+            destino_manual=manual,
         ),
         "",
         detalle,
@@ -566,10 +609,12 @@ def _campos_del_archivo(crudo: PedidoCrudo, resuelto: _Resuelto) -> dict[str, ob
     return {
         "id_proveedor": resuelto.id_proveedor,
         "id_material": resuelto.id_material,
-        "id_destino": resuelto.destino.id,
+        "id_destino": resuelto.destino.id if resuelto.destino is not None else None,
         # No lo escribe el archivo, pero se decide con él: es de dónde salió
         # el destino en esta misma carga (`US-54`).
         "destino_segun_fuente": resuelto.destino_de_la_fuente,
+        # Se apaga solo si ShipsGo lo reemplaza: entonces ya no es el de la persona.
+        "destino_manual": resuelto.destino_manual,
         "id_pais_origen": resuelto.id_pais,
         "via_transporte": resuelto.via,
         "cantidad_pedida": Decimal(str(crudo.cantidad)),
@@ -622,7 +667,9 @@ async def cargar_pedido(
         )
 
     destino_actual = (
-        await sesion.get(MaestroDestino, ya_esta.id_destino) if ya_esta is not None else None
+        await sesion.get(MaestroDestino, ya_esta.id_destino)
+        if ya_esta is not None and ya_esta.id_destino is not None
+        else None
     )
     resuelto, motivo, detalle = await _resolver(
         sesion,
@@ -630,12 +677,14 @@ async def cargar_pedido(
         resolutor_destino,
         destino_actual,
         actual_segun_fuente=ya_esta is not None and ya_esta.destino_segun_fuente,
+        actual_manual=ya_esta is not None and ya_esta.destino_manual,
     )
     if resuelto is None:
         return None, motivo, detalle
     sin_referencia = _sin_referencia_valida(crudo, resuelto.via, ya_esta)
     if sin_referencia is not None:
         return None, *sin_referencia
+    reportar = resuelto.destino_de_la_fuente or resuelto.destino is None
     if resuelto.destino_de_la_fuente:
         detalle = resuelto.detalle
 
@@ -648,7 +697,7 @@ async def cargar_pedido(
         # Se vacía igual que en el alta: sin esto el `UPDATE` queda pendiente y
         # quien llame vería el valor viejo hasta el siguiente *autoflush*.
         await sesion.flush()
-        if resuelto.destino_de_la_fuente:
+        if reportar:
             # El origen del destino va primero: es lo que `cargar` reporta, y
             # hasta `US-54` se perdía en las líneas que ya estaban.
             return pedido, estado, f"{detalle} · {cambios}"
@@ -660,7 +709,9 @@ async def cargar_pedido(
         tracking_interno=generar_tracking_interno(crudo.oc_numero, crudo.posicion_oc),
         # Desnormalizado a propósito (§1 del modelo): guarda el valor **usado**,
         # para que editar el maestro no reescriba un desglose ya calculado.
-        lead_time_destino_dias=resuelto.destino.lead_time_dias,
+        lead_time_destino_dias=(
+            resuelto.destino.lead_time_dias if resuelto.destino is not None else None
+        ),
         etapa_viaje=ETAPA_INICIAL,
         estado_calculado=ETAPA_INICIAL,
         fecha_ultima_carga=ahora,
@@ -708,7 +759,9 @@ def _actualizar(
     # La instantánea del lead time se reescribe solo si cambió el destino: es
     # el valor **usado** en el cálculo, no un espejo del maestro.
     if "id_destino" in cambios:
-        pedido.lead_time_destino_dias = resuelto.destino.lead_time_dias
+        pedido.lead_time_destino_dias = (
+            resuelto.destino.lead_time_dias if resuelto.destino is not None else None
+        )
 
     reaparecio = pedido.ausente_desde is not None
     if reaparecio:
@@ -870,6 +923,9 @@ async def cargar(
         # cerraría un pedido por un error de dato que Compras puede corregir.
         presentes.add(crudo.clave)
 
+        if pedido is None and estado == OMITIDA_COMPRA_LOCAL:
+            resultado.compras_locales += 1
+            continue
         if pedido is None:
             resultado.rechazadas.append(
                 LineaRechazada(
@@ -889,6 +945,10 @@ async def cargar(
         elif detalle.startswith(PREFIJO_DISCREPANCIA):
             resultado.destinos_discrepantes.append(
                 LineaRechazada(crudo.oc_numero, crudo.posicion_oc, "destino_discrepante", detalle)
+            )
+        elif detalle.startswith(PREFIJO_DESTINO_POR_DEFINIR):
+            resultado.destinos_por_definir.append(
+                LineaRechazada(crudo.oc_numero, crudo.posicion_oc, "destino_por_definir", detalle)
             )
 
         if estado == "cerrado_omitido":
@@ -980,6 +1040,8 @@ __all__ = [
     "ETAPA_INICIAL",
     "MOTIVO_CIERRE_AUSENTE",
     "MOTIVO_CIERRE_SIN_REFERENCIA",
+    "OMITIDA_COMPRA_LOCAL",
+    "PREFIJO_DESTINO_POR_DEFINIR",
     "RECHAZO_REFERENCIA_INVALIDA",
     "RECHAZO_SIN_REFERENCIA",
     "RECHAZO_SIN_DESTINO",

@@ -104,7 +104,9 @@ def test_las_instrucciones_explican_cada_columna() -> None:
     # 23/11/2026: sin referencia la línea entra «Sin tracking»; la celda puede ir vacía.
     for rotulo in ("# DE DOCUMENTO", "TIPO DE DOCUMENTO"):
         assert filas[rotulo][1] == "Sí, puede ir vacía"
-    assert filas["Incoterm (obligatorio si es marítimo)"][1] == "Si es marítimo"
+    # 26/11/2026: un aéreo va siempre a Juan Santamaría y un marítimo sin puerto
+    # entra «Por definir». El incoterm ya no deja ninguna línea fuera.
+    assert filas["Incoterm (opcional)"][1] == "No"
 
 
 async def test_llenada_completa_se_lee_sin_errores_ni_avisos(tmp_path: Path) -> None:

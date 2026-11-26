@@ -66,7 +66,9 @@ _AYUDA: Final[dict[str, tuple[str, str]]] = {
     "via_transporte": ("AEREO o MARITIMO", "Decide cómo se rastrea y a qué destino llega"),
     "incoterm": (
         "Con el puerto de llegada, como CIF LIMON",
-        "Si es marítimo y no trae BL, de aquí sale el puerto. Con EXW, FCA o FOB no lo hay",
+        "Si es marítimo y no trae BL, de aquí sale el puerto (con EXW, FCA o FOB no lo hay). "
+        "Sin puerto, el pedido entra con destino «Por definir» y se asigna en el detalle. "
+        "En aéreo no hace falta: el destino es siempre Juan Santamaría",
     ),
     # `US-44` lo lleva al detalle; hasta entonces se guarda normalizado.
     "pais_origen": ("Nombre del país, como BRASIL", "País de origen del pedido"),
@@ -160,9 +162,7 @@ def _hoja_de_instrucciones(libro: Workbook) -> None:
         celda.font = Font(bold=True)
     for campo, rotulo in PLANTILLA:
         formato, uso = _AYUDA[campo]
-        if campo == "incoterm":
-            obligatoria = "Si es marítimo"
-        elif _es_opcional(rotulo):
+        if _es_opcional(rotulo):
             obligatoria = "No"
         else:
             obligatoria = "Sí, puede ir vacía" if campo in _PUEDEN_IR_VACIAS else "Sí"

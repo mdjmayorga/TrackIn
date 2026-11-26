@@ -26,6 +26,14 @@ _Avoid_: Archivo de seguimiento, Excel, archivo de carga
 Pedido vivo que dejó de aparecer en el último Z-tracking y espera que alguien revise qué pasó con él.
 _Avoid_: Huérfano, eliminado, desaparecido
 
+**Destino por definir**:
+Pedido marítimo que entró sin puerto de llegada porque ni el Z-tracking ni la naviera lo dicen. No tiene fecha disponible proyectada hasta que Compras o Logística eligen el puerto.
+_Avoid_: Sin destino, rechazado por destino
+
+**Compra local**:
+Pedido nacional que viene en el Z-tracking y TrackIn no sigue. No entra, y no se cuenta como un error de la carga.
+_Avoid_: Rechazo, línea con error
+
 **Tracking interno**:
 El código propio que TrackIn asigna a cada pedido y que ven los usuarios.
 _Avoid_: Tracking (a secas), referencia

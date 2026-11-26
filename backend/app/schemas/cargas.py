@@ -66,6 +66,13 @@ class CargaDetalle(CargaResumen):
     )
     incidencias: list[Incidencia] = Field(default_factory=list)
     avisos: list[Aviso] = Field(default_factory=list)
+    compras_locales: int = Field(
+        default=0,
+        description=(
+            "Compras locales del archivo (26/11/2026): fuera del alcance, no entran y "
+            "no son incidencias."
+        ),
+    )
     cerrados_sin_referencia: list[str] = Field(
         default_factory=list,
         description=(

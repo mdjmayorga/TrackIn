@@ -182,7 +182,11 @@ def avisos(
             "tipo": linea.motivo,
             "detalle": linea.detalle,
         }
-        for linea in (*resultado.destinos_de_la_fuente, *resultado.destinos_discrepantes)
+        for linea in (
+            *resultado.destinos_de_la_fuente,
+            *resultado.destinos_discrepantes,
+            *resultado.destinos_por_definir,
+        )
     ]
 
 

@@ -21,10 +21,12 @@ const MOTIVOS: Record<string, string> = {
 /** Qué hacer en SAP para cada motivo frecuente. */
 export const QUE_HACER: Record<string, string> = {
   sin_via_transporte: 'Complete la vía (Aéreo o Marítimo) en SAP y vuelva a cargar.',
+  // Desde el 26/11/2026 ya no se produce: el marítimo sin puerto entra «Por
+  // definir». Queda para leer los informes de cargas anteriores.
   sin_destino_resoluble:
-    'Agregue el BL o la guía madre, o indique el puerto de llegada en el incoterm (CIF LIMON). Con EXW, FCA o FOB el incoterm nombra el origen, no el destino.',
+    'Motivo de cargas anteriores al 26/11/2026. Hoy el marítimo sin puerto entra con destino «Por definir» y se asigna en el detalle.',
   via_fuera_de_alcance:
-    'No hay nada que corregir: TrackIn sigue solo envíos aéreos y marítimos. Las compras terrestres y locales no entran.',
+    'No hay nada que corregir: TrackIn sigue solo envíos aéreos y marítimos. Las compras terrestres no entran.',
   formato_invalido:
     'Corrija la celda que dice el detalle, con el formato que pide, y vuelva a cargar.',
   dato_descartado:

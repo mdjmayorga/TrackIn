@@ -20,6 +20,7 @@ import { Link, useParams } from 'react-router-dom'
 import { puedeAsociar, puedeCargar } from '@/auth/permisos'
 import { useSesion } from '@/auth/useSesion'
 import { AccionesPedido } from '@/components/AccionesPedido'
+import { AsignarDestino } from '@/components/AsignarDestino'
 import { AsociarReferencia } from '@/components/AsociarReferencia'
 import { Distintivo } from '@/components/Distintivo'
 import { CUMPLIMIENTOS, ETAPAS, colorDelAnillo, etapaVisible } from '@/components/estados'
@@ -180,8 +181,12 @@ function Desglose({ pedido }: { pedido: PedidoDetalle }) {
           )}
         </Fila>
         <Fila etiqueta="+ Lead time del destino">
-          {c.lead_time_dias} días
-          {c.lead_time_maestro_dias !== c.lead_time_dias && (
+          {c.lead_time_dias === null ? (
+            <SinDato>Sin destino: no hay lead time que sumar</SinDato>
+          ) : (
+            `${c.lead_time_dias} días`
+          )}
+          {c.lead_time_dias !== null && c.lead_time_maestro_dias !== c.lead_time_dias && (
             <span className="block text-xs text-amber-300">
               El maestro dice hoy {c.lead_time_maestro_dias} días; se aplica en el próximo
               recálculo.
@@ -215,6 +220,55 @@ function Desglose({ pedido }: { pedido: PedidoDetalle }) {
   )
 }
 
+/**
+ * El puerto de destino (26/11/2026): si entró sin él, lo dice y ofrece elegirlo;
+ * si ya lo tiene, un marítimo lo puede cambiar. El aéreo va siempre a Juan
+ * Santamaría y no tiene nada que elegir.
+ */
+function DestinoDelPedido({ pedido }: { pedido: PedidoDetalle }) {
+  const sesion = useSesion()
+  const [cambiar, setCambiar] = useState(false)
+  const puede = puedeAsociar(sesion?.usuario.rol)
+
+  if (pedido.destino === null) {
+    return (
+      <div className="mt-3 rounded border border-amber-500/50 p-3">
+        <p className="mb-2 text-sm text-amber-200">
+          Entró sin puerto de destino: ni el Z-tracking ni ShipsGo dicen dónde descarga. Sin destino
+          no hay fecha proyectada.
+        </p>
+        {puede ? (
+          <AsignarDestino idPedido={pedido.id} via={pedido.via_transporte} />
+        ) : (
+          <p className="text-sm text-slate-400">Lo asignan Logística y Compras.</p>
+        )}
+      </div>
+    )
+  }
+  if (!puede || pedido.via_transporte !== 'MARITIMO') return null
+  if (!cambiar) {
+    return (
+      <button
+        type="button"
+        onClick={() => setCambiar(true)}
+        className="mt-1 block text-xs text-marca-300 underline hover:text-marca-200"
+      >
+        Cambiar puerto
+      </button>
+    )
+  }
+  return (
+    <div className="mt-2">
+      <AsignarDestino
+        idPedido={pedido.id}
+        via={pedido.via_transporte}
+        actual={pedido.destino.codigo}
+        onListo={() => setCambiar(false)}
+      />
+    </div>
+  )
+}
+
 function ElementoRastreado({ pedido }: { pedido: PedidoDetalle }) {
   const sesion = useSesion()
   const r = pedido.rastreo
@@ -230,6 +284,7 @@ function ElementoRastreado({ pedido }: { pedido: PedidoDetalle }) {
           </Fila>
           <Fila etiqueta="Vía">{destino}</Fila>
         </dl>
+        <DestinoDelPedido pedido={pedido} />
         <div className="mt-3 rounded border border-panel-borde p-3">
           <p className="mb-3 text-sm text-slate-300">
             Sin BL, contenedor o guía no hay fuente que consultar: la fecha proyectada depende de la
@@ -288,7 +343,10 @@ function ElementoRastreado({ pedido }: { pedido: PedidoDetalle }) {
               </Link>
             )}
         </Fila>
-        <Fila etiqueta="Vía">{destino}</Fila>
+        <Fila etiqueta="Vía">
+          {destino}
+          <DestinoDelPedido pedido={pedido} />
+        </Fila>
         {r.transbordos.length > 0 && (
           <Fila etiqueta="Transbordos">
             <ol className="space-y-0.5">

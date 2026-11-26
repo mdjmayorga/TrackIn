@@ -219,9 +219,9 @@ SUFIJO_OPCIONAL: Final = " (opcional)"
 
 #: La plantilla de `US-59`: **solo lo que el sistema usa**, campo y rótulo
 #: (decisión de Mariano del 02/11/2026). Las doce sin sufijo son las obligatorias
-#: de `COLUMNAS`: sin una de ellas la hoja no se lee. El incoterm se marca aparte
-#: porque es de donde sale el puerto de un marítimo sin BL (65 líneas de WK43
-#: quedaron fuera por eso). Quedan fuera las que TrackIn no lee o lee y no usa:
+#: de `COLUMNAS`: sin una de ellas la hoja no se lee. El incoterm se marcó aparte
+#: hasta el 26/11/2026, cuando dejó de rechazar líneas: el aéreo va siempre a
+#: Juan Santamaría y el marítimo sin puerto entra «Por definir». Quedan fuera las que TrackIn no lee o lee y no usa:
 #: las internas de Compras, la temperatura, el fabricante, el tipo de proveedor
 #: y `Carga arribo a Costa Rica`.
 PLANTILLA: Final[tuple[tuple[str, str], ...]] = (
@@ -235,7 +235,7 @@ PLANTILLA: Final[tuple[tuple[str, str], ...]] = (
     ("unidad_medida", "UMP"),
     ("fecha_entrega_pedido", "Fecha Entrega"),
     ("via_transporte", "Tipo de transporte (AEREO, MARITIMO)"),
-    ("incoterm", "Incoterm (obligatorio si es marítimo)"),
+    ("incoterm", f"Incoterm{SUFIJO_OPCIONAL}"),
     ("pais_origen", f"Pais de Origen{SUFIJO_OPCIONAL}"),
     ("eta_declarada", f"ETA CR (fecha){SUFIJO_OPCIONAL}"),
     ("solicitud_pedido", "Solicitud de pedido"),

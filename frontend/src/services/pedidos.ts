@@ -2,6 +2,7 @@
 
 import { API_V1, api } from '@/services/api'
 import type {
+  DestinoMaestro,
   AsientoBitacora,
   IndicadoresKpi,
   MapaPedidos,
@@ -52,6 +53,21 @@ export async function asociarReferencia(
   referencia: NuevaReferencia,
 ): Promise<PedidoDetalle> {
   const { data } = await api.post<PedidoDetalle>(`${API_V1}/pedidos/${id}/referencia`, referencia)
+  return data
+}
+
+/** Los destinos activos del maestro (26/11/2026). */
+export async function listarDestinos(): Promise<DestinoMaestro[]> {
+  const { data } = await api.get<DestinoMaestro[]>(`${API_V1}/destinos`)
+  return data
+}
+
+/** Asigna el puerto de destino a mano (26/11/2026); devuelve el detalle recalculado. */
+export async function asignarDestino(
+  id: number,
+  destino: { codigo: string; motivo: string | null },
+): Promise<PedidoDetalle> {
+  const { data } = await api.post<PedidoDetalle>(`${API_V1}/pedidos/${id}/destino`, destino)
   return data
 }
 

@@ -127,7 +127,8 @@ export interface PedidoResumen {
   material: Referencia & { descripcion: string }
   proveedor: Referencia & { nombre: string }
   via_transporte: Via
-  destino: Referencia & { nombre: string }
+  /** Nulo: por definir. El marítimo sin puerto entra así (26/11/2026). */
+  destino: (Referencia & { nombre: string }) | null
   eta_utilizada: string | null
   /** Fecha sin hora, `AAAA-MM-DD`. */
   fecha_proyectada_disponible: string | null
@@ -230,13 +231,22 @@ export interface Arribos {
   inferido: string | null
 }
 
+/** Un destino del maestro, para elegir el puerto a mano (26/11/2026). */
+export interface DestinoMaestro {
+  id: number
+  codigo: string
+  nombre: string
+  via_transporte: Via
+}
+
 /** El desglose de RN-01 que pide RF-05. */
 export interface Calculo {
   /** De qué fecha partió (`ATA_CONFIRMADA`, `ETA_FUENTE`, `ETA_DECLARADA`…). */
   origen: string | null
   eta_utilizada: string | null
-  lead_time_dias: number
-  lead_time_maestro_dias: number
+  /** Nulos mientras el destino esté por definir (26/11/2026). */
+  lead_time_dias: number | null
+  lead_time_maestro_dias: number | null
   ajuste_manual_dias: number
   /** La ETA a Costa Rica registrada a mano (`US-67`), si la hay. */
   eta_manual?: string | null
@@ -519,4 +529,6 @@ export interface CargaDetalle extends CargaResumen {
   avisos: Array<{ clave: string; tipo: string; detalle: string }>
   /** `OC-posición` de los activos sin referencia que la carga cerró (04/11/2026). */
   cerrados_sin_referencia?: string[]
+  /** Compras locales del archivo (26/11/2026): no entran y no son incidencias. */
+  compras_locales?: number
 }

@@ -54,6 +54,17 @@ export function InformeCarga({ carga }: { carga: CargaDetalle }) {
             <Total titulo="No entraron" valor={carga.no_entraron} alerta={carga.no_entraron > 0} />
           </dl>
 
+          {/* 26/11/2026: las compras locales no son errores (no hay nada que corregir
+              en SAP) y abrumaban la auditoría. Solo se cuentan, en gris. */}
+          {(carga.compras_locales ?? 0) > 0 && (
+            <p className="text-sm text-slate-400">
+              {carga.compras_locales === 1
+                ? '1 compra local omitida'
+                : `${carga.compras_locales} compras locales omitidas`}{' '}
+              (fuera del alcance: TrackIn sigue envíos aéreos y marítimos).
+            </p>
+          )}
+
           {carga.incidencias.length === 0 ? (
             <p className="text-sm text-emerald-300">Todas las líneas entraron sin problemas.</p>
           ) : (

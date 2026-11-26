@@ -70,6 +70,8 @@ class InformeValidacion:
     incidencias: list[Incidencia] = field(default_factory=list)
     #: `OC-posición` de los activos sin referencia que la carga cerró (04/11/2026).
     cerrados_sin_referencia: list[str] = field(default_factory=list)
+    #: Compras locales del archivo (26/11/2026): no entran y no son incidencias.
+    compras_locales: int = 0
 
     @property
     def total_incidencias(self) -> int:
@@ -113,6 +115,7 @@ class InformeValidacion:
             ],
             "por_motivo": self.por_motivo(),
             "cerrados_sin_referencia": self.cerrados_sin_referencia,
+            "compras_locales": self.compras_locales,
         }
 
     def como_texto(self, ejemplos: int = 10) -> str:
@@ -214,6 +217,7 @@ def construir_informe(
         ausentes=len(resultado.ausentes),
         incidencias=incidencias,
         cerrados_sin_referencia=[f"{oc}-{pos}" for oc, pos in resultado.cerrados_sin_referencia],
+        compras_locales=resultado.compras_locales,
     )
 
 

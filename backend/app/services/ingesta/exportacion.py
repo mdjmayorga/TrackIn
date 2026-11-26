@@ -104,9 +104,16 @@ def _fila_grilla(pedido: PedidoTransito) -> list[Any]:
         pedido.fecha_proyectada_disponible,
         pedido.fecha_entrega_pedido,
         _VIAS.get(pedido.via_transporte, pedido.via_transporte),
-        # Como `destinoCorto`: el código del aeropuerto, el nombre del puerto.
-        pedido.destino.codigo if pedido.via_transporte == "AEREO" else pedido.destino.nombre,
+        _destino_corto(pedido),
     ]
+
+
+def _destino_corto(pedido: PedidoTransito) -> str:
+    """Como `destinoCorto` del panel: el código del aeropuerto, el nombre del puerto."""
+    if pedido.destino is None:
+        # 26/11/2026: el marítimo sin puerto, hasta que alguien lo asigne.
+        return "Por definir"
+    return pedido.destino.codigo if pedido.via_transporte == "AEREO" else pedido.destino.nombre
 
 
 def _tipo_de_documento(tipo: str, numero: str) -> str:
@@ -124,7 +131,7 @@ def _tipo_de_documento(tipo: str, numero: str) -> str:
 def _fila_carga(pedido: PedidoTransito) -> dict[str, Any]:
     elemento = pedido.elemento_rastreado
     incoterm = pedido.incoterm
-    if pedido.via_transporte != "AEREO":
+    if pedido.via_transporte != "AEREO" and pedido.destino is not None:
         # El aéreo tiene un solo destino y la carga lo infiere de la vía.
         incoterm = normalizacion.incoterm_con_lugar(incoterm, pedido.destino.nombre)
     return {

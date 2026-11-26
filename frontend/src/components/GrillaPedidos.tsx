@@ -15,7 +15,7 @@ import { Distintivo } from '@/components/Distintivo'
 import { CUMPLIMIENTOS, ETAPAS, etapaVisible } from '@/components/estados'
 import type { ColumnaOrden, Orden, PaginaPedidos, PedidoResumen, Via } from '@/types/api'
 import { formatearFecha } from '@/utils/fechas'
-import { destinoCorto } from '@/utils/formatos'
+import { AYUDA_POR_DEFINIR, POR_DEFINIR, destinoCorto } from '@/utils/formatos'
 
 const VIAS: Record<Via, string> = {
   AEREO: 'Aéreo',
@@ -46,6 +46,13 @@ function fecha(valor: string | null, motivo: string) {
 
 /** Destino como en el Figma (`destinoCorto`), con el nombre completo en el `title`. */
 function destino(pedido: PedidoResumen) {
+  if (pedido.destino === null) {
+    return (
+      <span title={AYUDA_POR_DEFINIR} className="font-semibold text-amber-300">
+        {POR_DEFINIR}
+      </span>
+    )
+  }
   return <span title={pedido.destino.nombre}>{destinoCorto(pedido)}</span>
 }
 

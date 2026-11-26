@@ -102,7 +102,9 @@ class PedidoResumen(_Esquema):
     material: MaterialRef
     proveedor: ProveedorRef
     via_transporte: Via
-    destino: DestinoRef
+    destino: DestinoRef | None = Field(
+        description="Nulo: por definir. El marítimo sin puerto entra así (26/11/2026)."
+    )
     eta_utilizada: dt.datetime | None = Field(
         description="Fecha base del cálculo. Nula cuando RN-16 no pudo proyectar."
     )
@@ -418,8 +420,10 @@ class Calculo(BaseModel):
         )
     )
     eta_utilizada: dt.datetime | None
-    lead_time_dias: int = Field(description="La instantánea usada en el último recálculo.")
-    lead_time_maestro_dias: int = Field(
+    lead_time_dias: int | None = Field(
+        description="La instantánea usada en el último recálculo. Nula sin destino."
+    )
+    lead_time_maestro_dias: int | None = Field(
         description=(
             "El vigente en el maestro. Si difiere del anterior, el pedido todavía "
             "no se recalculó con el valor nuevo: ninguno de los dos está mal."
@@ -547,6 +551,13 @@ class EtaEntrada(BaseModel):
 
     eta: dt.date | None = Field(description="Fecha estimada de llegada a destino; `null` la quita.")
     motivo: str | None = Field(default=None, description="Opcional (02/11/2026).")
+
+
+class DestinoEntrada(BaseModel):
+    """El puerto de destino elegido a mano (26/11/2026)."""
+
+    codigo: str = Field(description="Código del destino en el maestro, como `CRCAL`.")
+    motivo: str | None = Field(default=None, description="Opcional.")
 
 
 class LiberacionEntrada(BaseModel):

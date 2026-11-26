@@ -157,7 +157,12 @@ async def recalcular(
     if umbral_dias is None:
         umbral_dias = await parametros.obtener_entero(sesion, CLAVE_UMBRAL)
 
-    destino = await sesion.get(MaestroDestino, pedido.id_destino)
+    # Sin destino (por definir, 26/11/2026) no hay nada que buscar.
+    destino = (
+        await sesion.get(MaestroDestino, pedido.id_destino)
+        if pedido.id_destino is not None
+        else None
+    )
     lead_time = destino.lead_time_dias if destino is not None else None
 
     resultado = await proyectar(sesion, pedido, lead_time_dias=lead_time)

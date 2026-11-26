@@ -26,9 +26,10 @@ from app.models.usuario import Usuario
 from app.services.ingesta.carga import (
     DATO_DESCARTADO,
     MOTIVO_CIERRE_AUSENTE,
+    OMITIDA_COMPRA_LOCAL,
+    PREFIJO_DESTINO_POR_DEFINIR,
     PREFIJO_DISCREPANCIA,
     RECHAZO_REFERENCIA_INVALIDA,
-    RECHAZO_SIN_DESTINO,
     RECHAZO_SIN_VIA,
     RECHAZO_VIA_FUERA_DE_ALCANCE,
     LineaRechazada,
@@ -329,8 +330,28 @@ class TestCargarPedido:
         )
 
         assert pedido is None
-        assert estado == RECHAZO_VIA_FUERA_DE_ALCANCE
+        assert estado == OMITIDA_COMPRA_LOCAL
         assert detalle.startswith("compra local: fuera del alcance de TrackIn")
+
+    async def test_la_compra_local_no_es_un_error_del_informe(self, sesion) -> None:
+        """Corrida en vivo con Compras (26/11/2026): las locales abrumaban la
+        auditoría de errores. No entran, pero se cuentan aparte, no como rechazo."""
+        fuente = FuenteFalsa(
+            [
+                _crudo(posicion_oc=10, via_transporte="LOCAL"),
+                _crudo(posicion_oc=20),
+            ]
+        )
+
+        resultado = await cargar(sesion, fuente, señalar_ausentes=False)
+        informe = construir_informe("prueba", resultado)
+
+        assert resultado.rechazadas == []
+        assert resultado.compras_locales == 1
+        assert resultado.leidas == 2
+        assert informe.incidencias == []
+        assert informe.no_entraron == 0
+        assert informe.como_dict()["compras_locales"] == 1
 
     async def test_la_via_aerea_manda_sobre_un_proveedor_local(self, sesion) -> None:
         """Solo se descarta como local lo que no trae una vía rastreable."""
@@ -340,21 +361,40 @@ class TestCargarPedido:
 
         assert estado != RECHAZO_VIA_FUERA_DE_ALCANCE
 
-    async def test_sin_destino_resoluble_se_rechaza_con_motivo(self, sesion) -> None:
-        """Marítimo sin nada que desambigüe el puerto: se rechaza, no se elige.
+    @pytest.mark.parametrize("incoterm", ["EXW", "CIF", None, "XYZ"])
+    async def test_el_maritimo_sin_puerto_entra_con_destino_por_definir(
+        self, sesion, incoterm: str | None
+    ) -> None:
+        """Marítimo sin nada que desambigüe el puerto: entra, pero no se elige.
 
-        El incoterm va sin lugar a propósito. `_crudo` trae `CIF LIMON`, que
-        desde la regla del 23/09/2026 **sí** resuelve; son las 66 líneas `EXW`
-        y las 15 `CIF` a secas de WK38 las que siguen sin destino posible.
+        Hasta la corrida en vivo con Compras del 26/11/2026 se rechazaba: muchos
+        pedidos todavía no tienen incoterm. Ahora entra sin destino y alguien lo
+        asigna en el detalle; adivinar entre Caldera, Limón y Moín sigue prohibido.
         """
         pedido, estado, detalle = await cargar_pedido(
             sesion,
-            _crudo(destino_codigo=None, via_transporte="MARITIMO", incoterm="EXW"),
+            _crudo(destino_codigo=None, via_transporte="MARITIMO", incoterm=incoterm),
         )
 
-        assert pedido is None
-        assert estado == RECHAZO_SIN_DESTINO
+        assert pedido is not None
+        assert estado == "cargado"
+        assert pedido.id_destino is None
+        assert pedido.via_transporte == "MARITIMO"
+        assert detalle.startswith(PREFIJO_DESTINO_POR_DEFINIR)
         assert "no se adivina" in detalle
+
+    async def test_el_destino_por_definir_se_reporta_para_asignarlo(self, sesion) -> None:
+        fuente = FuenteFalsa(
+            [_crudo(destino_codigo=None, via_transporte="MARITIMO", incoterm="FOB")]
+        )
+
+        resultado = await cargar(sesion, fuente, señalar_ausentes=False)
+
+        assert resultado.rechazadas == []
+        assert resultado.cargados == 1
+        (aviso,) = resultado.destinos_por_definir
+        assert aviso.oc_numero == "4599999999"
+        assert "asígnelo en el detalle" in aviso.detalle
 
     async def test_una_linea_maritima_con_puerto_en_el_incoterm_entra(self, sesion) -> None:
         """El extremo opuesto, de punta a punta: la línea llega a la base."""
@@ -365,7 +405,7 @@ class TestCargarPedido:
 
         limon, _ = await resolver_destino(sesion, "CRLIO", "MARITIMO")
         assert pedido is not None and limon is not None
-        assert estado != RECHAZO_SIN_DESTINO
+        assert estado == "cargado"
         assert pedido.id_destino == limon.id
 
     async def test_el_maestro_manda_sobre_la_via_del_archivo(self, sesion) -> None:
@@ -1005,12 +1045,12 @@ class ResolutorFalso:
 
 @pytest.mark.integration
 class TestDestinoDeLaFuente:
-    async def test_sin_resolutor_sigue_rechazada(self, sesion, sin_pedidos) -> None:
-        """Sin ShipsGo el comportamiento es el de siempre: no se adivina."""
+    async def test_sin_resolutor_entra_por_definir(self, sesion, sin_pedidos) -> None:
+        """Sin ShipsGo no se adivina: entra sin destino (26/11/2026)."""
         resultado = await cargar(sesion, FuenteFalsa([_cif_sin_puerto()]))
 
-        assert resultado.cargados == 0
-        assert resultado.rechazadas[0].motivo == RECHAZO_SIN_DESTINO
+        assert resultado.cargados == 1
+        assert len(resultado.destinos_por_definir) == 1
 
     async def test_con_resolutor_entra_con_el_puerto_de_la_naviera(
         self, sesion, sin_pedidos
@@ -1034,24 +1074,24 @@ class TestDestinoDeLaFuente:
         (reportada,) = resultado.destinos_de_la_fuente
         assert "según ShipsGo" in reportada.detalle and "CRCAL" in reportada.detalle
 
-    async def test_si_la_fuente_no_lo_sabe_sigue_rechazada(self, sesion, sin_pedidos) -> None:
+    async def test_si_la_fuente_no_lo_sabe_entra_por_definir(self, sesion, sin_pedidos) -> None:
         resultado = await cargar(
             sesion, FuenteFalsa([_cif_sin_puerto()]), resolutor_destino=ResolutorFalso(None)
         )
 
-        assert resultado.rechazadas[0].motivo == RECHAZO_SIN_DESTINO
+        assert resultado.rechazadas == []
+        assert len(resultado.destinos_por_definir) == 1
 
-    async def test_un_puerto_fuera_del_maestro_se_rechaza_con_el_codigo(
+    async def test_un_puerto_fuera_del_maestro_entra_por_definir_con_el_codigo(
         self, sesion, sin_pedidos
     ) -> None:
-        """Mejor rechazada con el código a la vista que ubicada en otro puerto."""
+        """Mejor por definir con el código a la vista que ubicada en otro puerto."""
         resultado = await cargar(
             sesion, FuenteFalsa([_cif_sin_puerto()]), resolutor_destino=ResolutorFalso("PAONX")
         )
 
-        (rechazada,) = resultado.rechazadas
-        assert rechazada.motivo == RECHAZO_SIN_DESTINO
-        assert "PAONX" in rechazada.detalle
+        (aviso,) = resultado.destinos_por_definir
+        assert "PAONX" in aviso.detalle
 
     async def test_una_referencia_invalida_no_se_consulta(self, sesion, sin_pedidos) -> None:
         """El contenedor con el dígito verificador malo no llega a ShipsGo."""

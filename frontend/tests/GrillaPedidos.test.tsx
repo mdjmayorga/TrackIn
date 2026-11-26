@@ -83,6 +83,14 @@ describe('columnas', () => {
     expect(screen.getByText('MROC')).toHaveAttribute('title', 'Aeropuerto Juan Santamaría')
   })
 
+  it('el marítimo sin puerto dice «Por definir», resaltado (26/11/2026)', () => {
+    montar({ pagina: pagina([pedido({ destino: null })]) })
+
+    const celda = fila(1).getByText('Por definir')
+    expect(celda).toHaveClass('text-amber-300')
+    expect(celda).toHaveAttribute('title', 'Asigne el puerto en el detalle del pedido')
+  })
+
   it('sin proyección, cumplimiento y fecha llevan el guion', () => {
     montar({
       pagina: pagina([

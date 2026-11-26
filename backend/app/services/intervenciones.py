@@ -64,6 +64,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.elemento_rastreado import ElementoRastreado
+from app.models.maestro_destino import MaestroDestino
 from app.models.pedido_elemento_rastreado import PedidoElementoRastreado
 from app.models.pedido_transito import PedidoTransito
 from app.services import asociacion, auditoria, dias_habiles, estado, parametros, recalculo
@@ -483,6 +484,72 @@ async def ajustar_fecha(
     )
     await sesion.flush()
     logger.info("Pedido %s: ajuste manual %s → %s d.", pedido.tracking_interno, anterior, dias)
+    return pedido
+
+
+class DestinoInvalido(ValueError):
+    """El código no existe, está inactivo o es de otra vía (422)."""
+
+
+_NOMBRE_VIA = {"AEREO": "aéreo", "MARITIMO": "marítimo"}
+
+
+async def asignar_destino(
+    sesion: AsyncSession,
+    id_pedido: int,
+    *,
+    codigo: str,
+    motivo: str | None,
+    id_usuario: int,
+    instante: dt.datetime | None = None,
+) -> PedidoTransito:
+    """El puerto de destino, elegido a mano (26/11/2026), y recalcula. **No hace commit.**
+
+    Para el marítimo que entró «Por definir» porque ni el archivo ni ShipsGo
+    dicen dónde descarga; también corrige uno ya asignado. Queda marcado
+    `destino_manual`: el archivo ya no lo pisa, y ShipsGo sí (`US-54`).
+    """
+    ahora = instante or dt.datetime.now(dt.UTC)
+    motivo = auditoria.validar_motivo(motivo)
+    pedido = await _pedido(sesion, id_pedido)
+    destino = await sesion.scalar(
+        select(MaestroDestino).where(
+            MaestroDestino.codigo == codigo.strip().upper(), MaestroDestino.activo.is_(True)
+        )
+    )
+    if destino is None:
+        raise DestinoInvalido(f"No hay un destino activo con el código {codigo!r}.")
+    if destino.via_transporte != pedido.via_transporte:
+        via = _NOMBRE_VIA.get(pedido.via_transporte, pedido.via_transporte.lower())
+        raise DestinoInvalido(f"{destino.nombre} no es un destino para un pedido {via}.")
+    if destino.id == pedido.id_destino:
+        raise IntervencionRechazada(
+            f"El pedido ya tiene como destino {destino.nombre}: no hay nada que cambiar."
+        )
+
+    anterior = await sesion.get(MaestroDestino, pedido.id_destino) if pedido.id_destino else None
+    pedido.id_destino = destino.id
+    pedido.destino_manual = True
+    pedido.destino_segun_fuente = False
+    await recalculo.recalcular(sesion, pedido, instante=ahora)
+    auditoria.registrar(
+        sesion,
+        id_pedido=pedido.id,
+        id_usuario=id_usuario,
+        tipo="ASIGNACION_DESTINO",
+        campo="id_destino",
+        anterior=anterior.codigo if anterior is not None else None,
+        nuevo=destino.codigo,
+        motivo=motivo,
+        instante=ahora,
+    )
+    await sesion.flush()
+    logger.info(
+        "Pedido %s: destino %s → %s, a mano.",
+        pedido.tracking_interno,
+        anterior.codigo if anterior is not None else "por definir",
+        destino.codigo,
+    )
     return pedido
 
 

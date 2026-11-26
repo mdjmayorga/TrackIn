@@ -107,6 +107,8 @@ TIPOS_INTERVENCION: Final[tuple[str, ...]] = (
     "ASOCIACION_TRACKING",
     # La ETA a Costa Rica registrada a mano (`US-67`, 02/11/2026).
     "ETA_MANUAL",
+    # El puerto de destino elegido a mano (26/11/2026).
+    "ASIGNACION_DESTINO",
 )
 
 # --- Parámetros del sistema -------------------------------------------------

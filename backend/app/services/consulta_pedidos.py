@@ -221,7 +221,8 @@ def _consulta_base(filtros: Filtros) -> Select[tuple[PedidoTransito]]:
         select(PedidoTransito)
         .join(PedidoTransito.proveedor)
         .join(PedidoTransito.material)
-        .join(PedidoTransito.destino)
+        # Externo: el marítimo sin puerto entra con destino por definir (26/11/2026).
+        .outerjoin(PedidoTransito.destino)
         .outerjoin(PedidoTransito.elemento_rastreado)
         .where(*_condiciones(filtros))
     )
@@ -486,7 +487,9 @@ async def _calculo(sesion: AsyncSession, pedido: PedidoTransito) -> Calculo:
         origen=origen,
         eta_utilizada=pedido.eta_utilizada,
         lead_time_dias=pedido.lead_time_destino_dias,
-        lead_time_maestro_dias=pedido.destino.lead_time_dias,
+        lead_time_maestro_dias=(
+            pedido.destino.lead_time_dias if pedido.destino is not None else None
+        ),
         ajuste_manual_dias=pedido.ajuste_manual_dias,
         eta_manual=pedido.eta_manual,
         fecha_proyectada=proyectada_fecha,
@@ -759,7 +762,7 @@ async def mapa(
         .select_from(PedidoTransito)
         .join(PedidoTransito.proveedor)
         .join(PedidoTransito.material)
-        .join(PedidoTransito.destino)
+        .outerjoin(PedidoTransito.destino)
         .join(PedidoTransito.elemento_rastreado)
         .where(
             *_condiciones(filtros),

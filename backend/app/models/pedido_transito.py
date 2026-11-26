@@ -129,8 +129,10 @@ class PedidoTransito(Base, TimestampMixin):
     id_material: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("materiales.id"), nullable=False, index=True
     )
-    id_destino: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("maestro_destinos.id"), nullable=False, index=True
+    #: Anulable desde el 26/11/2026: un marítimo sin puerto resoluble entra con
+    #: el destino «Por definir» y alguien lo asigna en el detalle.
+    id_destino: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("maestro_destinos.id"), nullable=True, index=True
     )
     #: País de origen normalizado (TASK-29). Anulable: el archivo lo trae vacío
     #: en el 61 % de las líneas y la carga no debe abortar por eso (RN-17).
@@ -166,7 +168,8 @@ class PedidoTransito(Base, TimestampMixin):
     # --- Cálculo de la fecha proyectada (RN-01, RN-14, RN-16) ---------------
     #: Desnormalizado a propósito: guarda el valor **usado en el recálculo**,
     #: para que editar el maestro no reescriba el desglose ya calculado (RF-05).
-    lead_time_destino_dias: Mapped[int] = mapped_column(Integer, nullable=False)
+    #: Nulo mientras el destino esté por definir (26/11/2026).
+    lead_time_destino_dias: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ajuste_manual_dias: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text("0")
     )
@@ -234,11 +237,16 @@ class PedidoTransito(Base, TimestampMixin):
     destino_segun_fuente: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false")
     )
+    #: El destino lo eligió una persona en el detalle (26/11/2026). Una carga no
+    #: lo pisa con lo que diga el archivo; ShipsGo sí, porque manda (`US-54`).
+    destino_manual: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
 
     # --- Relaciones ---------------------------------------------------------
     proveedor: Mapped[Proveedor] = relationship()
     material: Mapped[Material] = relationship()
-    destino: Mapped[MaestroDestino] = relationship()
+    destino: Mapped[MaestroDestino | None] = relationship()
     pais_origen: Mapped[MaestroPais | None] = relationship()
     elemento_rastreado: Mapped[ElementoRastreado | None] = relationship()
 

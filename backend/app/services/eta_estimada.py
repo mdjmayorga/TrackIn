@@ -192,7 +192,12 @@ async def estimar(
         return EtaEstimada(None, None, None, None, motivo=SIN_POSICION)
 
     elemento = await sesion.get(ElementoRastreado, pedido.id_elemento_rastreado)
-    destino = await sesion.get(MaestroDestino, pedido.id_destino)
+    # Sin destino (por definir, 26/11/2026) no hay nada que buscar.
+    destino = (
+        await sesion.get(MaestroDestino, pedido.id_destino)
+        if pedido.id_destino is not None
+        else None
+    )
     if elemento is None or destino is None:
         return EtaEstimada(None, None, None, None, motivo=SIN_DESTINO)
 

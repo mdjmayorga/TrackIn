@@ -49,7 +49,7 @@ function Tarjeta({ arribo }: { arribo: ProximoArribo }) {
       </span>
       <IconoVia via={arribo.via_transporte} className="mt-0.5 h-3 w-4 text-slate-300" />
       <span className="mt-0.5 min-w-0">
-        <span className="block" title={arribo.destino.nombre}>
+        <span className="block" title={arribo.destino?.nombre}>
           {destinoCorto(arribo)}
         </span>
         <span className="block font-semibold">
