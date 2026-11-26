@@ -1,26 +1,28 @@
 # Correo a TI: infraestructura para la puesta en producción de TrackIn
 
 **Para:** TI de Gutis (destinatario por confirmar). **Copia:** Greivin. **Tarea:** `PROD-01` de
-[backlog_produccion.md](backlog_produccion.md). **Objetivo:** respuesta de TI el **13/11** y
-la máquina virtual lista el **viernes 20/11**, para empezar la instalación el lunes 23/11 con
-margen.
+[backlog_produccion.md](backlog_produccion.md). **Objetivo:** respuesta de TI el **viernes 27/11** y
+la máquina virtual lista el **lunes 30/11**, para instalar el 30/11 y el 01/12 y llegar al
+piloto antes del 04/12.
 
 > Borrador del 06/11/2026, ajustado con las decisiones D1 a D25 confirmadas ese día.
+> **26/11/2026: fechas actualizadas**, porque no se había enviado: las del 06/11 (13/11 y
+> 20/11) ya habían pasado.
 > Lo marcado con `[ ]` se completa al enviarlo.
 
 ---
 
-**Asunto:** TrackIn: servidor y red para la puesta en producción (máquina virtual para el 20/11)
+**Asunto:** TrackIn: servidor y red para la puesta en producción (máquina virtual para el lunes 30/11)
 
 Buenos días:
 
 Les escribo por TrackIn, el sistema de seguimiento de las compras internacionales que
 desarrollé en la práctica con Compras y Logística. El desarrollo está terminado y, como se
 acordó al inicio de la práctica, vamos a ponerlo en producción en la **red interna de
-Gutis** durante la extensión del proyecto, del 23/11 al 04/12.
+Gutis** durante la extensión del proyecto, que termina el 04/12.
 
 Para eso necesito de ustedes la infraestructura que detallo abajo. **Lo urgente es la
-máquina virtual: si está lista el viernes 20/11, llegamos al 04/12 con una semana de
+máquina virtual: si está lista el lunes 30/11, llegamos al 04/12 con unos días de
 piloto.**
 Todo lo de TrackIn (instalación, configuración, respaldos y documentación) lo hago yo, y al
 final se lo traspaso al Centro de Competencias.
@@ -108,11 +110,11 @@ reinicios, espacio en disco) y cuál es la ventana de mantenimiento?
 
 | Fecha | Qué |
 |---|---|
-| **13/11** | Respuesta a los puntos 1, 3, 5, 6, 7, 8 y 9 (sobre todo: si hay Linux y si hay proxy) |
-| **20/11** | Máquina virtual lista (punto 1) |
-| 23/11 al 26/11 | Instalación de TrackIn; nombre, certificado y salida a internet (puntos 2, 3 y 4) |
-| 27/11 al 30/11 | Salida a producción con datos reales |
-| 30/11 al 04/12 | Piloto con Compras y traspaso al Centro de Competencias |
+| **Viernes 27/11** | Respuesta a los puntos 1, 3, 5, 6, 7, 8 y 9 (sobre todo: si hay Linux y si hay proxy) |
+| **Lunes 30/11** | Máquina virtual lista (punto 1) |
+| 30/11 y 01/12 | Instalación de TrackIn; nombre, certificado y salida a internet (puntos 2, 3 y 4) |
+| 02/12 | Salida a producción con datos reales |
+| 02/12 al 04/12 | Piloto con Compras y traspaso al Centro de Competencias |
 
 Muchas gracias.
 
@@ -125,7 +127,7 @@ Mariano Mayorga
 
 ## Después de enviarlo
 
-- [ ] Enviado el `[ ]` a `[ ]`
+- [x] Enviado el 26/11/2026 a `[destinatario por anotar]`, en una versión corta con los mismos cinco grupos de pedidos y las fechas de arriba
 - [ ] Respuesta de TI anotada en `PROD-01`, con la fecha comprometida de la máquina virtual
 - [ ] Si TI no tiene Linux: reabrir D2 y el [ADR 0002](../adr/0002-produccion-en-maquina-virtual-linux-de-la-red-interna.md)
 - [ ] Si hay proxy corporativo: cancelar `PROD-10`

@@ -72,7 +72,7 @@ cambia, cambian las tareas que la citan.
 | # | Decisión | Opción tomada | Tareas que dependen |
 |---|---|---|---|
 | D1 | Alcance de la red | Solo la **red interna** de Gutis; desde afuera, por la VPN corporativa | `PROD-16`, `PROD-17` |
-| D2 | Servidor | **Máquina virtual Linux con Docker** de TI: 2 vCPU, 4 GB de RAM, 40 GB de disco ([ADR 0002](../adr/0002-produccion-en-maquina-virtual-linux-de-la-red-interna.md)) | `PROD-13`, `PROD-15` |
+| D2 | Servidor | **Cambiada el 26/11: TI solo ofrece Windows** (ver `PROD-01`). Es **Windows Server 2025**. Mariano decide: TrackIn **nativo, sin Docker** (guía §10), con la API y el worker como servicios de Windows e **IIS** (URL Rewrite y ARR) para servir el panel, reenviar `/api/` y terminar el HTTPS. Falta un ADR que reemplace al 0002. Antes: ~~**Máquina virtual Linux con Docker** de TI: 2 vCPU, 4 GB de RAM, 40 GB de disco~~ ([ADR 0002](../adr/0002-produccion-en-maquina-virtual-linux-de-la-red-interna.md)) | `PROD-13`, `PROD-15` |
 | D3 | Quién y cuándo | Lo ejecuta Mariano en la extensión; TI pone la infraestructura; salida antes del 04/12 | Todo el backlog |
 | D4 | Datos iniciales | **Base vacía**: migraciones, cuentas nuevas, primera carga real del Z-tracking vigente y altas en ShipsGo. **Confirmada con Compras el 25/11** | `PROD-20`, `PROD-22` |
 | D5 | Formato | Este archivo, IDs `PROD-xx`, sin issues en GitHub | — |
@@ -93,7 +93,7 @@ cambia, cambian las tareas que la citan.
 | D20 | Piloto | ~~Una semana~~ **Cuatro días hábiles, del 01/12 al 04/12** (Compras, 25/11), usando TrackIn junto al Excel, con los cuatro criterios de salida de `PROD-26` | `PROD-26` |
 | D21 | Traspaso | Manual de operación y una sesión de traspaso con el Centro de Competencias | `PROD-28`, `PROD-29` |
 | D22 | Destinatario en TI | Por completar al enviar el correo | `PROD-01` |
-| D23 | Reunión con TI | **Solo por correo**, sin ofrecer reunión | `PROD-01` |
+| D23 | Reunión con TI | ~~**Solo por correo**, sin ofrecer reunión~~. **Cambiada el 26/11:** reunión con los jefes de TI el lunes 30/11 a la 1:00 p. m. | `PROD-01` |
 | D24 | Plazos pedidos a TI | Respuesta el **13/11** y máquina virtual lista el **20/11**, una semana antes de lo recomendado, para tener margen | `PROD-01`, `PROD-13` |
 | D25 | Supervisor | Greivin ya sabe que la puesta en producción va en la extensión; el correo a TI va con copia a él | `PROD-01`, `PROD-02` |
 | D26 | Ramas y presentación (11/11) | `Cierre_Prod` **no se une a `main` hasta la presentación del sistema a la universidad, el viernes 27/11**. Hasta entonces el servidor corre `v1.0.0-rc.1`, etiquetada en `Cierre_Prod`; el 27/11, después de presentar, se unen las ramas, se etiqueta `v1.0.0` y el servidor se actualiza a ella | `PROD-06`, `PROD-13`, `PROD-15`, `PROD-26` |
@@ -160,7 +160,7 @@ cambia, cambian las tareas que la citan.
 | Riesgo | Efecto | Qué se hace |
 |---|---|---|
 | R1. TI no entrega la máquina virtual a tiempo | Se corre toda la fase 1 | Pedirla ya, para el 20/11 y no el 23/11 (`PROD-01`, D24): hay tres días hábiles de margen; mientras, todo lo que se puede probar se prueba en el ensayo local (`PROD-03`) |
-| R2. TI solo tiene servidores Windows | Cambia D2 | La guía ya cubre la variante sin Docker (§10); suma unas 6 h a `PROD-15` |
+| R2. TI solo tiene servidores Windows (**ocurrió el 26/11**) | Cambia D2 | La guía ya cubre la variante sin Docker (§10); suma unas 6 h a `PROD-15` |
 | R3. Las imágenes nunca se construyeron | El primer `docker compose build` falla en el servidor | **Cerrado el 06/11** por `PROD-03`: se construyen y el stack funciona; quedó un solo defecto (el chequeo de salud del panel), para `PROD-04` |
 | ~~R4. El Z-tracking llega con pocas referencias~~ | ~~Desde el 04/11 la línea sin referencia no entra~~ | **Cerrado el 23/11:** la línea sin referencia vuelve a entrar, «Sin tracking», y toma el BL o la guía en la carga en que llegue |
 | R5. Un equipo de desarrollo gasta créditos reales | El saldo no coincide y se pierden créditos | `PROD-12` ([ADR 0003](../adr/0003-solo-produccion-da-de-alta-en-shipsgo.md)) |
@@ -196,6 +196,21 @@ Como responsable de TrackIn, quiero una solicitud formal a TI con todo lo que ha
 > máquina virtual el 20/11. Suma a la lista blanca dos destinos que la guía no tenía y que
 > el servidor necesita para instalar: `github.com` (el código) y Docker Hub (las imágenes
 > base). **Falta:** poner el destinatario en TI (D22) y enviarlo.
+>
+> **26/11/2026: enviado**, en versión corta, con fechas nuevas: respuesta el 27/11 y máquina
+> virtual el 30/11.
+>
+> **26/11/2026: primera respuesta de TI.** Textual: «Evitamos mucho tener servidores Linux.
+> Favor asumir que el servidor que podemos proporcionar es Windows.» **Se reabre D2 y el
+> [ADR 0002](../adr/0002-produccion-en-maquina-virtual-linux-de-la-red-interna.md)**: el
+> servidor es Windows y TrackIn corre sin Docker (guía §10, riesgo R2). **Falta:** que TI
+> responda el resto de los puntos (proxy o certificado, respaldos, secretos, monitoreo, quién
+> administra) y la fecha comprometida del servidor.
+>
+> **26/11/2026: TI confirma Windows Server 2025.** Mariano decide TrackIn nativo con IIS (D2).
+>
+> **Reunión con los jefes de TI el lunes 30/11, 1:00 p. m.** (cambia D23). Agenda y acuerdos a
+> completar en [agenda_reunion_ti_30nov.md](agenda_reunion_ti_30nov.md).
 
 #### `PROD-02` — Confirmar las decisiones de partida con el supervisor y Compras
 
